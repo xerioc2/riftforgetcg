@@ -58,7 +58,8 @@ public class MatchmakingService {
     gameService.initGame(
         room.getCode().toUpperCase(),
         List.of(p1.playerId(), p2.playerId()),
-        Map.of(p1.playerId(), p1.deckCardIds(), p2.playerId(), p2.deckCardIds())
+        Map.of(p1.playerId(), p1.deckCardIds(), p2.playerId(), p2.deckCardIds()),
+        Map.of(p1.playerId(), p1.playerName(), p2.playerId(), p2.playerName())
     );
 
     MatchNotification notification = new MatchNotification(room.getCode());

@@ -23,7 +23,7 @@ public class CardEffectRegistry {
   void init() {
     register(new CardEffect() {
       public String cardId() { return "origins-001"; }
-      public void onPlay(CardInstance card, LiveGameState state) {
+      public void onPlay(CardInstance card, CardInstance target, LiveGameState state) {
         state.getCards().stream()
             .filter(c -> c.getOwnerId().equals(card.getOwnerId()) && c.getZone() == ZoneName.BATTLEFIELD && !c.getInstanceId().equals(card.getInstanceId()))
             .forEach(c -> { if (!c.getTempKeywords().contains("TOUGH")) c.getTempKeywords().add("TOUGH"); });
@@ -31,7 +31,7 @@ public class CardEffectRegistry {
     });
     register(new CardEffect() {
       public String cardId() { return "origins-002"; }
-      public void onPlay(CardInstance card, LiveGameState state) {
+      public void onPlay(CardInstance card, CardInstance target, LiveGameState state) {
         state.getCards().stream()
             .filter(c -> c.getOwnerId().equals(card.getOwnerId())
                 && (c.getZone() == ZoneName.CHAMPION || c.getZone() == ZoneName.BATTLEFIELD)
@@ -41,13 +41,13 @@ public class CardEffectRegistry {
     });
     register(new CardEffect() {
       public String cardId() { return "origins-003"; }
-      public void onPlay(CardInstance card, LiveGameState state) {
+      public void onPlay(CardInstance card, CardInstance target, LiveGameState state) {
         if (!card.getTempKeywords().contains("OVERWHELM")) card.getTempKeywords().add("OVERWHELM");
       }
     });
     register(new CardEffect() {
       public String cardId() { return "origins-004"; }
-      public void onPlay(CardInstance card, LiveGameState state) {
+      public void onPlay(CardInstance card, CardInstance target, LiveGameState state) {
         state.getPlayers().stream()
             .filter(player -> player.getUserId().equals(card.getOwnerId()))
             .findFirst()

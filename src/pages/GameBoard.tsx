@@ -44,6 +44,18 @@ function autoPlaceInZone(zone: ZoneRect, existingCount: number, cardW = 88, card
   };
 }
 
+function cardNeedsTarget(card: RiftCard | undefined): boolean {
+  if (!card || card.type?.toLowerCase() !== 'spell') return false;
+  const text = (card.rulesText ?? '').toLowerCase();
+  return text.includes('target unit')
+    || text.includes('target champion')
+    || text.includes('target creature')
+    || text.includes('target card')
+    || text.includes('counter target')
+    || text.includes('destroy target')
+    || (text.includes('deal') && text.includes('damage to target'));
+}
+
 export function GameBoard() {
   const { code } = useParams();
   const navigate = useNavigate();
@@ -62,7 +74,9 @@ export function GameBoard() {
   const [hoveredCard, setHoveredCard] = useState<RiftCard | null>(null);
   const [pendingAttackers, setPendingAttackers] = useState<Set<string>>(new Set());
   const [pendingBlocker, setPendingBlocker] = useState<string | null>(null);
+  const [pendingBlockTarget, setPendingBlockTarget] = useState<string | null>(null);
   const [pendingBlocks, setPendingBlocks] = useState<Map<string, string>>(new Map());
+  const [pendingSpellInstanceId, setPendingSpellInstanceId] = useState<string | null>(null);
   const [pendingRuneTaps, setPendingRuneTaps] = useState<Set<string>>(new Set());
   const [handHeight, setHandHeight] = useState(DEFAULT_HAND_HEIGHT);
   const [wsConnected, setWsConnected] = useState(false);
@@ -137,8 +151,19 @@ export function GameBoard() {
   }, [handHeight]);
 
   useEffect(() => {
-    if (state?.currentPhase !== 'MAIN') setPendingRuneTaps(new Set());
+    if (state?.currentPhase !== 'MAIN') {
+      setPendingRuneTaps(new Set());
+      setPendingSpellInstanceId(null);
+    }
   }, [state?.currentPhase]);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setPendingSpellInstanceId(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const handleIncomingState = useCallback(
     (incoming: LiveGameState) => {
@@ -252,6 +277,10 @@ export function GameBoard() {
     setPendingRuneTaps(new Set());
 
     const cardDef = cardsById.get(state?.cards.find((c) => c.instanceId === instanceId)?.cardId ?? '');
+    if (cardNeedsTarget(cardDef)) {
+      setPendingSpellInstanceId(instanceId);
+      return;
+    }
     const isRune = cardDef?.type?.toLowerCase() === 'rune';
     if (isRune) {
       const runeZone = zones.find((zone) => zone.zoneName === 'rune' && zone.ownerId === player.id);
@@ -287,6 +316,25 @@ export function GameBoard() {
     const isOwnBattlefieldCard = instance.ownerId === player.id && sameZone(instance.zone, 'battlefield');
     const isEnemyBattlefieldCard = instance.ownerId !== player.id && sameZone(instance.zone, 'battlefield');
 
+    if (pendingSpellInstanceId && isEnemyBattlefieldCard) {
+      const spellInstance = state?.cards.find((card) => card.instanceId === pendingSpellInstanceId);
+      if (!spellInstance) {
+        setPendingSpellInstanceId(null);
+        return;
+      }
+      publishMove({
+        type: 'PLAY_CARD',
+        playerId: player.id,
+        instanceId: pendingSpellInstanceId,
+        targetZone: 'BASE',
+        x: 0,
+        y: 0,
+        targetInstanceId: instanceId,
+      });
+      setPendingSpellInstanceId(null);
+      return;
+    }
+
     if (state?.currentPhase === 'ATTACK_DECLARE' && isMyTurn) {
       if (!isOwnBattlefieldCard) return;
       setPendingAttackers((previous) => {
@@ -307,14 +355,33 @@ export function GameBoard() {
             return next;
           });
           setPendingBlocker(null);
+          setPendingBlockTarget(null);
         } else if (!instance.tapped) {
-          setPendingBlocker(instanceId);
+          if (pendingBlockTarget) {
+            setPendingBlocks((previous) => new Map(previous).set(instanceId, pendingBlockTarget));
+            setPendingBlockTarget(null);
+          } else {
+            setPendingBlocker(instanceId);
+          }
         }
         return;
       }
-      if (isEnemyBattlefieldCard && pendingBlocker) {
+      const isDeclaredAttacker = state.declaredAttackers?.includes(instanceId);
+      if (!isEnemyBattlefieldCard || !isDeclaredAttacker) return;
+      if (pendingBlocker) {
         setPendingBlocks((previous) => new Map(previous).set(pendingBlocker, instanceId));
         setPendingBlocker(null);
+      } else {
+        const existingBlocker = [...pendingBlocks.entries()].find(([, attackerId]) => attackerId === instanceId)?.[0];
+        if (existingBlocker) {
+          setPendingBlocks((previous) => {
+            const next = new Map(previous);
+            next.delete(existingBlocker);
+            return next;
+          });
+        } else {
+          setPendingBlockTarget(instanceId);
+        }
       }
       return;
     }
@@ -336,6 +403,7 @@ export function GameBoard() {
   const clearPendingDeclarations = () => {
     setPendingAttackers(new Set());
     setPendingBlocker(null);
+    setPendingBlockTarget(null);
     setPendingBlocks(new Map());
   };
 
@@ -374,7 +442,7 @@ export function GameBoard() {
 
   const opponent = state.players.find((statePlayer) => statePlayer.userId !== player.id);
   const me = state.players.find((statePlayer) => statePlayer.userId === player.id);
-  const opponentName = opponent?.userId === 'bot-player-riftbot' ? 'RiftBot' : opponent?.userId ?? 'Opponent';
+  const opponentName = opponent?.name?.trim() || opponent?.userId || 'Opponent';
   const opponentHand = state.cards.filter((card) => card.ownerId === opponent?.userId && sameZone(card.zone, 'hand')).length;
   const myUntappedRunes = (state.runes ?? []).filter((rune) => rune.ownerId === player.id && !rune.tapped).length;
   const opponentUntappedRunes = (state.runes ?? []).filter((rune) => rune.ownerId === opponent?.userId && !rune.tapped).length;
@@ -412,27 +480,40 @@ export function GameBoard() {
             : null}
           {state.currentPhase === 'BLOCK_DECLARE' && canPass
             ? state.cards
-                .filter((card) => card.ownerId !== player.id && sameZone(card.zone, 'battlefield'))
-                .map((card) => (
-                  <Rect
-                    key={card.instanceId}
-                    x={card.x - 44}
-                    y={card.y - 60}
-                    width={88}
-                    height={120}
-                    fill="rgba(229,108,79,0.10)"
-                    stroke="#e56c4f"
-                    shadowColor="#e56c4f"
-                    shadowBlur={16}
-                    cornerRadius={6}
-                  />
-                ))
+                .filter((card) => card.ownerId !== player.id && sameZone(card.zone, 'battlefield') && state.declaredAttackers?.includes(card.instanceId))
+                .map((card) => {
+                  const blocked = [...pendingBlocks.values()].includes(card.instanceId);
+                  const selected = pendingBlockTarget === card.instanceId;
+                  const color = selected ? '#d8b05d' : blocked ? '#6fd3b6' : '#e56c4f';
+                  return (
+                    <Fragment key={card.instanceId}>
+                      <Rect
+                        x={card.x - 44}
+                        y={card.y - 60}
+                        width={88}
+                        height={120}
+                        fill={selected ? 'rgba(216,176,93,0.18)' : blocked ? 'rgba(111,211,182,0.10)' : 'rgba(229,108,79,0.10)'}
+                        stroke={color}
+                        strokeWidth={blocked ? 2 : 1}
+                        shadowColor={color}
+                        shadowBlur={selected ? 24 : blocked ? 0 : 20}
+                        cornerRadius={6}
+                      />
+                      {blocked ? <Text x={card.x + 28} y={card.y - 56} text="✓" fontSize={18} fontStyle="bold" fill="#6fd3b6" /> : null}
+                    </Fragment>
+                  );
+                })
             : null}
           {state.currentPhase === 'BLOCK_DECLARE' && canPass && pendingBlocker
             ? (() => {
                 const card = cardPositions.get(pendingBlocker);
                 return card ? <Rect x={card.x - 44} y={card.y - 60} width={88} height={120} fill="rgba(111,211,182,0.18)" stroke="#6fd3b6" shadowColor="#6fd3b6" shadowBlur={20} cornerRadius={6} /> : null;
               })()
+            : null}
+          {state.currentPhase === 'BLOCK_DECLARE' && canPass && pendingBlockTarget
+            ? state.cards
+                .filter((card) => card.ownerId === player.id && sameZone(card.zone, 'battlefield') && !card.tapped && !pendingBlocks.has(card.instanceId))
+                .map((card) => <Rect key={card.instanceId} x={card.x - 44} y={card.y - 60} width={88} height={120} fill="rgba(111,211,182,0.08)" stroke="#6fd3b6" shadowColor="#6fd3b6" shadowBlur={10} cornerRadius={6} />)
             : null}
           {state.currentPhase === 'BLOCK_DECLARE' && canPass
             ? [...pendingBlocks.entries()].map(([blockerId, attackerId]) => {
@@ -448,7 +529,27 @@ export function GameBoard() {
               })
             : null}
           {state.currentPhase === 'ATTACK_DECLARE' && isMyTurn ? <Text x={0} y={8} width={size.width} text="Click your units to attack - Pass when ready" align="center" fontSize={13} fontStyle="bold" fill="#d8b05d" /> : null}
-          {state.currentPhase === 'BLOCK_DECLARE' && canPass ? <Text x={0} y={8} width={size.width} text="Click your unit then click an attacker to block - Pass to skip" align="center" fontSize={13} fontStyle="bold" fill="#6fd3b6" /> : null}
+          {state.currentPhase === 'BLOCK_DECLARE' && canPass ? (
+            <Fragment>
+              <Text
+                x={0}
+                y={8}
+                width={size.width}
+                text={pendingBlockTarget ? 'Now click one of your units to block' : pendingBlocker ? 'Now click the attacker you want to block' : 'Click an attacker to block it, or Pass to let them through'}
+                align="center"
+                fontSize={13}
+                fontStyle="bold"
+                fill="#6fd3b6"
+              />
+              <Text x={0} y={27} width={size.width} text={`${pendingBlocks.size} of ${state.declaredAttackers?.length ?? 0} attacks covered`} align="center" fontSize={11} fill="#94a3b8" />
+            </Fragment>
+          ) : null}
+          {pendingSpellInstanceId
+            ? state.cards
+                .filter((card) => card.ownerId !== player.id && sameZone(card.zone, 'battlefield'))
+                .map((card) => <Rect key={`target-${card.instanceId}`} x={card.x - 44} y={card.y - 60} width={88} height={120} fill="rgba(229,108,79,0.12)" stroke="#e56c4f" shadowColor="#e56c4f" shadowBlur={20} cornerRadius={6} />)
+            : null}
+          {pendingSpellInstanceId ? <Text x={0} y={8} width={size.width} text="Click an enemy unit to target it  ·  Esc to cancel" align="center" fontSize={13} fontStyle="bold" fill="#e56c4f" /> : null}
         </Layer>
         <Layer listening={false}>
           {activeBattlefieldCards.map((card) => (

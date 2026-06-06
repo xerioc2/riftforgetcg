@@ -5,6 +5,7 @@ import { getOrCreateLocalPlayer, saveLocalPlayer } from './lib/localPlayer';
 import { PlayerContext } from './lib/playerContext';
 import { DeckBuild } from './pages/DeckBuild';
 import { Home } from './pages/Home';
+import { History } from './pages/History';
 import { Lobby } from './pages/Lobby';
 
 const GameBoard = React.lazy(() => import('./pages/GameBoard'));
@@ -45,6 +46,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/build" element={<DeckBuild />} />
+          <Route path="/history" element={<History />} />
           <Route path="/lobby/:code" element={<Lobby />} />
           <Route
             path="/game/:code"

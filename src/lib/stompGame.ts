@@ -7,7 +7,7 @@ export type MoveRequest =
   | { type: 'DEAL_CARD'; playerId: string; cardId: string; targetZone: string; x: number; y: number }
   | { type: 'TAP_CARD'; playerId: string; instanceId: string }
   | { type: 'FLIP_CARD'; playerId: string; instanceId: string }
-  | { type: 'PLAY_CARD'; playerId: string; instanceId: string; targetZone: string; x: number; y: number }
+  | { type: 'PLAY_CARD'; playerId: string; instanceId: string; targetZone: string; x: number; y: number; targetInstanceId?: string }
   | { type: 'MOVE_CARD'; playerId: string; instanceId: string; targetZone: string; x: number; y: number }
   | { type: 'TAP_RUNE'; playerId: string; runeInstanceId: string }
   | { type: 'DISCARD_RUNE'; playerId: string; runeInstanceId: string }

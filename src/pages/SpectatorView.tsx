@@ -144,7 +144,7 @@ export function SpectatorView() {
       ) : null}
       {state?.winnerId ? (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-ink/90">
-          <h1 className="text-5xl font-bold text-forge">{state.players.find((player) => player.userId === state.winnerId)?.userId ?? state.winnerId} wins!</h1>
+          <h1 className="text-5xl font-bold text-forge">{state.players.find((player) => player.userId === state.winnerId)?.name?.trim() || state.winnerId} wins!</h1>
           <button className="btn-secondary" onClick={() => navigate('/')}>
             Back to Home
           </button>

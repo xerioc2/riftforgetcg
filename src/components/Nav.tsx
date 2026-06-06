@@ -17,6 +17,9 @@ export function Nav() {
           <NavLink className={({ isActive }) => (isActive ? 'nav-link border-forge text-forge' : 'nav-link')} to="/build">
             Deck Builder
           </NavLink>
+          <NavLink className={({ isActive }) => (isActive ? 'nav-link border-forge text-forge' : 'nav-link')} to="/history">
+            History
+          </NavLink>
         </div>
         <span className="max-w-[220px] truncate text-sm text-slate-300">{player.name}</span>
       </div>

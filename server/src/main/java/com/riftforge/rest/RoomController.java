@@ -61,8 +61,9 @@ public class RoomController {
   public ResponseEntity<RoomState> start(@PathVariable String code, @RequestBody StartRequest req) {
     RoomState room = roomService.start(code, req.playerId());
     Map<String, List<String>> decks = room.getPlayers().stream().collect(Collectors.toMap(LobbyPlayer::getId, LobbyPlayer::getDeckCardIds));
+    Map<String, String> names = room.getPlayers().stream().collect(Collectors.toMap(LobbyPlayer::getId, LobbyPlayer::getName));
     List<String> playerIds = room.getPlayers().stream().map(LobbyPlayer::getId).toList();
-    gameService.initGame(code.toUpperCase(), playerIds, decks);
+    gameService.initGame(code.toUpperCase(), playerIds, decks, names);
     return ResponseEntity.ok(room);
   }
 
@@ -71,8 +72,9 @@ public class RoomController {
     RoomState room = roomService.createBotVsBot();
     String code = room.getCode();
     Map<String, List<String>> decks = room.getPlayers().stream().collect(Collectors.toMap(LobbyPlayer::getId, LobbyPlayer::getDeckCardIds));
+    Map<String, String> names = room.getPlayers().stream().collect(Collectors.toMap(LobbyPlayer::getId, LobbyPlayer::getName));
     List<String> playerIds = room.getPlayers().stream().map(LobbyPlayer::getId).toList();
-    gameService.initGame(code, playerIds, decks);
+    gameService.initGame(code, playerIds, decks, names);
     return ResponseEntity.ok(Map.of("code", code));
   }
 }

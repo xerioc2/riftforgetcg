@@ -34,30 +34,36 @@ public class GameService {
   private final CardDataService cardDataService;
   private final SimpMessagingTemplate messaging;
   private final ApplicationEventPublisher eventPublisher;
+  private final MatchHistoryService matchHistoryService;
 
-  public GameService(GameEngine engine, CardDataService cardDataService, SimpMessagingTemplate messaging, ApplicationEventPublisher eventPublisher) {
+  public GameService(GameEngine engine, CardDataService cardDataService, SimpMessagingTemplate messaging, ApplicationEventPublisher eventPublisher, MatchHistoryService matchHistoryService) {
     this.engine = engine;
     this.cardDataService = cardDataService;
     this.messaging = messaging;
     this.eventPublisher = eventPublisher;
+    this.matchHistoryService = matchHistoryService;
   }
 
-  public void initGame(String roomCode, List<String> playerIds, Map<String, List<String>> decksByPlayer) {
+  public void initGame(String roomCode, List<String> playerIds, Map<String, List<String>> decksByPlayer, Map<String, String> playerNames) {
     if (games.containsKey(roomCode)) {
       log.warn("initGame called on existing game {}, ignoring", roomCode);
       return;
     }
-    LiveGameState state = createInitialState(roomCode, playerIds, decksByPlayer);
+    LiveGameState state = createInitialState(roomCode, playerIds, decksByPlayer, playerNames);
     games.put(roomCode, state);
     broadcast(roomCode, state);
   }
 
   public void processMove(String roomCode, MoveRequest move) {
-    LiveGameState state = games.get(roomCode);
-    if (state == null) throw new IllegalStateException("Game not found: " + roomCode);
+    LiveGameState before = games.get(roomCode);
+    if (before == null) throw new IllegalStateException("Game not found: " + roomCode);
     try {
-      LiveGameState next = engine.applyMove(state, move);
+      String previousWinnerId = before.getWinnerId();
+      LiveGameState next = engine.applyMove(before, move);
       games.put(roomCode, next);
+      if (next.getWinnerId() != null && previousWinnerId == null) {
+        matchHistoryService.record(next);
+      }
       broadcast(roomCode, next);
     } catch (IllegalMoveException e) {
       broadcastError(roomCode, e.getMessage(), move.playerId());
@@ -85,14 +91,14 @@ public class GameService {
     log.info("Evicted finished games; {} active games remain", games.size());
   }
 
-  public LiveGameState reset(String roomCode, List<String> playerIds, Map<String, List<String>> decksByPlayer) {
-    LiveGameState state = createInitialState(roomCode, playerIds, decksByPlayer);
+  public LiveGameState reset(String roomCode, List<String> playerIds, Map<String, List<String>> decksByPlayer, Map<String, String> playerNames) {
+    LiveGameState state = createInitialState(roomCode, playerIds, decksByPlayer, playerNames);
     games.put(roomCode, state);
     broadcast(roomCode, state);
     return state;
   }
 
-  private LiveGameState createInitialState(String roomCode, List<String> playerIds, Map<String, List<String>> decksByPlayer) {
+  private LiveGameState createInitialState(String roomCode, List<String> playerIds, Map<String, List<String>> decksByPlayer, Map<String, String> playerNames) {
     LiveGameState state = new LiveGameState();
     state.setRoomCode(roomCode);
     state.setCurrentPhase(Phase.MAIN);
@@ -102,6 +108,7 @@ public class GameService {
     state.setPlayers(playerIds.stream().map(id -> {
       PlayerState player = new PlayerState();
       player.setUserId(id);
+      player.setName(playerNames.getOrDefault(id, id));
       player.setScore(0);
       player.setAvailableEnergy(0);
       return player;

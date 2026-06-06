@@ -57,10 +57,15 @@ public class RulesValidator {
     if (energy < cost) throw new IllegalMoveException("Insufficient energy.");
     boolean isSpell = "Spell".equalsIgnoreCase(cardDataService.getCard(card.getCardId()).type());
     if (isSpell && cardDataService.requiresBattlefieldTarget(card.getCardId())) {
-      boolean hasTarget = state.getCards().stream().anyMatch(candidate ->
-          candidate.getZone() == ZoneName.BATTLEFIELD
-              && !candidate.getOwnerId().equals(move.playerId()));
-      if (!hasTarget) throw new IllegalMoveException("No valid targets for that spell.");
+      if (move.targetInstanceId() == null || move.targetInstanceId().isBlank()) {
+        throw new IllegalMoveException("This spell requires a target.");
+      }
+      CardInstance target = state.getCards().stream()
+          .filter(candidate -> candidate.getInstanceId().equals(move.targetInstanceId()))
+          .findFirst()
+          .orElseThrow(() -> new IllegalMoveException("Target not found."));
+      if (target.getZone() != ZoneName.BATTLEFIELD) throw new IllegalMoveException("Target must be on the battlefield.");
+      if (target.getOwnerId().equals(move.playerId())) throw new IllegalMoveException("Cannot target your own unit with this spell.");
     }
   }
 

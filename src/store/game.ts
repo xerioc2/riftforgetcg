@@ -39,7 +39,7 @@ export const useGameStore = create<GameStore>((set) => ({
     const state: LiveGameState = {
       roomCode,
       cards: [],
-      players: playerIds.map((userId) => ({ userId, score: 0 })),
+      players: playerIds.map((userId) => ({ userId, name: userId, score: 0 })),
       log: [],
       updatedAt: new Date().toISOString(),
     };

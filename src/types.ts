@@ -103,8 +103,17 @@ export type CardInstance = {
 
 export type PlayerGameState = {
   userId: string;
+  name: string;
   score: number;
   availableEnergy?: number;
+};
+
+export type MatchRecord = {
+  id: string;
+  completedAt: string;
+  turnCount: number;
+  winnerId: string;
+  players: { userId: string; name: string; score: number }[];
 };
 
 export type LogEntry = {

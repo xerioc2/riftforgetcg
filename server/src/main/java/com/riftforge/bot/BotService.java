@@ -154,10 +154,20 @@ public class BotService {
           .max(Comparator.comparingInt(c -> cardDataService.getCard(c.getCardId()).cost()));
 
       if (pick.isPresent()) {
+        CardDefinition pickedDef = cardDataService.getCard(pick.get().getCardId());
+        String targetInstanceId = "Spell".equalsIgnoreCase(pickedDef.type())
+                && cardDataService.requiresBattlefieldTarget(pickedDef.id())
+            ? current.getCards().stream()
+                .filter(candidate -> candidate.getZone() == ZoneName.BATTLEFIELD
+                    && !botId.equals(candidate.getOwnerId()))
+                .map(CardInstance::getInstanceId)
+                .findFirst()
+                .orElse(null)
+            : null;
         int boardCount = (int) current.getCards().stream()
             .filter(c -> botId.equals(c.getOwnerId()) && (c.getZone() == ZoneName.BASE || c.getZone() == ZoneName.BATTLEFIELD))
             .count();
-        gameService.processMove(roomCode, new PlayCardMove(botId, pick.get().getInstanceId(), ZoneName.BASE, 60 + boardCount * 100, 220));
+        gameService.processMove(roomCode, new PlayCardMove(botId, pick.get().getInstanceId(), ZoneName.BASE, 60 + boardCount * 100, 220, targetInstanceId));
         sleepBriefly(300);
         played = true;
       }

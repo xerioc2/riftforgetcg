@@ -93,7 +93,11 @@ public class GameEngine {
     card.setCurrentHealth(def.health());
     card.setHasSummoningSickness(!def.keywords().contains("RUSH"));
     if (move.targetZone() == ZoneName.BASE) card.setTapped(true);
-    effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onPlay(card, state));
+    CardInstance target = move.targetInstanceId() == null ? null : state.getCards().stream()
+        .filter(candidate -> candidate.getInstanceId().equals(move.targetInstanceId()))
+        .findFirst()
+        .orElse(null);
+    effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onPlay(card, target, state));
     String cardTypeLower = def.type() != null ? def.type().toLowerCase() : "";
     if (cardTypeLower.equals("spell") || cardTypeLower.equals("gear")) {
       card.setZone(ZoneName.DISCARD);
