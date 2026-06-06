@@ -26,6 +26,7 @@ are still in development.
 ### Lobby and Multiplayer
 
 - Create shareable game rooms and join by room code
+- Find Match queue that pairs two waiting human players directly into a game
 - Choose a deck and ready up before starting
 - Play against another player or RiftBot
 - Real-time game state, game log, and spectator view
@@ -136,7 +137,7 @@ mvn -q -DskipTests compile
 ### Platform and Online Play
 
 - Supabase Auth and account-backed deck persistence
-- Matchmaking, invitations, private rooms, and player profiles
+- Invitations, private rooms, and player profiles
 - Match history, replays, and improved spectator tools
 - Package mobile clients with Capacitor
 - Package desktop clients with Tauri

@@ -17,6 +17,7 @@ export type MoveRequest =
   | { type: 'ADJUST_SCORE'; playerId: string; targetPlayerId: string; delta: number };
 
 export type ServerMessage = { type: 'STATE_UPDATE'; state: LiveGameState } | { type: 'ERROR'; message: string; playerId: string };
+export type MatchNotification = { roomCode: string };
 
 export function createGameClient(roomCode: string, player: LocalPlayer, onMessage: (msg: ServerMessage) => void, onConnected: () => void): Client {
   const wsUrl = `${config.gameServerUrl.replace(/^http/, 'ws')}/ws`;
@@ -47,6 +48,29 @@ export function createLobbyClient(roomCode: string, player: LocalPlayer, onRoom:
       client.subscribe(`/topic/lobby/${roomCode}`, (frame) => {
         onRoom(JSON.parse(frame.body) as RoomState);
       });
+    },
+    reconnectDelay: 5000,
+  });
+  client.activate();
+  return client;
+}
+
+export function createMatchmakingClient(player: LocalPlayer, onMatch: (notification: MatchNotification) => void, onConnected?: () => void): Client {
+  const wsUrl = `${config.gameServerUrl.replace(/^http/, 'ws')}/ws`;
+  const seenRoomCodes = new Set<string>();
+  const handleNotification = (frame: { body: string }) => {
+    const notification = JSON.parse(frame.body) as MatchNotification;
+    if (seenRoomCodes.has(notification.roomCode)) return;
+    seenRoomCodes.add(notification.roomCode);
+    onMatch(notification);
+  };
+  const client = new Client({
+    brokerURL: wsUrl,
+    connectHeaders: { playerId: player.id, playerName: player.name },
+    onConnect: () => {
+      client.subscribe('/user/queue/matchmaking', handleNotification);
+      client.subscribe(`/topic/matchmaking/${player.id}`, handleNotification);
+      onConnected?.();
     },
     reconnectDelay: 5000,
   });
