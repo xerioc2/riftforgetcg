@@ -2,13 +2,9 @@
 
 RiftForge is an unofficial, cross-platform digital client for **Riftbound**, the
 League of Legends trading card game. The goal is to make it easy to browse
-cards, build and share decks, and play complete matches online with an
-authoritative rules engine.
-
-The project is a **functional multiplayer prototype**. Deck building, lobbies,
-real-time two-player games, a full phase machine, combat declaration flows,
-rune pooling, Champion and Legend zones, a rules-validating game server, and
-two AI bots are all working end-to-end.
+cards, build and share decks, and play complete matches — either in a browser or
+as a native desktop app that ships as a single installer with no runtime
+dependencies.
 
 > RiftForge is a fan-made project and is not affiliated with or endorsed by
 > Riot Games. Riftbound and League of Legends are trademarks of Riot Games.
@@ -29,7 +25,7 @@ two AI bots are all working end-to-end.
 - **Find Match** queue that pairs two waiting human players directly into a game
 - Choose a deck and ready up before starting
 - Play against another human player or **RiftBot** (AI opponent)
-- Host can assign a saved deck to RiftBot or let it use an auto-generated deck
+- Host can assign a saved deck to RiftBot or use an auto-generated deck
 - Real-time game state, game log, and spectator view
 - **Watch AI vs AI** — launch a RiftBot vs Codex game and spectate the full match
 
@@ -38,50 +34,50 @@ two AI bots are all working end-to-end.
 - Konva-powered interactive board with hand rack, Base, Battlefield, Champion,
   Legend, rune strip, deck, and discard zones
 - Drag cards between zones with clamped bounds; tap/untap, flip, hover previews
-- Adjustable hand height (drag the divider to resize)
-- Draggable card preview panel
-- Phase bar showing current phase, active player, and pass controls
+- Adjustable hand height; draggable card preview panel
+- Human-readable phase labels; connection-lost banner with auto-reconnect
 
 ### Turn and Phase Flow
 
-- Full six-phase machine: **CHANNEL → MAIN → ATTACK_DECLARE → BLOCK_DECLARE →
-  COMBAT_RESOLVE → END**
-- CHANNEL and COMBAT_RESOLVE auto-advance (no manual pass required)
+- Six-phase machine: **MAIN → ATTACK_DECLARE → BLOCK_DECLARE →
+  COMBAT_RESOLVE → END → CHANNEL** (CHANNEL and COMBAT_RESOLVE are invisible —
+  they auto-advance in the same server tick)
 - Active player draws a card and gains two runes at the start of each turn
-- Rune pool: tap runes to queue energy, commit the pool before spending — undo
-  by clicking a pending rune before playing a card
-- Summoning sickness: units played or deployed from Base must wait one full cycle
-  before attacking (unless they have RUSH)
+- Rune pool: tap runes to queue energy; un-tap pending runes before committing
+- Summoning sickness: units wait one full cycle before attacking (unless RUSH)
 
-### Combat
+### Combat and Card Effects
 
-- Click units to declare attackers (ATTACK_DECLARE phase)
-- Assign blockers by clicking an attacker then a blocker (BLOCK_DECLARE phase)
-- Full combat resolution: damage exchange, health tracking, TOUGH damage
-  reduction, OVERWHELM excess-damage scoring, destroy and discard
-- Attackers and surviving blockers return to Base after combat
-- Unblocked attackers score 1 point; first to reach the target score wins
+- Declare attackers by clicking units; assign blockers in BLOCK_DECLARE
+- Full damage exchange with health tracking and end-of-combat healing
+- Keywords: **RUSH**, **TOUGH**, **OVERWHELM**, **ELUSIVE**, **LIFESTEAL**
+- Temporary keyword grants (e.g. TOUGH from a card effect) respected in combat
+  and cleared at end of turn
+- Spell and gear cards auto-discard after their `onPlay` effect fires
+- `onPlay`, `onDestroy`, `onAttack`, and `onTurnStart` lifecycle hooks wired
+- Targeted-spell validation: requires at least one enemy unit on the battlefield
 
 ### Rules Engine
 
 - Spring Boot server owns and validates all game state
 - Turn order, card ownership, zones, energy costs, deployment, and combat checks
-- Keywords: **RUSH**, **TOUGH**, **OVERWHELM**, **ELUSIVE** (cannot be blocked),
-  **LIFESTEAL** (score on lethal blocker kill)
-- Temp-keyword grants (e.g. TOUGH granted by a card effect) respected in combat
-  and cleared at end of turn
-- Spell and gear cards auto-discard to the discard pile after their effect fires
-- Targeted-spell validation: checks that a valid enemy unit is on the battlefield
-  before allowing the play
-- Card effect lifecycle hooks: `onPlay`, `onDestroy`, `onAttack`, `onTurnStart`
+- Finished games evicted from memory hourly; duplicate `initGame` calls ignored
+- STOMP reconnect: client re-fetches state and shows a banner on connection loss
 
 ### AI
 
-- **RiftBot**: channels runes, deploys champion and base units, plays hand cards,
-  attacks with all eligible units, and assigns blocks
-- **Codex**: second AI with the same strategy — can be paired against RiftBot
-  for a full spectated test game
-- Bot vs Bot games run at 350 ms per action; human vs bot games at 700 ms
+- **RiftBot** and **Codex**: two independent bots — channel runes, deploy
+  champion and base units, play affordable hand cards, attack, and block
+- Bot vs Bot games run at 350 ms/action; human vs bot games at 700 ms/action
+
+### Desktop App (scaffold complete)
+
+- Tauri 2 desktop wrapper — native window, no browser required
+- Spring Boot server compiled to a GraalVM native binary (~50 ms startup,
+  no JRE bundled)
+- Sidecar lifecycle: Tauri spawns the server on launch, kills it on close
+- Single build script produces a platform installer (.exe / .dmg / .AppImage)
+- See [BUILDING.md](BUILDING.md) for build prerequisites and instructions
 
 ## Architecture
 
@@ -91,22 +87,23 @@ two AI bots are all working end-to-end.
 | Styling | Tailwind CSS |
 | Tabletop | Konva.js + react-konva |
 | Client state | Zustand |
-| Game server | Spring Boot 3, Java 21 |
+| Game server | Spring Boot 3.3, Java 21 |
 | Real-time transport | STOMP over WebSocket (`@stomp/stompjs`) |
 | Card data | Riftcodex API |
+| Desktop shell | Tauri 2 (Rust) |
+| Native server | GraalVM native-image |
 | Persistence groundwork | Supabase schema and client dependency |
-| Future wrappers | Capacitor (mobile), Tauri (desktop) |
+| Future mobile | Capacitor |
 
 The Spring Boot server is authoritative during games. Clients send proposed
-moves; the server validates, applies, and broadcasts the resulting state via
-STOMP topics. A `ConcurrentHashMap` of `LiveGameState` holds all active games
-in memory.
+moves; the server validates, applies, and broadcasts the resulting state.
+In the desktop app the server runs as a bundled sidecar on `localhost:8080`.
 
-## Run Locally
+## Run Locally (browser dev)
 
 ### Prerequisites
 
-- Node.js 20 or newer
+- Node.js 20+
 - Java 21
 - Maven
 
@@ -117,30 +114,39 @@ npm install
 npm run dev
 ```
 
-The Vite client runs at `http://localhost:5173`.
+Vite runs at `http://localhost:5173`.
 
 ### Game Server
-
-In a second terminal:
 
 ```bash
 cd server
 mvn spring-boot:run
 ```
 
-The Spring Boot server runs at `http://localhost:8080`.
+Spring Boot runs at `http://localhost:8080`.
 
 ### Environment
 
-Copy `.env.example` to `.env.local` to override local defaults:
+Copy `.env.example` to `.env.local` to override defaults:
 
-```bash
-VITE_RIFTCODEX_API_BASE=https://riftcodex.com
+```env
 VITE_GAME_SERVER_URL=http://localhost:8080
 ```
 
-Deck and card data remain in browser local storage. The included Supabase
-schema is groundwork for future account-backed persistence.
+## Build the Desktop App
+
+See [BUILDING.md](BUILDING.md). Prerequisites: GraalVM 21+, Rust, and (on
+Windows) Visual Studio C++ Build Tools.
+
+```powershell
+# Windows
+./scripts/build-desktop.ps1
+
+# macOS / Linux
+./scripts/build-desktop.sh
+```
+
+Output lands in `src-tauri/target/release/bundle/`.
 
 ## Validation
 
@@ -154,59 +160,58 @@ mvn -q -DskipTests compile
 
 ## Roadmap
 
-### In Progress
+### Highest Impact Next Steps
 
-- Full card-effect coverage: remaining Origins card scripting, targeted spell
-  resolution with explicit target selection
-- STOMP reconnect and mid-game rejoin by room code
-
-### Near Term
-
-- Tauri desktop wrapper (.exe / .dmg) — no exposed IP, no browser required
-- Match history and replay: store full move log, add a `/history` page
-- Automated tests for turn flow, combat, deck legality, and move validation
-- Animations for card play, combat, and zone transitions
-
-### Rules Engine
-
-- Formal target-selection flow (choose a target before playing a spell)
-- Gear attachment mechanic
-- Complete Riftbound keyword set
-- Enforce legal deck construction and match formats server-side
-- Persist active games and recover them after server restarts
+- **Targeted spell UI** — players pick which enemy unit a spell targets before
+  playing it; currently the server validates a target exists but the client
+  doesn't let you choose one
+- **Card and combat animations** — card fly-in, zone transitions, hit/destroy
+  effects; the biggest gap between "playable prototype" and "feels like a game"
+- **Sound effects** — wire the existing `sfx.ts` stub to actual audio files
+- **Match history and replay** — persist the full move log, add a `/history`
+  page with replayable games
 
 ### Platform
 
 - Supabase Auth and account-backed deck persistence
 - Invitations, private rooms, and player profiles
-- Match history, improved spectator tools, and replays
-- Capacitor mobile packaging
+- Hosted multiplayer server so players can connect without a LAN or shared code
+- Capacitor mobile packaging (iOS / Android)
+
+### Rules and Cards
+
+- Gear attachment mechanic (currently gears play to Base like units)
+- Complete Riftbound keyword set beyond the current five
+- Full card-specific effect coverage beyond the Origins placeholder set
+- Server-side deck legality enforcement and match formats
 
 ### Polish
 
-- Sound effects and settings panel
-- Better card inspection and rules explanations
+- Better card inspection: zoom, full rules text, keyword glossary
+- Mobile and touch ergonomics
 - Production deployment, observability, and abuse protection
 
 ## Known Limitations
 
-- Live games are stored in server memory and lost when the server restarts
-- Spell targeting uses a presence check (any enemy unit exists) rather than
-  explicit target selection — actual targeted effects are not yet resolved
-  against a specific card
+- Live games are stored in server memory and are lost when the server restarts
+- Spell targeting checks presence only — the client cannot choose a specific
+  target unit; area/self effects work, but targeted removal does not
 - Gear cards play to Base like units; an attach-to-unit mechanic is not yet
   implemented
-- Mobile and desktop wrappers have not been packaged yet
-- Multiplayer assumes the local development server unless the server URL is
-  overridden in the environment
+- The desktop installer requires GraalVM, Rust, and platform build tools to
+  compile; pre-built binaries are not yet distributed
+- Chat messages are local only and are not synced to opponents
 
 ## Project Structure
 
 ```text
-src/        React client, deck builder, lobby, and tabletop
-server/     Spring Boot game server and rules engine
-supabase/   Optional database schema
-public/     Static client assets
+src/            React client, deck builder, lobby, and tabletop
+src-tauri/      Tauri 2 desktop shell (Rust)
+server/         Spring Boot game server and rules engine
+scripts/        Desktop build scripts
+supabase/       Optional database schema
+public/         Static client assets
+BUILDING.md     Desktop build instructions
 ```
 
 ## Data and Artwork
