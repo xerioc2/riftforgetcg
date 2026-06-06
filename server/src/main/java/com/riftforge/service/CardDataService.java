@@ -1,0 +1,189 @@
+package com.riftforge.service;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.riftforge.model.CardDefinition;
+import jakarta.annotation.PostConstruct;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
+
+@Service
+public class CardDataService {
+  private static final Logger log = LoggerFactory.getLogger(CardDataService.class);
+  private static final int PAGE_SIZE = 50;
+
+  private final Map<String, CardDefinition> cards = new ConcurrentHashMap<>();
+  private final RestClient restClient = RestClient.create();
+  private final ObjectMapper mapper;
+  private final String apiUrl;
+
+  public CardDataService(ObjectMapper mapper, @Value("${riftforge.riftcodex-api}") String apiUrl) {
+    this.mapper = mapper;
+    this.apiUrl = apiUrl;
+  }
+
+  @PostConstruct
+  void load() {
+    try {
+      cards.clear();
+      int page = 1;
+      int totalPages;
+      do {
+        JsonNode root = fetchPage(page);
+        JsonNode items = root.isArray() ? root : firstArray(root, "cards", "data", "results", "items");
+        if (items == null || items.isEmpty()) break;
+
+        for (JsonNode item : items) {
+          CardDefinition card = normalize(item);
+          if (card.id() != null && !card.id().isBlank()) cards.put(card.id(), card);
+        }
+        totalPages = root.path("pages").asInt(1);
+        page++;
+      } while (page <= totalPages);
+
+      if (cards.isEmpty()) {
+        throw new IllegalStateException("Riftcodex returned no cards");
+      }
+      log.info("Loaded {} cards from Riftcodex", cards.size());
+    } catch (Exception ex) {
+      log.warn("Could not load cards from Riftcodex at {}. Using placeholder card.", apiUrl, ex);
+      installPlaceholder();
+    }
+  }
+
+  private JsonNode fetchPage(int page) throws Exception {
+    String separator = apiUrl.contains("?") ? "&" : "?";
+    String url = apiUrl + separator + "limit=" + PAGE_SIZE + "&page=" + page;
+    String json = restClient.get().uri(url).retrieve().body(String.class);
+    return mapper.readTree(json);
+  }
+
+  private void installPlaceholder() {
+    cards.clear();
+    cards.put("placeholder", new CardDefinition("placeholder", "Placeholder", "Unit", null, List.of(), 0, 0, null, null, null, "", 1, 1, List.of()));
+  }
+
+  public CardDefinition getCard(String id) {
+    return cards.getOrDefault(id, new CardDefinition(id, "Unknown Card", "Unknown", null, List.of(), 0, 0, null, null, null, "", 1, 1, List.of()));
+  }
+
+  public Map<String, CardDefinition> getAll() {
+    return Collections.unmodifiableMap(cards);
+  }
+
+  public boolean hasKeyword(String cardId, String keyword) {
+    CardDefinition card = getCard(cardId);
+    return card.keywords().stream().anyMatch(k -> k.equalsIgnoreCase(keyword));
+  }
+
+  public boolean requiresBattlefieldTarget(String cardId) {
+    CardDefinition def = getCard(cardId);
+    if (def.rulesText() == null) return false;
+    String text = def.rulesText().toLowerCase();
+    return text.contains("target unit")
+        || text.contains("target champion")
+        || text.contains("target creature")
+        || text.contains("target card")
+        || text.contains("counter target")
+        || text.contains("destroy target")
+        || text.contains("deal") && text.contains("damage to target");
+  }
+
+  private CardDefinition normalize(JsonNode card) {
+    JsonNode classification = card.path("classification");
+    JsonNode attributes = card.path("attributes");
+    JsonNode text = card.path("text");
+    JsonNode set = card.path("set");
+    JsonNode media = card.path("media");
+    String id = firstText(card, "id", "cardId", "uuid", "slug", "collectorNumber", "name");
+    return new CardDefinition(
+        id,
+        firstText(card, "name", "title"),
+        cardType(card, classification),
+        firstText(card, "champion", "championName", "legend"),
+        stringList(card, classification, "domains", "domain", "colors", "colorIdentity"),
+        firstInt(card, attributes, "cost", "energyCost", "normalCost", "energy"),
+        firstInt(card, attributes, "premiumCost", "premium", "alternateCost"),
+        firstText(card, classification, "rarity"),
+        firstText(card, set, "setName", "expansion", "label"),
+        firstText(card, media, "imageUrl", "image_url"),
+        firstText(card, text, "rulesText", "oracleText", "description", "rules", "plain"),
+        firstInt(card, attributes, "power", "attack"),
+        firstInt(card, attributes, "health", "defense", "toughness"),
+        stringList(card, classification, "keywords", "abilities", "keywordAbilities"));
+  }
+
+  private JsonNode firstArray(JsonNode root, String... names) {
+    for (String name : names) if (root.has(name) && root.get(name).isArray()) return root.get(name);
+    return null;
+  }
+
+  private String cardType(JsonNode card, JsonNode classification) {
+    String supertype = firstText(card, classification, "supertype");
+    return "Champion".equalsIgnoreCase(supertype)
+        ? "Champion"
+        : firstText(card, classification, "type", "cardType", "supertype");
+  }
+
+  private String firstText(JsonNode primary, String... names) {
+    return firstText(primary, null, names);
+  }
+
+  private String firstText(JsonNode primary, JsonNode secondary, String... names) {
+    for (String name : names) {
+      JsonNode value = primary.path(name);
+      if (value.isTextual() && !value.asText().isBlank()) return value.asText();
+      if (secondary != null) {
+        JsonNode nested = secondary.path(name);
+        if (nested.isTextual() && !nested.asText().isBlank()) return nested.asText();
+      }
+    }
+    return null;
+  }
+
+  private int firstInt(JsonNode primary, JsonNode secondary, String... names) {
+    for (String name : names) {
+      JsonNode value = primary.path(name);
+      if (value.isNumber()) return value.asInt();
+      if (value.isTextual()) return parseInt(value.asText());
+      if (secondary != null) {
+        JsonNode nested = secondary.path(name);
+        if (nested.isNumber()) return nested.asInt();
+        if (nested.isTextual()) return parseInt(nested.asText());
+      }
+    }
+    return 0;
+  }
+
+  private int parseInt(String value) {
+    try {
+      return Integer.parseInt(value);
+    } catch (NumberFormatException ex) {
+      return 0;
+    }
+  }
+
+  private List<String> stringList(JsonNode primary, JsonNode secondary, String... names) {
+    List<String> values = new ArrayList<>();
+    for (String name : names) {
+      JsonNode value = primary.path(name);
+      collect(value, values);
+      if (secondary != null) collect(secondary.path(name), values);
+      if (!values.isEmpty()) return values;
+    }
+    return values;
+  }
+
+  private void collect(JsonNode node, List<String> values) {
+    if (node.isArray()) node.forEach(v -> values.add(v.asText().trim().toUpperCase()));
+    if (node.isTextual()) for (String part : node.asText().split("[|,/]")) if (!part.isBlank()) values.add(part.trim().toUpperCase());
+  }
+}

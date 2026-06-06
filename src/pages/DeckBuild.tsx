@@ -1,0 +1,411 @@
+import type React from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { CardModal } from '../components/CardModal';
+import { ManaCurve } from '../components/ManaCurve';
+import { useCardStore } from '../store/cards';
+import { useDeckStore } from '../store/decks';
+import { validateDeck } from '../lib/deckValidation';
+import { importDeckText } from '../lib/deckImport';
+import type { CardFilters, Deck, RiftCard } from '../types';
+
+const emptyFilters: CardFilters = {
+  search: '',
+  champion: '',
+  domain: '',
+  type: '',
+  cost: '',
+};
+
+const cx = (...classes: Array<string | false | undefined>) => classes.filter(Boolean).join(' ');
+
+export function DeckBuild() {
+  const { cards, loading, error, loadCards } = useCardStore();
+  const { decks, activeDeckId, setActiveDeck, createDeck, updateDeck, deleteDeck } = useDeckStore();
+  const [filters, setFilters] = useState<CardFilters>(emptyFilters);
+  const [saveMessage, setSaveMessage] = useState('');
+  const [selectedCard, setSelectedCard] = useState<RiftCard | null>(null);
+  const [showImport, setShowImport] = useState(false);
+
+  useEffect(() => {
+    void loadCards();
+  }, [loadCards]);
+
+  const activeDeck = decks.find((deck) => deck.id === activeDeckId) ?? decks[0];
+  const cardsById = useMemo(() => new Map(cards.map((card) => [card.id, card])), [cards]);
+  const validation = useMemo(() => validateDeck(activeDeck, cardsById), [activeDeck, cardsById]);
+
+  const filterOptions = useMemo(() => {
+    const unique = (values: Array<string | undefined>) => [...new Set(values.filter(Boolean) as string[])].sort();
+    return {
+      champions: unique(cards.filter((card) => card.type === 'Legend').map((card) => card.name)),
+      domains: unique(cards.flatMap((card) => card.domains)),
+      types: unique(cards.map((card) => card.type)),
+      costs: unique(cards.map((card) => (card.cost === undefined ? undefined : String(card.cost)))),
+    };
+  }, [cards]);
+
+  const filteredCards = useMemo(() => {
+    const query = filters.search.trim().toLowerCase();
+    return cards.filter((card) => {
+      const searchTarget = `${card.name} ${card.rulesText ?? ''} ${card.champion ?? ''}`.toLowerCase();
+      return (
+        (!query || searchTarget.includes(query)) &&
+        (!filters.champion || card.name === filters.champion) &&
+        (!filters.domain || card.domains.includes(filters.domain)) &&
+        (!filters.type || card.type === filters.type) &&
+        (!filters.cost || String(card.cost ?? '') === filters.cost)
+      );
+    });
+  }, [cards, filters]);
+
+  const deckEntries = activeDeck.cards
+    .map((entry) => ({ ...entry, card: cardsById.get(entry.cardId) }))
+    .filter((entry): entry is typeof entry & { card: RiftCard } => Boolean(entry.card))
+    .sort((a, b) => (a.card.cost ?? 99) - (b.card.cost ?? 99) || a.card.name.localeCompare(b.card.name));
+
+  const patchDeck = (patch: Partial<Deck>) => updateDeck({ ...activeDeck, ...patch });
+
+  const addCard = (card: RiftCard) => {
+    if (card.type === 'Legend') {
+      patchDeck({ championCardId: card.id });
+      return;
+    }
+
+    const existing = activeDeck.cards.find((entry) => entry.cardId === card.id);
+    const nextCards = existing
+      ? activeDeck.cards.map((entry) => (entry.cardId === card.id ? { ...entry, quantity: entry.quantity + 1 } : entry))
+      : [...activeDeck.cards, { cardId: card.id, quantity: 1 }];
+    patchDeck({ cards: nextCards });
+  };
+
+  const setQuantity = (cardId: string, quantity: number) => {
+    patchDeck({
+      cards: activeDeck.cards
+        .map((entry) => (entry.cardId === cardId ? { ...entry, quantity } : entry))
+        .filter((entry) => entry.quantity > 0),
+    });
+  };
+
+  const exportDeck = async () => {
+    const lines = deckEntries.map((entry) => `${entry.quantity}x ${entry.card.name}`);
+    const champion = validation.champion ? [`Legend: ${validation.champion.name}`] : [];
+    await navigator.clipboard.writeText([...champion, ...lines].join('\n'));
+    setSaveMessage('Deck copied to clipboard.');
+  };
+
+  const importDeck = (text: string) => {
+    const result = importDeckText(text, cards);
+    if (result.matchedLines === 0) return result;
+
+    patchDeck({
+      championCardId: result.championCardId,
+      cards: result.cards,
+    });
+    const skipped = result.skippedSideboard ? ` Skipped ${result.skippedSideboard} sideboard cards.` : '';
+    setSaveMessage(
+      `Imported ${result.cards.reduce((sum, card) => sum + card.quantity, 0)} cards${result.championCardId ? ' and a legend' : ''}.${skipped}`,
+    );
+    return result;
+  };
+
+  return (
+    <main className="min-h-[calc(100vh-73px)] bg-ink text-slate-100">
+      <div className="mx-auto grid max-w-[1500px] gap-5 px-5 py-5 xl:grid-cols-[minmax(0,1fr)_430px]">
+        <section className="min-w-0">
+          <div className="mb-4 flex flex-wrap items-center gap-3 text-sm text-slate-300">
+            <StatusPill tone={cards.length ? 'good' : 'warn'}>{cards.length} cards cached</StatusPill>
+            <StatusPill tone="good">Standalone mode</StatusPill>
+            <button className="btn-secondary" onClick={() => void loadCards()} disabled={loading}>
+              {loading ? 'Refreshing...' : 'Refresh cards'}
+            </button>
+          </div>
+          <FilterBar filters={filters} options={filterOptions} onChange={setFilters} />
+          {error ? <Notice tone="bad">{error}</Notice> : null}
+          <div className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
+            {filteredCards.map((card) => (
+              <CardTile key={card.id} card={card} selected={activeDeck.championCardId === card.id} onAdd={() => addCard(card)} onDetails={() => setSelectedCard(card)} />
+            ))}
+          </div>
+          {!loading && filteredCards.length === 0 ? <Notice tone="warn">No cards match these filters. Try refreshing or clearing a filter.</Notice> : null}
+        </section>
+
+        <aside className="xl:sticky xl:top-[92px] xl:self-start">
+          <DeckBuilder
+            deck={activeDeck}
+            decks={decks}
+            entries={deckEntries}
+            validation={validation}
+            onSelectDeck={setActiveDeck}
+            onCreateDeck={createDeck}
+            onDeleteDeck={deleteDeck}
+            onRename={(name) => patchDeck({ name })}
+            onQuantity={setQuantity}
+            onSave={() => setSaveMessage('Deck saved locally.')}
+            onImport={() => setShowImport(true)}
+            onExport={() => void exportDeck()}
+            canSave
+            saveMessage={saveMessage}
+          />
+        </aside>
+      </div>
+      <CardModal card={selectedCard} onClose={() => setSelectedCard(null)} />
+      <DeckImportModal open={showImport} onClose={() => setShowImport(false)} onImport={importDeck} />
+    </main>
+  );
+}
+
+function StatusPill({ children, tone }: { children: React.ReactNode; tone: 'good' | 'warn' }) {
+  return <span className={cx('rounded-sm border px-3 py-2', tone === 'good' ? 'border-mint/40 text-mint' : 'border-forge/50 text-forge')}>{children}</span>;
+}
+
+function Notice({ children, tone }: { children: React.ReactNode; tone: 'bad' | 'warn' }) {
+  return <div className={cx('mt-4 border px-4 py-3 text-sm', tone === 'bad' ? 'border-ember/50 text-ember' : 'border-forge/50 text-forge')}>{children}</div>;
+}
+
+function FilterBar({
+  filters,
+  options,
+  onChange,
+}: {
+  filters: CardFilters;
+  options: { champions: string[]; domains: string[]; types: string[]; costs: string[] };
+  onChange: (filters: CardFilters) => void;
+}) {
+  const setFilter = (key: keyof CardFilters, value: string) => onChange({ ...filters, [key]: value });
+
+  return (
+    <div className="grid gap-3 border border-line bg-panel p-4 shadow-glow md:grid-cols-[minmax(220px,1.4fr)_repeat(4,minmax(120px,1fr))_auto]">
+      <input className="input" placeholder="Search cards" value={filters.search} onChange={(event) => setFilter('search', event.target.value)} />
+      <Select value={filters.champion} label="Legend" options={options.champions} onChange={(value) => setFilter('champion', value)} />
+      <Select value={filters.domain} label="Domain" options={options.domains} onChange={(value) => setFilter('domain', value)} />
+      <Select value={filters.type} label="Type" options={options.types} onChange={(value) => setFilter('type', value)} />
+      <Select value={filters.cost} label="Cost" options={options.costs} onChange={(value) => setFilter('cost', value)} />
+      <button className="btn-secondary" onClick={() => onChange(emptyFilters)}>
+        Clear
+      </button>
+    </div>
+  );
+}
+
+function Select({ value, label, options, onChange }: { value: string; label: string; options: string[]; onChange: (value: string) => void }) {
+  return (
+    <select className="input" value={value} onChange={(event) => onChange(event.target.value)} aria-label={label}>
+      <option value="">{label}</option>
+      {options.map((option) => (
+        <option key={option} value={option}>
+          {option}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function CardTile({ card, selected, onAdd, onDetails }: { card: RiftCard; selected: boolean; onAdd: () => void; onDetails: () => void }) {
+  return (
+    <article className={cx('flex min-h-[320px] flex-col overflow-hidden border bg-panel', selected ? 'border-forge' : 'border-line')}>
+      <div className="flex aspect-[5/3] items-center justify-center bg-slate-950">
+        {card.imageUrl ? <img className="h-full w-full object-cover" src={card.imageUrl} alt={card.name} loading="lazy" /> : <div className="px-5 text-center text-sm text-slate-500">{card.name}</div>}
+      </div>
+      <div className="flex flex-1 flex-col gap-3 p-4">
+        <div>
+          <div className="flex items-start justify-between gap-3">
+            <h2 className="text-base font-semibold text-white">{card.name}</h2>
+            {card.cost !== undefined ? <span className="badge">{card.cost}</span> : null}
+          </div>
+          <p className="mt-1 text-xs uppercase tracking-wide text-slate-400">{[card.type, card.rarity, card.set].filter(Boolean).join(' / ')}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {card.domains.map((domain) => (
+            <span className="badge border-mint/30 text-mint" key={domain}>
+              {domain}
+            </span>
+          ))}
+        </div>
+        {card.rulesText ? <p className="line-clamp-4 text-sm leading-6 text-slate-300">{card.rulesText}</p> : null}
+        <div className="mt-auto grid grid-cols-2 gap-2">
+          <button className="btn-secondary" onClick={onDetails}>
+            Details
+          </button>
+          <button className="btn-primary" onClick={onAdd}>
+            {card.type === 'Legend' ? 'Set legend' : 'Add card'}
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function DeckBuilder({
+  deck,
+  decks,
+  entries,
+  validation,
+  onSelectDeck,
+  onCreateDeck,
+  onDeleteDeck,
+  onRename,
+  onQuantity,
+  onSave,
+  onImport,
+  onExport,
+  canSave,
+  saveMessage,
+}: {
+  deck: Deck;
+  decks: Deck[];
+  entries: Array<{ cardId: string; quantity: number; card: RiftCard }>;
+  validation: ReturnType<typeof validateDeck>;
+  onSelectDeck: (id: string) => void;
+  onCreateDeck: () => void;
+  onDeleteDeck: (id: string) => void;
+  onRename: (name: string) => void;
+  onQuantity: (cardId: string, quantity: number) => void;
+  onSave: () => void;
+  onImport: () => void;
+  onExport: () => void;
+  canSave: boolean;
+  saveMessage: string;
+}) {
+  return (
+    <section className="border border-line bg-panel p-4 shadow-glow">
+      <div className="flex items-center gap-3">
+        <select className="input flex-1" value={deck.id} onChange={(event) => onSelectDeck(event.target.value)} aria-label="Deck">
+          {decks.map((existing) => (
+            <option key={existing.id} value={existing.id}>
+              {existing.name}
+            </option>
+          ))}
+        </select>
+        <button className="btn-secondary" onClick={onCreateDeck}>
+          New
+        </button>
+      </div>
+
+      <input className="input mt-3 w-full text-lg font-semibold" value={deck.name} onChange={(event) => onRename(event.target.value)} />
+
+      <div className="mt-4 grid grid-cols-2 gap-3 text-center">
+        <DeckMetric label="Main Deck" value={`${validation.totalCards}/40`} />
+        <DeckMetric label="Runes" value={`${validation.runeCards}/12`} />
+        <DeckMetric label="Battlefields" value={`${validation.battlefieldCards}/3`} />
+        <DeckMetric label="Legend" value={validation.champion?.name ?? 'None'} />
+        <div className="col-span-2">
+          <DeckMetric label="Domains" value={validation.domains.join(', ') || 'Unset'} />
+        </div>
+      </div>
+
+      <div className={cx('mt-4 border px-3 py-3 text-sm', validation.valid ? 'border-mint/40 text-mint' : 'border-forge/50 text-forge')}>
+        {validation.valid ? 'Deck passes current Phase 1 validation.' : validation.messages.slice(0, 4).join(' ')}
+      </div>
+
+      <div className="mt-4 max-h-[46vh] overflow-auto border border-line">
+        {entries.map((entry) => (
+          <div className="grid grid-cols-[44px_minmax(0,1fr)_92px] items-center gap-3 border-b border-line px-3 py-3 last:border-b-0" key={entry.cardId}>
+            <span className="text-center text-lg font-semibold text-forge">{entry.quantity}</span>
+            <div className="min-w-0">
+              <p className="truncate font-medium text-white">{entry.card.name}</p>
+              <p className="truncate text-xs text-slate-400">{[entry.card.type, entry.card.domains.join(', ')].filter(Boolean).join(' / ')}</p>
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <button className="icon-btn" onClick={() => onQuantity(entry.cardId, entry.quantity - 1)} aria-label={`Remove ${entry.card.name}`}>
+                -
+              </button>
+              <button className="icon-btn" onClick={() => onQuantity(entry.cardId, entry.quantity + 1)} aria-label={`Add ${entry.card.name}`}>
+                +
+              </button>
+            </div>
+          </div>
+        ))}
+        {entries.length === 0 ? <div className="px-3 py-8 text-center text-sm text-slate-400">Add cards from the browser or import a decklist.</div> : null}
+      </div>
+
+      <ManaCurve entries={entries} />
+
+      <div className="mt-4 flex flex-wrap gap-3">
+        <button className="btn-primary" onClick={onSave} disabled={!canSave}>
+          Save
+        </button>
+        <button className="btn-secondary" onClick={onImport}>
+          Import
+        </button>
+        <button className="btn-secondary" onClick={onExport} disabled={entries.length === 0}>
+          Export
+        </button>
+        <button className="btn-secondary border-ember/60 text-ember" onClick={() => onDeleteDeck(deck.id)}>
+          Delete
+        </button>
+      </div>
+      {saveMessage ? <p className="mt-3 text-sm text-slate-300">{saveMessage}</p> : null}
+    </section>
+  );
+}
+
+function DeckImportModal({
+  open,
+  onClose,
+  onImport,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onImport: (text: string) => ReturnType<typeof importDeckText>;
+}) {
+  const [text, setText] = useState('');
+  const [unmatched, setUnmatched] = useState<string[]>([]);
+
+  if (!open) return null;
+
+  const handleImport = () => {
+    const result = onImport(text);
+    setUnmatched(result.unmatched);
+    if (result.matchedLines > 0 && result.unmatched.length === 0) onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 px-4 py-8" onClick={onClose}>
+      <section className="w-full max-w-2xl border border-line bg-panel p-5 shadow-glow" onClick={(event) => event.stopPropagation()}>
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-xl font-semibold text-white">Import decklist</h2>
+          <button className="icon-btn" onClick={onClose} aria-label="Close import">
+            x
+          </button>
+        </div>
+        <textarea
+          className="input mt-4 min-h-72 w-full resize-y font-mono text-sm leading-6"
+          value={text}
+          onChange={(event) => {
+            setText(event.target.value);
+            setUnmatched([]);
+          }}
+          placeholder={'Legend:\n1 Irelia, Blade Dancer\n\nChampion:\n1 Irelia, Fervent\n\nMainDeck:\n3 Defy'}
+          autoFocus
+        />
+        {unmatched.length > 0 ? (
+          <div className="mt-4 max-h-32 overflow-auto border border-ember/50 px-3 py-2 text-sm text-ember">
+            <p className="font-semibold">Could not match:</p>
+            {unmatched.map((line) => (
+              <p className="mt-1" key={line}>
+                {line}
+              </p>
+            ))}
+          </div>
+        ) : null}
+        <div className="mt-4 flex justify-end gap-3">
+          <button className="btn-secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="btn-primary" onClick={handleImport} disabled={!text.trim()}>
+            Import deck
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function DeckMetric({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="border border-line bg-ink px-2 py-3">
+      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-1 truncate text-sm font-semibold text-white">{value}</p>
+    </div>
+  );
+}

@@ -1,0 +1,7 @@
+server:
+  port: 8080
+
+riftforge:
+  riftcodex-api: https://api.riftcodex.com/cards
+  target-score: 10
+  cors-origins: ${CORS_ORIGINS:http://localhost:5173}

@@ -1,0 +1,63 @@
+import { Client } from '@stomp/stompjs';
+import { config } from './env';
+import type { LocalPlayer } from './localPlayer';
+import type { LiveGameState, RoomState } from '../types';
+
+export type MoveRequest =
+  | { type: 'DEAL_CARD'; playerId: string; cardId: string; targetZone: string; x: number; y: number }
+  | { type: 'TAP_CARD'; playerId: string; instanceId: string }
+  | { type: 'FLIP_CARD'; playerId: string; instanceId: string }
+  | { type: 'PLAY_CARD'; playerId: string; instanceId: string; targetZone: string; x: number; y: number }
+  | { type: 'MOVE_CARD'; playerId: string; instanceId: string; targetZone: string; x: number; y: number }
+  | { type: 'TAP_RUNE'; playerId: string; runeInstanceId: string }
+  | { type: 'DISCARD_RUNE'; playerId: string; runeInstanceId: string }
+  | { type: 'DECLARE_ATTACK'; playerId: string; attackerInstanceIds: string[]; targetPlayerId: string }
+  | { type: 'DECLARE_BLOCK'; playerId: string; blockerToAttacker: Record<string, string> }
+  | { type: 'PASS_PHASE'; playerId: string }
+  | { type: 'ADJUST_SCORE'; playerId: string; targetPlayerId: string; delta: number };
+
+export type ServerMessage = { type: 'STATE_UPDATE'; state: LiveGameState } | { type: 'ERROR'; message: string; playerId: string };
+
+export function createGameClient(roomCode: string, player: LocalPlayer, onMessage: (msg: ServerMessage) => void, onConnected: () => void): Client {
+  const wsUrl = `${config.gameServerUrl.replace(/^http/, 'ws')}/ws`;
+  const client = new Client({
+    brokerURL: wsUrl,
+    connectHeaders: { playerId: player.id, playerName: player.name },
+    onConnect: () => {
+      client.subscribe(`/topic/game/${roomCode}`, (frame) => {
+        onMessage(JSON.parse(frame.body) as ServerMessage);
+      });
+      client.subscribe(`/user/topic/game/${roomCode}`, (frame) => {
+        onMessage(JSON.parse(frame.body) as ServerMessage);
+      });
+      onConnected();
+    },
+    reconnectDelay: 5000,
+  });
+  client.activate();
+  return client;
+}
+
+export function createLobbyClient(roomCode: string, player: LocalPlayer, onRoom: (room: RoomState) => void): Client {
+  const wsUrl = `${config.gameServerUrl.replace(/^http/, 'ws')}/ws`;
+  const client = new Client({
+    brokerURL: wsUrl,
+    connectHeaders: { playerId: player.id, playerName: player.name },
+    onConnect: () => {
+      client.subscribe(`/topic/lobby/${roomCode}`, (frame) => {
+        onRoom(JSON.parse(frame.body) as RoomState);
+      });
+    },
+    reconnectDelay: 5000,
+  });
+  client.activate();
+  return client;
+}
+
+export function sendMove(client: Client, roomCode: string, move: MoveRequest): void {
+  client.publish({ destination: `/app/game/${roomCode}/move`, body: JSON.stringify(move) });
+}
+
+export function joinGame(client: Client, roomCode: string): void {
+  client.publish({ destination: `/app/game/${roomCode}/join`, body: '{}' });
+}
