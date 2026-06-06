@@ -1,6 +1,6 @@
 # RiftForge
 
-Phase 1 scaffold for a cross-platform Riftbound digital client.
+A cross-platform Riftbound digital client built as a side project.
 
 ## Stack
 
