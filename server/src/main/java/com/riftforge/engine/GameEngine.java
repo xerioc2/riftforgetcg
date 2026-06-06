@@ -129,6 +129,11 @@ public class GameEngine {
 
   private LiveGameState applyDeclareAttack(LiveGameState state, DeclareAttackMove move) {
     state.setDeclaredAttackers(move.attackerInstanceIds());
+    move.attackerInstanceIds().forEach(id ->
+        state.getCards().stream()
+            .filter(card -> card.getInstanceId().equals(id))
+            .findFirst()
+            .ifPresent(card -> card.setTapped(true)));
     log(state, move.playerId(), "Declared attackers.");
     return state;
   }
@@ -153,6 +158,13 @@ public class GameEngine {
       List<String> attackers = new ArrayList<>(state.getDeclaredAttackers());
       combatResolver.resolve(state);
       state.setDeclaredAttackers(attackers);
+      log(state, state.getActivePlayerId(), "Combat resolved.");
+      state.setCurrentPhase(Phase.END);
+      next = Phase.END;
+      returnAttackersToBase(state);
+      healBoardCards(state);
+      log(state, state.getActivePlayerId(), "Advanced to END.");
+      return state;
     }
     if (next == Phase.END) {
       returnAttackersToBase(state);
@@ -163,6 +175,8 @@ public class GameEngine {
       scoreUnchallengedBattlefield(state);
       grantRunes(state, state.getActivePlayerId(), 2);
       autoDraw(state, state.getActivePlayerId());
+      state.setCurrentPhase(Phase.MAIN);
+      next = Phase.MAIN;
     }
     log(state, state.getActivePlayerId(), "Advanced to " + next);
     return state;

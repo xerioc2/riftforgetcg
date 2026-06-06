@@ -46,7 +46,6 @@ public class CombatResolver {
           GameEngine.log(state, attacker.getOwnerId(), attackerDef.name() + " was destroyed in combat");
         }
       }
-      if (attacker.getZone() == ZoneName.BATTLEFIELD) attacker.setTapped(true);
     }
     state.getDeclaredAttackers().clear();
     state.getBlockerToAttacker().clear();

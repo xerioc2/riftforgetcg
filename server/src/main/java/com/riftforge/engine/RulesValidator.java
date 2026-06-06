@@ -99,18 +99,26 @@ public class RulesValidator {
 
   private void validateAttack(LiveGameState state, DeclareAttackMove move) {
     if (state.getCurrentPhase() != Phase.ATTACK_DECLARE) throw new IllegalMoveException("Not attack declaration phase.");
+    boolean validTarget = state.getPlayers().stream()
+        .anyMatch(player -> player.getUserId().equals(move.targetPlayerId())
+            && !player.getUserId().equals(move.playerId()));
+    if (!validTarget) throw new IllegalMoveException("Invalid attack target.");
     for (String id : move.attackerInstanceIds()) {
       CardInstance card = findCard(state, id);
       if (!move.playerId().equals(card.getOwnerId()) || card.getZone() != ZoneName.BATTLEFIELD) throw new IllegalMoveException("Invalid attacker.");
+      if (card.isTapped()) throw new IllegalMoveException("Attacker is exhausted.");
       if (card.isHasSummoningSickness() && !cardDataService.hasKeyword(card.getCardId(), "RUSH")) throw new IllegalMoveException("Attacker has summoning sickness.");
     }
   }
 
   private void validateBlock(LiveGameState state, DeclareBlockMove move) {
     if (state.getCurrentPhase() != Phase.BLOCK_DECLARE) throw new IllegalMoveException("Not block declaration phase.");
+    long distinctAttackers = move.blockerToAttacker().values().stream().distinct().count();
+    if (distinctAttackers < move.blockerToAttacker().size()) throw new IllegalMoveException("Cannot assign multiple blockers to one attacker.");
     for (String id : move.blockerToAttacker().keySet()) {
       CardInstance card = findCard(state, id);
       if (!move.playerId().equals(card.getOwnerId()) || card.getZone() != ZoneName.BATTLEFIELD || card.isTapped()) throw new IllegalMoveException("Invalid blocker.");
+      if (!state.getDeclaredAttackers().contains(move.blockerToAttacker().get(id))) throw new IllegalMoveException("Cannot block a non-attacking unit.");
     }
   }
 

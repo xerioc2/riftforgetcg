@@ -97,6 +97,8 @@ export type CardInstance = {
   tapped: boolean;
   faceDown: boolean;
   zIndex: number;
+  currentHealth?: number;
+  hasSummoningSickness?: boolean;
 };
 
 export type PlayerGameState = {

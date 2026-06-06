@@ -55,6 +55,12 @@ export function CardSprite({
   const [image] = useImage(instance.faceDown ? CARD_BACK_URL : cardDef.imageUrl ?? '');
   const groupRef = useRef<KonvaGroup | null>(null);
   const isDiscarded = instance.zone.toLowerCase() === 'discard';
+  const isBoardUnit = ['base', 'battlefield'].includes(instance.zone.toLowerCase());
+  const maxHealth = cardDef.health ?? 0;
+  const currentHealth = instance.currentHealth ?? maxHealth;
+  const isDamaged = isBoardUnit && maxHealth > 0 && instance.currentHealth != null && currentHealth < maxHealth;
+  const healthRatio = maxHealth > 0 ? Math.max(0, Math.min(1, currentHealth / maxHealth)) : 0;
+  const isSick = instance.zone.toLowerCase() === 'battlefield' && instance.hasSummoningSickness === true;
 
   useEffect(() => {
     if (!groupRef.current) return;
@@ -123,11 +129,24 @@ export function CardSprite({
           {!instance.faceDown && cardDef.power != null && cardDef.health != null ? (
             <>
               <Rect x={CARD_WIDTH - 28} y={CARD_HEIGHT - 18} width={26} height={14} fill="rgba(0,0,0,0.5)" cornerRadius={3} />
-              <Text x={CARD_WIDTH - 28} y={CARD_HEIGHT - 16} width={26} text={`${cardDef.power}/${cardDef.health}`} align="center" fontSize={9} fontStyle="bold" fill="#6fd3b6" />
+              <Text x={CARD_WIDTH - 28} y={CARD_HEIGHT - 16} width={26} text={`${cardDef.power}/${instance.currentHealth ?? cardDef.health}`} align="center" fontSize={9} fontStyle="bold" fill="#6fd3b6" />
             </>
           ) : null}
         </>
       )}
+      {isSick ? (
+        <>
+          <Rect width={CARD_WIDTH} height={CARD_HEIGHT} fill="rgba(0,0,0,0.35)" cornerRadius={4} listening={false} />
+          <Text y={CARD_HEIGHT / 2 - 5} width={CARD_WIDTH} text="SICK" align="center" fontSize={9} fill="rgba(255,255,255,0.5)" listening={false} />
+        </>
+      ) : null}
+      {isDamaged ? (
+        <>
+          <Text x={2} y={CARD_HEIGHT - 16} width={CARD_WIDTH - 4} text={`${currentHealth}/${maxHealth}`} align="right" fontSize={7} fill="#ffffff" listening={false} />
+          <Rect y={CARD_HEIGHT - 7} width={CARD_WIDTH} height={5} fill="#4b5563" listening={false} />
+          <Rect y={CARD_HEIGHT - 7} width={CARD_WIDTH * healthRatio} height={5} fill={healthRatio > 0.5 ? '#6fd3b6' : '#e56c4f'} listening={false} />
+        </>
+      ) : null}
       {selected ? <Rect width={CARD_WIDTH} height={CARD_HEIGHT} stroke="#d8b05d" strokeWidth={3} cornerRadius={4} listening={false} /> : null}
     </Group>
   );

@@ -14,8 +14,8 @@ public class CardInstance {
   private int zIndex;
   private boolean tapped;
   private boolean faceDown;
-  @JsonIgnore private int currentHealth;
-  @JsonIgnore private boolean hasSummoningSickness;
+  private int currentHealth;
+  private boolean hasSummoningSickness;
   @JsonIgnore private List<String> tempKeywords = new ArrayList<>();
 
   public CardInstance() {}
