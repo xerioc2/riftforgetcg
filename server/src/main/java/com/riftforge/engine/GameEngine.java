@@ -6,6 +6,7 @@ import com.riftforge.model.move.*;
 import com.riftforge.service.CardDataService;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -162,8 +163,6 @@ public class GameEngine {
       scoreUnchallengedBattlefield(state);
       grantRunes(state, state.getActivePlayerId(), 2);
       autoDraw(state, state.getActivePlayerId());
-      state.setCurrentPhase(Phase.MAIN);
-      next = Phase.MAIN;
     }
     log(state, state.getActivePlayerId(), "Advanced to " + next);
     return state;

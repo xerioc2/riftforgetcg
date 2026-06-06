@@ -219,7 +219,7 @@ export function GameBoard() {
     const instance = state?.cards.find((card) => card.instanceId === instanceId);
     if (!instance) return;
     const zone = pointZone(x, y, zones, instance.zone);
-    publishMove({ type: 'MOVE_CARD', playerId: player.id, instanceId, targetZone: zone.toUpperCase().replaceAll('-', '_'), x, y });
+    publishMove({ type: 'MOVE_CARD', playerId: player.id, instanceId, targetZone: zone.toUpperCase().replace(/-/g, '_'), x, y });
   };
 
   const sendChat = (text: string) => {
@@ -249,6 +249,11 @@ export function GameBoard() {
   const opponentHand = state.cards.filter((card) => card.ownerId === opponent?.userId && sameZone(card.zone, 'hand')).length;
   const myUntappedRunes = (state.runes ?? []).filter((rune) => rune.ownerId === player.id && !rune.tapped).length;
   const opponentUntappedRunes = (state.runes ?? []).filter((rune) => rune.ownerId === opponent?.userId && !rune.tapped).length;
+  const isMyTurn = state.activePlayerId === player.id;
+  const canPass =
+    state.currentPhase === 'BLOCK_DECLARE'
+      ? !isMyTurn && state.players.some((statePlayer) => statePlayer.userId === player.id)
+      : isMyTurn;
 
   return (
     <main className="relative bg-ink text-slate-100" style={{ height: `calc(100vh - ${NAV_HEIGHT}px)` }} ref={containerRef}>
@@ -332,7 +337,7 @@ export function GameBoard() {
           isMe
         />
       ) : null}
-      <PhaseBar currentPhase={state.currentPhase ?? 'MAIN'} isMyTurn={state.activePlayerId === player.id} opponentName={opponentName} onPassPhase={() => publishMove({ type: 'PASS_PHASE', playerId: player.id })} />
+      <PhaseBar currentPhase={state.currentPhase ?? 'MAIN'} isMyTurn={isMyTurn} canPass={canPass} opponentName={opponentName} onPassPhase={() => publishMove({ type: 'PASS_PHASE', playerId: player.id })} />
       <GameSidebar log={state.log} chat={chat} deckCards={deckCards} onSend={sendChat} onDeal={dealCard} onDrawHand={drawHand} onHover={setHoveredCard} />
       <div className="pointer-events-auto absolute right-[288px] top-2 z-20 flex items-center gap-2">
         <details className="relative">

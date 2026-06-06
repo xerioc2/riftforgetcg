@@ -52,7 +52,8 @@ public class BotService {
 
     boolean botIsActive = BOT_ID.equals(state.getActivePlayerId());
     boolean botIsDefender = !botIsActive && state.getCurrentPhase() == Phase.BLOCK_DECLARE;
-    if (!botIsActive && !botIsDefender) return;
+    boolean botShouldAct = state.getCurrentPhase() == Phase.BLOCK_DECLARE ? botIsDefender : botIsActive;
+    if (!botShouldAct) return;
     if (!actingRooms.add(event.getRoomCode())) return;
 
     CompletableFuture.runAsync(() -> {
@@ -78,7 +79,9 @@ public class BotService {
       case CHANNEL, COMBAT_RESOLVE, END -> gameService.processMove(roomCode, new PassPhaseMove(BOT_ID));
       case MAIN -> doMain(roomCode, state);
       case ATTACK_DECLARE -> doAttack(roomCode, state);
-      case BLOCK_DECLARE -> gameService.processMove(roomCode, new PassPhaseMove(BOT_ID));
+      case BLOCK_DECLARE -> {
+        // The defending player owns this phase.
+      }
     }
   }
 

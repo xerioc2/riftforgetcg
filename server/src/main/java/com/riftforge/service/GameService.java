@@ -80,7 +80,7 @@ public class GameService {
   private LiveGameState createInitialState(String roomCode, List<String> playerIds, Map<String, List<String>> decksByPlayer) {
     LiveGameState state = new LiveGameState();
     state.setRoomCode(roomCode);
-    state.setCurrentPhase(Phase.MAIN);
+    state.setCurrentPhase(Phase.CHANNEL);
     state.setActivePlayerId(playerIds.isEmpty() ? null : playerIds.get(0));
     state.setTurnNumber(1);
     state.setUpdatedAt(Instant.now().toString());

@@ -18,7 +18,7 @@ public class RulesValidator {
   }
 
   public void validate(LiveGameState state, MoveRequest move) {
-    if (move instanceof PassPhaseMove) return;
+    if (move instanceof PassPhaseMove m) { validatePassPhase(state, m); return; }
     if (move instanceof AdjustScoreMove) return;
     if (move instanceof DeclareBlockMove m) { validateBlock(state, m); return; }
     if (move instanceof DealCardMove) return;
@@ -30,6 +30,18 @@ public class RulesValidator {
     if (move instanceof TapRuneMove m) validateTapRune(state, m);
     if (move instanceof DiscardRuneMove m) validateDiscardRune(state, m);
     if (move instanceof DeclareAttackMove m) validateAttack(state, m);
+  }
+
+  private void validatePassPhase(LiveGameState state, PassPhaseMove move) {
+    boolean isPlayer = state.getPlayers().stream().anyMatch(p -> p.getUserId().equals(move.playerId()));
+    if (!isPlayer) throw new IllegalMoveException("Player is not in this game.");
+    if (state.getCurrentPhase() == Phase.BLOCK_DECLARE) {
+      if (move.playerId().equals(state.getActivePlayerId())) {
+        throw new IllegalMoveException("Waiting for the defending player.");
+      }
+      return;
+    }
+    if (!move.playerId().equals(state.getActivePlayerId())) throw new IllegalMoveException("Not your turn.");
   }
 
   private void validatePlayCard(LiveGameState state, PlayCardMove move) {
