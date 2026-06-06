@@ -30,6 +30,7 @@ public class RoomController {
   record JoinRequest(String playerId, String playerName) {}
   record ReadyRequest(String playerId, List<String> deckCardIds) {}
   record StartRequest(String playerId) {}
+  record BotDeckRequest(List<String> deckCardIds) {}
 
   @PostMapping
   public RoomState create(@RequestBody CreateRequest req) {
@@ -51,6 +52,11 @@ public class RoomController {
     return roomService.ready(code, req.playerId(), req.deckCardIds());
   }
 
+  @PostMapping("/{code}/bot-deck")
+  public RoomState setBotDeck(@PathVariable String code, @RequestBody BotDeckRequest req) {
+    return roomService.setBotDeck(code, req.deckCardIds());
+  }
+
   @PostMapping("/{code}/start")
   public ResponseEntity<RoomState> start(@PathVariable String code, @RequestBody StartRequest req) {
     RoomState room = roomService.start(code, req.playerId());
@@ -58,5 +64,15 @@ public class RoomController {
     List<String> playerIds = room.getPlayers().stream().map(LobbyPlayer::getId).toList();
     gameService.initGame(code.toUpperCase(), playerIds, decks);
     return ResponseEntity.ok(room);
+  }
+
+  @PostMapping("/bot-vs-bot")
+  public ResponseEntity<Map<String, String>> createBotVsBot() {
+    RoomState room = roomService.createBotVsBot();
+    String code = room.getCode();
+    Map<String, List<String>> decks = room.getPlayers().stream().collect(Collectors.toMap(LobbyPlayer::getId, LobbyPlayer::getDeckCardIds));
+    List<String> playerIds = room.getPlayers().stream().map(LobbyPlayer::getId).toList();
+    gameService.initGame(code, playerIds, decks);
+    return ResponseEntity.ok(Map.of("code", code));
   }
 }

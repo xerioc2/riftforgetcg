@@ -72,6 +72,16 @@ public class RulesValidator {
       if (state.getCurrentPhase() != Phase.MAIN) throw new IllegalMoveException("Cards can only deploy during MAIN.");
       if (card.isTapped()) throw new IllegalMoveException("Only ready cards can move to the battlefield.");
     }
+    if (card.getZone() == ZoneName.CHAMPION && move.targetZone() == ZoneName.BATTLEFIELD) {
+      if (!move.playerId().equals(state.getActivePlayerId())) throw new IllegalMoveException("Not your turn.");
+      if (state.getCurrentPhase() != Phase.MAIN) throw new IllegalMoveException("Champions can only deploy during MAIN.");
+      if (card.isTapped()) throw new IllegalMoveException("Champion is exhausted.");
+    }
+    if (card.getZone() == ZoneName.LEGEND && move.targetZone() == ZoneName.BATTLEFIELD) {
+      if (!move.playerId().equals(state.getActivePlayerId())) throw new IllegalMoveException("Not your turn.");
+      if (state.getCurrentPhase() != Phase.MAIN) throw new IllegalMoveException("Legends can only deploy during MAIN.");
+      if (card.isTapped()) throw new IllegalMoveException("Legend is exhausted.");
+    }
   }
 
   private void validateTapCard(LiveGameState state, TapCardMove move) {
@@ -107,7 +117,7 @@ public class RulesValidator {
       CardInstance card = findCard(state, id);
       if (!move.playerId().equals(card.getOwnerId()) || card.getZone() != ZoneName.BATTLEFIELD) throw new IllegalMoveException("Invalid attacker.");
       if (card.isTapped()) throw new IllegalMoveException("Attacker is exhausted.");
-      if (card.isHasSummoningSickness() && !cardDataService.hasKeyword(card.getCardId(), "RUSH")) throw new IllegalMoveException("Attacker has summoning sickness.");
+      if (card.isHasSummoningSickness() && !cardDataService.hasKeyword(card, "RUSH")) throw new IllegalMoveException("Attacker has summoning sickness.");
     }
   }
 
@@ -119,6 +129,8 @@ public class RulesValidator {
       CardInstance card = findCard(state, id);
       if (!move.playerId().equals(card.getOwnerId()) || card.getZone() != ZoneName.BATTLEFIELD || card.isTapped()) throw new IllegalMoveException("Invalid blocker.");
       if (!state.getDeclaredAttackers().contains(move.blockerToAttacker().get(id))) throw new IllegalMoveException("Cannot block a non-attacking unit.");
+      CardInstance attacker = findCard(state, move.blockerToAttacker().get(id));
+      if (cardDataService.hasKeyword(attacker, "ELUSIVE")) throw new IllegalMoveException("Cannot block an ELUSIVE attacker.");
     }
   }
 

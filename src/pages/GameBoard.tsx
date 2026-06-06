@@ -1,7 +1,7 @@
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Client } from '@stomp/stompjs';
-import { Arrow, Layer, Rect, Stage } from 'react-konva';
+import { Arrow, Layer, Rect, Stage, Text } from 'react-konva';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CardPreview } from '../components/CardPreview';
 import { GameSidebar } from '../components/GameSidebar';
@@ -24,8 +24,7 @@ import type { CardInstance, LiveGameState, RiftCard, ZoneName } from '../types';
 const NAV_HEIGHT = 73;
 const SIDEBAR_WIDTH = 280;
 const PHASE_BAR_HEIGHT = 48;
-const HAND_HEIGHT = 172;
-const BOTTOM_CHROME = PHASE_BAR_HEIGHT + HAND_HEIGHT;
+const DEFAULT_HAND_HEIGHT = 172;
 
 function pointZone(x: number, y: number, zones: ZoneRect[], fallback: ZoneName): ZoneName {
   return zones.find((zone) => x >= zone.x && x <= zone.x + zone.width && y >= zone.y && y <= zone.y + zone.height)?.zoneName ?? fallback;
@@ -33,6 +32,16 @@ function pointZone(x: number, y: number, zones: ZoneRect[], fallback: ZoneName):
 
 function sameZone(zone: string, expected: ZoneName | string) {
   return zone.toLowerCase() === expected.toLowerCase();
+}
+
+function autoPlaceInZone(zone: ZoneRect, existingCount: number, cardW = 88, cardH = 112): { x: number; y: number } {
+  const cols = Math.max(1, Math.floor((zone.width - 16) / (cardW + 8)));
+  const col = existingCount % cols;
+  const row = Math.floor(existingCount / cols);
+  return {
+    x: zone.x + 12 + col * (cardW + 8) + cardW / 2,
+    y: zone.y + 8 + row * (cardH / 2 + 8) + cardH / 4,
+  };
 }
 
 export function GameBoard() {
@@ -46,16 +55,24 @@ export function GameBoard() {
   const [loading, setLoading] = useState(true);
   const [size, setSize] = useState({
     width: Math.max(320, window.innerWidth - SIDEBAR_WIDTH),
-    height: Math.max(480, window.innerHeight - NAV_HEIGHT - BOTTOM_CHROME),
+    height: Math.max(480, window.innerHeight - NAV_HEIGHT - PHASE_BAR_HEIGHT - DEFAULT_HAND_HEIGHT),
   });
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
   const [cardScale, setCardScale] = useState(1.3);
   const [hoveredCard, setHoveredCard] = useState<RiftCard | null>(null);
+  const [pendingAttackers, setPendingAttackers] = useState<Set<string>>(new Set());
+  const [pendingBlocker, setPendingBlocker] = useState<string | null>(null);
+  const [pendingBlocks, setPendingBlocks] = useState<Map<string, string>>(new Map());
+  const [pendingRuneTaps, setPendingRuneTaps] = useState<Set<string>>(new Set());
+  const [handHeight, setHandHeight] = useState(DEFAULT_HAND_HEIGHT);
+  const [wsConnected, setWsConnected] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const stompClientRef = useRef<Client | null>(null);
   const prevCards = useRef<Map<string, CardInstance>>(new Map());
   const prevState = useRef<LiveGameState | null>(null);
   const pendingAnimations = useRef<Set<string>>(new Set());
+  const previewClearTimer = useRef<number | null>(null);
+  const hasConnectedRef = useRef(false);
 
   const roomCode = code?.toUpperCase() ?? '';
   const activeDeck = decks.find((deck) => deck.id === activeDeckId) ?? decks[0];
@@ -112,12 +129,16 @@ export function GameBoard() {
     const observer = new ResizeObserver(([entry]) => {
       setSize({
         width: Math.max(320, entry.contentRect.width - SIDEBAR_WIDTH),
-        height: Math.max(480, entry.contentRect.height - BOTTOM_CHROME),
+        height: Math.max(480, entry.contentRect.height - PHASE_BAR_HEIGHT - handHeight),
       });
     });
     observer.observe(element);
     return () => observer.disconnect();
-  }, []);
+  }, [handHeight]);
+
+  useEffect(() => {
+    if (state?.currentPhase !== 'MAIN') setPendingRuneTaps(new Set());
+  }, [state?.currentPhase]);
 
   const handleIncomingState = useCallback(
     (incoming: LiveGameState) => {
@@ -164,6 +185,16 @@ export function GameBoard() {
             if (msg.type === 'ERROR') addChat({ id: crypto.randomUUID(), userId: msg.playerId, email: null, text: msg.message, sentAt: new Date().toISOString() });
           },
           () => joinGame(client, roomCode),
+          (connected) => {
+            setWsConnected(connected);
+            if (connected && hasConnectedRef.current) {
+              void fetch(`${config.gameServerUrl}/api/game/${roomCode}/state`)
+                .then((r) => r.json() as Promise<LiveGameState>)
+                .then(handleIncomingState)
+                .catch(() => {});
+            }
+            if (connected) hasConnectedRef.current = true;
+          },
         );
         if (cancelled) {
           void client.deactivate();
@@ -191,6 +222,15 @@ export function GameBoard() {
     sendMove(stompClientRef.current, roomCode, move);
   };
 
+  const handleCardHover = (card: RiftCard | null) => {
+    if (previewClearTimer.current != null) window.clearTimeout(previewClearTimer.current);
+    if (card) {
+      setHoveredCard(card);
+      return;
+    }
+    previewClearTimer.current = window.setTimeout(() => setHoveredCard(null), 1000);
+  };
+
   const dealCard = (card: RiftCard) => {
     publishMove({ type: 'DEAL_CARD', playerId: player.id, cardId: card.id, targetZone: 'HAND', x: size.width / 2, y: size.height - 54 });
   };
@@ -206,9 +246,25 @@ export function GameBoard() {
   };
 
   const playFromHand = (instanceId: string) => {
-    const base = zones.find((zone) => zone.zoneName === 'base' && zone.ownerId === player.id) ?? zones.find((zone) => zone.zoneName === 'base');
+    for (const runeId of pendingRuneTaps) {
+      publishMove({ type: 'TAP_RUNE', playerId: player.id, runeInstanceId: runeId });
+    }
+    setPendingRuneTaps(new Set());
+
+    const cardDef = cardsById.get(state?.cards.find((c) => c.instanceId === instanceId)?.cardId ?? '');
+    const isRune = cardDef?.type?.toLowerCase() === 'rune';
+    if (isRune) {
+      const runeZone = zones.find((zone) => zone.zoneName === 'rune' && zone.ownerId === player.id);
+      const runeCount = state?.runes?.filter((rune) => rune.ownerId === player.id).length ?? 0;
+      const runeX = runeZone ? runeZone.x + 20 + runeCount * Math.max(30, (runeZone.width - 40) / 10) : size.width / 2;
+      const runeY = runeZone ? runeZone.y + runeZone.height / 2 : size.height / 2;
+      publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'RUNE', x: runeX, y: runeY });
+      return;
+    }
+    const base = zones.find((zone) => zone.zoneName === 'base' && zone.ownerId === player.id);
     const baseCount = state?.cards.filter((card) => card.ownerId === player.id && sameZone(card.zone, 'base')).length ?? 0;
-    publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'BASE', x: base ? base.x + 80 + baseCount * 90 : size.width / 2, y: base ? base.y + 80 : size.height / 2 });
+    const position = base ? autoPlaceInZone(base, baseCount) : { x: size.width / 2, y: size.height / 2 };
+    publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'BASE', ...position });
   };
 
   const discardFromHand = (instanceId: string) => {
@@ -219,7 +275,80 @@ export function GameBoard() {
     const instance = state?.cards.find((card) => card.instanceId === instanceId);
     if (!instance) return;
     const zone = pointZone(x, y, zones, instance.zone);
-    publishMove({ type: 'MOVE_CARD', playerId: player.id, instanceId, targetZone: zone.toUpperCase().replace(/-/g, '_'), x, y });
+    const targetZoneRect = zones.find((candidate) => candidate.zoneName === zone && candidate.ownerId === instance.ownerId) ?? zones.find((candidate) => candidate.zoneName === zone);
+    const snappedX = targetZoneRect ? Math.max(targetZoneRect.x + 12, Math.min(targetZoneRect.x + targetZoneRect.width - 12, x)) : x;
+    const snappedY = targetZoneRect ? Math.max(targetZoneRect.y + 12, Math.min(targetZoneRect.y + targetZoneRect.height - 12, y)) : y;
+    publishMove({ type: 'MOVE_CARD', playerId: player.id, instanceId, targetZone: zone.toUpperCase().replace(/-/g, '_'), x: snappedX, y: snappedY });
+  };
+
+  const handleCardClick = (instanceId: string) => {
+    const instance = state?.cards.find((card) => card.instanceId === instanceId);
+    if (!instance) return;
+    const isOwnBattlefieldCard = instance.ownerId === player.id && sameZone(instance.zone, 'battlefield');
+    const isEnemyBattlefieldCard = instance.ownerId !== player.id && sameZone(instance.zone, 'battlefield');
+
+    if (state?.currentPhase === 'ATTACK_DECLARE' && isMyTurn) {
+      if (!isOwnBattlefieldCard) return;
+      setPendingAttackers((previous) => {
+        const next = new Set(previous);
+        if (next.has(instanceId)) next.delete(instanceId);
+        else next.add(instanceId);
+        return next;
+      });
+      return;
+    }
+
+    if (state?.currentPhase === 'BLOCK_DECLARE' && canPass) {
+      if (isOwnBattlefieldCard) {
+        if (pendingBlocks.has(instanceId)) {
+          setPendingBlocks((previous) => {
+            const next = new Map(previous);
+            next.delete(instanceId);
+            return next;
+          });
+          setPendingBlocker(null);
+        } else if (!instance.tapped) {
+          setPendingBlocker(instanceId);
+        }
+        return;
+      }
+      if (isEnemyBattlefieldCard && pendingBlocker) {
+        setPendingBlocks((previous) => new Map(previous).set(pendingBlocker, instanceId));
+        setPendingBlocker(null);
+      }
+      return;
+    }
+
+    setSelectedInstanceId(instanceId);
+  };
+
+  const handleRuneTap = (runeInstanceId: string) => {
+    const rune = state?.runes?.find((candidate) => candidate.instanceId === runeInstanceId);
+    if (!rune || rune.ownerId !== player.id) return;
+    setPendingRuneTaps((previous) => {
+      const next = new Set(previous);
+      if (next.has(runeInstanceId)) next.delete(runeInstanceId);
+      else if (!rune.tapped) next.add(runeInstanceId);
+      return next;
+    });
+  };
+
+  const clearPendingDeclarations = () => {
+    setPendingAttackers(new Set());
+    setPendingBlocker(null);
+    setPendingBlocks(new Map());
+  };
+
+  const handlePassPhase = () => {
+    const opponentId = state?.players.find((statePlayer) => statePlayer.userId !== player.id)?.userId;
+    if (state?.currentPhase === 'ATTACK_DECLARE' && pendingAttackers.size > 0 && opponentId) {
+      publishMove({ type: 'DECLARE_ATTACK', playerId: player.id, attackerInstanceIds: [...pendingAttackers], targetPlayerId: opponentId });
+    }
+    if (state?.currentPhase === 'BLOCK_DECLARE' && pendingBlocks.size > 0) {
+      publishMove({ type: 'DECLARE_BLOCK', playerId: player.id, blockerToAttacker: Object.fromEntries(pendingBlocks) });
+    }
+    publishMove({ type: 'PASS_PHASE', playerId: player.id });
+    clearPendingDeclarations();
   };
 
   const sendChat = (text: string) => {
@@ -262,6 +391,66 @@ export function GameBoard() {
           <ZoneOverlay zones={zones} />
         </Layer>
         <Layer listening={false}>
+          {state.currentPhase === 'ATTACK_DECLARE' && isMyTurn
+            ? state.cards
+                .filter((card) => pendingAttackers.has(card.instanceId))
+                .map((card) => (
+                  <Rect
+                    key={card.instanceId}
+                    x={card.x - 44}
+                    y={card.y - 60}
+                    width={88}
+                    height={120}
+                    fill="rgba(216,176,93,0.18)"
+                    stroke="#d8b05d"
+                    shadowColor="#d8b05d"
+                    shadowBlur={24}
+                    shadowOpacity={1}
+                    cornerRadius={6}
+                  />
+                ))
+            : null}
+          {state.currentPhase === 'BLOCK_DECLARE' && canPass
+            ? state.cards
+                .filter((card) => card.ownerId !== player.id && sameZone(card.zone, 'battlefield'))
+                .map((card) => (
+                  <Rect
+                    key={card.instanceId}
+                    x={card.x - 44}
+                    y={card.y - 60}
+                    width={88}
+                    height={120}
+                    fill="rgba(229,108,79,0.10)"
+                    stroke="#e56c4f"
+                    shadowColor="#e56c4f"
+                    shadowBlur={16}
+                    cornerRadius={6}
+                  />
+                ))
+            : null}
+          {state.currentPhase === 'BLOCK_DECLARE' && canPass && pendingBlocker
+            ? (() => {
+                const card = cardPositions.get(pendingBlocker);
+                return card ? <Rect x={card.x - 44} y={card.y - 60} width={88} height={120} fill="rgba(111,211,182,0.18)" stroke="#6fd3b6" shadowColor="#6fd3b6" shadowBlur={20} cornerRadius={6} /> : null;
+              })()
+            : null}
+          {state.currentPhase === 'BLOCK_DECLARE' && canPass
+            ? [...pendingBlocks.entries()].map(([blockerId, attackerId]) => {
+                const blocker = cardPositions.get(blockerId);
+                const attacker = cardPositions.get(attackerId);
+                if (!blocker || !attacker) return null;
+                return (
+                  <Fragment key={blockerId}>
+                    <Rect x={blocker.x - 44} y={blocker.y - 60} width={88} height={120} stroke="#6fd3b6" strokeWidth={2} cornerRadius={6} />
+                    <Arrow points={[blocker.x, blocker.y, attacker.x, attacker.y]} stroke="#6fd3b6" strokeWidth={2} fill="#6fd3b6" pointerLength={8} pointerWidth={6} />
+                  </Fragment>
+                );
+              })
+            : null}
+          {state.currentPhase === 'ATTACK_DECLARE' && isMyTurn ? <Text x={0} y={8} width={size.width} text="Click your units to attack - Pass when ready" align="center" fontSize={13} fontStyle="bold" fill="#d8b05d" /> : null}
+          {state.currentPhase === 'BLOCK_DECLARE' && canPass ? <Text x={0} y={8} width={size.width} text="Click your unit then click an attacker to block - Pass to skip" align="center" fontSize={13} fontStyle="bold" fill="#6fd3b6" /> : null}
+        </Layer>
+        <Layer listening={false}>
           {activeBattlefieldCards.map((card) => (
             <Rect key={card.instanceId} x={card.x - 44} y={card.y - 60} width={88} height={120} fill="rgba(216,176,93,0.08)" stroke="#d8b05d" shadowColor="#d8b05d" shadowBlur={16} shadowOpacity={0.9} cornerRadius={6} />
           ))}
@@ -278,9 +467,10 @@ export function GameBoard() {
                 tapped={rune.tapped}
                 normalEnergy={rune.normalEnergy}
                 isOwner={rune.ownerId === player.id}
+                pending={pendingRuneTaps.has(rune.instanceId)}
                 x={position.x}
                 y={position.y}
-                onTap={(id) => publishMove({ type: 'TAP_RUNE', playerId: player.id, runeInstanceId: id })}
+                onTap={handleRuneTap}
                 onDiscard={(id) => publishMove({ type: 'DISCARD_RUNE', playerId: player.id, runeInstanceId: id })}
               />
             );
@@ -293,20 +483,26 @@ export function GameBoard() {
             .map((instance) => {
               const cardDef = cardsById.get(instance.cardId);
               if (!cardDef) return null;
+              const specialZone = sameZone(instance.zone, 'champion') || sameZone(instance.zone, 'legend') ? zones.find((zone) => sameZone(zone.zoneName, instance.zone) && zone.ownerId === instance.ownerId) : undefined;
+              const displayInstance = specialZone ? { ...instance, x: specialZone.x + 48, y: specialZone.y + 60 } : instance;
               return (
                 <CardSprite
                   key={instance.instanceId}
-                  instance={instance}
+                  instance={displayInstance}
                   cardDef={cardDef}
                   isOwner={instance.ownerId === player.id}
                   selected={selectedInstanceId === instance.instanceId}
                   onDragEnd={moveInstance}
-                  onClick={setSelectedInstanceId}
-                  onDoubleClick={(id) => publishMove({ type: 'TAP_CARD', playerId: player.id, instanceId: id })}
-                  onContextMenu={(id) => publishMove({ type: 'FLIP_CARD', playerId: player.id, instanceId: id })}
+                  onClick={handleCardClick}
+                  onDoubleClick={(id) => {
+                    if (!['ATTACK_DECLARE', 'BLOCK_DECLARE'].includes(state.currentPhase ?? '')) publishMove({ type: 'TAP_CARD', playerId: player.id, instanceId: id });
+                  }}
+                  onContextMenu={(id) => {
+                    if (!['ATTACK_DECLARE', 'BLOCK_DECLARE'].includes(state.currentPhase ?? '')) publishMove({ type: 'FLIP_CARD', playerId: player.id, instanceId: id });
+                  }}
                   animate={pendingAnimations.current.delete(instance.instanceId)}
                   scale={cardScale}
-                  onHover={setHoveredCard}
+                  onHover={handleCardHover}
                 />
               );
             })}
@@ -332,13 +528,15 @@ export function GameBoard() {
           score={me.score}
           handCount={hand.length}
           energy={me.availableEnergy ?? 0}
+          effectiveEnergy={(me.availableEnergy ?? 0) + pendingRuneTaps.size}
           untappedRunes={myUntappedRunes}
           isActive={state.activePlayerId === player.id}
           isMe
+          bottom={handHeight + PHASE_BAR_HEIGHT + 4}
         />
       ) : null}
-      <PhaseBar currentPhase={state.currentPhase ?? 'MAIN'} isMyTurn={isMyTurn} canPass={canPass} opponentName={opponentName} onPassPhase={() => publishMove({ type: 'PASS_PHASE', playerId: player.id })} />
-      <GameSidebar log={state.log} chat={chat} deckCards={deckCards} onSend={sendChat} onDeal={dealCard} onDrawHand={drawHand} onHover={setHoveredCard} />
+      <PhaseBar currentPhase={state.currentPhase ?? 'MAIN'} isMyTurn={isMyTurn} canPass={canPass} opponentName={opponentName} onPassPhase={handlePassPhase} bottom={handHeight} />
+      <GameSidebar log={state.log} chat={chat} deckCards={deckCards} onSend={sendChat} onDeal={dealCard} onDrawHand={drawHand} onHover={handleCardHover} />
       <div className="pointer-events-auto absolute right-[288px] top-2 z-20 flex items-center gap-2">
         <details className="relative">
           <summary className="icon-btn cursor-pointer select-none text-xs" title="Settings" aria-label="Settings">
@@ -356,10 +554,37 @@ export function GameBoard() {
           Leave
         </button>
       </div>
-      <div className="absolute bottom-0 left-0" style={{ right: `${SIDEBAR_WIDTH}px` }}>
-        <HandRack instances={hand} cards={cardsById} onPlay={playFromHand} onDiscard={discardFromHand} cardScale={cardScale} onHover={setHoveredCard} embedded />
+      <div
+        className="pointer-events-auto absolute left-0 z-30 flex h-2 cursor-ns-resize items-center justify-center bg-line/50 hover:bg-forge/40"
+        style={{ bottom: handHeight + PHASE_BAR_HEIGHT - 4, right: `${SIDEBAR_WIDTH}px` }}
+        onMouseDown={(event) => {
+          event.preventDefault();
+          const startY = event.clientY;
+          const startHeight = handHeight;
+          const onMove = (moveEvent: MouseEvent) => {
+            const delta = startY - moveEvent.clientY;
+            setHandHeight(Math.max(120, Math.min(320, startHeight + delta)));
+          };
+          const onUp = () => {
+            window.removeEventListener('mousemove', onMove);
+            window.removeEventListener('mouseup', onUp);
+          };
+          window.addEventListener('mousemove', onMove);
+          window.addEventListener('mouseup', onUp);
+        }}
+      >
+        <div className="h-0.5 w-16 rounded-full bg-slate-600" />
+      </div>
+      <div className="absolute bottom-0 left-0" style={{ right: `${SIDEBAR_WIDTH}px`, height: handHeight }}>
+        <HandRack instances={hand} cards={cardsById} onPlay={playFromHand} onDiscard={discardFromHand} cardScale={cardScale} onHover={handleCardHover} embedded maxHeight={handHeight} />
       </div>
       <CardPreview card={hoveredCard} />
+      {!wsConnected && !loading && !error ? (
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-40 flex items-center justify-center gap-2 bg-ember/90 px-4 py-2 text-sm font-medium text-white">
+          <span className="animate-pulse">●</span>
+          Connection lost — reconnecting…
+        </div>
+      ) : null}
       {state.winnerId ? (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-ink/90">
           <h1 className={`text-5xl font-bold ${state.winnerId === player.id ? 'text-forge' : 'text-ember'}`}>{state.winnerId === player.id ? 'Victory!' : 'Defeat'}</h1>

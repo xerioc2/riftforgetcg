@@ -1,11 +1,13 @@
-const PHASES = [
-  { key: 'CHANNEL', label: 'Channel' },
-  { key: 'MAIN', label: 'Main' },
-  { key: 'ATTACK_DECLARE', label: 'Attack' },
-  { key: 'BLOCK_DECLARE', label: 'Block' },
-  { key: 'COMBAT_RESOLVE', label: 'Resolve' },
-  { key: 'END', label: 'End' },
-] as const;
+const PHASE_LABELS: Record<string, string> = {
+  CHANNEL: 'Channel',
+  MAIN: 'Main Phase',
+  ATTACK_DECLARE: 'Declare Attackers',
+  BLOCK_DECLARE: 'Declare Blockers',
+  COMBAT_RESOLVE: 'Combat',
+  END: 'End Phase',
+};
+
+const PHASES = Object.keys(PHASE_LABELS);
 
 interface PhaseBarProps {
   currentPhase: string;
@@ -13,15 +15,16 @@ interface PhaseBarProps {
   canPass: boolean;
   opponentName: string;
   onPassPhase: () => void;
+  bottom?: number;
 }
 
-export function PhaseBar({ currentPhase, isMyTurn, canPass, opponentName, onPassPhase }: PhaseBarProps) {
+export function PhaseBar({ currentPhase, isMyTurn, canPass, opponentName, onPassPhase, bottom = 172 }: PhaseBarProps) {
   return (
-    <div className="pointer-events-auto absolute bottom-[172px] left-0 z-20 flex h-12 items-center gap-1 border-t border-line bg-panel/95 px-3" style={{ right: '280px' }}>
+    <div className="pointer-events-auto absolute left-0 z-20 flex h-12 items-center gap-1 border-t border-line bg-panel/95 px-3" style={{ right: '280px', bottom }}>
       <div className="flex min-w-0 overflow-x-auto">
         {PHASES.map((phase) => (
-          <span className={`shrink-0 px-3 py-1 text-xs font-semibold transition-colors ${currentPhase === phase.key ? 'bg-forge text-ink' : 'text-slate-500'}`} key={phase.key}>
-            {phase.label}
+          <span className={`shrink-0 px-3 py-1 text-xs font-semibold transition-colors ${currentPhase === phase ? 'bg-forge text-ink' : 'text-slate-500'}`} key={phase}>
+            {PHASE_LABELS[phase] ?? phase}
           </span>
         ))}
       </div>

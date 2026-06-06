@@ -94,16 +94,22 @@ public class GameEngine {
     card.setHasSummoningSickness(!def.keywords().contains("RUSH"));
     if (move.targetZone() == ZoneName.BASE) card.setTapped(true);
     effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onPlay(card, state));
+    String cardTypeLower = def.type() != null ? def.type().toLowerCase() : "";
+    if (cardTypeLower.equals("spell") || cardTypeLower.equals("gear")) {
+      card.setZone(ZoneName.DISCARD);
+    }
     log(state, move.playerId(), "Played " + def.name());
     return state;
   }
 
   private LiveGameState applyMoveCard(LiveGameState state, MoveCardMove move) {
     CardInstance card = findCard(state, move.instanceId());
+    ZoneName sourceZone = card.getZone();
     card.setZone(move.targetZone());
     card.setX(move.x());
     card.setY(move.y());
-    if (move.targetZone() == ZoneName.BATTLEFIELD) {
+    if (move.targetZone() == ZoneName.BATTLEFIELD
+        && (sourceZone == ZoneName.BASE || sourceZone == ZoneName.CHAMPION || sourceZone == ZoneName.LEGEND)) {
       card.setTapped(true);
       card.setHasSummoningSickness(false);
     }
@@ -134,6 +140,11 @@ public class GameEngine {
             .filter(card -> card.getInstanceId().equals(id))
             .findFirst()
             .ifPresent(card -> card.setTapped(true)));
+    move.attackerInstanceIds().forEach(id ->
+        state.getCards().stream()
+            .filter(card -> card.getInstanceId().equals(id))
+            .findFirst()
+            .ifPresent(card -> effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onAttack(card, state))));
     log(state, move.playerId(), "Declared attackers.");
     return state;
   }
@@ -193,6 +204,9 @@ public class GameEngine {
     for (int i = 0; i < state.getPlayers().size(); i++) if (state.getPlayers().get(i).getUserId().equals(state.getActivePlayerId())) index = i;
     PlayerState next = state.getPlayers().get((index + 1) % state.getPlayers().size());
     state.setActivePlayerId(next.getUserId());
+    state.getCards().stream()
+        .filter(c -> c.getOwnerId().equals(next.getUserId()) && c.getZone() == ZoneName.BATTLEFIELD)
+        .forEach(c -> effects.getEffect(c.getCardId()).ifPresent(effect -> effect.onTurnStart(c, state)));
     state.setTurnNumber(state.getTurnNumber() + 1);
     next.setAvailableEnergy(0);
     state.getRunes().stream()
@@ -253,6 +267,7 @@ public class GameEngine {
           CardDefinition def = cardDataService.getCard(c.getCardId());
           if (def != null && def.health() > 0) c.setCurrentHealth(def.health());
           c.setHasSummoningSickness(false);
+          c.getTempKeywords().clear();
         });
   }
 

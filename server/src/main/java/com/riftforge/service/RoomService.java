@@ -2,6 +2,8 @@ package com.riftforge.service;
 
 import static com.riftforge.bot.BotConstants.BOT_ID;
 import static com.riftforge.bot.BotConstants.BOT_NAME;
+import static com.riftforge.bot.BotConstants.BOT2_ID;
+import static com.riftforge.bot.BotConstants.BOT2_NAME;
 
 import com.riftforge.model.CardDefinition;
 import com.riftforge.model.LobbyPlayer;
@@ -40,6 +42,19 @@ public class RoomService {
     return room;
   }
 
+  public RoomState createBotVsBot() {
+    String code = generateCode();
+    RoomState room = new RoomState();
+    room.setCode(code);
+    room.setHostId(BOT_ID);
+    room.setBotEnabled(true);
+    room.getPlayers().add(new LobbyPlayer(BOT_ID, BOT_NAME, true, generateBotDeck()));
+    room.getPlayers().add(new LobbyPlayer(BOT2_ID, BOT2_NAME, true, generateBotDeck()));
+    room.setStatus("playing");
+    rooms.put(code, room);
+    return room;
+  }
+
   public RoomState join(String code, String playerId, String playerName) {
     RoomState room = get(code);
     if (room.getStatus().equals("playing")) throw new IllegalStateException("Game already started.");
@@ -61,6 +76,16 @@ public class RoomService {
           p.setReady(!p.isReady());
           p.setDeckCardIds(deckCardIds);
         });
+    broadcast(code, room);
+    return room;
+  }
+
+  public RoomState setBotDeck(String code, List<String> deckCardIds) {
+    RoomState room = get(code);
+    room.getPlayers().stream()
+        .filter(p -> BOT_ID.equals(p.getId()))
+        .findFirst()
+        .ifPresent(p -> p.setDeckCardIds(deckCardIds.isEmpty() ? generateBotDeck() : deckCardIds));
     broadcast(code, room);
     return room;
   }

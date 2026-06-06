@@ -9,6 +9,7 @@ export function HandRack({
   cardScale,
   onHover,
   embedded = false,
+  maxHeight,
 }: {
   instances: CardInstance[];
   cards: Map<string, RiftCard>;
@@ -17,6 +18,7 @@ export function HandRack({
   cardScale: number;
   onHover: (card: RiftCard | null) => void;
   embedded?: boolean;
+  maxHeight?: number;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
@@ -44,7 +46,10 @@ export function HandRack({
   }
 
   return (
-    <div className={`pointer-events-auto relative border-t border-line bg-panel/95 ${embedded ? 'w-full' : 'absolute bottom-0 left-0 right-[280px]'}`} style={{ height: cardHeight + 44 }}>
+    <div
+      className={`pointer-events-auto relative overflow-hidden border-t border-line bg-panel/95 ${embedded ? 'w-full' : 'absolute bottom-0 left-0 right-[280px]'}`}
+      style={{ height: maxHeight ?? cardHeight + 44, maxHeight }}
+    >
       <div className="relative mx-auto" style={{ width: Math.min(totalWidth, availableWidth), height: cardHeight + 32 }}>
         {instances.map((instance, index) => {
           const card = cards.get(instance.cardId);

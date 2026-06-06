@@ -19,7 +19,13 @@ export type MoveRequest =
 export type ServerMessage = { type: 'STATE_UPDATE'; state: LiveGameState } | { type: 'ERROR'; message: string; playerId: string };
 export type MatchNotification = { roomCode: string };
 
-export function createGameClient(roomCode: string, player: LocalPlayer, onMessage: (msg: ServerMessage) => void, onConnected: () => void): Client {
+export function createGameClient(
+  roomCode: string,
+  player: LocalPlayer,
+  onMessage: (msg: ServerMessage) => void,
+  onConnected: () => void,
+  onConnectionChange?: (connected: boolean) => void,
+): Client {
   const wsUrl = `${config.gameServerUrl.replace(/^http/, 'ws')}/ws`;
   const client = new Client({
     brokerURL: wsUrl,
@@ -32,7 +38,10 @@ export function createGameClient(roomCode: string, player: LocalPlayer, onMessag
         onMessage(JSON.parse(frame.body) as ServerMessage);
       });
       onConnected();
+      onConnectionChange?.(true);
     },
+    onWebSocketClose: () => onConnectionChange?.(false),
+    onStompError: () => onConnectionChange?.(false),
     reconnectDelay: 5000,
   });
   client.activate();

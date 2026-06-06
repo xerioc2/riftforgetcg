@@ -8,5 +8,5 @@ public interface CardEffect {
   default void onPlay(CardInstance card, LiveGameState state) {}
   default void onDestroy(CardInstance card, LiveGameState state) {}
   default void onAttack(CardInstance card, LiveGameState state) {}
-  default void onTurnStart(String activePlayerId, LiveGameState state) {}
+  default void onTurnStart(CardInstance card, LiveGameState state) {}
 }

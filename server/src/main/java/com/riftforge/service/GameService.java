@@ -21,10 +21,14 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.context.ApplicationEventPublisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 @Service
 public class GameService {
+  private static final Logger log = LoggerFactory.getLogger(GameService.class);
   private final ConcurrentHashMap<String, LiveGameState> games = new ConcurrentHashMap<>();
   private final GameEngine engine;
   private final CardDataService cardDataService;
@@ -39,6 +43,10 @@ public class GameService {
   }
 
   public void initGame(String roomCode, List<String> playerIds, Map<String, List<String>> decksByPlayer) {
+    if (games.containsKey(roomCode)) {
+      log.warn("initGame called on existing game {}, ignoring", roomCode);
+      return;
+    }
     LiveGameState state = createInitialState(roomCode, playerIds, decksByPlayer);
     games.put(roomCode, state);
     broadcast(roomCode, state);
@@ -54,6 +62,7 @@ public class GameService {
     } catch (IllegalMoveException e) {
       broadcastError(roomCode, e.getMessage(), move.playerId());
     } catch (Exception e) {
+      log.error("Failed to process {} in room {}", move.getClass().getSimpleName(), roomCode, e);
       broadcastError(roomCode, "Server error: " + e.getMessage(), move.playerId());
     }
   }
@@ -70,6 +79,12 @@ public class GameService {
     return games.get(roomCode);
   }
 
+  @Scheduled(fixedDelay = 3_600_000)
+  public void evictFinishedGames() {
+    games.entrySet().removeIf(entry -> entry.getValue().getWinnerId() != null);
+    log.info("Evicted finished games; {} active games remain", games.size());
+  }
+
   public LiveGameState reset(String roomCode, List<String> playerIds, Map<String, List<String>> decksByPlayer) {
     LiveGameState state = createInitialState(roomCode, playerIds, decksByPlayer);
     games.put(roomCode, state);
@@ -80,7 +95,7 @@ public class GameService {
   private LiveGameState createInitialState(String roomCode, List<String> playerIds, Map<String, List<String>> decksByPlayer) {
     LiveGameState state = new LiveGameState();
     state.setRoomCode(roomCode);
-    state.setCurrentPhase(Phase.CHANNEL);
+    state.setCurrentPhase(Phase.MAIN);
     state.setActivePlayerId(playerIds.isEmpty() ? null : playerIds.get(0));
     state.setTurnNumber(1);
     state.setUpdatedAt(Instant.now().toString());
@@ -94,9 +109,23 @@ public class GameService {
 
     int zIndex = 0;
     for (String playerId : playerIds) {
-      List<String> dealable = decksByPlayer.getOrDefault(playerId, List.of()).stream()
+      List<String> deck = decksByPlayer.getOrDefault(playerId, List.of());
+      List<String> champions = deck.stream()
+          .filter(id -> "Champion".equalsIgnoreCase(cardDataService.getCard(id).type()))
+          .toList();
+      List<String> legends = deck.stream()
+          .filter(id -> "Legend".equalsIgnoreCase(cardDataService.getCard(id).type()))
+          .toList();
+      List<String> dealable = deck.stream()
           .filter(id -> !"Champion".equalsIgnoreCase(cardDataService.getCard(id).type()))
+          .filter(id -> !"Legend".equalsIgnoreCase(cardDataService.getCard(id).type()))
           .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+      if (!champions.isEmpty()) {
+        state.getCards().add(createZoneCard(champions.get(0), playerId, ZoneName.CHAMPION, ++zIndex));
+      }
+      if (!legends.isEmpty()) {
+        state.getCards().add(createZoneCard(legends.get(0), playerId, ZoneName.LEGEND, ++zIndex));
+      }
       Collections.shuffle(dealable);
       List<String> hand = dealable.stream().limit(5).toList();
       for (int i = 0; i < hand.size(); i++) {
@@ -131,6 +160,22 @@ public class GameService {
       }
     }
     return state;
+  }
+
+  private CardInstance createZoneCard(String cardId, String playerId, ZoneName zone, int zIndex) {
+    CardDefinition def = cardDataService.getCard(cardId);
+    CardInstance card = new CardInstance();
+    card.setInstanceId(UUID.randomUUID().toString());
+    card.setCardId(cardId);
+    card.setOwnerId(playerId);
+    card.setZone(zone);
+    card.setX(0);
+    card.setY(0);
+    card.setCurrentHealth(def.health());
+    card.setHasSummoningSickness(false);
+    card.setTempKeywords(new ArrayList<>());
+    card.setZIndex(zIndex);
+    return card;
   }
 
   private void broadcast(String roomCode, LiveGameState state) {

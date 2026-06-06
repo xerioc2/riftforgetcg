@@ -15,6 +15,7 @@ export function Home() {
   const [message, setMessage] = useState('');
   const [withBot, setWithBot] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [watchingAi, setWatchingAi] = useState(false);
   const [queueSize, setQueueSize] = useState(0);
   const matchClientRef = useRef<Client | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -48,6 +49,19 @@ export function Home() {
       return;
     }
     navigate(`/lobby/${code}`);
+  };
+
+  const handleWatchAi = async () => {
+    setWatchingAi(true);
+    try {
+      const response = await fetch(`${GAME_SERVER_URL}/api/rooms/bot-vs-bot`, { method: 'POST' });
+      if (!response.ok) throw new Error('Unable to start AI game.');
+      const { code } = (await response.json()) as { code: string };
+      navigate(`/spectate/${code}`);
+    } catch {
+      setWatchingAi(false);
+      setMessage('Unable to start AI game. Is the server running?');
+    }
   };
 
   const stopPolling = () => {
@@ -173,6 +187,13 @@ export function Home() {
             <input className="input mt-4 w-full uppercase" placeholder="Room code" maxLength={4} value={joinCode} onChange={(event) => setJoinCode(event.target.value.toUpperCase())} />
             <button className="btn-secondary mt-3 w-full" onClick={() => void handleJoin()} disabled={joinCode.length < 4}>
               Join
+            </button>
+          </article>
+          <article className="border border-line bg-panel p-4 shadow-glow">
+            <h2 className="text-lg font-semibold text-white">Watch AI vs AI</h2>
+            <p className="mt-2 text-sm text-slate-400">Watch RiftBot face Codex in a live game.</p>
+            <button className="btn-primary mt-5 w-full" onClick={() => void handleWatchAi()} disabled={watchingAi}>
+              {watchingAi ? 'Starting...' : 'Watch'}
             </button>
           </article>
           <article className="border border-line bg-panel p-4 shadow-glow sm:col-span-2">

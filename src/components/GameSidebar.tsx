@@ -24,7 +24,7 @@ export function GameSidebar({ log, chat, deckCards, onSend, onDeal, onDrawHand, 
       <div className="flex border-b border-line">
         {(['log', 'chat', 'deck'] as Tab[]).map((item) => (
           <button className={`flex-1 py-3 text-xs font-semibold uppercase ${tab === item ? 'border-b-2 border-forge text-forge' : 'text-slate-500 hover:text-slate-300'}`} key={item} onClick={() => setTab(item)}>
-            {item}
+            {item === 'chat' ? <span title="Messages are not synced to opponents">Local Chat</span> : item}
           </button>
         ))}
       </div>

@@ -3,6 +3,7 @@ package com.riftforge.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.riftforge.model.CardDefinition;
+import com.riftforge.model.CardInstance;
 import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -82,6 +83,11 @@ public class CardDataService {
   public boolean hasKeyword(String cardId, String keyword) {
     CardDefinition card = getCard(cardId);
     return card.keywords().stream().anyMatch(k -> k.equalsIgnoreCase(keyword));
+  }
+
+  public boolean hasKeyword(CardInstance instance, String keyword) {
+    return hasKeyword(instance.getCardId(), keyword)
+        || instance.getTempKeywords().stream().anyMatch(k -> k.equalsIgnoreCase(keyword));
   }
 
   public boolean requiresBattlefieldTarget(String cardId) {

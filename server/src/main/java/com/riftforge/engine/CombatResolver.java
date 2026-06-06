@@ -1,5 +1,6 @@
 package com.riftforge.engine;
 
+import com.riftforge.effect.CardEffectRegistry;
 import com.riftforge.model.CardDefinition;
 import com.riftforge.model.CardInstance;
 import com.riftforge.model.LiveGameState;
@@ -11,9 +12,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class CombatResolver {
   private final CardDataService cardDataService;
+  private final CardEffectRegistry effects;
 
-  public CombatResolver(CardDataService cardDataService) {
+  public CombatResolver(CardDataService cardDataService, CardEffectRegistry effects) {
     this.cardDataService = cardDataService;
+    this.effects = effects;
   }
 
   public void resolve(LiveGameState state) {
@@ -29,26 +32,33 @@ public class CombatResolver {
         CardDefinition blockerDef = cardDataService.getCard(blocker.getCardId());
         int attackerDamage = attackerDef.power();
         int blockerDamage = blockerDef.power();
-        if (cardDataService.hasKeyword(blocker.getCardId(), "TOUGH")) attackerDamage = Math.max(0, attackerDamage - 1);
-        if (cardDataService.hasKeyword(attacker.getCardId(), "TOUGH")) blockerDamage = Math.max(0, blockerDamage - 1);
+        if (cardDataService.hasKeyword(blocker, "TOUGH")) attackerDamage = Math.max(0, attackerDamage - 1);
+        if (cardDataService.hasKeyword(attacker, "TOUGH")) blockerDamage = Math.max(0, blockerDamage - 1);
         int originalBlockerHealth = blocker.getCurrentHealth() <= 0 ? blockerDef.health() : blocker.getCurrentHealth();
         blocker.setCurrentHealth(originalBlockerHealth - attackerDamage);
         attacker.setCurrentHealth((attacker.getCurrentHealth() <= 0 ? attackerDef.health() : attacker.getCurrentHealth()) - blockerDamage);
         if (blocker.getCurrentHealth() <= 0) {
           blocker.setZone(ZoneName.DISCARD);
           GameEngine.log(state, blocker.getOwnerId(), blockerDef.name() + " was destroyed");
-          if (cardDataService.hasKeyword(attacker.getCardId(), "OVERWHELM") && attackerDamage > originalBlockerHealth) {
+          effects.getEffect(blocker.getCardId()).ifPresent(effect -> effect.onDestroy(blocker, state));
+          if (cardDataService.hasKeyword(attacker, "OVERWHELM") && attackerDamage > originalBlockerHealth) {
             player(state, attacker.getOwnerId()).setScore(player(state, attacker.getOwnerId()).getScore() + 1);
           }
+        }
+        if (blocker.getCurrentHealth() <= 0 && attacker.getCurrentHealth() > 0
+            && cardDataService.hasKeyword(attacker, "LIFESTEAL")) {
+          player(state, attacker.getOwnerId()).setScore(player(state, attacker.getOwnerId()).getScore() + 1);
+          GameEngine.log(state, attacker.getOwnerId(), attackerDef.name() + " lifesteals - score +1");
         }
         if (attacker.getCurrentHealth() <= 0) {
           attacker.setZone(ZoneName.DISCARD);
           GameEngine.log(state, attacker.getOwnerId(), attackerDef.name() + " was destroyed in combat");
+          effects.getEffect(attacker.getCardId()).ifPresent(effect -> effect.onDestroy(attacker, state));
         }
       }
     }
-    state.getDeclaredAttackers().clear();
-    state.getBlockerToAttacker().clear();
+    state.setDeclaredAttackers(new java.util.ArrayList<>());
+    state.setBlockerToAttacker(new java.util.HashMap<>());
   }
 
   private CardInstance findCard(LiveGameState state, String id) {

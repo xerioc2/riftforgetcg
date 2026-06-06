@@ -17,6 +17,7 @@ export function Lobby() {
   const { decks, activeDeckId, setActiveDeck } = useDeckStore();
   const [room, setRoom] = useState<RoomState | null>(null);
   const [myDeckId, setMyDeckId] = useState<string | null>(activeDeckId ?? null);
+  const [botDeckId, setBotDeckId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const clientRef = useRef<Client | null>(null);
@@ -71,6 +72,16 @@ export function Lobby() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ playerId: player.id, deckCardIds: deckCardIds(myDeckId) }),
+    });
+  };
+
+  const handleSetBotDeck = async (deckId: string) => {
+    setBotDeckId(deckId || null);
+    const ids = deckId ? deckCardIds(deckId) : [];
+    await fetch(`${GAME_SERVER_URL}/api/rooms/${normalizedCode}/bot-deck`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deckCardIds: ids }),
     });
   };
 
@@ -154,6 +165,21 @@ export function Lobby() {
               Spectate this game
             </button>
           )}
+
+          {isPlayer && room.hostId === player.id && room.players.some((p) => p.id === BOT_ID) ? (
+            <div className="mt-5 border-t border-line pt-5">
+              <h2 className="text-sm font-semibold text-slate-300">RiftBot deck</h2>
+              <select className="input mt-2 w-full" value={botDeckId ?? ''} onChange={(e) => void handleSetBotDeck(e.target.value)} aria-label="Bot deck">
+                <option value="">Auto-generated</option>
+                {decks.map((deck) => (
+                  <option key={deck.id} value={deck.id}>
+                    {deck.name}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-slate-500">{botDeckId ? 'Bot will use your selected deck' : 'Bot will use a balanced auto deck'}</p>
+            </div>
+          ) : null}
 
           {isPlayer && room.hostId === player.id ? (
             <div className="mt-5 border-t border-line pt-5">

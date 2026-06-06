@@ -8,6 +8,7 @@ import { CardSprite } from '../components/board/CardSprite';
 import { computeLayout } from '../components/board/BoardLayout';
 import { ScorePanel } from '../components/board/ScorePanel';
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
+import { config } from '../lib/env';
 import { createGameClient } from '../lib/stompGame';
 import { useCardStore } from '../store/cards';
 import { useGameStore } from '../store/game';
@@ -25,9 +26,11 @@ export function SpectatorView() {
   const { state, chat, setState, addChat } = useGameStore();
   const [size, setSize] = useState({ width: window.innerWidth, height: Math.max(480, window.innerHeight - NAV_HEIGHT) });
   const [loading, setLoading] = useState(true);
+  const [wsConnected, setWsConnected] = useState(false);
   const spectator = useMemo(() => ({ id: `spectator-${crypto.randomUUID()}`, name: 'Spectator' }), []);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const stompClientRef = useRef<Client | null>(null);
+  const hasConnectedRef = useRef(false);
   const roomCode = code?.toUpperCase() ?? '';
   const cardsById = useMemo(() => new Map(cards.map((card) => [card.id, card])), [cards]);
   const playerIds = useMemo(() => state?.players.map((player) => player.userId) ?? [], [state?.players]);
@@ -50,18 +53,34 @@ export function SpectatorView() {
 
   useEffect(() => {
     let cancelled = false;
+    const refreshState = async () => {
+      const response = await fetch(`${config.gameServerUrl}/api/game/${roomCode}/state`);
+      if (!response.ok) throw new Error('Game state not found.');
+      const incoming = await response.json();
+      if (!cancelled) setState(incoming);
+    };
     const setup = async () => {
-      if (cancelled) return;
-      const client = createGameClient(
-        roomCode,
-        spectator,
-        (msg) => {
-          if (msg.type === 'STATE_UPDATE') setState(msg.state);
-          if (msg.type === 'ERROR') addChat({ id: crypto.randomUUID(), userId: msg.playerId, email: null, text: msg.message, sentAt: new Date().toISOString() });
-        },
-        () => setLoading(false),
-      );
-      stompClientRef.current = client;
+      try {
+        await refreshState();
+        if (cancelled) return;
+        const client = createGameClient(
+          roomCode,
+          spectator,
+          (msg) => {
+            if (msg.type === 'STATE_UPDATE') setState(msg.state);
+            if (msg.type === 'ERROR') addChat({ id: crypto.randomUUID(), userId: msg.playerId, email: null, text: msg.message, sentAt: new Date().toISOString() });
+          },
+          () => setLoading(false),
+          (connected) => {
+            setWsConnected(connected);
+            if (connected && hasConnectedRef.current) void refreshState().catch(() => {});
+            if (connected) hasConnectedRef.current = true;
+          },
+        );
+        stompClientRef.current = client;
+      } catch {
+        if (!cancelled) setLoading(false);
+      }
     };
     void setup();
     return () => {
@@ -117,6 +136,20 @@ export function SpectatorView() {
         <GameLog entries={state?.log ?? []} />
         <GameChat messages={chat} onSend={() => {}} readOnly />
       </div>
+      {!wsConnected && !loading ? (
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-40 flex items-center justify-center gap-2 bg-ember/90 px-4 py-2 text-sm font-medium text-white">
+          <span className="animate-pulse">●</span>
+          Connection lost — reconnecting…
+        </div>
+      ) : null}
+      {state?.winnerId ? (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-ink/90">
+          <h1 className="text-5xl font-bold text-forge">{state.players.find((player) => player.userId === state.winnerId)?.userId ?? state.winnerId} wins!</h1>
+          <button className="btn-secondary" onClick={() => navigate('/')}>
+            Back to Home
+          </button>
+        </div>
+      ) : null}
     </main>
   );
 }
