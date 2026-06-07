@@ -1,9 +1,8 @@
-import { config } from './env';
+import { config, getGameServerUrl } from './env';
 import type { CardType, RiftCard } from '../types';
 
 const CACHE_KEY = 'riftforge.cards.v1';
 const CANDIDATE_PATHS = ['/cards'];
-const SERVER_CARDS_URL = `${config.gameServerUrl}/api/cards`;
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -112,7 +111,7 @@ export const cacheCards = (cards: RiftCard[]) => {
 export async function fetchCardsFromRiftcodex(): Promise<RiftCard[]> {
   // Try the local server first — it proxies Riftcodex server-side, avoiding CORS
   const base = config.riftcodexApiBase.replace(/\/$/, '');
-  const urls = [SERVER_CARDS_URL, ...CANDIDATE_PATHS.map((path) => `${base}${path}`)];
+  const urls = [`${getGameServerUrl()}/api/cards`, ...CANDIDATE_PATHS.map((path) => `${base}${path}`)];
   let lastError: unknown;
 
   for (const url of urls) {

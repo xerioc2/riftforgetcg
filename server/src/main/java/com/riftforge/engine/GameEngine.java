@@ -47,6 +47,7 @@ public class GameEngine {
       case DeclareAttackMove m -> applyDeclareAttack(state, m);
       case DeclareBlockMove m -> applyDeclareBlock(state, m);
       case MulliganMove m -> applyMulligan(state, m);
+      case UndoRunesMove m -> applyUndoRunes(state, m);
       case PassPhaseMove m -> applyPassPhase(state);
       case AdjustScoreMove m -> applyAdjustScore(state, m);
     };
@@ -98,7 +99,9 @@ public class GameEngine {
     card.setY(move.y());
     card.setCurrentHealth(def.health());
     card.setHasSummoningSickness(!def.keywords().contains("RUSH"));
+    state.setCardPlayedThisTurn(true);
     if (move.targetZone() == ZoneName.BASE) card.setTapped(true);
+    if (move.targetZone() == ZoneName.BATTLEFIELD) applyLegion(state, card);
     CardInstance target = move.targetInstanceId() == null ? null : state.getCards().stream()
         .filter(candidate -> candidate.getInstanceId().equals(move.targetInstanceId()))
         .findFirst()
@@ -131,6 +134,7 @@ public class GameEngine {
         && (sourceZone == ZoneName.BASE || sourceZone == ZoneName.CHAMPION || sourceZone == ZoneName.LEGEND)) {
       card.setTapped(true);
       card.setHasSummoningSickness(false);
+      applyLegion(state, card);
     }
     log(state, move.playerId(), "Moved " + cardDataService.getCard(card.getCardId()).name() + " to " + move.targetZone());
     return state;
@@ -206,6 +210,18 @@ public class GameEngine {
     return state;
   }
 
+  private LiveGameState applyUndoRunes(LiveGameState state, UndoRunesMove move) {
+    state.getRunes().stream()
+        .filter(rune -> rune.getOwnerId().equals(move.playerId()) && rune.isTapped())
+        .forEach(rune -> rune.setTapped(false));
+    state.getPlayers().stream()
+        .filter(player -> player.getUserId().equals(move.playerId()))
+        .findFirst()
+        .ifPresent(player -> player.setAvailableEnergy(0));
+    log(state, move.playerId(), "Undid rune taps.");
+    return state;
+  }
+
   private LiveGameState applyPassPhase(LiveGameState state) {
     Phase next = switch (state.getCurrentPhase()) {
       case MULLIGAN -> Phase.MAIN;
@@ -237,6 +253,7 @@ public class GameEngine {
       grantRunes(state, state.getActivePlayerId(), 2);
       autoDraw(state, state.getActivePlayerId());
       state.setCurrentPhase(Phase.MAIN);
+      state.setCardPlayedThisTurn(false);
       next = Phase.MAIN;
     }
     log(state, state.getActivePlayerId(), "Advanced to " + next);
@@ -339,6 +356,18 @@ public class GameEngine {
         .forEach(card -> effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onTurnEnd(card, state)));
     returnAttackersToBase(state);
     healBoardCards(state);
+  }
+
+  private void applyLegion(LiveGameState state, CardInstance card) {
+    if (!cardDataService.hasKeyword(card, "LEGION")) return;
+    long allies = state.getCards().stream()
+        .filter(candidate -> candidate.getOwnerId().equals(card.getOwnerId())
+            && candidate.getZone() == ZoneName.BATTLEFIELD
+            && !candidate.getInstanceId().equals(card.getInstanceId()))
+        .count();
+    if (allies < 1) return;
+    card.setMightBonus(card.getMightBonus() + 1);
+    log(state, card.getOwnerId(), cardDataService.getCard(card.getCardId()).name() + " enters with Legion +1 might.");
   }
 
   private void moveDestroyedBoardCards(LiveGameState state) {

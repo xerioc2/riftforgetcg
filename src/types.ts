@@ -98,6 +98,7 @@ export type CardInstance = {
   faceDown: boolean;
   zIndex: number;
   currentHealth?: number;
+  mightBonus?: number;
   temporaryPowerModifier?: number;
   attachedToInstanceId?: string | null;
   hasSummoningSickness?: boolean;
@@ -108,6 +109,7 @@ export type PlayerGameState = {
   name: string;
   score: number;
   availableEnergy?: number;
+  runePoolRemaining?: number;
 };
 
 export type MatchRecord = {
@@ -139,6 +141,7 @@ export type LiveGameState = {
   declaredAttackers?: string[];
   blockerToAttacker?: Record<string, string>;
   mulligansDone?: string[];
+  cardPlayedThisTurn?: boolean;
 };
 
 export type ChatMessage = {

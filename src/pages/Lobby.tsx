@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Client } from '@stomp/stompjs';
 import { useNavigate, useParams } from 'react-router-dom';
-import { GAME_SERVER_URL } from '../lib/env';
+import { getGameServerUrl } from '../lib/env';
 import { useLocalPlayer } from '../lib/playerContext';
 import { createLobbyClient } from '../lib/stompGame';
 import { useDeckStore } from '../store/decks';
@@ -35,7 +35,7 @@ export function Lobby() {
   useEffect(() => {
     const setup = async () => {
       try {
-        const res = await fetch(`${GAME_SERVER_URL}/api/rooms/${normalizedCode}`);
+        const res = await fetch(`${getGameServerUrl()}/api/rooms/${normalizedCode}`);
         if (!res.ok) throw new Error('Room not found.');
         setRoom((await res.json()) as RoomState);
         clientRef.current = createLobbyClient(normalizedCode, player, setRoom);
@@ -68,7 +68,7 @@ export function Lobby() {
   };
 
   const handleReady = async () => {
-    await fetch(`${GAME_SERVER_URL}/api/rooms/${normalizedCode}/ready`, {
+    await fetch(`${getGameServerUrl()}/api/rooms/${normalizedCode}/ready`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ playerId: player.id, deckCardIds: deckCardIds(myDeckId) }),
@@ -78,7 +78,7 @@ export function Lobby() {
   const handleSetBotDeck = async (deckId: string) => {
     setBotDeckId(deckId || null);
     const ids = deckId ? deckCardIds(deckId) : [];
-    await fetch(`${GAME_SERVER_URL}/api/rooms/${normalizedCode}/bot-deck`, {
+    await fetch(`${getGameServerUrl()}/api/rooms/${normalizedCode}/bot-deck`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ deckCardIds: ids }),
@@ -86,7 +86,7 @@ export function Lobby() {
   };
 
   const handleStart = async () => {
-    await fetch(`${GAME_SERVER_URL}/api/rooms/${normalizedCode}/start`, {
+    await fetch(`${getGameServerUrl()}/api/rooms/${normalizedCode}/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ playerId: player.id }),

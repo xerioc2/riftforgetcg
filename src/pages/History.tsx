@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { config } from '../lib/env';
+import { getGameServerUrl } from '../lib/env';
 import type { MatchRecord } from '../types';
 
 export function History() {
@@ -9,7 +9,7 @@ export function History() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    void fetch(`${config.gameServerUrl}/api/matches`)
+    void fetch(`${getGameServerUrl()}/api/matches`)
       .then((response) => {
         if (!response.ok) throw new Error('Unable to load match history.');
         return response.json() as Promise<MatchRecord[]>;

@@ -15,6 +15,7 @@ public class CardInstance {
   private boolean tapped;
   private boolean faceDown;
   private int currentHealth;
+  private int mightBonus;
   private int temporaryPowerModifier;
   private String attachedToInstanceId;
   private boolean hasSummoningSickness;
@@ -33,6 +34,7 @@ public class CardInstance {
     this.tapped = other.tapped;
     this.faceDown = other.faceDown;
     this.currentHealth = other.currentHealth;
+    this.mightBonus = other.mightBonus;
     this.temporaryPowerModifier = other.temporaryPowerModifier;
     this.attachedToInstanceId = other.attachedToInstanceId;
     this.hasSummoningSickness = other.hasSummoningSickness;
@@ -59,6 +61,8 @@ public class CardInstance {
   public void setFaceDown(boolean faceDown) { this.faceDown = faceDown; }
   public int getCurrentHealth() { return currentHealth; }
   public void setCurrentHealth(int currentHealth) { this.currentHealth = currentHealth; }
+  public int getMightBonus() { return mightBonus; }
+  public void setMightBonus(int mightBonus) { this.mightBonus = mightBonus; }
   public int getTemporaryPowerModifier() { return temporaryPowerModifier; }
   public void setTemporaryPowerModifier(int temporaryPowerModifier) { this.temporaryPowerModifier = temporaryPowerModifier; }
   public String getAttachedToInstanceId() { return attachedToInstanceId; }

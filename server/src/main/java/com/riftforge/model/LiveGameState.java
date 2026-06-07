@@ -19,6 +19,7 @@ public class LiveGameState {
   private List<String> declaredAttackers = new ArrayList<>();
   private java.util.Map<String, String> blockerToAttacker = new java.util.HashMap<>();
   private Set<String> mulligansDone = new HashSet<>();
+  private boolean cardPlayedThisTurn;
 
   public record LogEntry(String id, String timestamp, String userId, String text) {}
 
@@ -48,4 +49,6 @@ public class LiveGameState {
   public void setBlockerToAttacker(java.util.Map<String, String> blockerToAttacker) { this.blockerToAttacker = blockerToAttacker; }
   public Set<String> getMulligansDone() { return mulligansDone; }
   public void setMulligansDone(Set<String> mulligansDone) { this.mulligansDone = mulligansDone; }
+  public boolean isCardPlayedThisTurn() { return cardPlayedThisTurn; }
+  public void setCardPlayedThisTurn(boolean cardPlayedThisTurn) { this.cardPlayedThisTurn = cardPlayedThisTurn; }
 }

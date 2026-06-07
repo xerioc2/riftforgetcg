@@ -8,7 +8,7 @@ import { CardSprite } from '../components/board/CardSprite';
 import { computeLayout } from '../components/board/BoardLayout';
 import { ScorePanel } from '../components/board/ScorePanel';
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
-import { config } from '../lib/env';
+import { getGameServerUrl } from '../lib/env';
 import { createGameClient } from '../lib/stompGame';
 import { useCardStore } from '../store/cards';
 import { useGameStore } from '../store/game';
@@ -54,7 +54,7 @@ export function SpectatorView() {
   useEffect(() => {
     let cancelled = false;
     const refreshState = async () => {
-      const response = await fetch(`${config.gameServerUrl}/api/game/${roomCode}/state`);
+      const response = await fetch(`${getGameServerUrl()}/api/game/${roomCode}/state`);
       if (!response.ok) throw new Error('Game state not found.');
       const incoming = await response.json();
       if (!cancelled) setState(incoming);

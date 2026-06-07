@@ -50,7 +50,7 @@ export function CardSprite({
   selected: boolean;
   animate?: boolean;
   scale?: number;
-  onHover?: (card: RiftCard | null) => void;
+  onHover?: (card: RiftCard | null, instance?: CardInstance) => void;
 }) {
   const [image] = useImage(instance.faceDown ? CARD_BACK_URL : cardDef.imageUrl ?? '');
   const groupRef = useRef<KonvaGroup | null>(null);
@@ -61,7 +61,7 @@ export function CardSprite({
   const isDamaged = isBoardUnit && maxHealth > 0 && instance.currentHealth != null && currentHealth < maxHealth;
   const healthRatio = maxHealth > 0 ? Math.max(0, Math.min(1, currentHealth / maxHealth)) : 0;
   const isSick = instance.zone.toLowerCase() === 'battlefield' && instance.hasSummoningSickness === true;
-  const effectivePower = (cardDef.power ?? 0) + (instance.temporaryPowerModifier ?? 0);
+  const effectivePower = (cardDef.power ?? 0) + (instance.mightBonus ?? 0) + (instance.temporaryPowerModifier ?? 0);
 
   useEffect(() => {
     if (!groupRef.current) return;
@@ -109,7 +109,7 @@ export function CardSprite({
       onDragEnd={(event) => onDragEnd(instance.instanceId, event.target.x(), event.target.y())}
       onClick={() => onClick(instance.instanceId)}
       onTap={() => onClick(instance.instanceId)}
-      onMouseEnter={() => onHover?.(instance.faceDown ? null : cardDef)}
+      onMouseEnter={() => onHover?.(instance.faceDown ? null : cardDef, instance.faceDown ? undefined : instance)}
       onMouseLeave={() => onHover?.(null)}
       onDblClick={() => onDoubleClick(instance.instanceId)}
       onDblTap={() => onDoubleClick(instance.instanceId)}

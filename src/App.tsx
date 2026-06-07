@@ -1,6 +1,8 @@
-import React, { Suspense, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Nav } from './components/Nav';
+import { ServerLoader } from './components/ServerLoader';
+import { getGameServerUrl } from './lib/env';
 import { getOrCreateLocalPlayer, saveLocalPlayer } from './lib/localPlayer';
 import { PlayerContext } from './lib/playerContext';
 import { DeckBuild } from './pages/DeckBuild';
@@ -15,6 +17,32 @@ function App() {
   const initialPlayer = useMemo(() => getOrCreateLocalPlayer(), []);
   const [player, setPlayer] = useState(initialPlayer);
   const [name, setName] = useState(initialPlayer.name);
+  const [serverReady, setServerReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const response = await fetch(`${getGameServerUrl()}/api/health`);
+        if (!response.ok) return;
+        const data = (await response.json()) as { status?: string };
+        if (!cancelled && data.status === 'ok') {
+          setServerReady(true);
+          window.clearInterval(interval);
+        }
+      } catch {
+        // The bundled or remote server may still be starting.
+      }
+    };
+    void poll();
+    const interval = window.setInterval(() => void poll(), 300);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  if (!serverReady) return <ServerLoader />;
 
   if (!player.name.trim()) {
     return (

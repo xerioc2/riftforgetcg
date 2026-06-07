@@ -1,8 +1,9 @@
 import type React from 'react';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Client } from '@stomp/stompjs';
-import { Arrow, Layer, Rect, Stage, Text } from 'react-konva';
+import { Arrow, Layer, Rect, RegularPolygon, Stage, Text } from 'react-konva';
 import { useNavigate, useParams } from 'react-router-dom';
+import { CardInspectModal } from '../components/CardInspectModal';
 import { CardPreview } from '../components/CardPreview';
 import { GameSidebar } from '../components/GameSidebar';
 import { HandRack } from '../components/HandRack';
@@ -12,7 +13,7 @@ import { CardSprite } from '../components/board/CardSprite';
 import { RuneSprite } from '../components/board/RuneSprite';
 import { computeLayout, type ZoneRect } from '../components/board/BoardLayout';
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
-import { config } from '../lib/env';
+import { getGameServerUrl } from '../lib/env';
 import { cardTargetScope, unsupportedCardReason } from '../lib/cardActions';
 import { useLocalPlayer } from '../lib/playerContext';
 import { play, preload } from '../lib/sfx';
@@ -27,6 +28,7 @@ const SIDEBAR_WIDTH = 280;
 const PHASE_BAR_HEIGHT = 48;
 const DEFAULT_HAND_HEIGHT = 172;
 const CARD_PREVIEW_DELAY_MS = 2000;
+const TOTAL_RUNE_SLOTS = 11;
 
 function pointZone(x: number, y: number, zones: ZoneRect[], fallback: ZoneName): ZoneName {
   return zones.find((zone) => x >= zone.x && x <= zone.x + zone.width && y >= zone.y && y <= zone.y + zone.height)?.zoneName ?? fallback;
@@ -62,6 +64,8 @@ export function GameBoard() {
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
   const [cardScale, setCardScale] = useState(1.3);
   const [hoveredCard, setHoveredCard] = useState<RiftCard | null>(null);
+  const [hoveredInstance, setHoveredInstance] = useState<CardInstance | undefined>();
+  const [inspectCard, setInspectCard] = useState<CardInstance | null>(null);
   const [pendingAttackers, setPendingAttackers] = useState<Set<string>>(new Set());
   const [pendingBlocker, setPendingBlocker] = useState<string | null>(null);
   const [pendingBlockTarget, setPendingBlockTarget] = useState<string | null>(null);
@@ -93,7 +97,7 @@ export function GameBoard() {
     for (const playerId of playerIds) {
       const zone = zones.find((candidate) => candidate.zoneName === 'rune' && candidate.ownerId === playerId);
       if (!zone) continue;
-      const positions = Array.from({ length: 8 }, (_, index) => ({
+      const positions = Array.from({ length: TOTAL_RUNE_SLOTS }, (_, index) => ({
         x: zone.x + 20 + index * Math.max(30, (zone.width - 40) / 7),
         y: zone.y + zone.height / 2,
       }));
@@ -200,7 +204,7 @@ export function GameBoard() {
     let cancelled = false;
     const setup = async () => {
       try {
-        const stateResponse = await fetch(`${config.gameServerUrl}/api/game/${roomCode}/state`);
+        const stateResponse = await fetch(`${getGameServerUrl()}/api/game/${roomCode}/state`);
         if (!stateResponse.ok) throw new Error('Game state not found.');
         const initialState = (await stateResponse.json()) as LiveGameState;
         if (cancelled) return;
@@ -217,7 +221,7 @@ export function GameBoard() {
           (connected) => {
             setWsConnected(connected);
             if (connected && hasConnectedRef.current) {
-              void fetch(`${config.gameServerUrl}/api/game/${roomCode}/state`)
+              void fetch(`${getGameServerUrl()}/api/game/${roomCode}/state`)
                 .then((r) => r.json() as Promise<LiveGameState>)
                 .then(handleIncomingState)
                 .catch(() => {});
@@ -251,14 +255,20 @@ export function GameBoard() {
     sendMove(stompClientRef.current, roomCode, move);
   };
 
-  const handleCardHover = (card: RiftCard | null) => {
+  const handleCardHover = (card: RiftCard | null, instance?: CardInstance) => {
     if (previewShowTimer.current != null) window.clearTimeout(previewShowTimer.current);
     if (previewClearTimer.current != null) window.clearTimeout(previewClearTimer.current);
     if (card) {
-      previewShowTimer.current = window.setTimeout(() => setHoveredCard(card), CARD_PREVIEW_DELAY_MS);
+      previewShowTimer.current = window.setTimeout(() => {
+        setHoveredCard(card);
+        setHoveredInstance(instance);
+      }, CARD_PREVIEW_DELAY_MS);
       return;
     }
-    previewClearTimer.current = window.setTimeout(() => setHoveredCard(null), 1000);
+    previewClearTimer.current = window.setTimeout(() => {
+      setHoveredCard(null);
+      setHoveredInstance(undefined);
+    }, 1000);
   };
 
   const dealCard = (card: RiftCard) => {
@@ -421,13 +431,8 @@ export function GameBoard() {
 
   const handleRuneTap = (runeInstanceId: string) => {
     const rune = state?.runes?.find((candidate) => candidate.instanceId === runeInstanceId);
-    if (!rune || rune.ownerId !== player.id) return;
-    setPendingRuneTaps((previous) => {
-      const next = new Set(previous);
-      if (next.has(runeInstanceId)) next.delete(runeInstanceId);
-      else if (!rune.tapped) next.add(runeInstanceId);
-      return next;
-    });
+    if (!rune || rune.ownerId !== player.id || rune.tapped) return;
+    publishMove({ type: 'TAP_RUNE', playerId: player.id, runeInstanceId });
   };
 
   const clearPendingDeclarations = () => {
@@ -458,7 +463,7 @@ export function GameBoard() {
   };
 
   const handleReset = async () => {
-    await fetch(`${config.gameServerUrl}/api/game/${roomCode}/reset`, { method: 'POST' });
+    await fetch(`${getGameServerUrl()}/api/game/${roomCode}/reset`, { method: 'POST' });
   };
 
   if (loading) return <CenteredState>Loading game...</CenteredState>;
@@ -485,6 +490,9 @@ export function GameBoard() {
         .reduce((total, rune) => total + rune.normalEnergy, 0);
   const opponentUntappedRunes = (state.runes ?? []).filter((rune) => rune.ownerId === opponent?.userId && !rune.tapped).length;
   const isMyTurn = state.activePlayerId === player.id;
+  const ownRuneZone = zones.find((zone) => zone.zoneName === 'rune' && zone.ownerId === player.id);
+  const hasTappedOwnRune = (state.runes ?? []).some((rune) => rune.ownerId === player.id && rune.tapped);
+  const canUndoRunes = isMyTurn && state.currentPhase === 'MAIN' && !state.cardPlayedThisTurn && hasTappedOwnRune;
   const canPass =
     state.currentPhase === 'MULLIGAN'
       ? false
@@ -494,6 +502,7 @@ export function GameBoard() {
 
   return (
     <main className="relative bg-ink text-slate-100" style={{ height: `calc(100vh - ${NAV_HEIGHT}px)` }} ref={containerRef}>
+      {inspectCard ? <CardInspectModal card={inspectCard} cardDef={cardsById.get(inspectCard.cardId)} onClose={() => setInspectCard(null)} /> : null}
       <Stage width={size.width} height={size.height} onMouseDown={(event) => event.target === event.target.getStage() && setSelectedInstanceId(null)}>
         <Layer listening={false}>
           <ZoneOverlay zones={zones} />
@@ -602,6 +611,16 @@ export function GameBoard() {
           ))}
         </Layer>
         <Layer>
+          {state.players.flatMap((statePlayer) => {
+            const ownerRunes = (state.runes ?? []).filter((rune) => rune.ownerId === statePlayer.userId);
+            const remaining = statePlayer.runePoolRemaining ?? 10;
+            const discardedSlots = Math.max(0, TOTAL_RUNE_SLOTS - ownerRunes.length - remaining);
+            const positions = runePositions.get(statePlayer.userId) ?? [];
+            return Array.from({ length: discardedSlots }, (_, index) => {
+              const position = positions[ownerRunes.length + index];
+              return position ? <RegularPolygon key={`discarded-rune-${statePlayer.userId}-${index}`} x={position.x} y={position.y} sides={6} radius={14} rotation={30} stroke="#4b5563" strokeWidth={1.5} opacity={0.25} listening={false} /> : null;
+            });
+          })}
           {(state.runes ?? []).map((rune) => {
             const ownerRunes = (state.runes ?? []).filter((candidate) => candidate.ownerId === rune.ownerId);
             const position = runePositions.get(rune.ownerId)?.[ownerRunes.indexOf(rune)];
@@ -664,6 +683,16 @@ export function GameBoard() {
             : null}
         </Layer>
       </Stage>
+      {ownRuneZone ? (
+        <div className="pointer-events-none absolute flex items-center gap-2" style={{ left: ownRuneZone.x + 8, top: ownRuneZone.y + 4, maxWidth: ownRuneZone.width - 16 }}>
+          <span className="truncate text-xs text-slate-500">Left-click: tap (1 energy) · Right-click: discard (2 energy, permanent)</span>
+          {canUndoRunes ? (
+            <button className="btn-secondary pointer-events-auto min-h-6 shrink-0 px-2 py-0.5 text-xs" onClick={() => publishMove({ type: 'UNDO_RUNES', playerId: player.id })}>
+              Undo
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       {opponent ? (
         <PlayerPanel name={opponentName} score={opponent.score} handCount={opponentHand} energy={opponent.availableEnergy ?? 0} untappedRunes={opponentUntappedRunes} isActive={state.activePlayerId === opponent.userId} isMe={false} />
@@ -735,7 +764,7 @@ export function GameBoard() {
           maxHeight={handHeight}
         />
       </div>
-      <CardPreview card={hoveredCard} />
+      <CardPreview card={hoveredCard} instance={hoveredInstance} onInspect={setInspectCard} />
       {state.currentPhase === 'MULLIGAN' ? (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-ink/95 px-6 py-8">
           {hasMulliganed ? (

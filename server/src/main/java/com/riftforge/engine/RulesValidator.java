@@ -32,12 +32,22 @@ public class RulesValidator {
     if (move instanceof DealCardMove) return;
     if (move instanceof TapCardMove m) { validateTapCard(state, m); return; }
     if (move instanceof FlipCardMove m) { validateFlipCard(state, m); return; }
+    if (move instanceof UndoRunesMove m) { validateUndoRunes(state, m); return; }
     if (!move.playerId().equals(state.getActivePlayerId())) throw new IllegalMoveException("Not your turn.");
     if (move instanceof PlayCardMove m) validatePlayCard(state, m);
     if (move instanceof MoveCardMove m) validateMoveCard(state, m);
     if (move instanceof TapRuneMove m) validateTapRune(state, m);
     if (move instanceof DiscardRuneMove m) validateDiscardRune(state, m);
     if (move instanceof DeclareAttackMove m) validateAttack(state, m);
+  }
+
+  private void validateUndoRunes(LiveGameState state, UndoRunesMove move) {
+    if (state.getCurrentPhase() != Phase.MAIN) throw new IllegalMoveException("Can only undo runes in MAIN.");
+    if (!move.playerId().equals(state.getActivePlayerId())) throw new IllegalMoveException("Not your turn.");
+    if (state.isCardPlayedThisTurn()) throw new IllegalMoveException("Cannot undo after playing a card.");
+    boolean hasTappedRune = state.getRunes().stream()
+        .anyMatch(rune -> rune.getOwnerId().equals(move.playerId()) && rune.isTapped());
+    if (!hasTappedRune) throw new IllegalMoveException("No tapped runes to undo.");
   }
 
   private void validateMulligan(LiveGameState state, MulliganMove move) {

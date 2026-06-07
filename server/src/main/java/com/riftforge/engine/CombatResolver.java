@@ -32,19 +32,34 @@ public class CombatResolver {
       } else {
         CardInstance blocker = findCard(state, blockerId);
         CardDefinition blockerDef = cardDataService.getCard(blocker.getCardId());
-        int attackerDamage = Math.max(0, attackerDef.power() + attacker.getTemporaryPowerModifier());
-        int blockerDamage = Math.max(0, blockerDef.power() + blocker.getTemporaryPowerModifier());
+        int attackerDamage = Math.max(0, attackerDef.power() + attacker.getMightBonus() + attacker.getTemporaryPowerModifier());
+        if (state.getDeclaredAttackers().size() == 1 && cardDataService.hasKeyword(attacker, "MIGHTY")) {
+          attackerDamage += 2;
+          GameEngine.log(state, attacker.getOwnerId(), attackerDef.name() + " attacks alone - Mighty +2 might.");
+        }
+        int blockerDamage = Math.max(0, blockerDef.power() + blocker.getMightBonus() + blocker.getTemporaryPowerModifier());
         if (cardDataService.hasKeyword(blocker, "TOUGH")) attackerDamage = Math.max(0, attackerDamage - 1);
         if (cardDataService.hasKeyword(attacker, "TOUGH")) blockerDamage = Math.max(0, blockerDamage - 1);
         int originalBlockerHealth = blocker.getCurrentHealth() <= 0 ? blockerDef.health() : blocker.getCurrentHealth();
-        blocker.setCurrentHealth(originalBlockerHealth - attackerDamage);
-        attacker.setCurrentHealth((attacker.getCurrentHealth() <= 0 ? attackerDef.health() : attacker.getCurrentHealth()) - blockerDamage);
+        int newBlockerHealth = originalBlockerHealth - attackerDamage;
+        int newAttackerHealth = (attacker.getCurrentHealth() <= 0 ? attackerDef.health() : attacker.getCurrentHealth()) - blockerDamage;
+        if (cardDataService.hasKeyword(attacker, "LIFESTEAL") && attackerDamage > 0) {
+          newAttackerHealth = Math.min(newAttackerHealth + attackerDamage, attackerDef.health());
+          GameEngine.log(state, attacker.getOwnerId(), attackerDef.name() + " Lifesteal - healed " + attackerDamage);
+        }
+        if (cardDataService.hasKeyword(blocker, "LIFESTEAL") && blockerDamage > 0) {
+          newBlockerHealth = Math.min(newBlockerHealth + blockerDamage, blockerDef.health());
+          GameEngine.log(state, blocker.getOwnerId(), blockerDef.name() + " Lifesteal - healed " + blockerDamage);
+        }
+        blocker.setCurrentHealth(newBlockerHealth);
+        attacker.setCurrentHealth(newAttackerHealth);
         if (blocker.getCurrentHealth() <= 0) {
           cardZoneService.moveToGraveyard(blocker);
           discardAttachments(state, blocker);
           GameEngine.log(state, blocker.getOwnerId(), blockerDef.name() + " was destroyed");
           effects.getEffect(blocker.getCardId()).ifPresent(effect -> effect.onDestroy(blocker, state));
-          if (attacker.getCurrentHealth() > 0) {
+          boolean attackerScores = attacker.getCurrentHealth() > 0 || cardDataService.hasKeyword(attacker, "OVERWHELM");
+          if (attackerScores) {
             player(state, attacker.getOwnerId()).setScore(player(state, attacker.getOwnerId()).getScore() + 1);
             GameEngine.log(state, attacker.getOwnerId(), attackerDef.name() + " won combat - score +1");
           }

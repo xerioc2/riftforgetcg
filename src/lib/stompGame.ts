@@ -1,5 +1,5 @@
 import { Client } from '@stomp/stompjs';
-import { config } from './env';
+import { getGameServerUrl } from './env';
 import type { LocalPlayer } from './localPlayer';
 import type { LiveGameState, RoomState } from '../types';
 
@@ -14,6 +14,7 @@ export type MoveRequest =
   | { type: 'DECLARE_ATTACK'; playerId: string; attackerInstanceIds: string[]; targetPlayerId: string }
   | { type: 'DECLARE_BLOCK'; playerId: string; blockerToAttacker: Record<string, string> }
   | { type: 'MULLIGAN'; playerId: string; keepInstanceIds: string[] }
+  | { type: 'UNDO_RUNES'; playerId: string }
   | { type: 'PASS_PHASE'; playerId: string }
   | { type: 'ADJUST_SCORE'; playerId: string; targetPlayerId: string; delta: number };
 
@@ -27,7 +28,7 @@ export function createGameClient(
   onConnected: () => void,
   onConnectionChange?: (connected: boolean) => void,
 ): Client {
-  const wsUrl = `${config.gameServerUrl.replace(/^http/, 'ws')}/ws`;
+  const wsUrl = `${getGameServerUrl().replace(/^http/, 'ws')}/ws`;
   const client = new Client({
     brokerURL: wsUrl,
     connectHeaders: { playerId: player.id, playerName: player.name },
@@ -50,7 +51,7 @@ export function createGameClient(
 }
 
 export function createLobbyClient(roomCode: string, player: LocalPlayer, onRoom: (room: RoomState) => void): Client {
-  const wsUrl = `${config.gameServerUrl.replace(/^http/, 'ws')}/ws`;
+  const wsUrl = `${getGameServerUrl().replace(/^http/, 'ws')}/ws`;
   const client = new Client({
     brokerURL: wsUrl,
     connectHeaders: { playerId: player.id, playerName: player.name },
@@ -66,7 +67,7 @@ export function createLobbyClient(roomCode: string, player: LocalPlayer, onRoom:
 }
 
 export function createMatchmakingClient(player: LocalPlayer, onMatch: (notification: MatchNotification) => void, onConnected?: () => void): Client {
-  const wsUrl = `${config.gameServerUrl.replace(/^http/, 'ws')}/ws`;
+  const wsUrl = `${getGameServerUrl().replace(/^http/, 'ws')}/ws`;
   const seenRoomCodes = new Set<string>();
   const handleNotification = (frame: { body: string }) => {
     const notification = JSON.parse(frame.body) as MatchNotification;

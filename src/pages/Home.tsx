@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Client } from '@stomp/stompjs';
 import { Link, useNavigate } from 'react-router-dom';
-import { GAME_SERVER_URL } from '../lib/env';
+import { getGameServerUrl } from '../lib/env';
 import { useLocalPlayer } from '../lib/playerContext';
 import { createMatchmakingClient } from '../lib/stompGame';
 import { useDeckStore } from '../store/decks';
@@ -17,13 +17,15 @@ export function Home() {
   const [searching, setSearching] = useState(false);
   const [watchingAi, setWatchingAi] = useState(false);
   const [queueSize, setQueueSize] = useState(0);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [serverUrl, setServerUrl] = useState(() => localStorage.getItem('riftforge.serverUrl') ?? '');
   const matchClientRef = useRef<Client | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const searchingRef = useRef(false);
 
   const handleCreate = async () => {
     setMessage('');
-    const res = await fetch(`${GAME_SERVER_URL}/api/rooms`, {
+    const res = await fetch(`${getGameServerUrl()}/api/rooms`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ playerId: player.id, playerName: player.name, withBot }),
@@ -39,7 +41,7 @@ export function Home() {
   const handleJoin = async () => {
     const code = joinCode.trim().toUpperCase();
     setMessage('');
-    const res = await fetch(`${GAME_SERVER_URL}/api/rooms/${code}/join`, {
+    const res = await fetch(`${getGameServerUrl()}/api/rooms/${code}/join`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ playerId: player.id, playerName: player.name }),
@@ -54,7 +56,7 @@ export function Home() {
   const handleWatchAi = async () => {
     setWatchingAi(true);
     try {
-      const response = await fetch(`${GAME_SERVER_URL}/api/rooms/bot-vs-bot`, { method: 'POST' });
+      const response = await fetch(`${getGameServerUrl()}/api/rooms/bot-vs-bot`, { method: 'POST' });
       if (!response.ok) throw new Error('Unable to start AI game.');
       const { code } = (await response.json()) as { code: string };
       navigate(`/spectate/${code}`);
@@ -71,7 +73,7 @@ export function Home() {
 
   const updateQueueSize = async () => {
     try {
-      const response = await fetch(`${GAME_SERVER_URL}/api/matchmaking/status`);
+      const response = await fetch(`${getGameServerUrl()}/api/matchmaking/status`);
       if (!response.ok) return;
       const data = (await response.json()) as { queueSize: number };
       setQueueSize(data.queueSize);
@@ -104,7 +106,7 @@ export function Home() {
       },
       () => {
         if (!searchingRef.current) return;
-        void fetch(`${GAME_SERVER_URL}/api/matchmaking/join`, {
+        void fetch(`${getGameServerUrl()}/api/matchmaking/join`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ playerId: player.id, playerName: player.name, deckCardIds }),
@@ -112,7 +114,7 @@ export function Home() {
           .then((response) => {
             if (!response.ok) throw new Error('Unable to join queue.');
             if (!searchingRef.current) {
-              void fetch(`${GAME_SERVER_URL}/api/matchmaking/leave`, {
+              void fetch(`${getGameServerUrl()}/api/matchmaking/leave`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ playerId: player.id }),
@@ -138,7 +140,7 @@ export function Home() {
     stopPolling();
     void matchClientRef.current?.deactivate();
     matchClientRef.current = null;
-    await fetch(`${GAME_SERVER_URL}/api/matchmaking/leave`, {
+    await fetch(`${getGameServerUrl()}/api/matchmaking/leave`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ playerId: player.id }),
@@ -153,7 +155,7 @@ export function Home() {
       stopPolling();
       if (!searchingRef.current) return;
       void matchClientRef.current?.deactivate();
-      void fetch(`${GAME_SERVER_URL}/api/matchmaking/leave`, {
+      void fetch(`${getGameServerUrl()}/api/matchmaking/leave`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ playerId: player.id }),
@@ -220,6 +222,36 @@ export function Home() {
         <Link className="mt-8 inline-flex font-semibold text-mint" to="/build">
           Build Decks →
         </Link>
+        <div className="mt-8 border-t border-line pt-4">
+          <button className="flex items-center gap-2 text-xs text-slate-500" onClick={() => setAdvancedOpen((open) => !open)} aria-expanded={advancedOpen}>
+            <span className="inline-block transition-transform" style={{ transform: advancedOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#8250;</span>
+            Advanced
+          </button>
+          {advancedOpen ? (
+            <div className="mt-3 border border-line bg-panel p-4">
+              <label className="text-xs text-slate-400" htmlFor="server-url">Server URL</label>
+              <input
+                id="server-url"
+                className="input mt-2 w-full text-sm"
+                placeholder="http://localhost:8080"
+                value={serverUrl}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setServerUrl(value);
+                  if (value.trim()) localStorage.setItem('riftforge.serverUrl', value);
+                  else localStorage.removeItem('riftforge.serverUrl');
+                }}
+              />
+              <p className="mt-2 text-xs text-slate-500">Enter your host&apos;s server URL to join a remote game. Leave blank to use the local server.</p>
+              <button className="btn-secondary mt-3 min-h-7 px-3 py-1 text-xs" onClick={() => {
+                setServerUrl('');
+                localStorage.removeItem('riftforge.serverUrl');
+              }}>
+                Clear
+              </button>
+            </div>
+          ) : null}
+        </div>
       </section>
     </main>
   );
