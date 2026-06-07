@@ -9,7 +9,7 @@ import { useDeckStore } from '../store/decks';
 export function Home() {
   const player = useLocalPlayer();
   const navigate = useNavigate();
-  const { decks, activeDeckId } = useDeckStore();
+  const { decks, activeDeckId, setActiveDeck } = useDeckStore();
   const activeDeck = decks.find((deck) => deck.id === activeDeckId) ?? decks[0];
   const [joinCode, setJoinCode] = useState('');
   const [message, setMessage] = useState('');
@@ -174,6 +174,18 @@ export function Home() {
           <article className="border border-line bg-panel p-4 shadow-glow">
             <h2 className="text-lg font-semibold text-white">Create Room</h2>
             <p className="mt-2 text-sm text-slate-400">Open a local lobby and invite players with a room code.</p>
+            {decks.length > 0 ? (
+              <label className="mt-4 block text-xs text-slate-500">
+                Playing as:
+                <select className="input mt-1 w-full text-sm" value={activeDeck?.id ?? ''} onChange={(event) => setActiveDeck(event.target.value)}>
+                  {decks.map((deck) => (
+                    <option key={deck.id} value={deck.id}>
+                      {deck.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             <button className="btn-primary mt-5 w-full" onClick={() => void handleCreate()}>
               Create
             </button>
@@ -201,7 +213,15 @@ export function Home() {
           <article className="border border-line bg-panel p-4 shadow-glow sm:col-span-2">
             <h2 className="text-lg font-semibold text-white">Find Match</h2>
             <p className="mt-2 text-sm text-slate-400">Join the queue and get paired with a random opponent.</p>
-            {searching ? (
+            {decks.length === 0 ? (
+              <p className="mt-4 text-sm text-slate-400">
+                No decks yet.{' '}
+                <Link className="text-forge" to="/build">
+                  Build a deck
+                </Link>{' '}
+                to play.
+              </p>
+            ) : searching ? (
               <>
                 <p className="mt-3 animate-pulse text-sm text-slate-400">
                   Searching... ({queueSize} player{queueSize !== 1 ? 's' : ''} in queue)
@@ -211,9 +231,21 @@ export function Home() {
                 </button>
               </>
             ) : (
-              <button className="btn-primary mt-5 w-full" onClick={() => void handleFindMatch()} disabled={!activeDeck}>
-                Find Match
-              </button>
+              <>
+                <label className="mt-4 block text-xs text-slate-500">
+                  Playing as:
+                  <select className="input mt-1 w-full text-sm" value={activeDeck?.id ?? ''} onChange={(event) => setActiveDeck(event.target.value)}>
+                    {decks.map((deck) => (
+                      <option key={deck.id} value={deck.id}>
+                        {deck.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button className="btn-primary mt-4 w-full" onClick={() => void handleFindMatch()} disabled={!activeDeck}>
+                  Find Match
+                </button>
+              </>
             )}
           </article>
         </div>

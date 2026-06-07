@@ -766,11 +766,16 @@ export function GameBoard() {
       </div>
       <CardPreview card={hoveredCard} instance={hoveredInstance} onInspect={setInspectCard} />
       {state.currentPhase === 'MULLIGAN' ? (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-ink/95 px-6 py-8">
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-ink/95 px-6 py-8">
           {hasMulliganed ? (
             <section className="border border-line bg-panel px-10 py-8 text-center shadow-glow">
               <h2 className="text-xl font-semibold text-forge">Opening hand locked in</h2>
               <p className="mt-2 text-sm text-slate-400">Waiting for opponent...</p>
+            </section>
+          ) : hand.length === 0 ? (
+            <section className="border border-line bg-panel px-10 py-8 text-center shadow-glow">
+              <h2 className="text-xl font-semibold text-forge">Preparing opening hand</h2>
+              <p className="mt-2 animate-pulse text-sm text-slate-400">Waiting for cards...</p>
             </section>
           ) : (
             <section className="w-full max-w-5xl border border-line bg-panel p-6 shadow-glow">
@@ -779,33 +784,39 @@ export function GameBoard() {
                   <h2 className="text-2xl font-semibold text-forge">Choose your opening hand</h2>
                   <p className="mt-1 text-sm text-slate-400">Checked cards stay. Unchecked cards are shuffled back and replaced.</p>
                 </div>
-                <span className="text-sm font-semibold text-slate-300">{mulliganKeepIds.size} kept</span>
+                <span className="text-sm font-semibold text-slate-300">
+                  Keep {mulliganKeepIds.size} / Discard {hand.length - mulliganKeepIds.size}
+                </span>
               </div>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
                 {hand.map((instance) => {
                   const card = cardsById.get(instance.cardId);
                   const checked = mulliganKeepIds.has(instance.instanceId);
                   return (
-                    <label
+                    <button
+                      type="button"
                       key={instance.instanceId}
-                      className={`cursor-pointer border p-2 transition-colors ${checked ? 'border-forge bg-forge/10' : 'border-line bg-ink/60'}`}
+                      aria-pressed={checked}
+                      className={`cursor-pointer border p-2 text-left transition-all ${
+                        checked ? 'border-forge bg-forge/10 opacity-100' : 'border-line bg-ink/60 opacity-60'
+                      }`}
+                      onMouseEnter={() => handleCardHover(card ?? null, instance)}
+                      onMouseLeave={() => handleCardHover(null)}
+                      onClick={() =>
+                        setMulliganKeepIds((previous) => {
+                          const next = new Set(previous);
+                          if (next.has(instance.instanceId)) next.delete(instance.instanceId);
+                          else next.add(instance.instanceId);
+                          return next;
+                        })
+                      }
                     >
-                      <input
-                        type="checkbox"
-                        className="mb-2 accent-forge"
-                        checked={checked}
-                        onChange={() =>
-                          setMulliganKeepIds((previous) => {
-                            const next = new Set(previous);
-                            if (next.has(instance.instanceId)) next.delete(instance.instanceId);
-                            else next.add(instance.instanceId);
-                            return next;
-                          })
-                        }
-                      />
                       {card?.imageUrl ? <img className="aspect-[5/7] w-full object-contain" src={card.imageUrl} alt={card.name} /> : null}
-                      <span className="mt-2 block truncate text-sm font-semibold text-slate-100">{card?.name ?? 'Unknown card'}</span>
-                    </label>
+                      <span className={`mt-2 block truncate text-sm font-semibold ${checked ? 'text-forge' : 'text-slate-300'}`}>
+                        {checked ? 'Keep: ' : 'Discard: '}
+                        {card?.name ?? 'Unknown card'}
+                      </span>
+                    </button>
                   );
                 })}
               </div>
