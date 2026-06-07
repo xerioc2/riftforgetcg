@@ -1,4 +1,5 @@
 const PHASE_LABELS: Record<string, string> = {
+  MULLIGAN: 'Mulligan',
   CHANNEL: 'Channel',
   MAIN: 'Main Phase',
   ATTACK_DECLARE: 'Declare Attackers',
@@ -29,7 +30,7 @@ export function PhaseBar({ currentPhase, isMyTurn, canPass, opponentName, onPass
         ))}
       </div>
       <div className="ml-auto flex items-center gap-3">
-        <span className="hidden whitespace-nowrap text-xs text-slate-400 lg:inline">
+        <span className={`whitespace-nowrap text-xs font-semibold ${isMyTurn ? 'text-forge' : 'text-slate-300'}`}>
           {currentPhase === 'BLOCK_DECLARE' && canPass ? 'Your response' : isMyTurn ? 'Your turn' : `${opponentName}'s turn`}
         </span>
         <button className="btn-primary min-h-7 px-4 py-1 text-xs disabled:opacity-40" disabled={!canPass} onClick={onPassPhase}>

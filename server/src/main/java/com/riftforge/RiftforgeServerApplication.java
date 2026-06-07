@@ -29,7 +29,7 @@ public class RiftforgeServerApplication {
           DealCardMove.class, TapCardMove.class, FlipCardMove.class,
           PlayCardMove.class, MoveCardMove.class, TapRuneMove.class,
           DiscardRuneMove.class, DeclareAttackMove.class, DeclareBlockMove.class,
-          PassPhaseMove.class, AdjustScoreMove.class,
+          MulliganMove.class, PassPhaseMove.class, AdjustScoreMove.class,
           MatchRecord.class, MatchRecord.PlayerSummary.class
       }) {
         hints.reflection().registerType(type, all);

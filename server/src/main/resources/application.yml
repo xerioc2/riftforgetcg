@@ -3,5 +3,5 @@ server:
 
 riftforge:
   riftcodex-api: https://api.riftcodex.com/cards
-  target-score: 10
+  target-score: 8
   cors-origins: ${CORS_ORIGINS:http://localhost:5173,tauri://localhost,https://tauri.localhost}

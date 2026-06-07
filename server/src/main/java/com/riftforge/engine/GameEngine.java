@@ -6,6 +6,7 @@ import com.riftforge.model.move.*;
 import com.riftforge.service.CardDataService;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -19,13 +20,15 @@ public class GameEngine {
 
   private final RulesValidator rulesValidator;
   private final CombatResolver combatResolver;
+  private final CardZoneService cardZoneService;
   private final CardDataService cardDataService;
   private final CardEffectRegistry effects;
   private final int targetScore;
 
-  public GameEngine(RulesValidator rulesValidator, CombatResolver combatResolver, CardDataService cardDataService, CardEffectRegistry effects, @Value("${riftforge.target-score}") int targetScore) {
+  public GameEngine(RulesValidator rulesValidator, CombatResolver combatResolver, CardZoneService cardZoneService, CardDataService cardDataService, CardEffectRegistry effects, @Value("${riftforge.target-score}") int targetScore) {
     this.rulesValidator = rulesValidator;
     this.combatResolver = combatResolver;
+    this.cardZoneService = cardZoneService;
     this.cardDataService = cardDataService;
     this.effects = effects;
     this.targetScore = targetScore;
@@ -43,6 +46,7 @@ public class GameEngine {
       case DiscardRuneMove m -> applyDiscardRune(state, m);
       case DeclareAttackMove m -> applyDeclareAttack(state, m);
       case DeclareBlockMove m -> applyDeclareBlock(state, m);
+      case MulliganMove m -> applyMulligan(state, m);
       case PassPhaseMove m -> applyPassPhase(state);
       case AdjustScoreMove m -> applyAdjustScore(state, m);
     };
@@ -102,8 +106,9 @@ public class GameEngine {
     effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onPlay(card, target, state));
     String cardTypeLower = def.type() != null ? def.type().toLowerCase() : "";
     applyRulesTextEffect(card, target, state, def);
+    moveDestroyedBoardCards(state);
     if (cardTypeLower.equals("spell")) {
-      card.setZone(ZoneName.DISCARD);
+      cardZoneService.moveToGraveyard(card);
     } else if (cardDataService.isEquip(def) && target != null) {
       card.setZone(ZoneName.BASE);
       card.setAttachedToInstanceId(target.getInstanceId());
@@ -118,7 +123,8 @@ public class GameEngine {
   private LiveGameState applyMoveCard(LiveGameState state, MoveCardMove move) {
     CardInstance card = findCard(state, move.instanceId());
     ZoneName sourceZone = card.getZone();
-    card.setZone(move.targetZone());
+    if (move.targetZone() == ZoneName.DISCARD) cardZoneService.moveToGraveyard(card);
+    else card.setZone(move.targetZone());
     card.setX(move.x());
     card.setY(move.y());
     if (move.targetZone() == ZoneName.BATTLEFIELD
@@ -141,7 +147,10 @@ public class GameEngine {
   private LiveGameState applyDiscardRune(LiveGameState state, DiscardRuneMove move) {
     RuneState rune = findRune(state, move.runeInstanceId());
     state.getRunes().remove(rune);
-    state.getPlayers().stream().filter(p -> p.getUserId().equals(move.playerId())).findFirst().ifPresent(p -> p.setAvailableEnergy(p.getAvailableEnergy() + rune.getPremiumEnergy()));
+    state.getPlayers().stream().filter(p -> p.getUserId().equals(move.playerId())).findFirst().ifPresent(p -> {
+      p.setAvailableEnergy(p.getAvailableEnergy() + rune.getPremiumEnergy());
+      p.setRunePoolRemaining(Math.max(0, p.getRunePoolRemaining() - 1));
+    });
     log(state, move.playerId(), "Discarded a rune.");
     return state;
   }
@@ -162,6 +171,35 @@ public class GameEngine {
     return state;
   }
 
+  private LiveGameState applyMulligan(LiveGameState state, MulliganMove move) {
+    PlayerState player = state.getPlayers().stream()
+        .filter(candidate -> candidate.getUserId().equals(move.playerId()))
+        .findFirst()
+        .orElseThrow();
+    List<CardInstance> returned = state.getCards().stream()
+        .filter(card -> card.getOwnerId().equals(move.playerId()))
+        .filter(card -> card.getZone() == ZoneName.HAND)
+        .filter(card -> !move.keepInstanceIds().contains(card.getInstanceId()))
+        .toList();
+    returned.forEach(card -> player.getDeckPool().add(card.getCardId()));
+    state.getCards().removeAll(returned);
+    Collections.shuffle(player.getDeckPool());
+    long handSize = state.getCards().stream()
+        .filter(card -> card.getOwnerId().equals(move.playerId()) && card.getZone() == ZoneName.HAND)
+        .count();
+    while (handSize < 5 && !player.getDeckPool().isEmpty()) {
+      autoDraw(state, move.playerId());
+      handSize++;
+    }
+    state.getMulligansDone().add(move.playerId());
+    log(state, move.playerId(), returned.isEmpty() ? "Kept their opening hand." : "Mulliganed " + returned.size() + " card(s).");
+    if (state.getMulligansDone().size() == state.getPlayers().size()) {
+      state.setCurrentPhase(Phase.MAIN);
+      log(state, state.getActivePlayerId(), "Mulligans complete. Advanced to MAIN.");
+    }
+    return state;
+  }
+
   private LiveGameState applyDeclareBlock(LiveGameState state, DeclareBlockMove move) {
     state.setBlockerToAttacker(move.blockerToAttacker());
     log(state, move.playerId(), "Declared blockers.");
@@ -170,6 +208,7 @@ public class GameEngine {
 
   private LiveGameState applyPassPhase(LiveGameState state) {
     Phase next = switch (state.getCurrentPhase()) {
+      case MULLIGAN -> Phase.MAIN;
       case CHANNEL -> Phase.MAIN;
       case MAIN -> Phase.ATTACK_DECLARE;
       case ATTACK_DECLARE -> Phase.BLOCK_DECLARE;
@@ -185,14 +224,12 @@ public class GameEngine {
       log(state, state.getActivePlayerId(), "Combat resolved.");
       state.setCurrentPhase(Phase.END);
       next = Phase.END;
-      returnAttackersToBase(state);
-      healBoardCards(state);
+      finishEndPhase(state);
       log(state, state.getActivePlayerId(), "Advanced to END.");
       return state;
     }
     if (next == Phase.END) {
-      returnAttackersToBase(state);
-      healBoardCards(state);
+      finishEndPhase(state);
     }
     if (next == Phase.CHANNEL) {
       advanceTurn(state);
@@ -231,10 +268,20 @@ public class GameEngine {
   }
 
   private void grantRunes(LiveGameState state, String playerId, int amount) {
+    PlayerState player = state.getPlayers().stream()
+        .filter(candidate -> candidate.getUserId().equals(playerId))
+        .findFirst()
+        .orElse(null);
+    if (player == null) return;
+    if (player.getRunePoolRemaining() <= 0) {
+      log(state, playerId, player.getName() + "'s rune deck is exhausted.");
+      return;
+    }
     long currentCount = state.getRunes().stream()
         .filter(r -> r.getOwnerId().equals(playerId))
         .count();
-    for (int i = 0; i < amount && currentCount < MAX_RUNES; i++, currentCount++) {
+    int granted = 0;
+    for (int i = 0; i < amount && currentCount < MAX_RUNES && granted < player.getRunePoolRemaining(); i++, currentCount++, granted++) {
       RuneState rune = new RuneState();
       rune.setInstanceId(UUID.randomUUID().toString());
       rune.setOwnerId(playerId);
@@ -243,6 +290,7 @@ public class GameEngine {
       rune.setPremiumEnergy(2);
       state.getRunes().add(rune);
     }
+    player.setRunePoolRemaining(player.getRunePoolRemaining() - granted);
   }
 
   private void scoreUnchallengedBattlefield(LiveGameState state) {
@@ -285,6 +333,36 @@ public class GameEngine {
         });
   }
 
+  private void finishEndPhase(LiveGameState state) {
+    state.getCards().stream()
+        .filter(card -> card.getOwnerId().equals(state.getActivePlayerId()) && card.getZone() == ZoneName.BATTLEFIELD)
+        .forEach(card -> effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onTurnEnd(card, state)));
+    returnAttackersToBase(state);
+    healBoardCards(state);
+  }
+
+  private void moveDestroyedBoardCards(LiveGameState state) {
+    List<CardInstance> destroyed = state.getCards().stream()
+        .filter(card -> card.getZone() == ZoneName.BASE || card.getZone() == ZoneName.BATTLEFIELD)
+        .filter(card -> {
+          CardDefinition def = cardDataService.getCard(card.getCardId());
+          return def != null
+              && ("Champion".equalsIgnoreCase(def.type()) || "Unit".equalsIgnoreCase(def.type()))
+              && card.getCurrentHealth() <= 0;
+        })
+        .toList();
+    for (CardInstance card : destroyed) {
+      state.getCards().stream()
+          .filter(attachment -> card.getInstanceId().equals(attachment.getAttachedToInstanceId()))
+          .forEach(attachment -> {
+            cardZoneService.moveToGraveyard(attachment);
+            attachment.setAttachedToInstanceId(null);
+          });
+      cardZoneService.moveToGraveyard(card);
+      effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onDestroy(card, state));
+    }
+  }
+
   private void applyRulesTextEffect(CardInstance card, CardInstance target, LiveGameState state, CardDefinition def) {
     String text = def.rulesText() == null ? "" : def.rulesText().toLowerCase();
     if (target != null) {
@@ -301,7 +379,7 @@ public class GameEngine {
         state.getCards().stream()
             .filter(candidate -> target.getInstanceId().equals(candidate.getAttachedToInstanceId()))
             .forEach(candidate -> {
-              candidate.setZone(ZoneName.DISCARD);
+              cardZoneService.moveToGraveyard(candidate);
               candidate.setAttachedToInstanceId(null);
             });
         target.setZone(ZoneName.HAND);
@@ -318,8 +396,9 @@ public class GameEngine {
         .filter(p -> p.getUserId().equals(playerId))
         .findFirst()
         .orElse(null);
-    if (player == null || player.getDeckPool().isEmpty()) {
-      log(state, playerId, "No cards left to draw.");
+    if (player == null) return;
+    if (player.getDeckPool().isEmpty()) {
+      log(state, playerId, player.getName() + "'s deck is empty \u2014 no draw.");
       return;
     }
     String cardId = player.getDeckPool().remove(0);

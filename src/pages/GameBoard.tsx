@@ -68,7 +68,8 @@ export function GameBoard() {
   const [pendingBlocks, setPendingBlocks] = useState<Map<string, string>>(new Map());
   const [pendingSpellInstanceId, setPendingSpellInstanceId] = useState<string | null>(null);
   const [pendingRuneTaps, setPendingRuneTaps] = useState<Set<string>>(new Set());
-  const [handHeight, setHandHeight] = useState(DEFAULT_HAND_HEIGHT);
+  const [mulliganKeepIds, setMulliganKeepIds] = useState<Set<string>>(new Set());
+  const [handHeight, setHandHeight] = useState(230);
   const [wsConnected, setWsConnected] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const stompClientRef = useRef<Client | null>(null);
@@ -102,6 +103,8 @@ export function GameBoard() {
   }, [playerIds, zones]);
   const cardPositions = useMemo(() => new Map((state?.cards ?? []).map((card) => [card.instanceId, { x: card.x, y: card.y }])), [state?.cards]);
   const hand = useMemo(() => (state?.cards ?? []).filter((card) => card.ownerId === player.id && sameZone(card.zone, 'hand')), [player.id, state?.cards]);
+  const handInstanceKey = useMemo(() => hand.map((card) => card.instanceId).sort().join(','), [hand]);
+  const hasMulliganed = state?.mulligansDone?.includes(player.id) ?? false;
   const activeBattlefieldCards = useMemo(
     () => (state?.cards ?? []).filter((card) => state?.currentPhase === 'ATTACK_DECLARE' && card.ownerId === state.activePlayerId && sameZone(card.zone, 'battlefield')),
     [state?.activePlayerId, state?.cards, state?.currentPhase],
@@ -151,6 +154,12 @@ export function GameBoard() {
       setPendingSpellInstanceId(null);
     }
   }, [state?.currentPhase]);
+
+  useEffect(() => {
+    if (state?.currentPhase === 'MULLIGAN' && !hasMulliganed) {
+      setMulliganKeepIds(new Set(handInstanceKey ? handInstanceKey.split(',') : []));
+    }
+  }, [handInstanceKey, hasMulliganed, state?.currentPhase]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -266,6 +275,25 @@ export function GameBoard() {
       });
   };
 
+  const commitRunesForCard = (cardDef: RiftCard | undefined) => {
+    const playerEnergy = state?.players.find((statePlayer) => statePlayer.userId === player.id)?.availableEnergy ?? 0;
+    const selectedRunes = new Set(pendingRuneTaps);
+    let plannedEnergy = (state?.runes ?? [])
+      .filter((rune) => selectedRunes.has(rune.instanceId))
+      .reduce((total, rune) => total + rune.normalEnergy, 0);
+    const neededEnergy = Math.max(0, (cardDef?.cost ?? 0) - playerEnergy);
+    for (const rune of state?.runes ?? []) {
+      if (plannedEnergy >= neededEnergy) break;
+      if (rune.ownerId !== player.id || rune.tapped || selectedRunes.has(rune.instanceId)) continue;
+      selectedRunes.add(rune.instanceId);
+      plannedEnergy += rune.normalEnergy;
+    }
+    for (const runeId of selectedRunes) {
+      publishMove({ type: 'TAP_RUNE', playerId: player.id, runeInstanceId: runeId });
+    }
+    setPendingRuneTaps(new Set());
+  };
+
   const playFromHand = (instanceId: string) => {
     const cardDef = cardsById.get(state?.cards.find((c) => c.instanceId === instanceId)?.cardId ?? '');
     const unsupportedReason = unsupportedCardReason(cardDef);
@@ -273,15 +301,11 @@ export function GameBoard() {
       addChat({ id: crypto.randomUUID(), userId: player.id, email: null, text: unsupportedReason, sentAt: new Date().toISOString() });
       return;
     }
-    for (const runeId of pendingRuneTaps) {
-      publishMove({ type: 'TAP_RUNE', playerId: player.id, runeInstanceId: runeId });
-    }
-    setPendingRuneTaps(new Set());
-
     if (cardTargetScope(cardDef)) {
       setPendingSpellInstanceId(instanceId);
       return;
     }
+    commitRunesForCard(cardDef);
     const isRune = cardDef?.type?.toLowerCase() === 'rune';
     if (isRune) {
       const runeZone = zones.find((zone) => zone.zoneName === 'rune' && zone.ownerId === player.id);
@@ -326,6 +350,8 @@ export function GameBoard() {
         setPendingSpellInstanceId(null);
         return;
       }
+      const spellDef = cardsById.get(spellInstance.cardId);
+      commitRunesForCard(spellDef);
       publishMove({
         type: 'PLAY_CARD',
         playerId: player.id,
@@ -423,6 +449,10 @@ export function GameBoard() {
     clearPendingDeclarations();
   };
 
+  const submitMulligan = (keepInstanceIds: string[]) => {
+    publishMove({ type: 'MULLIGAN', playerId: player.id, keepInstanceIds });
+  };
+
   const sendChat = (text: string) => {
     addChat({ id: crypto.randomUUID(), userId: player.id, email: player.name, text, sentAt: new Date().toISOString() });
   };
@@ -449,10 +479,16 @@ export function GameBoard() {
   const opponentName = opponent?.name?.trim() || opponent?.userId || 'Opponent';
   const opponentHand = state.cards.filter((card) => card.ownerId === opponent?.userId && sameZone(card.zone, 'hand')).length;
   const myUntappedRunes = (state.runes ?? []).filter((rune) => rune.ownerId === player.id && !rune.tapped).length;
+  const spendableEnergy = (me?.availableEnergy ?? 0)
+    + (state.runes ?? [])
+        .filter((rune) => rune.ownerId === player.id && !rune.tapped)
+        .reduce((total, rune) => total + rune.normalEnergy, 0);
   const opponentUntappedRunes = (state.runes ?? []).filter((rune) => rune.ownerId === opponent?.userId && !rune.tapped).length;
   const isMyTurn = state.activePlayerId === player.id;
   const canPass =
-    state.currentPhase === 'BLOCK_DECLARE'
+    state.currentPhase === 'MULLIGAN'
+      ? false
+      : state.currentPhase === 'BLOCK_DECLARE'
       ? !isMyTurn && state.players.some((statePlayer) => statePlayer.userId === player.id)
       : isMyTurn;
 
@@ -686,9 +722,76 @@ export function GameBoard() {
         <div className="h-0.5 w-16 rounded-full bg-slate-600" />
       </div>
       <div className="absolute bottom-0 left-0" style={{ right: `${SIDEBAR_WIDTH}px`, height: handHeight }}>
-        <HandRack instances={hand} cards={cardsById} onPlay={playFromHand} onDiscard={discardFromHand} cardScale={cardScale} onHover={handleCardHover} embedded maxHeight={handHeight} />
+        <HandRack
+          instances={hand}
+          cards={cardsById}
+          onPlay={playFromHand}
+          onDiscard={discardFromHand}
+          cardScale={cardScale}
+          onHover={handleCardHover}
+          effectiveEnergy={spendableEnergy}
+          canPlayCards={state.currentPhase === 'MAIN' && isMyTurn}
+          embedded
+          maxHeight={handHeight}
+        />
       </div>
       <CardPreview card={hoveredCard} />
+      {state.currentPhase === 'MULLIGAN' ? (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-ink/95 px-6 py-8">
+          {hasMulliganed ? (
+            <section className="border border-line bg-panel px-10 py-8 text-center shadow-glow">
+              <h2 className="text-xl font-semibold text-forge">Opening hand locked in</h2>
+              <p className="mt-2 text-sm text-slate-400">Waiting for opponent...</p>
+            </section>
+          ) : (
+            <section className="w-full max-w-5xl border border-line bg-panel p-6 shadow-glow">
+              <div className="mb-5 flex items-end justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-semibold text-forge">Choose your opening hand</h2>
+                  <p className="mt-1 text-sm text-slate-400">Checked cards stay. Unchecked cards are shuffled back and replaced.</p>
+                </div>
+                <span className="text-sm font-semibold text-slate-300">{mulliganKeepIds.size} kept</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+                {hand.map((instance) => {
+                  const card = cardsById.get(instance.cardId);
+                  const checked = mulliganKeepIds.has(instance.instanceId);
+                  return (
+                    <label
+                      key={instance.instanceId}
+                      className={`cursor-pointer border p-2 transition-colors ${checked ? 'border-forge bg-forge/10' : 'border-line bg-ink/60'}`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="mb-2 accent-forge"
+                        checked={checked}
+                        onChange={() =>
+                          setMulliganKeepIds((previous) => {
+                            const next = new Set(previous);
+                            if (next.has(instance.instanceId)) next.delete(instance.instanceId);
+                            else next.add(instance.instanceId);
+                            return next;
+                          })
+                        }
+                      />
+                      {card?.imageUrl ? <img className="aspect-[5/7] w-full object-contain" src={card.imageUrl} alt={card.name} /> : null}
+                      <span className="mt-2 block truncate text-sm font-semibold text-slate-100">{card?.name ?? 'Unknown card'}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <div className="mt-6 flex justify-end gap-3">
+                <button className="btn-secondary" onClick={() => submitMulligan([...mulliganKeepIds])}>
+                  Keep Selected
+                </button>
+                <button className="btn-primary" onClick={() => submitMulligan(hand.map((card) => card.instanceId))}>
+                  Keep All
+                </button>
+              </div>
+            </section>
+          )}
+        </div>
+      ) : null}
       {!wsConnected && !loading && !error ? (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-40 flex items-center justify-center gap-2 bg-ember/90 px-4 py-2 text-sm font-medium text-white">
           <span className="animate-pulse">●</span>

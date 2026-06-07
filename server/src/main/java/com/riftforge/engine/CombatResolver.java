@@ -13,10 +13,12 @@ import org.springframework.stereotype.Component;
 public class CombatResolver {
   private final CardDataService cardDataService;
   private final CardEffectRegistry effects;
+  private final CardZoneService cardZoneService;
 
-  public CombatResolver(CardDataService cardDataService, CardEffectRegistry effects) {
+  public CombatResolver(CardDataService cardDataService, CardEffectRegistry effects, CardZoneService cardZoneService) {
     this.cardDataService = cardDataService;
     this.effects = effects;
+    this.cardZoneService = cardZoneService;
   }
 
   public void resolve(LiveGameState state) {
@@ -38,21 +40,17 @@ public class CombatResolver {
         blocker.setCurrentHealth(originalBlockerHealth - attackerDamage);
         attacker.setCurrentHealth((attacker.getCurrentHealth() <= 0 ? attackerDef.health() : attacker.getCurrentHealth()) - blockerDamage);
         if (blocker.getCurrentHealth() <= 0) {
-          blocker.setZone(ZoneName.DISCARD);
+          cardZoneService.moveToGraveyard(blocker);
           discardAttachments(state, blocker);
           GameEngine.log(state, blocker.getOwnerId(), blockerDef.name() + " was destroyed");
           effects.getEffect(blocker.getCardId()).ifPresent(effect -> effect.onDestroy(blocker, state));
-          if (cardDataService.hasKeyword(attacker, "OVERWHELM") && attackerDamage > originalBlockerHealth) {
+          if (attacker.getCurrentHealth() > 0) {
             player(state, attacker.getOwnerId()).setScore(player(state, attacker.getOwnerId()).getScore() + 1);
+            GameEngine.log(state, attacker.getOwnerId(), attackerDef.name() + " won combat - score +1");
           }
         }
-        if (blocker.getCurrentHealth() <= 0 && attacker.getCurrentHealth() > 0
-            && cardDataService.hasKeyword(attacker, "LIFESTEAL")) {
-          player(state, attacker.getOwnerId()).setScore(player(state, attacker.getOwnerId()).getScore() + 1);
-          GameEngine.log(state, attacker.getOwnerId(), attackerDef.name() + " lifesteals - score +1");
-        }
         if (attacker.getCurrentHealth() <= 0) {
-          attacker.setZone(ZoneName.DISCARD);
+          cardZoneService.moveToGraveyard(attacker);
           discardAttachments(state, attacker);
           GameEngine.log(state, attacker.getOwnerId(), attackerDef.name() + " was destroyed in combat");
           effects.getEffect(attacker.getCardId()).ifPresent(effect -> effect.onDestroy(attacker, state));
@@ -75,7 +73,7 @@ public class CombatResolver {
     state.getCards().stream()
         .filter(card -> unit.getInstanceId().equals(card.getAttachedToInstanceId()))
         .forEach(card -> {
-          card.setZone(ZoneName.DISCARD);
+          cardZoneService.moveToGraveyard(card);
           card.setAttachedToInstanceId(null);
         });
   }

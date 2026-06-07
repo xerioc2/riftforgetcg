@@ -14,6 +14,7 @@ import com.riftforge.model.move.DeclareBlockMove;
 import com.riftforge.model.move.PassPhaseMove;
 import com.riftforge.model.move.PlayCardMove;
 import com.riftforge.model.move.MoveCardMove;
+import com.riftforge.model.move.MulliganMove;
 import com.riftforge.model.move.TapRuneMove;
 import com.riftforge.service.CardDataService;
 import com.riftforge.service.GameService;
@@ -51,7 +52,14 @@ public class BotService {
     if (!anyBotInGame) return;
 
     String actingBotId = null;
-    if (state.getCurrentPhase() == Phase.BLOCK_DECLARE) {
+    if (state.getCurrentPhase() == Phase.MULLIGAN) {
+      actingBotId = state.getPlayers().stream()
+          .map(PlayerState::getUserId)
+          .filter(ALL_BOT_IDS::contains)
+          .filter(id -> !state.getMulligansDone().contains(id))
+          .findFirst()
+          .orElse(null);
+    } else if (state.getCurrentPhase() == Phase.BLOCK_DECLARE) {
       actingBotId = state.getPlayers().stream()
           .map(PlayerState::getUserId)
           .filter(ALL_BOT_IDS::contains)
@@ -68,7 +76,7 @@ public class BotService {
         .allMatch(p -> ALL_BOT_IDS.contains(p.getUserId()));
     long delay = isBotVsBot ? 350L : 700L;
     final String botId = actingBotId;
-    final boolean isDefender = !botId.equals(state.getActivePlayerId());
+    final boolean isDefender = state.getCurrentPhase() == Phase.BLOCK_DECLARE && !botId.equals(state.getActivePlayerId());
 
     CompletableFuture.runAsync(() -> {
       try {
@@ -89,6 +97,7 @@ public class BotService {
 
   private void doActiveTurn(String roomCode, LiveGameState state, String botId) {
     switch (state.getCurrentPhase()) {
+      case MULLIGAN -> doMulligan(roomCode, state, botId);
       case CHANNEL, COMBAT_RESOLVE, END -> gameService.processMove(roomCode, new PassPhaseMove(botId));
       case MAIN -> doMain(roomCode, state, botId);
       case ATTACK_DECLARE -> doAttack(roomCode, state, botId);
@@ -96,6 +105,14 @@ public class BotService {
         // The defending player owns this phase.
       }
     }
+  }
+
+  private void doMulligan(String roomCode, LiveGameState state, String botId) {
+    List<String> keepInstanceIds = state.getCards().stream()
+        .filter(card -> botId.equals(card.getOwnerId()) && card.getZone() == ZoneName.HAND)
+        .map(CardInstance::getInstanceId)
+        .toList();
+    gameService.processMove(roomCode, new MulliganMove(botId, keepInstanceIds));
   }
 
   private void doMain(String roomCode, LiveGameState state, String botId) {

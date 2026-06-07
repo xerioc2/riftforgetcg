@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CardInstance, RiftCard } from '../types';
 
 export function HandRack({
@@ -8,6 +8,8 @@ export function HandRack({
   onDiscard,
   cardScale,
   onHover,
+  effectiveEnergy,
+  canPlayCards,
   embedded = false,
   maxHeight,
 }: {
@@ -17,20 +19,51 @@ export function HandRack({
   onDiscard: (instanceId: string) => void;
   cardScale: number;
   onHover: (card: RiftCard | null) => void;
+  effectiveEnergy: number;
+  canPlayCards: boolean;
   embedded?: boolean;
   maxHeight?: number;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
-  const cardWidth = Math.round(64 * cardScale);
-  const cardHeight = Math.round(96 * cardScale);
-  const availableWidth = Math.max(240, window.innerWidth - 380);
-  const spacing =
-    instances.length > 1
-      ? Math.min(cardWidth + 4, Math.max(44, (availableWidth - cardWidth) / (instances.length - 1)))
-      : cardWidth + 4;
-  const totalWidth = instances.length > 0 ? spacing * (instances.length - 1) + cardWidth : 0;
+  const [rackWidth, setRackWidth] = useState(900);
+  const rackRef = useRef<HTMLDivElement | null>(null);
+  const panelHeight = maxHeight ?? 172;
+  const actionBarHeight = selected ? 42 : 18;
+
+  useEffect(() => {
+    const rack = rackRef.current;
+    if (!rack) return;
+    const observer = new ResizeObserver(([entry]) => setRackWidth(entry.contentRect.width));
+    observer.observe(rack);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (selected && !instances.some((instance) => instance.instanceId === selected)) setSelected(null);
+  }, [instances, selected]);
+
+  const dimensions = useMemo(() => {
+    const count = Math.max(1, instances.length);
+    const gap = 8;
+    const heightLimit = Math.max(90, panelHeight - actionBarHeight - 20);
+    const naturalHeight = Math.min(300, heightLimit * Math.min(1, cardScale / 1.3));
+    const naturalWidth = naturalHeight * (5 / 7);
+    const widthLimit = Math.max(54, (rackWidth - 32 - gap * (count - 1)) / count);
+    const width = Math.min(naturalWidth, widthLimit);
+    return { width, height: width * (7 / 5), gap };
+  }, [actionBarHeight, cardScale, instances.length, panelHeight, rackWidth]);
+
+  const selectedInstance = instances.find((instance) => instance.instanceId === selected);
+  const selectedCard = selectedInstance ? cards.get(selectedInstance.cardId) : undefined;
+  const selectedCost = selectedCard?.cost ?? 0;
+  const canAffordSelected = selectedCost <= effectiveEnergy;
+  const playSelected = () => {
+    if (!selectedInstance || !canPlayCards || !canAffordSelected) return;
+    onPlay(selectedInstance.instanceId);
+    setSelected(null);
+  };
 
   if (collapsed) {
     return (
@@ -47,35 +80,54 @@ export function HandRack({
 
   return (
     <div
+      ref={rackRef}
       className={`pointer-events-auto relative overflow-hidden border-t border-line bg-panel/95 ${embedded ? 'w-full' : 'absolute bottom-0 left-0 right-[280px]'}`}
-      style={{ height: maxHeight ?? cardHeight + 44, maxHeight }}
+      style={{ height: panelHeight, maxHeight }}
     >
-      <div className="relative mx-auto" style={{ width: Math.min(totalWidth, availableWidth), height: cardHeight + 32 }}>
-        {instances.map((instance, index) => {
+      {selectedCard ? (
+        <div className="absolute inset-x-0 top-0 z-[70] flex h-10 items-center justify-center gap-3 border-b border-line bg-ink/95 px-3 text-sm">
+          <span className="max-w-[260px] truncate font-semibold text-white">{selectedCard.name}</span>
+          <span className={canAffordSelected ? 'text-mint' : 'text-ember'}>
+            Cost {selectedCost} / Spendable {effectiveEnergy}
+          </span>
+          <button className="btn-primary min-h-7 px-3 py-1 text-xs" disabled={!canPlayCards || !canAffordSelected} onClick={playSelected}>
+            Play
+          </button>
+          <button className="btn-secondary min-h-7 px-3 py-1 text-xs" onClick={() => setSelected(null)}>
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <p className="absolute inset-x-0 top-1 text-center text-[11px] text-slate-500">Select a card, then Play. Double-click also plays.</p>
+      )}
+
+      <div
+        className="absolute inset-x-4 bottom-3 flex items-end justify-center"
+        style={{ gap: dimensions.gap, top: actionBarHeight }}
+      >
+        {instances.map((instance) => {
           const card = cards.get(instance.cardId);
           const isHovered = hovered === instance.instanceId;
           const isSelected = selected === instance.instanceId;
           return (
             <button
               key={instance.instanceId}
-              className="absolute bottom-6 overflow-hidden border transition-transform"
+              className="relative shrink-0 overflow-hidden border bg-ink shadow-md transition-[transform,border-color] duration-150"
               style={{
-                width: cardWidth,
-                height: cardHeight,
-                left: index * spacing,
-                transform: isHovered || isSelected ? 'translateY(-28px)' : 'translateY(0)',
+                width: dimensions.width,
+                height: dimensions.height,
+                transform: isHovered || isSelected ? 'translateY(-8px)' : 'translateY(0)',
                 borderColor: isSelected ? '#d8b05d' : '#2b333d',
                 borderWidth: isSelected ? 2 : 1,
-                zIndex: isHovered || isSelected ? 50 : index,
+                zIndex: isHovered || isSelected ? 50 : 1,
                 borderRadius: 4,
-                background: '#101418',
               }}
-              onClick={() => {
-                if (isSelected) {
+              onClick={() => setSelected(isSelected ? null : instance.instanceId)}
+              onDoubleClick={() => {
+                setSelected(instance.instanceId);
+                if (canPlayCards && (card?.cost ?? 0) <= effectiveEnergy) {
                   onPlay(instance.instanceId);
                   setSelected(null);
-                } else {
-                  setSelected(instance.instanceId);
                 }
               }}
               onContextMenu={(event) => {
@@ -91,13 +143,13 @@ export function HandRack({
                 onHover(null);
               }}
             >
-              {card?.imageUrl ? <img className="h-full w-full object-cover" src={card.imageUrl} alt={card.name} /> : <span className="block p-1 text-xs text-slate-300">{card?.name ?? '?'}</span>}
+              {card?.imageUrl ? <img className="h-full w-full object-contain" src={card.imageUrl} alt={card.name} /> : <span className="block p-1 text-xs text-slate-300">{card?.name ?? '?'}</span>}
             </button>
           );
         })}
       </div>
-      {instances.length === 0 ? <div className="py-2 text-center text-xs text-slate-500">Hand empty</div> : null}
-      <button className="icon-btn absolute bottom-1 right-2 min-h-6 text-xs" onClick={() => setCollapsed(true)} aria-label="Collapse hand">
+      {instances.length === 0 ? <div className="py-12 text-center text-xs text-slate-500">Hand empty</div> : null}
+      <button className="icon-btn absolute bottom-1 right-2 z-[80] min-h-6 text-xs" onClick={() => setCollapsed(true)} aria-label="Collapse hand">
         v
       </button>
     </div>

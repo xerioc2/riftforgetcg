@@ -13,6 +13,7 @@ export type MoveRequest =
   | { type: 'DISCARD_RUNE'; playerId: string; runeInstanceId: string }
   | { type: 'DECLARE_ATTACK'; playerId: string; attackerInstanceIds: string[]; targetPlayerId: string }
   | { type: 'DECLARE_BLOCK'; playerId: string; blockerToAttacker: Record<string, string> }
+  | { type: 'MULLIGAN'; playerId: string; keepInstanceIds: string[] }
   | { type: 'PASS_PHASE'; playerId: string }
   | { type: 'ADJUST_SCORE'; playerId: string; targetPlayerId: string; delta: number };
 

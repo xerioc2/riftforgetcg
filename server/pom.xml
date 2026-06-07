@@ -60,7 +60,7 @@
               <buildArgs>
                 <buildArg>--no-fallback</buildArg>
                 <buildArg>-H:+ReportExceptionStackTraces</buildArg>
-                <buildArg>--initialize-at-build-time=org.slf4j</buildArg>
+                <buildArg>--initialize-at-build-time=org.slf4j,com.riftforge.model.Phase,com.riftforge.model.ZoneName</buildArg>
               </buildArgs>
             </configuration>
             <executions>

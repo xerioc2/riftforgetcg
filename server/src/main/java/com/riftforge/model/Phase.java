@@ -1,6 +1,7 @@
 package com.riftforge.model;
 
 public enum Phase {
+  MULLIGAN,
   CHANNEL,
   MAIN,
   ATTACK_DECLARE,

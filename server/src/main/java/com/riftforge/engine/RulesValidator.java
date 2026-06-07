@@ -18,6 +18,14 @@ public class RulesValidator {
   }
 
   public void validate(LiveGameState state, MoveRequest move) {
+    if (state.getCurrentPhase() == Phase.MULLIGAN) {
+      if (move instanceof MulliganMove m) {
+        validateMulligan(state, m);
+        return;
+      }
+      throw new IllegalMoveException("Complete your mulligan before making other moves.");
+    }
+    if (move instanceof MulliganMove) throw new IllegalMoveException("Mulligans are already complete.");
     if (move instanceof PassPhaseMove m) { validatePassPhase(state, m); return; }
     if (move instanceof AdjustScoreMove) return;
     if (move instanceof DeclareBlockMove m) { validateBlock(state, m); return; }
@@ -30,6 +38,21 @@ public class RulesValidator {
     if (move instanceof TapRuneMove m) validateTapRune(state, m);
     if (move instanceof DiscardRuneMove m) validateDiscardRune(state, m);
     if (move instanceof DeclareAttackMove m) validateAttack(state, m);
+  }
+
+  private void validateMulligan(LiveGameState state, MulliganMove move) {
+    boolean isPlayer = state.getPlayers().stream().anyMatch(player -> player.getUserId().equals(move.playerId()));
+    if (!isPlayer) throw new IllegalMoveException("Player is not in this game.");
+    if (state.getMulligansDone().contains(move.playerId())) throw new IllegalMoveException("You already completed your mulligan.");
+    if (move.keepInstanceIds() == null) throw new IllegalMoveException("Keep selection is required.");
+    long distinctIds = move.keepInstanceIds().stream().distinct().count();
+    if (distinctIds != move.keepInstanceIds().size()) throw new IllegalMoveException("Keep selection contains duplicate cards.");
+    for (String instanceId : move.keepInstanceIds()) {
+      CardInstance card = findCard(state, instanceId);
+      if (!move.playerId().equals(card.getOwnerId()) || card.getZone() != ZoneName.HAND) {
+        throw new IllegalMoveException("You can only keep cards from your opening hand.");
+      }
+    }
   }
 
   private void validatePassPhase(LiveGameState state, PassPhaseMove move) {
@@ -119,6 +142,7 @@ public class RulesValidator {
     if (state.getCurrentPhase() != Phase.MAIN) throw new IllegalMoveException("Runes can only be discarded in MAIN.");
     RuneState rune = findRune(state, move.runeInstanceId());
     if (!move.playerId().equals(rune.getOwnerId())) throw new IllegalMoveException("You do not own that rune.");
+    if (rune.isTapped()) throw new IllegalMoveException("Cannot discard an already-tapped rune.");
   }
 
   private void validateAttack(LiveGameState state, DeclareAttackMove move) {

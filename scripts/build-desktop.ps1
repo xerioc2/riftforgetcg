@@ -2,19 +2,32 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-Write-Host "Building native server (this takes 3-8 minutes)..."
+Write-Host "Building server JAR..."
 Push-Location server
 try {
-  mvn -Pnative -DskipTests package
+  mvn -DskipTests package
+  $mavenExit = $LASTEXITCODE
 } finally {
   Pop-Location
 }
+if ($mavenExit -ne 0) { throw "Maven server build failed with exit code $mavenExit." }
 
-$triple = (rustc -vV | Select-String "host:").ToString().Split(":")[1].Trim()
+Write-Host "Creating stripped JRE with jlink..."
+$jreOut = "server/target/server-jre"
+if (Test-Path $jreOut) { Remove-Item -Recurse -Force $jreOut }
+& "$env:JAVA_HOME\bin\jlink.exe" `
+  --add-modules java.base,java.logging,java.xml,java.naming,java.management,java.instrument,jdk.unsupported,java.sql,jdk.crypto.ec,java.security.jgss,java.net.http,jdk.localedata,java.desktop,jdk.zipfs `
+  --output $jreOut `
+  --strip-debug --no-man-pages --no-header-files --compress=2
+if ($LASTEXITCODE -ne 0) { throw "jlink failed with exit code $LASTEXITCODE." }
+
 New-Item -ItemType Directory -Force src-tauri/binaries | Out-Null
-Copy-Item "server/target/riftforge-server.exe" `
-          "src-tauri/binaries/riftforge-server-$triple.exe" -Force
-Write-Host "Sidecar placed at src-tauri/binaries/riftforge-server-$triple.exe"
+if (Test-Path src-tauri/binaries/jre) { Remove-Item -Recurse -Force src-tauri/binaries/jre }
+Copy-Item -Recurse $jreOut src-tauri/binaries/jre
+Copy-Item server/target/riftforge-server-0.1.0.jar `
+          src-tauri/binaries/riftforge-server.jar -Force
+Write-Host "JRE and JAR placed in src-tauri/binaries/"
 
-npm run tauri:build
+npm run tauri:build -- --bundles nsis
+if ($LASTEXITCODE -ne 0) { throw "Tauri build failed with exit code $LASTEXITCODE." }
 Write-Host "Done. Installer is in src-tauri/target/release/bundle/"

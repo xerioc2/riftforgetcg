@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.context.ApplicationEventPublisher;
 import org.slf4j.Logger;
@@ -101,8 +102,10 @@ public class GameService {
   private LiveGameState createInitialState(String roomCode, List<String> playerIds, Map<String, List<String>> decksByPlayer, Map<String, String> playerNames) {
     LiveGameState state = new LiveGameState();
     state.setRoomCode(roomCode);
-    state.setCurrentPhase(Phase.MAIN);
-    state.setActivePlayerId(playerIds.isEmpty() ? null : playerIds.get(0));
+    state.setCurrentPhase(Phase.MULLIGAN);
+    String firstPlayerId = playerIds.isEmpty() ? null
+        : playerIds.get(ThreadLocalRandom.current().nextInt(playerIds.size()));
+    state.setActivePlayerId(firstPlayerId);
     state.setTurnNumber(1);
     state.setUpdatedAt(Instant.now().toString());
     state.setPlayers(playerIds.stream().map(id -> {
@@ -111,6 +114,7 @@ public class GameService {
       player.setName(playerNames.getOrDefault(id, id));
       player.setScore(0);
       player.setAvailableEnergy(0);
+      player.setRunePoolRemaining(10);
       return player;
     }).toList());
 
@@ -155,16 +159,14 @@ public class GameService {
           .findFirst()
           .ifPresent(player -> player.setDeckPool(new ArrayList<>(dealable.subList(Math.min(5, dealable.size()), dealable.size()))));
     }
-    if (!playerIds.isEmpty()) {
-      for (int i = 0; i < 2; i++) {
-        RuneState rune = new RuneState();
-        rune.setInstanceId(UUID.randomUUID().toString());
-        rune.setOwnerId(playerIds.get(0));
-        rune.setTapped(false);
-        rune.setNormalEnergy(1);
-        rune.setPremiumEnergy(2);
-        state.getRunes().add(rune);
-      }
+    if (firstPlayerId != null) {
+      RuneState rune = new RuneState();
+      rune.setInstanceId(UUID.randomUUID().toString());
+      rune.setOwnerId(firstPlayerId);
+      rune.setTapped(false);
+      rune.setNormalEnergy(1);
+      rune.setPremiumEnergy(2);
+      state.getRunes().add(rune);
     }
     return state;
   }

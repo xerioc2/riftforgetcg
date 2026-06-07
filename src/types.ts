@@ -138,6 +138,7 @@ export type LiveGameState = {
   winnerId?: string | null;
   declaredAttackers?: string[];
   blockerToAttacker?: Record<string, string>;
+  mulligansDone?: string[];
 };
 
 export type ChatMessage = {

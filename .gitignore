@@ -3,6 +3,8 @@ dist
 target
 server/target
 src-tauri/binaries/
+src-tauri/binaries/jre/
+src-tauri/binaries/riftforge-server.jar
 src-tauri/target/
 .env
 .env.local

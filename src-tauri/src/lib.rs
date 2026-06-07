@@ -1,24 +1,26 @@
 use std::sync::Mutex;
 use tauri::Manager;
-use tauri_plugin_shell::{process::CommandChild, ShellExt};
 
-pub struct ServerProcess(pub Mutex<Option<CommandChild>>);
+struct ServerProcess(Mutex<Option<std::process::Child>>);
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_shell::init())
         .setup(|app| {
             let handle = app.handle().clone();
 
             #[cfg(not(debug_assertions))]
             {
-                let (_, child) = app
-                    .shell()
-                    .sidecar("riftforge-server")
-                    .expect("riftforge-server sidecar not found - run scripts/build-desktop first")
+                let resource_dir = app.path().resource_dir()
+                    .expect("resource dir not found");
+                let java = resource_dir.join("jre").join("bin")
+                    .join(if cfg!(windows) { "java.exe" } else { "java" });
+                let jar = resource_dir.join("riftforge-server.jar");
+
+                let child = std::process::Command::new(&java)
+                    .args(["-jar", jar.to_str().unwrap()])
                     .spawn()
-                    .expect("failed to spawn riftforge-server");
+                    .expect("failed to start server");
 
                 app.manage(ServerProcess(Mutex::new(Some(child))));
 
@@ -41,7 +43,7 @@ pub fn run() {
             if let tauri::WindowEvent::Destroyed = event {
                 if let Some(state) = window.app_handle().try_state::<ServerProcess>() {
                     if let Ok(mut guard) = state.0.lock() {
-                        if let Some(child) = guard.take() {
+                        if let Some(mut child) = guard.take() {
                             let _ = child.kill();
                         }
                     }

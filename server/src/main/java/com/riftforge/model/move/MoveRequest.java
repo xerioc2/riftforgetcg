@@ -14,9 +14,10 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
   @JsonSubTypes.Type(value = DiscardRuneMove.class, name = "DISCARD_RUNE"),
   @JsonSubTypes.Type(value = DeclareAttackMove.class, name = "DECLARE_ATTACK"),
   @JsonSubTypes.Type(value = DeclareBlockMove.class, name = "DECLARE_BLOCK"),
+  @JsonSubTypes.Type(value = MulliganMove.class, name = "MULLIGAN"),
   @JsonSubTypes.Type(value = PassPhaseMove.class, name = "PASS_PHASE"),
   @JsonSubTypes.Type(value = AdjustScoreMove.class, name = "ADJUST_SCORE")
 })
-public sealed interface MoveRequest permits DealCardMove, TapCardMove, FlipCardMove, PlayCardMove, MoveCardMove, TapRuneMove, DiscardRuneMove, DeclareAttackMove, DeclareBlockMove, PassPhaseMove, AdjustScoreMove {
+public sealed interface MoveRequest permits DealCardMove, TapCardMove, FlipCardMove, PlayCardMove, MoveCardMove, TapRuneMove, DiscardRuneMove, DeclareAttackMove, DeclareBlockMove, MulliganMove, PassPhaseMove, AdjustScoreMove {
   String playerId();
 }

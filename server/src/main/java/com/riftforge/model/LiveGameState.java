@@ -1,7 +1,9 @@
 package com.riftforge.model;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class LiveGameState {
   private String roomCode;
@@ -16,6 +18,7 @@ public class LiveGameState {
   private String winnerId;
   private List<String> declaredAttackers = new ArrayList<>();
   private java.util.Map<String, String> blockerToAttacker = new java.util.HashMap<>();
+  private Set<String> mulligansDone = new HashSet<>();
 
   public record LogEntry(String id, String timestamp, String userId, String text) {}
 
@@ -43,4 +46,6 @@ public class LiveGameState {
   public void setDeclaredAttackers(List<String> declaredAttackers) { this.declaredAttackers = declaredAttackers; }
   public java.util.Map<String, String> getBlockerToAttacker() { return blockerToAttacker; }
   public void setBlockerToAttacker(java.util.Map<String, String> blockerToAttacker) { this.blockerToAttacker = blockerToAttacker; }
+  public Set<String> getMulligansDone() { return mulligansDone; }
+  public void setMulligansDone(Set<String> mulligansDone) { this.mulligansDone = mulligansDone; }
 }

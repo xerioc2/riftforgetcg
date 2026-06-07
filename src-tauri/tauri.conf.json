@@ -35,6 +35,9 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "externalBin": ["binaries/riftforge-server"]
+    "resources": {
+        "binaries/jre/**/*": "jre/",
+      "binaries/riftforge-server.jar": "riftforge-server.jar"
+    }
   }
 }
