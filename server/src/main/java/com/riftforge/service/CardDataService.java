@@ -1,10 +1,13 @@
 package com.riftforge.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.riftforge.model.CardDefinition;
 import com.riftforge.model.CardInstance;
 import jakarta.annotation.PostConstruct;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -13,6 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -20,11 +24,13 @@ import org.springframework.web.client.RestClient;
 public class CardDataService {
   private static final Logger log = LoggerFactory.getLogger(CardDataService.class);
   private static final int PAGE_SIZE = 50;
+  private static final long CACHE_MAX_AGE_MILLIS = 24 * 60 * 60 * 1000L;
 
   private final Map<String, CardDefinition> cards = new ConcurrentHashMap<>();
   private final RestClient restClient = RestClient.create();
   private final ObjectMapper mapper;
   private final String apiUrl;
+  private final Path cacheFile = Path.of(System.getProperty("user.home"), ".riftforge", "cards-cache.json");
 
   public CardDataService(ObjectMapper mapper, @Value("${riftforge.riftcodex-api}") String apiUrl) {
     this.mapper = mapper;
@@ -33,30 +39,80 @@ public class CardDataService {
 
   @PostConstruct
   void load() {
+    if (loadFreshCache()) return;
+
     try {
-      cards.clear();
-      int page = 1;
-      int totalPages;
-      do {
-        JsonNode root = fetchPage(page);
-        JsonNode items = root.isArray() ? root : firstArray(root, "cards", "data", "results", "items");
-        if (items == null || items.isEmpty()) break;
-
-        for (JsonNode item : items) {
-          CardDefinition card = normalize(item);
-          if (card.id() != null && !card.id().isBlank()) cards.put(card.id(), card);
-        }
-        totalPages = root.path("pages").asInt(1);
-        page++;
-      } while (page <= totalPages);
-
-      if (cards.isEmpty()) {
-        throw new IllegalStateException("Riftcodex returned no cards");
-      }
+      fetchFromApi();
       log.info("Loaded {} cards from Riftcodex", cards.size());
+      saveCache();
     } catch (Exception ex) {
       log.warn("Could not load cards from Riftcodex at {}. Using placeholder card.", apiUrl, ex);
       installPlaceholder();
+    }
+  }
+
+  @Scheduled(cron = "0 0 3 * * *")
+  public void refreshCache() {
+    try {
+      fetchFromApi();
+      log.info("Loaded {} cards from Riftcodex", cards.size());
+      saveCache();
+    } catch (Exception ex) {
+      log.warn("Could not refresh cards from Riftcodex at {}. Using placeholder card.", apiUrl, ex);
+      installPlaceholder();
+    }
+  }
+
+  private boolean loadFreshCache() {
+    try {
+      if (!Files.exists(cacheFile)) return false;
+      long age = System.currentTimeMillis() - Files.getLastModifiedTime(cacheFile).toMillis();
+      if (age >= CACHE_MAX_AGE_MILLIS) return false;
+
+      Map<String, CardDefinition> cachedCards = mapper.readValue(
+          cacheFile.toFile(),
+          new TypeReference<Map<String, CardDefinition>>() {});
+      if (cachedCards.isEmpty()) return false;
+
+      cards.clear();
+      cards.putAll(cachedCards);
+      log.info("Loaded {} cards from cache", cards.size());
+      return true;
+    } catch (Exception ex) {
+      log.warn("Could not load card cache from {}. Fetching from Riftcodex.", cacheFile, ex);
+      return false;
+    }
+  }
+
+  private void fetchFromApi() throws Exception {
+    cards.clear();
+    int page = 1;
+    int totalPages;
+    do {
+      JsonNode root = fetchPage(page);
+      JsonNode items = root.isArray() ? root : firstArray(root, "cards", "data", "results", "items");
+      if (items == null || items.isEmpty()) break;
+
+      for (JsonNode item : items) {
+        CardDefinition card = normalize(item);
+        if (card.id() != null && !card.id().isBlank()) cards.put(card.id(), card);
+      }
+      totalPages = root.path("pages").asInt(1);
+      page++;
+    } while (page <= totalPages);
+
+    if (cards.isEmpty()) {
+      throw new IllegalStateException("Riftcodex returned no cards");
+    }
+  }
+
+  private void saveCache() {
+    try {
+      Files.createDirectories(cacheFile.getParent());
+      mapper.writeValue(cacheFile.toFile(), cards);
+      log.info("Saved {} cards to cache", cards.size());
+    } catch (Exception ex) {
+      log.warn("Could not save card cache to {}", cacheFile, ex);
     }
   }
 
