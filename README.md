@@ -9,6 +9,18 @@ dependencies.
 > RiftForge is a fan-made project and is not affiliated with or endorsed by
 > Riot Games. Riftbound and League of Legends are trademarks of Riot Games.
 
+## Playing Right Now
+
+**Download:** grab `RiftForgeInstaller.exe` from the root of this repo and run it.
+The app bundles its own game server — no Java or other installs required.
+
+**Playing solo or vs bot:** just open the app and go. The bundled server starts
+automatically (first launch takes ~30 s while card data loads; faster after that).
+
+**Playing with friends:**
+The game server runs at `https://riftforgetcg-production.up.railway.app` — no setup required.
+Install the app and you're connected automatically. Share a room code to invite friends.
+
 ## Current State
 
 ### Card Database and Deck Builder

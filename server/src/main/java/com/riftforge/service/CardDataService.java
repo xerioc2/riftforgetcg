@@ -76,7 +76,7 @@ public class CardDataService {
 
       cards.clear();
       cards.putAll(cachedCards);
-      log.info("Loaded {} cards from cache", cards.size());
+      log.info("Loaded {} cards from cache (~/.riftforge/cards-cache.json)", cards.size());
       return true;
     } catch (Exception ex) {
       log.warn("Could not load card cache from {}. Fetching from Riftcodex.", cacheFile, ex);
