@@ -13,6 +13,7 @@ import { RuneSprite } from '../components/board/RuneSprite';
 import { computeLayout, type ZoneRect } from '../components/board/BoardLayout';
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { config } from '../lib/env';
+import { cardTargetScope, unsupportedCardReason } from '../lib/cardActions';
 import { useLocalPlayer } from '../lib/playerContext';
 import { play, preload } from '../lib/sfx';
 import { createGameClient, joinGame, sendMove } from '../lib/stompGame';
@@ -25,6 +26,7 @@ const NAV_HEIGHT = 73;
 const SIDEBAR_WIDTH = 280;
 const PHASE_BAR_HEIGHT = 48;
 const DEFAULT_HAND_HEIGHT = 172;
+const CARD_PREVIEW_DELAY_MS = 2000;
 
 function pointZone(x: number, y: number, zones: ZoneRect[], fallback: ZoneName): ZoneName {
   return zones.find((zone) => x >= zone.x && x <= zone.x + zone.width && y >= zone.y && y <= zone.y + zone.height)?.zoneName ?? fallback;
@@ -42,18 +44,6 @@ function autoPlaceInZone(zone: ZoneRect, existingCount: number, cardW = 88, card
     x: zone.x + 12 + col * (cardW + 8) + cardW / 2,
     y: zone.y + 8 + row * (cardH / 2 + 8) + cardH / 4,
   };
-}
-
-function cardNeedsTarget(card: RiftCard | undefined): boolean {
-  if (!card || card.type?.toLowerCase() !== 'spell') return false;
-  const text = (card.rulesText ?? '').toLowerCase();
-  return text.includes('target unit')
-    || text.includes('target champion')
-    || text.includes('target creature')
-    || text.includes('target card')
-    || text.includes('counter target')
-    || text.includes('destroy target')
-    || (text.includes('deal') && text.includes('damage to target'));
 }
 
 export function GameBoard() {
@@ -85,6 +75,7 @@ export function GameBoard() {
   const prevCards = useRef<Map<string, CardInstance>>(new Map());
   const prevState = useRef<LiveGameState | null>(null);
   const pendingAnimations = useRef<Set<string>>(new Set());
+  const previewShowTimer = useRef<number | null>(null);
   const previewClearTimer = useRef<number | null>(null);
   const hasConnectedRef = useRef(false);
 
@@ -135,6 +126,10 @@ export function GameBoard() {
 
   useEffect(() => {
     preload();
+    return () => {
+      if (previewShowTimer.current != null) window.clearTimeout(previewShowTimer.current);
+      if (previewClearTimer.current != null) window.clearTimeout(previewClearTimer.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -248,9 +243,10 @@ export function GameBoard() {
   };
 
   const handleCardHover = (card: RiftCard | null) => {
+    if (previewShowTimer.current != null) window.clearTimeout(previewShowTimer.current);
     if (previewClearTimer.current != null) window.clearTimeout(previewClearTimer.current);
     if (card) {
-      setHoveredCard(card);
+      previewShowTimer.current = window.setTimeout(() => setHoveredCard(card), CARD_PREVIEW_DELAY_MS);
       return;
     }
     previewClearTimer.current = window.setTimeout(() => setHoveredCard(null), 1000);
@@ -271,13 +267,18 @@ export function GameBoard() {
   };
 
   const playFromHand = (instanceId: string) => {
+    const cardDef = cardsById.get(state?.cards.find((c) => c.instanceId === instanceId)?.cardId ?? '');
+    const unsupportedReason = unsupportedCardReason(cardDef);
+    if (unsupportedReason) {
+      addChat({ id: crypto.randomUUID(), userId: player.id, email: null, text: unsupportedReason, sentAt: new Date().toISOString() });
+      return;
+    }
     for (const runeId of pendingRuneTaps) {
       publishMove({ type: 'TAP_RUNE', playerId: player.id, runeInstanceId: runeId });
     }
     setPendingRuneTaps(new Set());
 
-    const cardDef = cardsById.get(state?.cards.find((c) => c.instanceId === instanceId)?.cardId ?? '');
-    if (cardNeedsTarget(cardDef)) {
+    if (cardTargetScope(cardDef)) {
       setPendingSpellInstanceId(instanceId);
       return;
     }
@@ -316,7 +317,10 @@ export function GameBoard() {
     const isOwnBattlefieldCard = instance.ownerId === player.id && sameZone(instance.zone, 'battlefield');
     const isEnemyBattlefieldCard = instance.ownerId !== player.id && sameZone(instance.zone, 'battlefield');
 
-    if (pendingSpellInstanceId && isEnemyBattlefieldCard) {
+    const pendingCard = cardsById.get(state?.cards.find((card) => card.instanceId === pendingSpellInstanceId)?.cardId ?? '');
+    const targetScope = cardTargetScope(pendingCard);
+    const isValidPendingTarget = targetScope === 'friendly' ? isOwnBattlefieldCard : targetScope === 'enemy' ? isEnemyBattlefieldCard : isOwnBattlefieldCard || isEnemyBattlefieldCard;
+    if (pendingSpellInstanceId && isValidPendingTarget) {
       const spellInstance = state?.cards.find((card) => card.instanceId === pendingSpellInstanceId);
       if (!spellInstance) {
         setPendingSpellInstanceId(null);
@@ -546,10 +550,15 @@ export function GameBoard() {
           ) : null}
           {pendingSpellInstanceId
             ? state.cards
-                .filter((card) => card.ownerId !== player.id && sameZone(card.zone, 'battlefield'))
+                .filter((card) => {
+                  if (!sameZone(card.zone, 'battlefield')) return false;
+                  const pendingCardDef = cardsById.get(state.cards.find((candidate) => candidate.instanceId === pendingSpellInstanceId)?.cardId ?? '');
+                  const scope = cardTargetScope(pendingCardDef);
+                  return scope === 'friendly' ? card.ownerId === player.id : scope === 'enemy' ? card.ownerId !== player.id : true;
+                })
                 .map((card) => <Rect key={`target-${card.instanceId}`} x={card.x - 44} y={card.y - 60} width={88} height={120} fill="rgba(229,108,79,0.12)" stroke="#e56c4f" shadowColor="#e56c4f" shadowBlur={20} cornerRadius={6} />)
             : null}
-          {pendingSpellInstanceId ? <Text x={0} y={8} width={size.width} text="Click an enemy unit to target it  ·  Esc to cancel" align="center" fontSize={13} fontStyle="bold" fill="#e56c4f" /> : null}
+          {pendingSpellInstanceId ? <Text x={0} y={8} width={size.width} text="Click a highlighted unit to target it  ·  Esc to cancel" align="center" fontSize={13} fontStyle="bold" fill="#e56c4f" /> : null}
         </Layer>
         <Layer listening={false}>
           {activeBattlefieldCards.map((card) => (

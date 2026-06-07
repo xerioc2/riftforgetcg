@@ -8,6 +8,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -99,8 +101,15 @@ public class GameEngine {
         .orElse(null);
     effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onPlay(card, target, state));
     String cardTypeLower = def.type() != null ? def.type().toLowerCase() : "";
-    if (cardTypeLower.equals("spell") || cardTypeLower.equals("gear")) {
+    applyRulesTextEffect(card, target, state, def);
+    if (cardTypeLower.equals("spell")) {
       card.setZone(ZoneName.DISCARD);
+    } else if (cardDataService.isEquip(def) && target != null) {
+      card.setZone(ZoneName.BASE);
+      card.setAttachedToInstanceId(target.getInstanceId());
+      card.setX(target.getX() + 34);
+      card.setY(target.getY() + 34);
+      card.setTapped(false);
     }
     log(state, move.playerId(), "Played " + def.name());
     return state;
@@ -271,8 +280,37 @@ public class GameEngine {
           CardDefinition def = cardDataService.getCard(c.getCardId());
           if (def != null && def.health() > 0) c.setCurrentHealth(def.health());
           c.setHasSummoningSickness(false);
+          c.setTemporaryPowerModifier(0);
           c.getTempKeywords().clear();
         });
+  }
+
+  private void applyRulesTextEffect(CardInstance card, CardInstance target, LiveGameState state, CardDefinition def) {
+    String text = def.rulesText() == null ? "" : def.rulesText().toLowerCase();
+    if (target != null) {
+      Matcher powerBoost = Pattern.compile("\\+(\\d+)\\s*:rb_might:").matcher(text);
+      if (powerBoost.find()) {
+        target.setTemporaryPowerModifier(target.getTemporaryPowerModifier() + Integer.parseInt(powerBoost.group(1)));
+        if (text.contains("additional +1") && state.getCards().stream()
+            .filter(candidate -> candidate.getOwnerId().equals(target.getOwnerId()) && candidate.getZone() == target.getZone())
+            .count() == 1) {
+          target.setTemporaryPowerModifier(target.getTemporaryPowerModifier() + 1);
+        }
+      }
+      if (text.contains("return a unit") || text.contains("return target unit")) {
+        state.getCards().stream()
+            .filter(candidate -> target.getInstanceId().equals(candidate.getAttachedToInstanceId()))
+            .forEach(candidate -> {
+              candidate.setZone(ZoneName.DISCARD);
+              candidate.setAttachedToInstanceId(null);
+            });
+        target.setZone(ZoneName.HAND);
+        target.setTapped(false);
+        target.setHasSummoningSickness(false);
+      }
+      if (text.contains("ready it")) target.setTapped(false);
+    }
+    if (text.contains("draw 1")) autoDraw(state, card.getOwnerId());
   }
 
   private void autoDraw(LiveGameState state, String playerId) {

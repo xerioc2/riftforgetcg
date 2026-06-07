@@ -94,13 +94,55 @@ public class CardDataService {
     CardDefinition def = getCard(cardId);
     if (def.rulesText() == null) return false;
     String text = def.rulesText().toLowerCase();
-    return text.contains("target unit")
+    return isEquip(def)
+        || text.contains("target unit")
         || text.contains("target champion")
         || text.contains("target creature")
         || text.contains("target card")
+        || text.contains("friendly unit")
+        || text.contains("enemy unit")
+        || text.contains("give a unit")
+        || text.contains("return a unit")
+        || text.contains("move a unit")
         || text.contains("counter target")
         || text.contains("destroy target")
         || text.contains("deal") && text.contains("damage to target");
+  }
+
+  public boolean requiresFriendlyTarget(String cardId) {
+    CardDefinition def = getCard(cardId);
+    String text = def.rulesText() == null ? "" : def.rulesText().toLowerCase();
+    return isEquip(def) || text.contains("friendly unit") || text.contains("unit you control");
+  }
+
+  public boolean requiresEnemyTarget(String cardId) {
+    String text = getCard(cardId).rulesText();
+    return text != null && (text.toLowerCase().contains("enemy unit") || text.toLowerCase().contains("opponent unit"));
+  }
+
+  public boolean isEquip(CardDefinition def) {
+    return "Gear".equalsIgnoreCase(def.type())
+        && def.rulesText() != null
+        && def.rulesText().toLowerCase().contains("[equip]");
+  }
+
+  public boolean isUnsupportedAction(String cardId) {
+    CardDefinition def = getCard(cardId);
+    String text = def.rulesText();
+    if (text == null) return false;
+    String normalized = text.toLowerCase();
+    if ("Gear".equalsIgnoreCase(def.type())) return !isEquip(def);
+    if (!"Spell".equalsIgnoreCase(def.type())) return false;
+    boolean requiresMultipleTargets = normalized.contains("another unit")
+        || normalized.contains("a friendly unit and an enemy unit");
+    boolean supportedEffect = normalized.contains(":rb_might:")
+        || normalized.contains("return a unit")
+        || normalized.contains("ready it")
+        || normalized.contains("draw 1");
+    return normalized.contains("counter a spell")
+        || normalized.contains("counter an enemy spell")
+        || requiresMultipleTargets
+        || !supportedEffect;
   }
 
   private CardDefinition normalize(JsonNode card) {

@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { unsupportedCardReason } from '../lib/cardActions';
 import type { RiftCard } from '../types';
 
 export function CardPreview({ card }: { card: RiftCard | null }) {
   const [position, setPosition] = useState({ x: 12, y: 12 });
 
   if (!card) return null;
+  const unsupportedReason = unsupportedCardReason(card);
 
   return (
     <aside className="pointer-events-auto absolute z-40 w-[min(420px,calc(100vw-24px))] border border-forge/50 bg-panel/98 shadow-glow" style={{ left: position.x, bottom: position.y }}>
@@ -41,6 +43,11 @@ export function CardPreview({ card }: { card: RiftCard | null }) {
             {card.cost !== undefined ? <span className="badge text-forge">{card.cost}</span> : null}
           </div>
           <p className="mt-1 text-xs uppercase text-slate-400">{[card.type, card.rarity].filter(Boolean).join(' / ')}</p>
+          {['Spell', 'Gear'].includes(card.type) ? (
+            <p className={`mt-2 text-xs font-semibold ${unsupportedReason ? 'text-ember' : 'text-mint'}`}>
+              {unsupportedReason ?? 'Effect supported in this build'}
+            </p>
+          ) : null}
           <div className="mt-3 flex flex-wrap gap-1">
             {card.domains.map((domain) => (
               <span className="badge border-mint/30 text-mint" key={domain}>

@@ -155,15 +155,9 @@ public class BotService {
 
       if (pick.isPresent()) {
         CardDefinition pickedDef = cardDataService.getCard(pick.get().getCardId());
-        String targetInstanceId = "Spell".equalsIgnoreCase(pickedDef.type())
-                && cardDataService.requiresBattlefieldTarget(pickedDef.id())
-            ? current.getCards().stream()
-                .filter(candidate -> candidate.getZone() == ZoneName.BATTLEFIELD
-                    && !botId.equals(candidate.getOwnerId()))
-                .map(CardInstance::getInstanceId)
-                .findFirst()
-                .orElse(null)
-            : null;
+        String targetInstanceId = targetForCard(current, pickedDef, botId)
+            .map(CardInstance::getInstanceId)
+            .orElse(null);
         int boardCount = (int) current.getCards().stream()
             .filter(c -> botId.equals(c.getOwnerId()) && (c.getZone() == ZoneName.BASE || c.getZone() == ZoneName.BATTLEFIELD))
             .count();
@@ -177,12 +171,21 @@ public class BotService {
 
   private boolean hasValidSpellTarget(LiveGameState state, CardInstance card, String botId) {
     CardDefinition def = cardDataService.getCard(card.getCardId());
-    boolean isTargetedSpell = "Spell".equalsIgnoreCase(def.type())
-        && cardDataService.requiresBattlefieldTarget(def.id());
-    if (!isTargetedSpell) return true;
-    return state.getCards().stream().anyMatch(candidate ->
-        candidate.getZone() == ZoneName.BATTLEFIELD
-            && !botId.equals(candidate.getOwnerId()));
+    if (cardDataService.isUnsupportedAction(def.id())) return false;
+    if (!cardDataService.requiresBattlefieldTarget(def.id())) return true;
+    return targetForCard(state, def, botId).isPresent();
+  }
+
+  private Optional<CardInstance> targetForCard(LiveGameState state, CardDefinition def, String botId) {
+    if (!cardDataService.requiresBattlefieldTarget(def.id())) return Optional.empty();
+    String text = def.rulesText() == null ? "" : def.rulesText().toLowerCase();
+    boolean preferFriendly = cardDataService.requiresFriendlyTarget(def.id())
+        || text.contains("give a unit")
+        || text.contains("ready it");
+    return state.getCards().stream()
+        .filter(candidate -> candidate.getZone() == ZoneName.BATTLEFIELD)
+        .filter(candidate -> preferFriendly == botId.equals(candidate.getOwnerId()))
+        .findFirst();
   }
 
   private void doAttack(String roomCode, LiveGameState state, String botId) {

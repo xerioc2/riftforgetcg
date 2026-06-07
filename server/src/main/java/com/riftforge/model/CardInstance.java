@@ -15,6 +15,8 @@ public class CardInstance {
   private boolean tapped;
   private boolean faceDown;
   private int currentHealth;
+  private int temporaryPowerModifier;
+  private String attachedToInstanceId;
   private boolean hasSummoningSickness;
   @JsonIgnore private List<String> tempKeywords = new ArrayList<>();
 
@@ -31,6 +33,8 @@ public class CardInstance {
     this.tapped = other.tapped;
     this.faceDown = other.faceDown;
     this.currentHealth = other.currentHealth;
+    this.temporaryPowerModifier = other.temporaryPowerModifier;
+    this.attachedToInstanceId = other.attachedToInstanceId;
     this.hasSummoningSickness = other.hasSummoningSickness;
     this.tempKeywords = new ArrayList<>(other.tempKeywords);
   }
@@ -55,6 +59,10 @@ public class CardInstance {
   public void setFaceDown(boolean faceDown) { this.faceDown = faceDown; }
   public int getCurrentHealth() { return currentHealth; }
   public void setCurrentHealth(int currentHealth) { this.currentHealth = currentHealth; }
+  public int getTemporaryPowerModifier() { return temporaryPowerModifier; }
+  public void setTemporaryPowerModifier(int temporaryPowerModifier) { this.temporaryPowerModifier = temporaryPowerModifier; }
+  public String getAttachedToInstanceId() { return attachedToInstanceId; }
+  public void setAttachedToInstanceId(String attachedToInstanceId) { this.attachedToInstanceId = attachedToInstanceId; }
   public boolean isHasSummoningSickness() { return hasSummoningSickness; }
   public void setHasSummoningSickness(boolean hasSummoningSickness) { this.hasSummoningSickness = hasSummoningSickness; }
   public List<String> getTempKeywords() { return tempKeywords; }

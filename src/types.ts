@@ -98,6 +98,8 @@ export type CardInstance = {
   faceDown: boolean;
   zIndex: number;
   currentHealth?: number;
+  temporaryPowerModifier?: number;
+  attachedToInstanceId?: string | null;
   hasSummoningSickness?: boolean;
 };
 

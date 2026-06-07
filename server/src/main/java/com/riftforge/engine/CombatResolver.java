@@ -30,8 +30,8 @@ public class CombatResolver {
       } else {
         CardInstance blocker = findCard(state, blockerId);
         CardDefinition blockerDef = cardDataService.getCard(blocker.getCardId());
-        int attackerDamage = attackerDef.power();
-        int blockerDamage = blockerDef.power();
+        int attackerDamage = Math.max(0, attackerDef.power() + attacker.getTemporaryPowerModifier());
+        int blockerDamage = Math.max(0, blockerDef.power() + blocker.getTemporaryPowerModifier());
         if (cardDataService.hasKeyword(blocker, "TOUGH")) attackerDamage = Math.max(0, attackerDamage - 1);
         if (cardDataService.hasKeyword(attacker, "TOUGH")) blockerDamage = Math.max(0, blockerDamage - 1);
         int originalBlockerHealth = blocker.getCurrentHealth() <= 0 ? blockerDef.health() : blocker.getCurrentHealth();
@@ -39,6 +39,7 @@ public class CombatResolver {
         attacker.setCurrentHealth((attacker.getCurrentHealth() <= 0 ? attackerDef.health() : attacker.getCurrentHealth()) - blockerDamage);
         if (blocker.getCurrentHealth() <= 0) {
           blocker.setZone(ZoneName.DISCARD);
+          discardAttachments(state, blocker);
           GameEngine.log(state, blocker.getOwnerId(), blockerDef.name() + " was destroyed");
           effects.getEffect(blocker.getCardId()).ifPresent(effect -> effect.onDestroy(blocker, state));
           if (cardDataService.hasKeyword(attacker, "OVERWHELM") && attackerDamage > originalBlockerHealth) {
@@ -52,6 +53,7 @@ public class CombatResolver {
         }
         if (attacker.getCurrentHealth() <= 0) {
           attacker.setZone(ZoneName.DISCARD);
+          discardAttachments(state, attacker);
           GameEngine.log(state, attacker.getOwnerId(), attackerDef.name() + " was destroyed in combat");
           effects.getEffect(attacker.getCardId()).ifPresent(effect -> effect.onDestroy(attacker, state));
         }
@@ -67,5 +69,14 @@ public class CombatResolver {
 
   private PlayerState player(LiveGameState state, String id) {
     return state.getPlayers().stream().filter(p -> p.getUserId().equals(id)).findFirst().orElseThrow();
+  }
+
+  private void discardAttachments(LiveGameState state, CardInstance unit) {
+    state.getCards().stream()
+        .filter(card -> unit.getInstanceId().equals(card.getAttachedToInstanceId()))
+        .forEach(card -> {
+          card.setZone(ZoneName.DISCARD);
+          card.setAttachedToInstanceId(null);
+        });
   }
 }

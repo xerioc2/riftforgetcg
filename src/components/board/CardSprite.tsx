@@ -61,6 +61,7 @@ export function CardSprite({
   const isDamaged = isBoardUnit && maxHealth > 0 && instance.currentHealth != null && currentHealth < maxHealth;
   const healthRatio = maxHealth > 0 ? Math.max(0, Math.min(1, currentHealth / maxHealth)) : 0;
   const isSick = instance.zone.toLowerCase() === 'battlefield' && instance.hasSummoningSickness === true;
+  const effectivePower = (cardDef.power ?? 0) + (instance.temporaryPowerModifier ?? 0);
 
   useEffect(() => {
     if (!groupRef.current) return;
@@ -129,7 +130,7 @@ export function CardSprite({
           {!instance.faceDown && cardDef.power != null && cardDef.health != null ? (
             <>
               <Rect x={CARD_WIDTH - 28} y={CARD_HEIGHT - 18} width={26} height={14} fill="rgba(0,0,0,0.5)" cornerRadius={3} />
-              <Text x={CARD_WIDTH - 28} y={CARD_HEIGHT - 16} width={26} text={`${cardDef.power}/${instance.currentHealth ?? cardDef.health}`} align="center" fontSize={9} fontStyle="bold" fill="#6fd3b6" />
+              <Text x={CARD_WIDTH - 28} y={CARD_HEIGHT - 16} width={26} text={`${effectivePower}/${instance.currentHealth ?? cardDef.health}`} align="center" fontSize={9} fontStyle="bold" fill="#6fd3b6" />
             </>
           ) : null}
         </>
@@ -148,6 +149,7 @@ export function CardSprite({
         </>
       ) : null}
       {selected ? <Rect width={CARD_WIDTH} height={CARD_HEIGHT} stroke="#d8b05d" strokeWidth={3} cornerRadius={4} listening={false} /> : null}
+      {instance.attachedToInstanceId ? <Text x={2} y={CARD_HEIGHT - 14} width={CARD_WIDTH - 4} text="EQUIPPED" align="center" fontSize={7} fontStyle="bold" fill="#d8b05d" listening={false} /> : null}
     </Group>
   );
 }
