@@ -18,9 +18,12 @@ function App() {
   const [player, setPlayer] = useState(initialPlayer);
   const [name, setName] = useState(initialPlayer.name);
   const [serverReady, setServerReady] = useState(false);
+  const [serverCheckStartedAt, setServerCheckStartedAt] = useState(() => Date.now());
+  const [showServerHelp, setShowServerHelp] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    let interval = 0;
     const poll = async () => {
       try {
         const response = await fetch(`${getGameServerUrl()}/api/health`);
@@ -28,6 +31,7 @@ function App() {
         const data = (await response.json()) as { status?: string };
         if (!cancelled && data.status === 'ok') {
           setServerReady(true);
+          setShowServerHelp(false);
           window.clearInterval(interval);
         }
       } catch {
@@ -35,14 +39,27 @@ function App() {
       }
     };
     void poll();
-    const interval = window.setInterval(() => void poll(), 300);
+    interval = window.setInterval(() => void poll(), 300);
+    const helpTimer = window.setTimeout(() => setShowServerHelp(true), 45_000);
     return () => {
       cancelled = true;
       window.clearInterval(interval);
+      window.clearTimeout(helpTimer);
     };
-  }, []);
+  }, [serverCheckStartedAt]);
 
-  if (!serverReady) return <ServerLoader />;
+  if (!serverReady) {
+    return (
+      <ServerLoader
+        serverUrl={getGameServerUrl()}
+        showHelp={showServerHelp}
+        onRetry={() => {
+          setShowServerHelp(false);
+          setServerCheckStartedAt(Date.now());
+        }}
+      />
+    );
+  }
 
   if (!player.name.trim()) {
     return (

@@ -224,8 +224,8 @@ mvn -q -DskipTests compile
 - Live games are stored in server memory and are lost when the server restarts
 - Counter spells, complex multi-target effects, and cards with no implemented
   effect are rejected; full card-effect coverage is still in progress
-- The desktop installer must be built from source; pre-built binaries are not
-  yet distributed (see [BUILDING.md](BUILDING.md))
+- A pre-built Windows installer (`RiftForgeInstaller.exe`) is at the repository
+  root; macOS and Linux require building from source (see [BUILDING.md](BUILDING.md))
 - Chat messages are local only and are not synced to opponents
 
 ## Project Structure

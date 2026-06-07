@@ -37,6 +37,17 @@ Install project dependencies before the first build:
 npm install
 ```
 
+## Pre-built Installer
+
+A Windows installer is available at the repository root:
+
+```text
+RiftForgeInstaller.exe
+```
+
+Download and run it — no prerequisites required. The installer bundles a
+stripped Java 21 runtime; players do not need Java installed.
+
 ## Build An Installer
 
 Windows PowerShell:
