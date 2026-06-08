@@ -324,7 +324,7 @@ public class GameEngine {
   }
 
   private void clearEnergy(LiveGameState state) {
-    player(state, state.getActivePlayerId()).setAvailableEnergy(0);
+    state.getPlayers().forEach(player -> player.setAvailableEnergy(0));
   }
 
   private void grantRunes(LiveGameState state, String playerId, int amount) {
@@ -380,7 +380,11 @@ public class GameEngine {
   private void returnBattlefieldCardsToBase(LiveGameState state, String playerId) {
     state.getCards().stream()
         .filter(card -> card.getZone() == ZoneName.BATTLEFIELD && playerId.equals(card.getOwnerId()))
-        .forEach(card -> card.setZone(ZoneName.BASE));
+        .forEach(card -> {
+          card.setZone(ZoneName.BASE);
+          card.setX(0);
+          card.setY(0);
+        });
   }
 
   private void healBoardCards(LiveGameState state) {
