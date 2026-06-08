@@ -11,7 +11,7 @@ export function ServerLoader({ serverUrl, showHelp, onRetry }: ServerLoaderProps
         <div className="h-10 w-10 animate-spin rounded-full border-2 border-line border-t-forge" />
         <h1 className="mt-5 text-3xl font-semibold text-forge">RiftForge</h1>
         <p className="mt-2 text-sm text-slate-400">Starting server...</p>
-        <p className="mt-1 text-xs text-slate-500">First launch can take up to a minute.</p>
+        <p className="mt-1 text-xs text-slate-500">First launch fetches card data and can take 1–2 minutes.</p>
         {showHelp ? (
           <div className="mt-6 border border-line bg-ink/60 p-4 text-left text-sm text-slate-300">
             <p className="font-semibold text-white">The game server is not responding.</p>

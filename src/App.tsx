@@ -52,7 +52,7 @@ function App() {
     };
     void poll();
     interval = window.setInterval(() => void poll(), 300);
-    const helpTimer = window.setTimeout(() => setShowServerHelp(true), 45_000);
+    const helpTimer = window.setTimeout(() => setShowServerHelp(true), 120_000);
     return () => {
       cancelled = true;
       window.clearInterval(interval);
