@@ -2,13 +2,16 @@ package com.riftforge.model;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class LiveGameState {
   private String roomCode;
   private Phase currentPhase;
   private String activePlayerId;
+  private String firstPlayerId;
   private int turnNumber;
   private List<CardInstance> cards = new ArrayList<>();
   private List<PlayerState> players = new ArrayList<>();
@@ -16,10 +19,10 @@ public class LiveGameState {
   private List<LogEntry> log = new ArrayList<>();
   private String updatedAt;
   private String winnerId;
-  private List<String> declaredAttackers = new ArrayList<>();
-  private java.util.Map<String, String> blockerToAttacker = new java.util.HashMap<>();
   private Set<String> mulligansDone = new HashSet<>();
   private boolean cardPlayedThisTurn;
+  private Map<String, String> battlefieldController = new HashMap<>();
+  private Set<String> scoredBattlefieldsThisTurn = new HashSet<>();
 
   public record LogEntry(String id, String timestamp, String userId, String text) {}
 
@@ -29,6 +32,8 @@ public class LiveGameState {
   public void setCurrentPhase(Phase currentPhase) { this.currentPhase = currentPhase; }
   public String getActivePlayerId() { return activePlayerId; }
   public void setActivePlayerId(String activePlayerId) { this.activePlayerId = activePlayerId; }
+  public String getFirstPlayerId() { return firstPlayerId; }
+  public void setFirstPlayerId(String firstPlayerId) { this.firstPlayerId = firstPlayerId; }
   public int getTurnNumber() { return turnNumber; }
   public void setTurnNumber(int turnNumber) { this.turnNumber = turnNumber; }
   public List<CardInstance> getCards() { return cards; }
@@ -43,12 +48,12 @@ public class LiveGameState {
   public void setUpdatedAt(String updatedAt) { this.updatedAt = updatedAt; }
   public String getWinnerId() { return winnerId; }
   public void setWinnerId(String winnerId) { this.winnerId = winnerId; }
-  public List<String> getDeclaredAttackers() { return declaredAttackers; }
-  public void setDeclaredAttackers(List<String> declaredAttackers) { this.declaredAttackers = declaredAttackers; }
-  public java.util.Map<String, String> getBlockerToAttacker() { return blockerToAttacker; }
-  public void setBlockerToAttacker(java.util.Map<String, String> blockerToAttacker) { this.blockerToAttacker = blockerToAttacker; }
   public Set<String> getMulligansDone() { return mulligansDone; }
   public void setMulligansDone(Set<String> mulligansDone) { this.mulligansDone = mulligansDone; }
   public boolean isCardPlayedThisTurn() { return cardPlayedThisTurn; }
   public void setCardPlayedThisTurn(boolean cardPlayedThisTurn) { this.cardPlayedThisTurn = cardPlayedThisTurn; }
+  public Map<String, String> getBattlefieldController() { return battlefieldController; }
+  public void setBattlefieldController(Map<String, String> battlefieldController) { this.battlefieldController = battlefieldController; }
+  public Set<String> getScoredBattlefieldsThisTurn() { return scoredBattlefieldsThisTurn; }
+  public void setScoredBattlefieldsThisTurn(Set<String> scoredBattlefieldsThisTurn) { this.scoredBattlefieldsThisTurn = scoredBattlefieldsThisTurn; }
 }

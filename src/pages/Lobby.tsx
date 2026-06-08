@@ -67,11 +67,14 @@ export function Lobby() {
     return deck.cards.flatMap((entry) => Array.from({ length: entry.quantity }, () => entry.cardId));
   };
 
+  const selectedDeckCardIds = deckCardIds(myDeckId);
+  const deckIsEmpty = selectedDeckCardIds.length === 0;
+
   const handleReady = async () => {
     await fetch(`${getGameServerUrl()}/api/rooms/${normalizedCode}/ready`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ playerId: player.id, deckCardIds: deckCardIds(myDeckId) }),
+      body: JSON.stringify({ playerId: player.id, deckCardIds: selectedDeckCardIds }),
     });
   };
 
@@ -156,9 +159,10 @@ export function Lobby() {
                   </option>
                 ))}
               </select>
-              <button className="btn-primary mt-3 w-full" onClick={() => void handleReady()} disabled={!myDeckId}>
+              <button className="btn-primary mt-3 w-full" onClick={() => void handleReady()} disabled={!myDeckId || deckIsEmpty}>
                 {me?.ready ? 'Unready' : 'Ready up'}
               </button>
+              {myDeckId && deckIsEmpty ? <p className="mt-2 text-xs text-ember">Deck is empty — add cards in the Deck Builder first.</p> : null}
             </>
           ) : (
             <button className="btn-secondary mt-4 w-full" onClick={() => navigate(`/spectate/${room.code}`)}>

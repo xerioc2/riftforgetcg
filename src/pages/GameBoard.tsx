@@ -1,7 +1,7 @@
 import type React from 'react';
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Client } from '@stomp/stompjs';
-import { Arrow, Layer, Rect, RegularPolygon, Stage, Text } from 'react-konva';
+import { Layer, Rect, RegularPolygon, Stage, Text } from 'react-konva';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CardInspectModal } from '../components/CardInspectModal';
 import { CardPreview } from '../components/CardPreview';
@@ -38,6 +38,10 @@ function sameZone(zone: string, expected: ZoneName | string) {
   return zone.toLowerCase() === expected.toLowerCase();
 }
 
+function hasKeyword(card: RiftCard | undefined, keyword: string) {
+  return card?.keywords?.some((value) => value.toUpperCase().startsWith(keyword.toUpperCase())) ?? false;
+}
+
 function autoPlaceInZone(zone: ZoneRect, existingCount: number, cardW = 88, cardH = 112): { x: number; y: number } {
   const cols = Math.max(1, Math.floor((zone.width - 16) / (cardW + 8)));
   const col = existingCount % cols;
@@ -66,13 +70,11 @@ export function GameBoard() {
   const [hoveredCard, setHoveredCard] = useState<RiftCard | null>(null);
   const [hoveredInstance, setHoveredInstance] = useState<CardInstance | undefined>();
   const [inspectCard, setInspectCard] = useState<CardInstance | null>(null);
-  const [pendingAttackers, setPendingAttackers] = useState<Set<string>>(new Set());
-  const [pendingBlocker, setPendingBlocker] = useState<string | null>(null);
-  const [pendingBlockTarget, setPendingBlockTarget] = useState<string | null>(null);
-  const [pendingBlocks, setPendingBlocks] = useState<Map<string, string>>(new Map());
   const [pendingSpellInstanceId, setPendingSpellInstanceId] = useState<string | null>(null);
+  const [pendingAccelerate, setPendingAccelerate] = useState<{ instanceId: string; card: RiftCard } | null>(null);
+  const [pendingVision, setPendingVision] = useState<{ logId: string; cardId: string; cardName: string } | null>(null);
   const [pendingRuneTaps, setPendingRuneTaps] = useState<Set<string>>(new Set());
-  const [mulliganKeepIds, setMulliganKeepIds] = useState<Set<string>>(new Set());
+  const [mulliganDiscardIds, setMulliganDiscardIds] = useState<Set<string>>(new Set());
   const [handHeight, setHandHeight] = useState(230);
   const [wsConnected, setWsConnected] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -83,6 +85,7 @@ export function GameBoard() {
   const previewShowTimer = useRef<number | null>(null);
   const previewClearTimer = useRef<number | null>(null);
   const hasConnectedRef = useRef(false);
+  const handledVisionLogRef = useRef<string | null>(null);
 
   const roomCode = code?.toUpperCase() ?? '';
   const activeDeck = decks.find((deck) => deck.id === activeDeckId) ?? decks[0];
@@ -105,14 +108,9 @@ export function GameBoard() {
     }
     return positionsByOwner;
   }, [playerIds, zones]);
-  const cardPositions = useMemo(() => new Map((state?.cards ?? []).map((card) => [card.instanceId, { x: card.x, y: card.y }])), [state?.cards]);
   const hand = useMemo(() => (state?.cards ?? []).filter((card) => card.ownerId === player.id && sameZone(card.zone, 'hand')), [player.id, state?.cards]);
   const handInstanceKey = useMemo(() => hand.map((card) => card.instanceId).sort().join(','), [hand]);
   const hasMulliganed = state?.mulligansDone?.includes(player.id) ?? false;
-  const activeBattlefieldCards = useMemo(
-    () => (state?.cards ?? []).filter((card) => state?.currentPhase === 'ATTACK_DECLARE' && card.ownerId === state.activePlayerId && sameZone(card.zone, 'battlefield')),
-    [state?.activePlayerId, state?.cards, state?.currentPhase],
-  );
   const deckCards = useMemo(() => {
     const onBoardCounts = new Map<string, number>();
     for (const instance of state?.cards ?? []) {
@@ -161,7 +159,7 @@ export function GameBoard() {
 
   useEffect(() => {
     if (state?.currentPhase === 'MULLIGAN' && !hasMulliganed) {
-      setMulliganKeepIds(new Set(handInstanceKey ? handInstanceKey.split(',') : []));
+      setMulliganDiscardIds(new Set());
     }
   }, [handInstanceKey, hasMulliganed, state?.currentPhase]);
 
@@ -191,7 +189,19 @@ export function GameBoard() {
       if (incoming.winnerId === player.id && prevState.current?.winnerId !== incoming.winnerId) void play('victory');
       else if (incoming.winnerId && prevState.current?.winnerId !== incoming.winnerId) void play('defeat');
       if (newBattlefieldCards > 0) void play('cardPlay');
-      if (incoming.currentPhase === 'COMBAT_RESOLVE' && prevPhase !== 'COMBAT_RESOLVE') void play('attack');
+      if (incoming.currentPhase === 'COMBAT' && prevPhase !== 'COMBAT') void play('attack');
+      const playerLogs = incoming.log.filter((entry) => entry.userId === player.id);
+      const visionLog = [...playerLogs].reverse().find((entry) => entry.text.startsWith('VISION_PEEK|'));
+      const visionResolution = [...playerLogs].reverse().find((entry) => entry.text.startsWith('VISION_RESOLVED|'));
+      if (visionLog && visionLog.id !== handledVisionLogRef.current) {
+        const visionIndex = incoming.log.findIndex((entry) => entry.id === visionLog.id);
+        const resolutionIndex = visionResolution ? incoming.log.findIndex((entry) => entry.id === visionResolution.id) : -1;
+        if (visionIndex > resolutionIndex) {
+          const [, cardId, cardName] = visionLog.text.split('|');
+          handledVisionLogRef.current = visionLog.id;
+          setPendingVision({ logId: visionLog.id, cardId, cardName });
+        }
+      }
       prevCards.current = new Map(incoming.cards.map((card) => [card.instanceId, card]));
       prevState.current = incoming;
       setState(incoming);
@@ -285,13 +295,13 @@ export function GameBoard() {
       });
   };
 
-  const commitRunesForCard = (cardDef: RiftCard | undefined) => {
+  const commitRunesForCard = (cardDef: RiftCard | undefined, additionalCost = 0) => {
     const playerEnergy = state?.players.find((statePlayer) => statePlayer.userId === player.id)?.availableEnergy ?? 0;
     const selectedRunes = new Set(pendingRuneTaps);
     let plannedEnergy = (state?.runes ?? [])
       .filter((rune) => selectedRunes.has(rune.instanceId))
       .reduce((total, rune) => total + rune.normalEnergy, 0);
-    const neededEnergy = Math.max(0, (cardDef?.cost ?? 0) - playerEnergy);
+    const neededEnergy = Math.max(0, (cardDef?.cost ?? 0) + additionalCost - playerEnergy);
     for (const rune of state?.runes ?? []) {
       if (plannedEnergy >= neededEnergy) break;
       if (rune.ownerId !== player.id || rune.tapped || selectedRunes.has(rune.instanceId)) continue;
@@ -302,6 +312,23 @@ export function GameBoard() {
       publishMove({ type: 'TAP_RUNE', playerId: player.id, runeInstanceId: runeId });
     }
     setPendingRuneTaps(new Set());
+  };
+
+  const playCardToBase = (instanceId: string, cardDef: RiftCard | undefined, accelerate = false) => {
+    commitRunesForCard(cardDef, accelerate ? 1 : 0);
+    const isRune = cardDef?.type?.toLowerCase() === 'rune';
+    if (isRune) {
+      const runeZone = zones.find((zone) => zone.zoneName === 'rune' && zone.ownerId === player.id);
+      const runeCount = state?.runes?.filter((rune) => rune.ownerId === player.id).length ?? 0;
+      const runeX = runeZone ? runeZone.x + 20 + runeCount * Math.max(30, (runeZone.width - 40) / 10) : size.width / 2;
+      const runeY = runeZone ? runeZone.y + runeZone.height / 2 : size.height / 2;
+      publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'RUNE', x: runeX, y: runeY, accelerate });
+      return;
+    }
+    const base = zones.find((zone) => zone.zoneName === 'base' && zone.ownerId === player.id);
+    const baseCount = state?.cards.filter((card) => card.ownerId === player.id && sameZone(card.zone, 'base')).length ?? 0;
+    const position = base ? autoPlaceInZone(base, baseCount) : { x: size.width / 2, y: size.height / 2 };
+    publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'BASE', ...position, accelerate });
   };
 
   const playFromHand = (instanceId: string) => {
@@ -315,20 +342,12 @@ export function GameBoard() {
       setPendingSpellInstanceId(instanceId);
       return;
     }
-    commitRunesForCard(cardDef);
-    const isRune = cardDef?.type?.toLowerCase() === 'rune';
-    if (isRune) {
-      const runeZone = zones.find((zone) => zone.zoneName === 'rune' && zone.ownerId === player.id);
-      const runeCount = state?.runes?.filter((rune) => rune.ownerId === player.id).length ?? 0;
-      const runeX = runeZone ? runeZone.x + 20 + runeCount * Math.max(30, (runeZone.width - 40) / 10) : size.width / 2;
-      const runeY = runeZone ? runeZone.y + runeZone.height / 2 : size.height / 2;
-      publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'RUNE', x: runeX, y: runeY });
+    const canAccelerate = cardDef?.type?.toLowerCase() === 'unit' && hasKeyword(cardDef, 'ACCELERATE') && spendableEnergy >= (cardDef.cost ?? 0) + 1;
+    if (canAccelerate && cardDef) {
+      setPendingAccelerate({ instanceId, card: cardDef });
       return;
     }
-    const base = zones.find((zone) => zone.zoneName === 'base' && zone.ownerId === player.id);
-    const baseCount = state?.cards.filter((card) => card.ownerId === player.id && sameZone(card.zone, 'base')).length ?? 0;
-    const position = base ? autoPlaceInZone(base, baseCount) : { x: size.width / 2, y: size.height / 2 };
-    publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'BASE', ...position });
+    playCardToBase(instanceId, cardDef);
   };
 
   const discardFromHand = (instanceId: string) => {
@@ -339,6 +358,10 @@ export function GameBoard() {
     const instance = state?.cards.find((card) => card.instanceId === instanceId);
     if (!instance) return;
     const zone = pointZone(x, y, zones, instance.zone);
+    if (sameZone(instance.zone, 'base') && sameZone(zone, 'battlefield') && instance.ownerId === player.id) {
+      publishMove({ type: 'MOVE_TO_BATTLEFIELD', playerId: player.id, instanceId });
+      return;
+    }
     const targetZoneRect = zones.find((candidate) => candidate.zoneName === zone && candidate.ownerId === instance.ownerId) ?? zones.find((candidate) => candidate.zoneName === zone);
     const snappedX = targetZoneRect ? Math.max(targetZoneRect.x + 12, Math.min(targetZoneRect.x + targetZoneRect.width - 12, x)) : x;
     const snappedY = targetZoneRect ? Math.max(targetZoneRect.y + 12, Math.min(targetZoneRect.y + targetZoneRect.height - 12, y)) : y;
@@ -350,6 +373,10 @@ export function GameBoard() {
     if (!instance) return;
     const isOwnBattlefieldCard = instance.ownerId === player.id && sameZone(instance.zone, 'battlefield');
     const isEnemyBattlefieldCard = instance.ownerId !== player.id && sameZone(instance.zone, 'battlefield');
+    if (state?.currentPhase === 'MAIN' && isMyTurn && instance.ownerId === player.id && (sameZone(instance.zone, 'base') || sameZone(instance.zone, 'champion') || sameZone(instance.zone, 'legend'))) {
+      publishMove({ type: 'MOVE_TO_BATTLEFIELD', playerId: player.id, instanceId });
+      return;
+    }
 
     const pendingCard = cardsById.get(state?.cards.find((card) => card.instanceId === pendingSpellInstanceId)?.cardId ?? '');
     const targetScope = cardTargetScope(pendingCard);
@@ -375,57 +402,6 @@ export function GameBoard() {
       return;
     }
 
-    if (state?.currentPhase === 'ATTACK_DECLARE' && isMyTurn) {
-      if (!isOwnBattlefieldCard) return;
-      setPendingAttackers((previous) => {
-        const next = new Set(previous);
-        if (next.has(instanceId)) next.delete(instanceId);
-        else next.add(instanceId);
-        return next;
-      });
-      return;
-    }
-
-    if (state?.currentPhase === 'BLOCK_DECLARE' && canPass) {
-      if (isOwnBattlefieldCard) {
-        if (pendingBlocks.has(instanceId)) {
-          setPendingBlocks((previous) => {
-            const next = new Map(previous);
-            next.delete(instanceId);
-            return next;
-          });
-          setPendingBlocker(null);
-          setPendingBlockTarget(null);
-        } else if (!instance.tapped) {
-          if (pendingBlockTarget) {
-            setPendingBlocks((previous) => new Map(previous).set(instanceId, pendingBlockTarget));
-            setPendingBlockTarget(null);
-          } else {
-            setPendingBlocker(instanceId);
-          }
-        }
-        return;
-      }
-      const isDeclaredAttacker = state.declaredAttackers?.includes(instanceId);
-      if (!isEnemyBattlefieldCard || !isDeclaredAttacker) return;
-      if (pendingBlocker) {
-        setPendingBlocks((previous) => new Map(previous).set(pendingBlocker, instanceId));
-        setPendingBlocker(null);
-      } else {
-        const existingBlocker = [...pendingBlocks.entries()].find(([, attackerId]) => attackerId === instanceId)?.[0];
-        if (existingBlocker) {
-          setPendingBlocks((previous) => {
-            const next = new Map(previous);
-            next.delete(existingBlocker);
-            return next;
-          });
-        } else {
-          setPendingBlockTarget(instanceId);
-        }
-      }
-      return;
-    }
-
     setSelectedInstanceId(instanceId);
   };
 
@@ -435,27 +411,12 @@ export function GameBoard() {
     publishMove({ type: 'TAP_RUNE', playerId: player.id, runeInstanceId });
   };
 
-  const clearPendingDeclarations = () => {
-    setPendingAttackers(new Set());
-    setPendingBlocker(null);
-    setPendingBlockTarget(null);
-    setPendingBlocks(new Map());
-  };
-
   const handlePassPhase = () => {
-    const opponentId = state?.players.find((statePlayer) => statePlayer.userId !== player.id)?.userId;
-    if (state?.currentPhase === 'ATTACK_DECLARE' && pendingAttackers.size > 0 && opponentId) {
-      publishMove({ type: 'DECLARE_ATTACK', playerId: player.id, attackerInstanceIds: [...pendingAttackers], targetPlayerId: opponentId });
-    }
-    if (state?.currentPhase === 'BLOCK_DECLARE' && pendingBlocks.size > 0) {
-      publishMove({ type: 'DECLARE_BLOCK', playerId: player.id, blockerToAttacker: Object.fromEntries(pendingBlocks) });
-    }
     publishMove({ type: 'PASS_PHASE', playerId: player.id });
-    clearPendingDeclarations();
   };
 
-  const submitMulligan = (keepInstanceIds: string[]) => {
-    publishMove({ type: 'MULLIGAN', playerId: player.id, keepInstanceIds });
+  const submitMulligan = (discardInstanceIds: string[]) => {
+    publishMove({ type: 'MULLIGAN', playerId: player.id, discardInstanceIds });
   };
 
   const sendChat = (text: string) => {
@@ -493,12 +454,7 @@ export function GameBoard() {
   const ownRuneZone = zones.find((zone) => zone.zoneName === 'rune' && zone.ownerId === player.id);
   const hasTappedOwnRune = (state.runes ?? []).some((rune) => rune.ownerId === player.id && rune.tapped);
   const canUndoRunes = isMyTurn && state.currentPhase === 'MAIN' && !state.cardPlayedThisTurn && hasTappedOwnRune;
-  const canPass =
-    state.currentPhase === 'MULLIGAN'
-      ? false
-      : state.currentPhase === 'BLOCK_DECLARE'
-      ? !isMyTurn && state.players.some((statePlayer) => statePlayer.userId === player.id)
-      : isMyTurn;
+  const canPass = state.currentPhase === 'MULLIGAN' ? false : isMyTurn;
 
   return (
     <main className="relative bg-ink text-slate-100" style={{ height: `calc(100vh - ${NAV_HEIGHT}px)` }} ref={containerRef}>
@@ -508,91 +464,6 @@ export function GameBoard() {
           <ZoneOverlay zones={zones} />
         </Layer>
         <Layer listening={false}>
-          {state.currentPhase === 'ATTACK_DECLARE' && isMyTurn
-            ? state.cards
-                .filter((card) => pendingAttackers.has(card.instanceId))
-                .map((card) => (
-                  <Rect
-                    key={card.instanceId}
-                    x={card.x - 44}
-                    y={card.y - 60}
-                    width={88}
-                    height={120}
-                    fill="rgba(216,176,93,0.18)"
-                    stroke="#d8b05d"
-                    shadowColor="#d8b05d"
-                    shadowBlur={24}
-                    shadowOpacity={1}
-                    cornerRadius={6}
-                  />
-                ))
-            : null}
-          {state.currentPhase === 'BLOCK_DECLARE' && canPass
-            ? state.cards
-                .filter((card) => card.ownerId !== player.id && sameZone(card.zone, 'battlefield') && state.declaredAttackers?.includes(card.instanceId))
-                .map((card) => {
-                  const blocked = [...pendingBlocks.values()].includes(card.instanceId);
-                  const selected = pendingBlockTarget === card.instanceId;
-                  const color = selected ? '#d8b05d' : blocked ? '#6fd3b6' : '#e56c4f';
-                  return (
-                    <Fragment key={card.instanceId}>
-                      <Rect
-                        x={card.x - 44}
-                        y={card.y - 60}
-                        width={88}
-                        height={120}
-                        fill={selected ? 'rgba(216,176,93,0.18)' : blocked ? 'rgba(111,211,182,0.10)' : 'rgba(229,108,79,0.10)'}
-                        stroke={color}
-                        strokeWidth={blocked ? 2 : 1}
-                        shadowColor={color}
-                        shadowBlur={selected ? 24 : blocked ? 0 : 20}
-                        cornerRadius={6}
-                      />
-                      {blocked ? <Text x={card.x + 28} y={card.y - 56} text="✓" fontSize={18} fontStyle="bold" fill="#6fd3b6" /> : null}
-                    </Fragment>
-                  );
-                })
-            : null}
-          {state.currentPhase === 'BLOCK_DECLARE' && canPass && pendingBlocker
-            ? (() => {
-                const card = cardPositions.get(pendingBlocker);
-                return card ? <Rect x={card.x - 44} y={card.y - 60} width={88} height={120} fill="rgba(111,211,182,0.18)" stroke="#6fd3b6" shadowColor="#6fd3b6" shadowBlur={20} cornerRadius={6} /> : null;
-              })()
-            : null}
-          {state.currentPhase === 'BLOCK_DECLARE' && canPass && pendingBlockTarget
-            ? state.cards
-                .filter((card) => card.ownerId === player.id && sameZone(card.zone, 'battlefield') && !card.tapped && !pendingBlocks.has(card.instanceId))
-                .map((card) => <Rect key={card.instanceId} x={card.x - 44} y={card.y - 60} width={88} height={120} fill="rgba(111,211,182,0.08)" stroke="#6fd3b6" shadowColor="#6fd3b6" shadowBlur={10} cornerRadius={6} />)
-            : null}
-          {state.currentPhase === 'BLOCK_DECLARE' && canPass
-            ? [...pendingBlocks.entries()].map(([blockerId, attackerId]) => {
-                const blocker = cardPositions.get(blockerId);
-                const attacker = cardPositions.get(attackerId);
-                if (!blocker || !attacker) return null;
-                return (
-                  <Fragment key={blockerId}>
-                    <Rect x={blocker.x - 44} y={blocker.y - 60} width={88} height={120} stroke="#6fd3b6" strokeWidth={2} cornerRadius={6} />
-                    <Arrow points={[blocker.x, blocker.y, attacker.x, attacker.y]} stroke="#6fd3b6" strokeWidth={2} fill="#6fd3b6" pointerLength={8} pointerWidth={6} />
-                  </Fragment>
-                );
-              })
-            : null}
-          {state.currentPhase === 'ATTACK_DECLARE' && isMyTurn ? <Text x={0} y={8} width={size.width} text="Click your units to attack - Pass when ready" align="center" fontSize={13} fontStyle="bold" fill="#d8b05d" /> : null}
-          {state.currentPhase === 'BLOCK_DECLARE' && canPass ? (
-            <Fragment>
-              <Text
-                x={0}
-                y={8}
-                width={size.width}
-                text={pendingBlockTarget ? 'Now click one of your units to block' : pendingBlocker ? 'Now click the attacker you want to block' : 'Click an attacker to block it, or Pass to let them through'}
-                align="center"
-                fontSize={13}
-                fontStyle="bold"
-                fill="#6fd3b6"
-              />
-              <Text x={0} y={27} width={size.width} text={`${pendingBlocks.size} of ${state.declaredAttackers?.length ?? 0} attacks covered`} align="center" fontSize={11} fill="#94a3b8" />
-            </Fragment>
-          ) : null}
           {pendingSpellInstanceId
             ? state.cards
                 .filter((card) => {
@@ -604,11 +475,6 @@ export function GameBoard() {
                 .map((card) => <Rect key={`target-${card.instanceId}`} x={card.x - 44} y={card.y - 60} width={88} height={120} fill="rgba(229,108,79,0.12)" stroke="#e56c4f" shadowColor="#e56c4f" shadowBlur={20} cornerRadius={6} />)
             : null}
           {pendingSpellInstanceId ? <Text x={0} y={8} width={size.width} text="Click a highlighted unit to target it  ·  Esc to cancel" align="center" fontSize={13} fontStyle="bold" fill="#e56c4f" /> : null}
-        </Layer>
-        <Layer listening={false}>
-          {activeBattlefieldCards.map((card) => (
-            <Rect key={card.instanceId} x={card.x - 44} y={card.y - 60} width={88} height={120} fill="rgba(216,176,93,0.08)" stroke="#d8b05d" shadowColor="#d8b05d" shadowBlur={16} shadowOpacity={0.9} cornerRadius={6} />
-          ))}
         </Layer>
         <Layer>
           {state.players.flatMap((statePlayer) => {
@@ -659,28 +525,14 @@ export function GameBoard() {
                   selected={selectedInstanceId === instance.instanceId}
                   onDragEnd={moveInstance}
                   onClick={handleCardClick}
-                  onDoubleClick={(id) => {
-                    if (!['ATTACK_DECLARE', 'BLOCK_DECLARE'].includes(state.currentPhase ?? '')) publishMove({ type: 'TAP_CARD', playerId: player.id, instanceId: id });
-                  }}
-                  onContextMenu={(id) => {
-                    if (!['ATTACK_DECLARE', 'BLOCK_DECLARE'].includes(state.currentPhase ?? '')) publishMove({ type: 'FLIP_CARD', playerId: player.id, instanceId: id });
-                  }}
+                  onDoubleClick={(id) => publishMove({ type: 'TAP_CARD', playerId: player.id, instanceId: id })}
+                  onContextMenu={(id) => publishMove({ type: 'FLIP_CARD', playerId: player.id, instanceId: id })}
                   animate={pendingAnimations.current.delete(instance.instanceId)}
                   scale={cardScale}
                   onHover={handleCardHover}
                 />
               );
             })}
-        </Layer>
-        <Layer listening={false}>
-          {state.currentPhase === 'BLOCK_DECLARE'
-            ? Object.entries(state.blockerToAttacker ?? {}).map(([blockerId, attackerId]) => {
-                const blocker = cardPositions.get(blockerId);
-                const attacker = cardPositions.get(attackerId);
-                if (!blocker || !attacker) return null;
-                return <Arrow key={blockerId} points={[blocker.x + 40, blocker.y + 56, attacker.x + 40, attacker.y + 56]} stroke="#e56c4f" strokeWidth={2} fill="#e56c4f" pointerLength={8} pointerWidth={6} />;
-              })
-            : null}
         </Layer>
       </Stage>
       {ownRuneZone ? (
@@ -765,6 +617,70 @@ export function GameBoard() {
         />
       </div>
       <CardPreview card={hoveredCard} instance={hoveredInstance} onInspect={setInspectCard} />
+      {pendingAccelerate ? (
+        <div className="absolute inset-0 z-40 grid place-items-center bg-ink/80 px-5">
+          <section className="w-full max-w-sm border border-line bg-panel p-5 shadow-glow">
+            <h2 className="text-lg font-semibold text-forge">Accelerate {pendingAccelerate.card.name}?</h2>
+            <p className="mt-2 text-sm text-slate-300">Pay 1 extra energy to enter ready?</p>
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                className="btn-secondary"
+                onClick={() => {
+                  playCardToBase(pendingAccelerate.instanceId, pendingAccelerate.card);
+                  setPendingAccelerate(null);
+                }}
+              >
+                No
+              </button>
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  playCardToBase(pendingAccelerate.instanceId, pendingAccelerate.card, true);
+                  setPendingAccelerate(null);
+                }}
+              >
+                Yes
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+      {pendingVision ? (
+        <div className="absolute inset-0 z-40 grid place-items-center bg-ink/80 px-5">
+          <section className="w-full max-w-md border border-line bg-panel p-5 shadow-glow">
+            <h2 className="text-lg font-semibold text-forge">Vision</h2>
+            <div className="mt-4 flex items-center gap-4">
+              {cardsById.get(pendingVision.cardId)?.imageUrl ? (
+                <img className="w-32 object-contain" src={cardsById.get(pendingVision.cardId)?.imageUrl} alt={pendingVision.cardName} />
+              ) : null}
+              <div>
+                <p className="text-xs uppercase text-slate-500">Top of your deck</p>
+                <p className="mt-1 font-semibold text-slate-100">{pendingVision.cardName}</p>
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                className="btn-secondary"
+                onClick={() => {
+                  publishMove({ type: 'VISION_CHOICE', playerId: player.id, recycle: true });
+                  setPendingVision(null);
+                }}
+              >
+                Recycle (bottom of deck)
+              </button>
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  publishMove({ type: 'VISION_CHOICE', playerId: player.id, recycle: false });
+                  setPendingVision(null);
+                }}
+              >
+                Keep on top
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
       {state.currentPhase === 'MULLIGAN' ? (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-ink/95 px-6 py-8">
           {hasMulliganed ? (
@@ -774,8 +690,9 @@ export function GameBoard() {
             </section>
           ) : hand.length === 0 ? (
             <section className="border border-line bg-panel px-10 py-8 text-center shadow-glow">
-              <h2 className="text-xl font-semibold text-forge">Preparing opening hand</h2>
-              <p className="mt-2 animate-pulse text-sm text-slate-400">Waiting for cards...</p>
+              <h2 className="text-xl font-semibold text-forge">No cards dealt</h2>
+              <p className="mt-2 text-sm text-slate-400">Your deck may be empty. Add cards in the Deck Builder and start a new game.</p>
+              <button type="button" className="btn-secondary mt-4" onClick={() => navigate('/')}>Back to Home</button>
             </section>
           ) : (
             <section className="w-full max-w-5xl border border-line bg-panel p-6 shadow-glow">
@@ -785,35 +702,35 @@ export function GameBoard() {
                   <p className="mt-1 text-sm text-slate-400">Checked cards stay. Unchecked cards are shuffled back and replaced.</p>
                 </div>
                 <span className="text-sm font-semibold text-slate-300">
-                  Keep {mulliganKeepIds.size} / Discard {hand.length - mulliganKeepIds.size}
+                  Keep {hand.length - mulliganDiscardIds.size} / Discard {mulliganDiscardIds.size}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
                 {hand.map((instance) => {
                   const card = cardsById.get(instance.cardId);
-                  const checked = mulliganKeepIds.has(instance.instanceId);
+                  const checked = mulliganDiscardIds.has(instance.instanceId);
                   return (
                     <button
                       type="button"
                       key={instance.instanceId}
                       aria-pressed={checked}
                       className={`cursor-pointer border p-2 text-left transition-all ${
-                        checked ? 'border-forge bg-forge/10 opacity-100' : 'border-line bg-ink/60 opacity-60'
+                        checked ? 'border-ember bg-ember/10 opacity-70' : 'border-forge bg-forge/10 opacity-100'
                       }`}
                       onMouseEnter={() => handleCardHover(card ?? null, instance)}
                       onMouseLeave={() => handleCardHover(null)}
                       onClick={() =>
-                        setMulliganKeepIds((previous) => {
+                        setMulliganDiscardIds((previous) => {
                           const next = new Set(previous);
                           if (next.has(instance.instanceId)) next.delete(instance.instanceId);
-                          else next.add(instance.instanceId);
+                          else if (next.size < 2) next.add(instance.instanceId);
                           return next;
                         })
                       }
                     >
                       {card?.imageUrl ? <img className="aspect-[5/7] w-full object-contain" src={card.imageUrl} alt={card.name} /> : null}
-                      <span className={`mt-2 block truncate text-sm font-semibold ${checked ? 'text-forge' : 'text-slate-300'}`}>
-                        {checked ? 'Keep: ' : 'Discard: '}
+                      <span className={`mt-2 block truncate text-sm font-semibold ${checked ? 'text-ember' : 'text-forge'}`}>
+                        {checked ? 'Mulligan: ' : 'Keep: '}
                         {card?.name ?? 'Unknown card'}
                       </span>
                     </button>
@@ -821,10 +738,10 @@ export function GameBoard() {
                 })}
               </div>
               <div className="mt-6 flex justify-end gap-3">
-                <button className="btn-secondary" onClick={() => submitMulligan([...mulliganKeepIds])}>
-                  Keep Selected
+                <button className="btn-secondary" onClick={() => submitMulligan([...mulliganDiscardIds])}>
+                  Mulligan Selected
                 </button>
-                <button className="btn-primary" onClick={() => submitMulligan(hand.map((card) => card.instanceId))}>
+                <button className="btn-primary" onClick={() => submitMulligan([])}>
                   Keep All
                 </button>
               </div>

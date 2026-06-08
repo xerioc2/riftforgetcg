@@ -1,10 +1,11 @@
 const PHASE_LABELS: Record<string, string> = {
   MULLIGAN: 'Mulligan',
+  AWAKEN: 'Awaken',
+  BEGINNING: 'Beginning',
   CHANNEL: 'Channel',
+  DRAW: 'Draw',
   MAIN: 'Main Phase',
-  ATTACK_DECLARE: 'Declare Attackers',
-  BLOCK_DECLARE: 'Declare Blockers',
-  COMBAT_RESOLVE: 'Combat',
+  COMBAT: 'Combat',
   END: 'End Phase',
 };
 
@@ -31,7 +32,7 @@ export function PhaseBar({ currentPhase, isMyTurn, canPass, opponentName, onPass
       </div>
       <div className="ml-auto flex items-center gap-3">
         <span className={`whitespace-nowrap text-xs font-semibold ${isMyTurn ? 'text-forge' : 'text-slate-300'}`}>
-          {currentPhase === 'BLOCK_DECLARE' && canPass ? 'Your response' : isMyTurn ? 'Your turn' : `${opponentName}'s turn`}
+          {isMyTurn ? 'Your turn' : `${opponentName}'s turn`}
         </span>
         <button className="btn-primary min-h-7 px-4 py-1 text-xs disabled:opacity-40" disabled={!canPass} onClick={onPassPhase}>
           Pass

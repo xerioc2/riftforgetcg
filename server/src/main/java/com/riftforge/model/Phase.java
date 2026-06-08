@@ -2,10 +2,11 @@ package com.riftforge.model;
 
 public enum Phase {
   MULLIGAN,
+  AWAKEN,
+  BEGINNING,
   CHANNEL,
+  DRAW,
   MAIN,
-  ATTACK_DECLARE,
-  BLOCK_DECLARE,
-  COMBAT_RESOLVE,
+  COMBAT,
   END
 }

@@ -38,7 +38,7 @@ export const useDeckStore = create<DeckStore>((set) => {
 
   return {
     decks,
-    activeDeckId: decks[0]?.id,
+    activeDeckId: undefined,
     setActiveDeck: (id) => set({ activeDeckId: id }),
     setDecks: (nextDecks) =>
       set(() => {

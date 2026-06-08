@@ -106,6 +106,7 @@ public class GameService {
     String firstPlayerId = playerIds.isEmpty() ? null
         : playerIds.get(ThreadLocalRandom.current().nextInt(playerIds.size()));
     state.setActivePlayerId(firstPlayerId);
+    state.setFirstPlayerId(firstPlayerId);
     state.setTurnNumber(1);
     state.setUpdatedAt(Instant.now().toString());
     state.setPlayers(playerIds.stream().map(id -> {
@@ -138,7 +139,7 @@ public class GameService {
         state.getCards().add(createZoneCard(legends.get(0), playerId, ZoneName.LEGEND, ++zIndex));
       }
       Collections.shuffle(dealable);
-      List<String> hand = dealable.stream().limit(5).toList();
+      List<String> hand = dealable.stream().limit(4).toList();
       for (int i = 0; i < hand.size(); i++) {
         CardDefinition def = cardDataService.getCard(hand.get(i));
         CardInstance instance = new CardInstance();
@@ -157,16 +158,7 @@ public class GameService {
       state.getPlayers().stream()
           .filter(player -> player.getUserId().equals(playerId))
           .findFirst()
-          .ifPresent(player -> player.setDeckPool(new ArrayList<>(dealable.subList(Math.min(5, dealable.size()), dealable.size()))));
-    }
-    if (firstPlayerId != null) {
-      RuneState rune = new RuneState();
-      rune.setInstanceId(UUID.randomUUID().toString());
-      rune.setOwnerId(firstPlayerId);
-      rune.setTapped(false);
-      rune.setNormalEnergy(1);
-      rune.setPremiumEnergy(2);
-      state.getRunes().add(rune);
+          .ifPresent(player -> player.setDeckPool(new ArrayList<>(dealable.subList(Math.min(4, dealable.size()), dealable.size()))));
     }
     return state;
   }

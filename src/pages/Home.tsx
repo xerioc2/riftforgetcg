@@ -10,7 +10,7 @@ export function Home() {
   const player = useLocalPlayer();
   const navigate = useNavigate();
   const { decks, activeDeckId, setActiveDeck } = useDeckStore();
-  const activeDeck = decks.find((deck) => deck.id === activeDeckId) ?? decks[0];
+  const activeDeck = decks.find((deck) => deck.id === activeDeckId);
   const [joinCode, setJoinCode] = useState('');
   const [message, setMessage] = useState('');
   const [withBot, setWithBot] = useState(false);
@@ -24,6 +24,10 @@ export function Home() {
   const searchingRef = useRef(false);
 
   const handleCreate = async () => {
+    if (!activeDeck || activeDeck.cards.length === 0) {
+      setMessage('Your deck is empty — add cards in the Deck Builder first.');
+      return;
+    }
     setMessage('');
     const res = await fetch(`${getGameServerUrl()}/api/rooms`, {
       method: 'POST',
@@ -85,7 +89,7 @@ export function Home() {
   const handleFindMatch = async () => {
     if (searchingRef.current) return;
     if (!activeDeck || activeDeck.cards.length === 0) {
-      setMessage('Select a deck in the deck builder first.');
+      setMessage('Your deck is empty — add cards in the Deck Builder first.');
       return;
     }
 
@@ -178,6 +182,7 @@ export function Home() {
               <label className="mt-4 block text-xs text-slate-500">
                 Playing as:
                 <select className="input mt-1 w-full text-sm" value={activeDeck?.id ?? ''} onChange={(event) => setActiveDeck(event.target.value)}>
+                  <option value="">Select a deck</option>
                   {decks.map((deck) => (
                     <option key={deck.id} value={deck.id}>
                       {deck.name}
@@ -235,6 +240,7 @@ export function Home() {
                 <label className="mt-4 block text-xs text-slate-500">
                   Playing as:
                   <select className="input mt-1 w-full text-sm" value={activeDeck?.id ?? ''} onChange={(event) => setActiveDeck(event.target.value)}>
+                    <option value="">Select a deck</option>
                     {decks.map((deck) => (
                       <option key={deck.id} value={deck.id}>
                         {deck.name}

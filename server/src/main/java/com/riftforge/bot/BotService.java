@@ -9,20 +9,15 @@ import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
 import com.riftforge.model.RuneState;
 import com.riftforge.model.ZoneName;
-import com.riftforge.model.move.DeclareAttackMove;
-import com.riftforge.model.move.DeclareBlockMove;
 import com.riftforge.model.move.PassPhaseMove;
 import com.riftforge.model.move.PlayCardMove;
-import com.riftforge.model.move.MoveCardMove;
+import com.riftforge.model.move.MoveToBattlefieldMove;
 import com.riftforge.model.move.MulliganMove;
 import com.riftforge.model.move.TapRuneMove;
 import com.riftforge.service.CardDataService;
 import com.riftforge.service.GameService;
-import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -59,13 +54,6 @@ public class BotService {
           .filter(id -> !state.getMulligansDone().contains(id))
           .findFirst()
           .orElse(null);
-    } else if (state.getCurrentPhase() == Phase.BLOCK_DECLARE) {
-      actingBotId = state.getPlayers().stream()
-          .map(PlayerState::getUserId)
-          .filter(ALL_BOT_IDS::contains)
-          .filter(id -> !id.equals(state.getActivePlayerId()))
-          .findFirst()
-          .orElse(null);
     } else if (ALL_BOT_IDS.contains(state.getActivePlayerId())) {
       actingBotId = state.getActivePlayerId();
     }
@@ -76,15 +64,12 @@ public class BotService {
         .allMatch(p -> ALL_BOT_IDS.contains(p.getUserId()));
     long delay = isBotVsBot ? 350L : 700L;
     final String botId = actingBotId;
-    final boolean isDefender = state.getCurrentPhase() == Phase.BLOCK_DECLARE && !botId.equals(state.getActivePlayerId());
-
     CompletableFuture.runAsync(() -> {
       try {
         Thread.sleep(delay);
         LiveGameState current = gameService.currentState(event.getRoomCode());
         if (current == null || current.getWinnerId() != null) return;
-        if (isDefender) doBlock(event.getRoomCode(), current, botId);
-        else doActiveTurn(event.getRoomCode(), current, botId);
+        doActiveTurn(event.getRoomCode(), current, botId);
       } catch (Exception ignored) {
         // A bot failure must never interrupt the game server.
       } finally {
@@ -98,21 +83,13 @@ public class BotService {
   private void doActiveTurn(String roomCode, LiveGameState state, String botId) {
     switch (state.getCurrentPhase()) {
       case MULLIGAN -> doMulligan(roomCode, state, botId);
-      case CHANNEL, COMBAT_RESOLVE, END -> gameService.processMove(roomCode, new PassPhaseMove(botId));
+      case AWAKEN, BEGINNING, CHANNEL, DRAW, COMBAT, END -> gameService.processMove(roomCode, new PassPhaseMove(botId));
       case MAIN -> doMain(roomCode, state, botId);
-      case ATTACK_DECLARE -> doAttack(roomCode, state, botId);
-      case BLOCK_DECLARE -> {
-        // The defending player owns this phase.
-      }
     }
   }
 
   private void doMulligan(String roomCode, LiveGameState state, String botId) {
-    List<String> keepInstanceIds = state.getCards().stream()
-        .filter(card -> botId.equals(card.getOwnerId()) && card.getZone() == ZoneName.HAND)
-        .map(CardInstance::getInstanceId)
-        .toList();
-    gameService.processMove(roomCode, new MulliganMove(botId, keepInstanceIds));
+    gameService.processMove(roomCode, new MulliganMove(botId, List.of()));
   }
 
   private void doMain(String roomCode, LiveGameState state, String botId) {
@@ -123,7 +100,7 @@ public class BotService {
       int battlefieldCount = (int) state.getCards().stream()
           .filter(c -> botId.equals(c.getOwnerId()) && c.getZone() == ZoneName.BATTLEFIELD)
           .count();
-      gameService.processMove(roomCode, new MoveCardMove(botId, champion.getInstanceId(), ZoneName.BATTLEFIELD, 60 + battlefieldCount * 100, 220));
+      gameService.processMove(roomCode, new MoveToBattlefieldMove(botId, champion.getInstanceId()));
       sleepBriefly(200);
       state = gameService.currentState(roomCode);
     }
@@ -135,7 +112,7 @@ public class BotService {
       int battlefieldCount = (int) state.getCards().stream()
           .filter(c -> botId.equals(c.getOwnerId()) && c.getZone() == ZoneName.BATTLEFIELD)
           .count();
-      gameService.processMove(roomCode, new MoveCardMove(botId, card.getInstanceId(), ZoneName.BATTLEFIELD, 60 + battlefieldCount * 100, 220));
+      gameService.processMove(roomCode, new MoveToBattlefieldMove(botId, card.getInstanceId()));
       sleepBriefly(200);
       state = gameService.currentState(roomCode);
     }
@@ -203,46 +180,6 @@ public class BotService {
         .filter(candidate -> candidate.getZone() == ZoneName.BATTLEFIELD)
         .filter(candidate -> preferFriendly == botId.equals(candidate.getOwnerId()))
         .findFirst();
-  }
-
-  private void doAttack(String roomCode, LiveGameState state, String botId) {
-    List<String> attackers = state.getCards().stream()
-        .filter(c -> botId.equals(c.getOwnerId()) && c.getZone() == ZoneName.BATTLEFIELD && !c.isTapped() && !c.isHasSummoningSickness())
-        .map(CardInstance::getInstanceId)
-        .toList();
-    String targetPlayerId = state.getPlayers().stream()
-        .filter(p -> !botId.equals(p.getUserId()))
-        .map(PlayerState::getUserId)
-        .findFirst()
-        .orElse(null);
-
-    if (!attackers.isEmpty() && targetPlayerId != null) {
-      gameService.processMove(roomCode, new DeclareAttackMove(botId, attackers, targetPlayerId));
-    }
-    gameService.processMove(roomCode, new PassPhaseMove(botId));
-  }
-
-  private void doBlock(String roomCode, LiveGameState state, String botId) {
-    List<CardInstance> available = new ArrayList<>(state.getCards().stream()
-        .filter(c -> botId.equals(c.getOwnerId()) && c.getZone() == ZoneName.BATTLEFIELD && !c.isTapped())
-        .toList());
-    Map<String, String> blockMap = new HashMap<>();
-    for (String attackerId : state.getDeclaredAttackers()) {
-      if (available.isEmpty()) break;
-      CardDefinition attackerDef = state.getCards().stream()
-          .filter(c -> c.getInstanceId().equals(attackerId))
-          .findFirst()
-          .map(c -> cardDataService.getCard(c.getCardId()))
-          .orElse(cardDataService.getCard(""));
-      Optional<CardInstance> survivor = available.stream()
-          .filter(b -> (b.getCurrentHealth() > 0 ? b.getCurrentHealth() : cardDataService.getCard(b.getCardId()).health()) > attackerDef.power())
-          .findFirst();
-      CardInstance chosen = survivor.orElse(available.get(0));
-      blockMap.put(chosen.getInstanceId(), attackerId);
-      available.remove(chosen);
-    }
-    gameService.processMove(roomCode, new DeclareBlockMove(botId, blockMap));
-    gameService.processMove(roomCode, new PassPhaseMove(botId));
   }
 
   private int botEnergy(LiveGameState state, String botId) {

@@ -28,8 +28,8 @@ public class RiftforgeServerApplication {
           MoveRequest.class,
           DealCardMove.class, TapCardMove.class, FlipCardMove.class,
           PlayCardMove.class, MoveCardMove.class, TapRuneMove.class,
-          DiscardRuneMove.class, DeclareAttackMove.class, DeclareBlockMove.class,
-          MulliganMove.class, UndoRunesMove.class, PassPhaseMove.class, AdjustScoreMove.class,
+          DiscardRuneMove.class, MoveToBattlefieldMove.class,
+          MulliganMove.class, UndoRunesMove.class, PassPhaseMove.class, AdjustScoreMove.class, VisionChoiceMove.class,
           MatchRecord.class, MatchRecord.PlayerSummary.class
       }) {
         hints.reflection().registerType(type, all);

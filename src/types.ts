@@ -131,6 +131,7 @@ export type LiveGameState = {
   roomCode: string;
   currentPhase?: string;
   activePlayerId?: string;
+  firstPlayerId?: string;
   turnNumber?: number;
   cards: CardInstance[];
   players: PlayerGameState[];
@@ -138,10 +139,10 @@ export type LiveGameState = {
   log: LogEntry[];
   updatedAt: string;
   winnerId?: string | null;
-  declaredAttackers?: string[];
-  blockerToAttacker?: Record<string, string>;
   mulligansDone?: string[];
   cardPlayedThisTurn?: boolean;
+  battlefieldController?: Record<string, string>;
+  scoredBattlefieldsThisTurn?: string[];
 };
 
 export type ChatMessage = {

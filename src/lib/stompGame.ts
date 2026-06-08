@@ -7,16 +7,16 @@ export type MoveRequest =
   | { type: 'DEAL_CARD'; playerId: string; cardId: string; targetZone: string; x: number; y: number }
   | { type: 'TAP_CARD'; playerId: string; instanceId: string }
   | { type: 'FLIP_CARD'; playerId: string; instanceId: string }
-  | { type: 'PLAY_CARD'; playerId: string; instanceId: string; targetZone: string; x: number; y: number; targetInstanceId?: string }
+  | { type: 'PLAY_CARD'; playerId: string; instanceId: string; targetZone: string; x: number; y: number; targetInstanceId?: string; accelerate?: boolean }
   | { type: 'MOVE_CARD'; playerId: string; instanceId: string; targetZone: string; x: number; y: number }
+  | { type: 'MOVE_TO_BATTLEFIELD'; playerId: string; instanceId: string }
   | { type: 'TAP_RUNE'; playerId: string; runeInstanceId: string }
   | { type: 'DISCARD_RUNE'; playerId: string; runeInstanceId: string }
-  | { type: 'DECLARE_ATTACK'; playerId: string; attackerInstanceIds: string[]; targetPlayerId: string }
-  | { type: 'DECLARE_BLOCK'; playerId: string; blockerToAttacker: Record<string, string> }
-  | { type: 'MULLIGAN'; playerId: string; keepInstanceIds: string[] }
+  | { type: 'MULLIGAN'; playerId: string; discardInstanceIds: string[] }
   | { type: 'UNDO_RUNES'; playerId: string }
   | { type: 'PASS_PHASE'; playerId: string }
-  | { type: 'ADJUST_SCORE'; playerId: string; targetPlayerId: string; delta: number };
+  | { type: 'ADJUST_SCORE'; playerId: string; targetPlayerId: string; delta: number }
+  | { type: 'VISION_CHOICE'; playerId: string; recycle: boolean };
 
 export type ServerMessage = { type: 'STATE_UPDATE'; state: LiveGameState } | { type: 'ERROR'; message: string; playerId: string };
 export type MatchNotification = { roomCode: string };

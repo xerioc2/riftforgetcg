@@ -1,5 +1,6 @@
 package com.riftforge.engine;
 
+import com.riftforge.model.CardDefinition;
 import com.riftforge.model.CardInstance;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.Phase;
@@ -19,174 +20,145 @@ public class RulesValidator {
 
   public void validate(LiveGameState state, MoveRequest move) {
     if (state.getCurrentPhase() == Phase.MULLIGAN) {
-      if (move instanceof MulliganMove m) {
-        validateMulligan(state, m);
+      if (move instanceof MulliganMove mulligan) {
+        validateMulligan(state, mulligan);
         return;
       }
       throw new IllegalMoveException("Complete your mulligan before making other moves.");
     }
     if (move instanceof MulliganMove) throw new IllegalMoveException("Mulligans are already complete.");
-    if (move instanceof PassPhaseMove m) { validatePassPhase(state, m); return; }
-    if (move instanceof AdjustScoreMove) return;
-    if (move instanceof DeclareBlockMove m) { validateBlock(state, m); return; }
-    if (move instanceof DealCardMove) return;
-    if (move instanceof TapCardMove m) { validateTapCard(state, m); return; }
-    if (move instanceof FlipCardMove m) { validateFlipCard(state, m); return; }
-    if (move instanceof UndoRunesMove m) { validateUndoRunes(state, m); return; }
+    if (move instanceof AdjustScoreMove || move instanceof DealCardMove) return;
+    if (move instanceof TapCardMove tap) { validateOwnedCard(state, tap.playerId(), tap.instanceId()); return; }
+    if (move instanceof FlipCardMove flip) { validateOwnedCard(state, flip.playerId(), flip.instanceId()); return; }
     if (!move.playerId().equals(state.getActivePlayerId())) throw new IllegalMoveException("Not your turn.");
-    if (move instanceof PlayCardMove m) validatePlayCard(state, m);
-    if (move instanceof MoveCardMove m) validateMoveCard(state, m);
-    if (move instanceof TapRuneMove m) validateTapRune(state, m);
-    if (move instanceof DiscardRuneMove m) validateDiscardRune(state, m);
-    if (move instanceof DeclareAttackMove m) validateAttack(state, m);
-  }
-
-  private void validateUndoRunes(LiveGameState state, UndoRunesMove move) {
-    if (state.getCurrentPhase() != Phase.MAIN) throw new IllegalMoveException("Can only undo runes in MAIN.");
-    if (!move.playerId().equals(state.getActivePlayerId())) throw new IllegalMoveException("Not your turn.");
-    if (state.isCardPlayedThisTurn()) throw new IllegalMoveException("Cannot undo after playing a card.");
-    boolean hasTappedRune = state.getRunes().stream()
-        .anyMatch(rune -> rune.getOwnerId().equals(move.playerId()) && rune.isTapped());
-    if (!hasTappedRune) throw new IllegalMoveException("No tapped runes to undo.");
+    if (move instanceof VisionChoiceMove vision) { validateVisionChoice(state, vision); return; }
+    if (move instanceof PassPhaseMove) return;
+    if (move instanceof UndoRunesMove undo) { validateUndoRunes(state, undo); return; }
+    if (move instanceof PlayCardMove play) { validatePlayCard(state, play); return; }
+    if (move instanceof MoveToBattlefieldMove deploy) { validateMoveToBattlefield(state, deploy); return; }
+    if (move instanceof MoveCardMove moveCard) { validateMoveCard(state, moveCard); return; }
+    if (move instanceof TapRuneMove tapRune) { validateTapRune(state, tapRune); return; }
+    if (move instanceof DiscardRuneMove discardRune) validateDiscardRune(state, discardRune);
   }
 
   private void validateMulligan(LiveGameState state, MulliganMove move) {
-    boolean isPlayer = state.getPlayers().stream().anyMatch(player -> player.getUserId().equals(move.playerId()));
-    if (!isPlayer) throw new IllegalMoveException("Player is not in this game.");
+    if (state.getPlayers().stream().noneMatch(player -> player.getUserId().equals(move.playerId()))) {
+      throw new IllegalMoveException("Player is not in this game.");
+    }
     if (state.getMulligansDone().contains(move.playerId())) throw new IllegalMoveException("You already completed your mulligan.");
-    if (move.keepInstanceIds() == null) throw new IllegalMoveException("Keep selection is required.");
-    long distinctIds = move.keepInstanceIds().stream().distinct().count();
-    if (distinctIds != move.keepInstanceIds().size()) throw new IllegalMoveException("Keep selection contains duplicate cards.");
-    for (String instanceId : move.keepInstanceIds()) {
+    if (move.discardInstanceIds() == null) throw new IllegalMoveException("Mulligan selection is required.");
+    if (move.discardInstanceIds().size() > 2) throw new IllegalMoveException("You may mulligan up to 2 cards.");
+    if (move.discardInstanceIds().stream().distinct().count() != move.discardInstanceIds().size()) {
+      throw new IllegalMoveException("Mulligan selection contains duplicate cards.");
+    }
+    for (String instanceId : move.discardInstanceIds()) {
       CardInstance card = findCard(state, instanceId);
       if (!move.playerId().equals(card.getOwnerId()) || card.getZone() != ZoneName.HAND) {
-        throw new IllegalMoveException("You can only keep cards from your opening hand.");
+        throw new IllegalMoveException("You can only mulligan cards from your opening hand.");
       }
     }
-  }
-
-  private void validatePassPhase(LiveGameState state, PassPhaseMove move) {
-    boolean isPlayer = state.getPlayers().stream().anyMatch(p -> p.getUserId().equals(move.playerId()));
-    if (!isPlayer) throw new IllegalMoveException("Player is not in this game.");
-    if (state.getCurrentPhase() == Phase.BLOCK_DECLARE) {
-      if (move.playerId().equals(state.getActivePlayerId())) {
-        throw new IllegalMoveException("Waiting for the defending player.");
-      }
-      return;
-    }
-    if (!move.playerId().equals(state.getActivePlayerId())) throw new IllegalMoveException("Not your turn.");
   }
 
   private void validatePlayCard(LiveGameState state, PlayCardMove move) {
-    if (state.getCurrentPhase() != Phase.MAIN) throw new IllegalMoveException("Cards can only be played in MAIN.");
+    requireMain(state);
     CardInstance card = findCard(state, move.instanceId());
-    if (!move.playerId().equals(card.getOwnerId()) || card.getZone() != ZoneName.HAND) throw new IllegalMoveException("Card is not in your hand.");
-    boolean isRune = "Rune".equalsIgnoreCase(cardDataService.getCard(card.getCardId()).type());
-    if (move.targetZone() == ZoneName.RUNE && !isRune) throw new IllegalMoveException("Only Rune cards can be placed in the rune zone.");
-    if (move.targetZone() == ZoneName.BASE && isRune) throw new IllegalMoveException("Rune cards must be placed in the rune zone.");
+    if (!move.playerId().equals(card.getOwnerId()) || card.getZone() != ZoneName.HAND) {
+      throw new IllegalMoveException("Card is not in your hand.");
+    }
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    boolean rune = "Rune".equalsIgnoreCase(def.type());
+    if (move.targetZone() == ZoneName.RUNE && !rune) throw new IllegalMoveException("Only Rune cards can be placed in the rune zone.");
+    if (move.targetZone() == ZoneName.BASE && rune) throw new IllegalMoveException("Rune cards must be placed in the rune zone.");
     if (move.targetZone() != ZoneName.BASE && move.targetZone() != ZoneName.RUNE) throw new IllegalMoveException("Cards must be played to base.");
-    int cost = cardDataService.getCard(card.getCardId()).cost();
+    if (move.accelerate() && (!"Unit".equalsIgnoreCase(def.type()) || !cardDataService.hasKeyword(card, "ACCELERATE"))) {
+      throw new IllegalMoveException("That card does not have ACCELERATE.");
+    }
+    int cost = def.cost() + (move.accelerate() ? 1 : 0);
     int energy = state.getPlayers().stream().filter(p -> p.getUserId().equals(move.playerId())).findFirst().orElseThrow().getAvailableEnergy();
     if (energy < cost) throw new IllegalMoveException("Insufficient energy.");
-    boolean isSpell = "Spell".equalsIgnoreCase(cardDataService.getCard(card.getCardId()).type());
-    boolean isGear = "Gear".equalsIgnoreCase(cardDataService.getCard(card.getCardId()).type());
-    if ((isSpell || isGear) && cardDataService.isUnsupportedAction(card.getCardId())) {
-      throw new IllegalMoveException("That card's effect is not supported yet.");
+    boolean spellOrGear = "Spell".equalsIgnoreCase(def.type()) || "Gear".equalsIgnoreCase(def.type());
+    if (spellOrGear && cardDataService.isUnsupportedAction(card.getCardId())) throw new IllegalMoveException("That card's effect is not supported yet.");
+    if (spellOrGear && cardDataService.requiresBattlefieldTarget(card.getCardId())) validateTarget(state, move, card);
+  }
+
+  private void validateVisionChoice(LiveGameState state, VisionChoiceMove move) {
+    int lastPeek = -1;
+    int lastResolution = -1;
+    for (int i = 0; i < state.getLog().size(); i++) {
+      LiveGameState.LogEntry entry = state.getLog().get(i);
+      if (!move.playerId().equals(entry.userId())) continue;
+      if (entry.text().startsWith("VISION_PEEK|")) lastPeek = i;
+      if (entry.text().startsWith("VISION_RESOLVED|")) lastResolution = i;
     }
-    if ((isSpell || isGear) && cardDataService.requiresBattlefieldTarget(card.getCardId())) {
-      if (move.targetInstanceId() == null || move.targetInstanceId().isBlank()) {
-        throw new IllegalMoveException("This card requires a target.");
-      }
-      CardInstance target = state.getCards().stream()
-          .filter(candidate -> candidate.getInstanceId().equals(move.targetInstanceId()))
-          .findFirst()
-          .orElseThrow(() -> new IllegalMoveException("Target not found."));
-      if (target.getZone() != ZoneName.BATTLEFIELD) throw new IllegalMoveException("Target must be on the battlefield.");
-      if (cardDataService.requiresFriendlyTarget(card.getCardId()) && !target.getOwnerId().equals(move.playerId())) {
-        throw new IllegalMoveException("That card requires a friendly unit.");
-      }
-      if (cardDataService.requiresEnemyTarget(card.getCardId()) && target.getOwnerId().equals(move.playerId())) {
-        throw new IllegalMoveException("That card requires an enemy unit.");
-      }
+    if (lastPeek <= lastResolution) throw new IllegalMoveException("No Vision choice is pending.");
+  }
+
+  private void validateTarget(LiveGameState state, PlayCardMove move, CardInstance card) {
+    if (move.targetInstanceId() == null || move.targetInstanceId().isBlank()) throw new IllegalMoveException("This card requires a target.");
+    CardInstance target = findCard(state, move.targetInstanceId());
+    if (target.getZone() != ZoneName.BATTLEFIELD) throw new IllegalMoveException("Target must be on the battlefield.");
+    if (cardDataService.requiresFriendlyTarget(card.getCardId()) && !target.getOwnerId().equals(move.playerId())) {
+      throw new IllegalMoveException("That card requires a friendly unit.");
     }
+    if (cardDataService.requiresEnemyTarget(card.getCardId()) && target.getOwnerId().equals(move.playerId())) {
+      throw new IllegalMoveException("That card requires an enemy unit.");
+    }
+  }
+
+  private void validateMoveToBattlefield(LiveGameState state, MoveToBattlefieldMove move) {
+    requireMain(state);
+    CardInstance card = findCard(state, move.instanceId());
+    if (!move.playerId().equals(card.getOwnerId())) throw new IllegalMoveException("You do not own that card.");
+    if (card.getZone() != ZoneName.BASE && card.getZone() != ZoneName.CHAMPION && card.getZone() != ZoneName.LEGEND) {
+      throw new IllegalMoveException("Only cards from your base can move to the battlefield.");
+    }
+    if (card.isTapped()) throw new IllegalMoveException("Only ready cards can move to the battlefield.");
   }
 
   private void validateMoveCard(LiveGameState state, MoveCardMove move) {
     CardInstance card = findCard(state, move.instanceId());
     if (!move.playerId().equals(card.getOwnerId())) throw new IllegalMoveException("You do not own that card.");
-    if (card.getZone() == ZoneName.BASE && move.targetZone() == ZoneName.BATTLEFIELD) {
-      if (!move.playerId().equals(state.getActivePlayerId())) throw new IllegalMoveException("Not your turn.");
-      if (state.getCurrentPhase() != Phase.MAIN) throw new IllegalMoveException("Cards can only deploy during MAIN.");
-      if (card.isTapped()) throw new IllegalMoveException("Only ready cards can move to the battlefield.");
-    }
-    if (card.getZone() == ZoneName.CHAMPION && move.targetZone() == ZoneName.BATTLEFIELD) {
-      if (!move.playerId().equals(state.getActivePlayerId())) throw new IllegalMoveException("Not your turn.");
-      if (state.getCurrentPhase() != Phase.MAIN) throw new IllegalMoveException("Champions can only deploy during MAIN.");
-      if (card.isTapped()) throw new IllegalMoveException("Champion is exhausted.");
-    }
-    if (card.getZone() == ZoneName.LEGEND && move.targetZone() == ZoneName.BATTLEFIELD) {
-      if (!move.playerId().equals(state.getActivePlayerId())) throw new IllegalMoveException("Not your turn.");
-      if (state.getCurrentPhase() != Phase.MAIN) throw new IllegalMoveException("Legends can only deploy during MAIN.");
-      if (card.isTapped()) throw new IllegalMoveException("Legend is exhausted.");
-    }
+    if (move.targetZone() == ZoneName.BATTLEFIELD) throw new IllegalMoveException("Use Move to Battlefield during MAIN.");
   }
 
-  private void validateTapCard(LiveGameState state, TapCardMove move) {
-    CardInstance card = findCard(state, move.instanceId());
-    if (!move.playerId().equals(card.getOwnerId())) throw new IllegalMoveException("You do not own that card.");
-  }
-
-  private void validateFlipCard(LiveGameState state, FlipCardMove move) {
-    CardInstance card = findCard(state, move.instanceId());
-    if (!move.playerId().equals(card.getOwnerId())) throw new IllegalMoveException("You do not own that card.");
+  private void validateUndoRunes(LiveGameState state, UndoRunesMove move) {
+    requireMain(state);
+    if (state.isCardPlayedThisTurn()) throw new IllegalMoveException("Cannot undo after playing a card.");
+    if (state.getRunes().stream().noneMatch(rune -> rune.getOwnerId().equals(move.playerId()) && rune.isTapped())) {
+      throw new IllegalMoveException("No tapped runes to undo.");
+    }
   }
 
   private void validateTapRune(LiveGameState state, TapRuneMove move) {
-    if (state.getCurrentPhase() != Phase.MAIN) throw new IllegalMoveException("Runes can only be tapped in MAIN.");
+    requireMain(state);
     RuneState rune = findRune(state, move.runeInstanceId());
     if (!move.playerId().equals(rune.getOwnerId())) throw new IllegalMoveException("You do not own that rune.");
     if (rune.isTapped()) throw new IllegalMoveException("Rune is already tapped.");
   }
 
   private void validateDiscardRune(LiveGameState state, DiscardRuneMove move) {
-    if (state.getCurrentPhase() != Phase.MAIN) throw new IllegalMoveException("Runes can only be discarded in MAIN.");
+    requireMain(state);
     RuneState rune = findRune(state, move.runeInstanceId());
     if (!move.playerId().equals(rune.getOwnerId())) throw new IllegalMoveException("You do not own that rune.");
     if (rune.isTapped()) throw new IllegalMoveException("Cannot discard an already-tapped rune.");
   }
 
-  private void validateAttack(LiveGameState state, DeclareAttackMove move) {
-    if (state.getCurrentPhase() != Phase.ATTACK_DECLARE) throw new IllegalMoveException("Not attack declaration phase.");
-    boolean validTarget = state.getPlayers().stream()
-        .anyMatch(player -> player.getUserId().equals(move.targetPlayerId())
-            && !player.getUserId().equals(move.playerId()));
-    if (!validTarget) throw new IllegalMoveException("Invalid attack target.");
-    for (String id : move.attackerInstanceIds()) {
-      CardInstance card = findCard(state, id);
-      if (!move.playerId().equals(card.getOwnerId()) || card.getZone() != ZoneName.BATTLEFIELD) throw new IllegalMoveException("Invalid attacker.");
-      if (card.isTapped()) throw new IllegalMoveException("Attacker is exhausted.");
-      if (card.isHasSummoningSickness() && !cardDataService.hasKeyword(card, "RUSH")) throw new IllegalMoveException("Attacker has summoning sickness.");
-    }
+  private void validateOwnedCard(LiveGameState state, String playerId, String instanceId) {
+    CardInstance card = findCard(state, instanceId);
+    if (!playerId.equals(card.getOwnerId())) throw new IllegalMoveException("You do not own that card.");
   }
 
-  private void validateBlock(LiveGameState state, DeclareBlockMove move) {
-    if (state.getCurrentPhase() != Phase.BLOCK_DECLARE) throw new IllegalMoveException("Not block declaration phase.");
-    long distinctAttackers = move.blockerToAttacker().values().stream().distinct().count();
-    if (distinctAttackers < move.blockerToAttacker().size()) throw new IllegalMoveException("Cannot assign multiple blockers to one attacker.");
-    for (String id : move.blockerToAttacker().keySet()) {
-      CardInstance card = findCard(state, id);
-      if (!move.playerId().equals(card.getOwnerId()) || card.getZone() != ZoneName.BATTLEFIELD || card.isTapped()) throw new IllegalMoveException("Invalid blocker.");
-      if (!state.getDeclaredAttackers().contains(move.blockerToAttacker().get(id))) throw new IllegalMoveException("Cannot block a non-attacking unit.");
-      CardInstance attacker = findCard(state, move.blockerToAttacker().get(id));
-      if (cardDataService.hasKeyword(attacker, "ELUSIVE")) throw new IllegalMoveException("Cannot block an ELUSIVE attacker.");
-    }
+  private void requireMain(LiveGameState state) {
+    if (state.getCurrentPhase() != Phase.MAIN) throw new IllegalMoveException("That action can only be taken during MAIN.");
   }
 
   private CardInstance findCard(LiveGameState state, String id) {
-    return state.getCards().stream().filter(c -> c.getInstanceId().equals(id)).findFirst().orElseThrow(() -> new IllegalMoveException("Card not found."));
+    return state.getCards().stream().filter(c -> c.getInstanceId().equals(id)).findFirst()
+        .orElseThrow(() -> new IllegalMoveException("Card not found."));
   }
 
   private RuneState findRune(LiveGameState state, String id) {
-    return state.getRunes().stream().filter(r -> r.getInstanceId().equals(id)).findFirst().orElseThrow(() -> new IllegalMoveException("Rune not found."));
+    return state.getRunes().stream().filter(r -> r.getInstanceId().equals(id)).findFirst()
+        .orElseThrow(() -> new IllegalMoveException("Rune not found."));
   }
 }

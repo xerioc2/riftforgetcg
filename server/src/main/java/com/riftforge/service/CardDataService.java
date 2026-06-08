@@ -13,6 +13,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -144,6 +146,17 @@ public class CardDataService {
   public boolean hasKeyword(CardInstance instance, String keyword) {
     return hasKeyword(instance.getCardId(), keyword)
         || instance.getTempKeywords().stream().anyMatch(k -> k.equalsIgnoreCase(keyword));
+  }
+
+  public int getKeywordValue(CardInstance instance, String keyword) {
+    Pattern pattern = Pattern.compile("^" + Pattern.quote(keyword) + "\\s*(\\d+)$", Pattern.CASE_INSENSITIVE);
+    List<String> keywords = new ArrayList<>(getCard(instance.getCardId()).keywords());
+    keywords.addAll(instance.getTempKeywords());
+    for (String value : keywords) {
+      Matcher matcher = pattern.matcher(value.trim());
+      if (matcher.matches()) return Integer.parseInt(matcher.group(1));
+    }
+    return 0;
   }
 
   public boolean requiresBattlefieldTarget(String cardId) {
