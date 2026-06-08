@@ -52,6 +52,7 @@ public class GameEngine {
       case PassPhaseMove m -> applyPassPhase(state);
       case AdjustScoreMove m -> applyAdjustScore(state, m);
       case VisionChoiceMove m -> applyVisionChoice(state, m);
+      case DismissRevealedMove m -> applyDismissRevealed(state, m);
     };
     next.setUpdatedAt(Instant.now().toString());
     checkWinCondition(next);
@@ -291,6 +292,13 @@ public class GameEngine {
     return state;
   }
 
+  private LiveGameState applyDismissRevealed(LiveGameState state, DismissRevealedMove move) {
+    state.getRevealedHands().stream()
+        .filter(snapshot -> snapshot.getRevealedToPlayerId().equals(move.playerId()))
+        .forEach(snapshot -> snapshot.getDismissedInstanceIds().add(move.instanceId()));
+    return state;
+  }
+
   private void awaken(LiveGameState state) {
     PlayerState active = player(state, state.getActivePlayerId());
     active.setAvailableEnergy(0);
@@ -502,6 +510,13 @@ public class GameEngine {
 
   private void applyRulesTextEffect(CardInstance card, CardInstance target, LiveGameState state, CardDefinition def) {
     String text = def.rulesText() == null ? "" : def.rulesText().toLowerCase();
+    if (text.contains("reveal") && text.contains("hand")) {
+      state.getPlayers().stream()
+          .map(PlayerState::getUserId)
+          .filter(playerId -> !playerId.equals(card.getOwnerId()))
+          .findFirst()
+          .ifPresent(opponentId -> CardEffectRegistry.revealHand(state, card.getOwnerId(), opponentId));
+    }
     if (target != null) {
       Matcher powerBoost = Pattern.compile("\\+(\\d+)\\s*:rb_might:").matcher(text);
       if (powerBoost.find()) {

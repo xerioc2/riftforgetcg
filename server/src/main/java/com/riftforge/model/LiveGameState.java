@@ -23,6 +23,7 @@ public class LiveGameState {
   private boolean cardPlayedThisTurn;
   private Map<String, String> battlefieldController = new HashMap<>();
   private Set<String> scoredBattlefieldsThisTurn = new HashSet<>();
+  private List<RevealedHandSnapshot> revealedHands = new ArrayList<>();
 
   public record LogEntry(String id, String timestamp, String userId, String text) {}
 
@@ -56,4 +57,6 @@ public class LiveGameState {
   public void setBattlefieldController(Map<String, String> battlefieldController) { this.battlefieldController = battlefieldController; }
   public Set<String> getScoredBattlefieldsThisTurn() { return scoredBattlefieldsThisTurn; }
   public void setScoredBattlefieldsThisTurn(Set<String> scoredBattlefieldsThisTurn) { this.scoredBattlefieldsThisTurn = scoredBattlefieldsThisTurn; }
+  public List<RevealedHandSnapshot> getRevealedHands() { return revealedHands; }
+  public void setRevealedHands(List<RevealedHandSnapshot> revealedHands) { this.revealedHands = revealedHands; }
 }

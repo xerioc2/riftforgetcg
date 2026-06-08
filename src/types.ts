@@ -143,6 +143,14 @@ export type LiveGameState = {
   cardPlayedThisTurn?: boolean;
   battlefieldController?: Record<string, string>;
   scoredBattlefieldsThisTurn?: string[];
+  revealedHands?: RevealedHandSnapshot[];
+};
+
+export type RevealedHandSnapshot = {
+  revealedToPlayerId: string;
+  revealedOwnerId: string;
+  instanceIds: string[];
+  dismissedInstanceIds: string[];
 };
 
 export type ChatMessage = {

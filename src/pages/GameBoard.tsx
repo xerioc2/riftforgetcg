@@ -21,7 +21,7 @@ import { createGameClient, joinGame, sendMove } from '../lib/stompGame';
 import { useCardStore } from '../store/cards';
 import { useDeckStore } from '../store/decks';
 import { useGameStore } from '../store/game';
-import type { CardInstance, LiveGameState, RiftCard, ZoneName } from '../types';
+import type { CardInstance, LiveGameState, RevealedHandSnapshot, RiftCard, ZoneName } from '../types';
 
 const NAV_HEIGHT = 73;
 const SIDEBAR_WIDTH = 280;
@@ -439,6 +439,26 @@ export function GameBoard() {
   const me = state.players.find((statePlayer) => statePlayer.userId === player.id);
   const opponentName = opponent?.name?.trim() || opponent?.userId || 'Opponent';
   const opponentHand = state.cards.filter((card) => card.ownerId === opponent?.userId && sameZone(card.zone, 'hand')).length;
+  const visibleCardsFor = (ownerId: string | undefined, zone: string) =>
+    state.cards
+      .filter((instance) => instance.ownerId === ownerId && sameZone(instance.zone, zone))
+      .map((instance) => ({ instanceId: instance.instanceId, card: cardsById.get(instance.cardId) }))
+      .filter((entry): entry is { instanceId: string; card: RiftCard } => Boolean(entry.card));
+  const revealedCardsFor = (snapshot: RevealedHandSnapshot | undefined) =>
+    (snapshot?.instanceIds ?? [])
+      .map((instanceId) => {
+        const instance = state.cards.find((candidate) => candidate.instanceId === instanceId);
+        const card = instance ? cardsById.get(instance.cardId) : undefined;
+        return card ? { instanceId, card } : null;
+      })
+      .filter((entry): entry is { instanceId: string; card: RiftCard } => Boolean(entry));
+  const opponentDeckCount = visibleCardsFor(opponent?.userId, 'deck').length;
+  const myDeckCount = visibleCardsFor(player.id, 'deck').length;
+  const opponentDiscardCards = visibleCardsFor(opponent?.userId, 'discard');
+  const myDiscardCards = visibleCardsFor(player.id, 'discard');
+  const opponentRevealedSnapshot = state.revealedHands?.find((snapshot) => snapshot.revealedToPlayerId === player.id && snapshot.revealedOwnerId === opponent?.userId);
+  const myRevealedSnapshot = state.revealedHands?.find((snapshot) => snapshot.revealedToPlayerId === player.id && snapshot.revealedOwnerId === player.id);
+  const dismissRevealed = (instanceId: string) => publishMove({ type: 'DISMISS_REVEALED', playerId: player.id, instanceId });
   const myUntappedRunes = (state.runes ?? []).filter((rune) => rune.ownerId === player.id && !rune.tapped).length;
   const spendableEnergy = (me?.availableEnergy ?? 0)
     + (state.runes ?? [])
@@ -544,7 +564,20 @@ export function GameBoard() {
       ) : null}
 
       {opponent ? (
-        <PlayerPanel name={opponentName} score={opponent.score} handCount={opponentHand} energy={opponent.availableEnergy ?? 0} untappedRunes={opponentUntappedRunes} isActive={state.activePlayerId === opponent.userId} isMe={false} />
+        <PlayerPanel
+          name={opponentName}
+          score={opponent.score}
+          handCount={opponentHand}
+          energy={opponent.availableEnergy ?? 0}
+          untappedRunes={opponentUntappedRunes}
+          isActive={state.activePlayerId === opponent.userId}
+          isMe={false}
+          deckCount={opponentDeckCount}
+          discardCards={opponentDiscardCards}
+          revealedSnapshot={opponentRevealedSnapshot}
+          revealedCards={revealedCardsFor(opponentRevealedSnapshot)}
+          onDismissRevealed={dismissRevealed}
+        />
       ) : null}
       {me ? (
         <PlayerPanel
@@ -557,6 +590,11 @@ export function GameBoard() {
           isActive={state.activePlayerId === player.id}
           isMe
           bottom={handHeight + PHASE_BAR_HEIGHT + 4}
+          deckCount={myDeckCount}
+          discardCards={myDiscardCards}
+          revealedSnapshot={myRevealedSnapshot}
+          revealedCards={revealedCardsFor(myRevealedSnapshot)}
+          onDismissRevealed={dismissRevealed}
         />
       ) : null}
       <PhaseBar currentPhase={state.currentPhase ?? 'MAIN'} isMyTurn={isMyTurn} canPass={canPass} opponentName={opponentName} onPassPhase={handlePassPhase} bottom={handHeight} />

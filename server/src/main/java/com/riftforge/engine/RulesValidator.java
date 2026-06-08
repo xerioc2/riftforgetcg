@@ -19,6 +19,7 @@ public class RulesValidator {
   }
 
   public void validate(LiveGameState state, MoveRequest move) {
+    if (move instanceof DismissRevealedMove) return;
     if (state.getCurrentPhase() == Phase.MULLIGAN) {
       if (move instanceof MulliganMove mulligan) {
         validateMulligan(state, mulligan);

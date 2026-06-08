@@ -16,7 +16,8 @@ export type MoveRequest =
   | { type: 'UNDO_RUNES'; playerId: string }
   | { type: 'PASS_PHASE'; playerId: string }
   | { type: 'ADJUST_SCORE'; playerId: string; targetPlayerId: string; delta: number }
-  | { type: 'VISION_CHOICE'; playerId: string; recycle: boolean };
+  | { type: 'VISION_CHOICE'; playerId: string; recycle: boolean }
+  | { type: 'DISMISS_REVEALED'; playerId: string; instanceId: string };
 
 export type ServerMessage = { type: 'STATE_UPDATE'; state: LiveGameState } | { type: 'ERROR'; message: string; playerId: string };
 export type MatchNotification = { roomCode: string };
