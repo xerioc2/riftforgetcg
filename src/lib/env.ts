@@ -27,6 +27,19 @@ export async function initServerUrl(): Promise<void> {
   }
 }
 
+export function setResolvedServerUrl(url: string): void {
+  _resolvedServerUrl = url;
+}
+
+export function getGameServerCandidates(): string[] {
+  const override = localStorage.getItem('riftforge.serverUrl');
+  if (override && override.trim()) return [override.trim()];
+  if (_resolvedServerUrl) return [_resolvedServerUrl];
+  const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+  if (isTauri) return Array.from({ length: 20 }, (_, index) => `http://localhost:${8080 + index}`);
+  return [config.gameServerUrl];
+}
+
 export function getGameServerUrl(): string {
   if (_resolvedServerUrl) return _resolvedServerUrl;
   const override = localStorage.getItem('riftforge.serverUrl');

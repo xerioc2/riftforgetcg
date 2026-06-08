@@ -57,6 +57,8 @@ pub fn run() {
             } else {
                 find_available_port(8080)
             };
+            #[cfg(not(debug_assertions))]
+            write_startup_log(&format!("Selected server port {port}"));
             app.manage(ServerPort(port));
 
             #[cfg(not(debug_assertions))]

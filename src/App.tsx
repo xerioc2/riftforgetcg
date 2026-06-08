@@ -2,7 +2,7 @@ import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Nav } from './components/Nav';
 import { ServerLoader } from './components/ServerLoader';
-import { getGameServerUrl, initServerUrl } from './lib/env';
+import { getGameServerCandidates, getGameServerUrl, initServerUrl, setResolvedServerUrl } from './lib/env';
 import { getOrCreateLocalPlayer, saveLocalPlayer } from './lib/localPlayer';
 import { PlayerContext } from './lib/playerContext';
 import { DeckBuild } from './pages/DeckBuild';
@@ -37,17 +37,21 @@ function App() {
     let cancelled = false;
     let interval = 0;
     const poll = async () => {
-      try {
-        const response = await fetch(`${getGameServerUrl()}/api/health`);
-        if (!response.ok) return;
-        const data = (await response.json()) as { status?: string };
-        if (!cancelled && data.status === 'ok') {
-          setServerReady(true);
-          setShowServerHelp(false);
-          window.clearInterval(interval);
+      for (const serverUrl of getGameServerCandidates()) {
+        try {
+          const response = await fetch(`${serverUrl}/api/health`);
+          if (!response.ok) continue;
+          const data = (await response.json()) as { status?: string };
+          if (!cancelled && data.status === 'ok') {
+            setResolvedServerUrl(serverUrl);
+            setServerReady(true);
+            setShowServerHelp(false);
+            window.clearInterval(interval);
+            return;
+          }
+        } catch {
+          // Try the next local port while the bundled server starts.
         }
-      } catch {
-        // The bundled or remote server may still be starting.
       }
     };
     void poll();
