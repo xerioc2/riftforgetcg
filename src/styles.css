@@ -78,6 +78,10 @@
     color: white;
   }
 
+  .progress-fill {
+    width: var(--fill, 0%);
+  }
+
   .badge {
     display: inline-flex;
     min-width: 28px;
