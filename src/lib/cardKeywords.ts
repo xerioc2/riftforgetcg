@@ -9,4 +9,11 @@ export const KEYWORD_DESCRIPTIONS: Record<string, string> = {
   ACCELERATE: 'You may pay 1 additional energy for its Accelerate effect.',
   LEGION: 'Applies its Legion effect if another Main Deck card was played earlier this turn.',
   MIGHTY: 'A descriptor for a unit with 5 or more effective Might.',
+  AMBUSH: 'Can attack directly from Base and enters the battlefield ready.',
+  'QUICK-DRAW': 'Enters Base ready and can move to the battlefield the turn it is played.',
+  HIDDEN: "Cannot be targeted by an opponent's spells or abilities while at Base.",
+  GANKING: 'Gets +X Might for combat when entering against an opponent with higher Might.',
+  REPEAT: 'Allows you to play one additional card this turn.',
+  WEAPONMASTER: 'Gets +X Might permanently whenever Gear is attached to it.',
+  DEFLECT: "Redirects an opponent's spell to another random battlefield unit when possible.",
 };

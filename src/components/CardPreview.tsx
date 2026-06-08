@@ -58,7 +58,7 @@ export function CardPreview({ card, instance, onInspect }: { card: RiftCard | nu
           {card.power != null && card.health != null ? (
             <p className="mt-2 text-xs font-semibold text-slate-300">
               Might {card.power}
-              {(instance?.mightBonus ?? 0) > 0 ? ` (+${instance?.mightBonus})` : ''} / Health {instance?.currentHealth ?? card.health}/{card.health}
+              {(instance?.mightBonus ?? 0) > 0 ? ` (+${instance?.mightBonus})` : ''} / Guard {instance?.currentHealth ?? card.health}/{card.health}
             </p>
           ) : null}
           {['Spell', 'Gear'].includes(card.type) ? (

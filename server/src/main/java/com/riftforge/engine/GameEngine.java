@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Value;
@@ -103,13 +104,16 @@ public class GameEngine {
     card.setCurrentHealth(def.health());
     card.setHasSummoningSickness(!move.accelerate());
     if (move.targetZone() == ZoneName.BASE) card.setTapped(!move.accelerate());
+    if (cardDataService.hasKeyword(card, "QUICK-DRAW")) card.setTapped(false);
     applyLegion(state, card, cardPlayedEarlierThisTurn);
     state.setCardPlayedThisTurn(true);
     CardInstance target = move.targetInstanceId() == null ? null : state.getCards().stream()
         .filter(candidate -> candidate.getInstanceId().equals(move.targetInstanceId()))
         .findFirst()
         .orElse(null);
-    effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onPlay(card, target, state));
+    target = deflectTarget(card, target, state);
+    CardInstance resolvedTarget = target;
+    effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onPlay(card, resolvedTarget, state));
     if (move.accelerate()) log(state, move.playerId(), def.name() + " entered ready with Accelerate.");
     if (cardDataService.hasKeyword(card, "VISION")) {
       String topCardId = player(state, move.playerId()).getDeckPool().stream().findFirst().orElse("");
@@ -127,7 +131,9 @@ public class GameEngine {
       card.setX(target.getX() + 34);
       card.setY(target.getY() + 34);
       card.setTapped(false);
+      applyWeaponmaster(state, target);
     }
+    if (cardDataService.hasKeyword(card, "REPEAT")) state.setCardPlayedThisTurn(false);
     log(state, move.playerId(), "Played " + def.name());
     return state;
   }
@@ -194,8 +200,9 @@ public class GameEngine {
     CardInstance card = findCard(state, move.instanceId());
     CardDefinition def = cardDataService.getCard(card.getCardId());
     card.setZone(ZoneName.BATTLEFIELD);
-    card.setTapped(true);
+    card.setTapped(!cardDataService.hasKeyword(card, "AMBUSH"));
     card.setHasSummoningSickness(false);
+    int gankingBonus = applyGanking(state, card);
     effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onAttack(card, state));
     log(state, move.playerId(), "Moved " + def.name() + " to the battlefield.");
     boolean opposed = state.getCards().stream()
@@ -206,6 +213,9 @@ public class GameEngine {
     }
     state.setCurrentPhase(Phase.COMBAT);
     CombatResolver.CombatResult result = combatResolver.resolve(state, move.playerId());
+    if (gankingBonus > 0) {
+      card.setTemporaryPowerModifier(Math.max(0, card.getTemporaryPowerModifier() - gankingBonus));
+    }
     if (result.attackersRemain() && result.defendersEliminated()) conquerBattlefield(state, move.playerId());
     else if (!result.defendersEliminated()) returnBattlefieldCardsToBase(state, move.playerId());
     log(state, move.playerId(), "Combat resolved.");
@@ -400,6 +410,47 @@ public class GameEngine {
     if (!cardPlayedEarlierThisTurn || !cardDataService.hasKeyword(card, "LEGION")) return;
     card.setMightBonus(card.getMightBonus() + 1);
     log(state, card.getOwnerId(), cardDataService.getCard(card.getCardId()).name() + " gains Legion +1 might.");
+  }
+
+  private int applyGanking(LiveGameState state, CardInstance card) {
+    int value = cardDataService.getKeywordValue(card, "GANKING");
+    if (value <= 0) return 0;
+    int might = effectiveMight(card);
+    boolean facesStrongerUnit = state.getCards().stream()
+        .filter(candidate -> candidate.getZone() == ZoneName.BATTLEFIELD)
+        .filter(candidate -> !card.getOwnerId().equals(candidate.getOwnerId()))
+        .anyMatch(candidate -> effectiveMight(candidate) > might);
+    if (!facesStrongerUnit) return 0;
+    card.setTemporaryPowerModifier(card.getTemporaryPowerModifier() + value);
+    log(state, card.getOwnerId(), cardDataService.getCard(card.getCardId()).name() + " activates Ganking: +" + value + " Might this combat.");
+    return value;
+  }
+
+  private void applyWeaponmaster(LiveGameState state, CardInstance target) {
+    int value = cardDataService.getKeywordValue(target, "WEAPONMASTER");
+    if (value <= 0) return;
+    target.setMightBonus(target.getMightBonus() + value);
+    log(state, target.getOwnerId(), cardDataService.getCard(target.getCardId()).name() + " activates Weaponmaster: +" + value + " Might.");
+  }
+
+  private CardInstance deflectTarget(CardInstance playedCard, CardInstance target, LiveGameState state) {
+    if (target == null
+        || playedCard.getOwnerId().equals(target.getOwnerId())
+        || !cardDataService.hasKeyword(target, "DEFLECT")) {
+      return target;
+    }
+    List<CardInstance> alternatives = state.getCards().stream()
+        .filter(candidate -> candidate.getZone() == ZoneName.BATTLEFIELD)
+        .filter(candidate -> !candidate.getInstanceId().equals(target.getInstanceId()))
+        .toList();
+    if (alternatives.isEmpty()) return target;
+    log(state, target.getOwnerId(), cardDataService.getCard(target.getCardId()).name() + " deflects the spell!");
+    return alternatives.get(ThreadLocalRandom.current().nextInt(alternatives.size()));
+  }
+
+  private int effectiveMight(CardInstance card) {
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    return Math.max(0, def.power() + card.getMightBonus() + card.getTemporaryPowerModifier());
   }
 
   private void expireTemporaryCards(LiveGameState state) {

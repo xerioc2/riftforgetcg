@@ -33,7 +33,7 @@ export function CardInspectModal({ card, cardDef, onClose }: { card: CardInstanc
         </div>
         <div className="mt-4 grid grid-cols-2 gap-2 border-y border-line py-3 text-sm font-semibold text-slate-200">
           <span>Might {baseMight + mightBonus}{mightBonus > 0 ? ` (+${mightBonus})` : ''}</span>
-          <span>Health {card.currentHealth ?? maxHealth}/{maxHealth}</span>
+          <span>Guard {card.currentHealth ?? maxHealth}/{maxHealth}</span>
         </div>
         <div className="mt-4">
           <h3 className="text-xs font-semibold uppercase text-slate-500">Rules</h3>

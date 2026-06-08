@@ -373,11 +373,6 @@ export function GameBoard() {
     if (!instance) return;
     const isOwnBattlefieldCard = instance.ownerId === player.id && sameZone(instance.zone, 'battlefield');
     const isEnemyBattlefieldCard = instance.ownerId !== player.id && sameZone(instance.zone, 'battlefield');
-    if (state?.currentPhase === 'MAIN' && isMyTurn && instance.ownerId === player.id && (sameZone(instance.zone, 'base') || sameZone(instance.zone, 'champion') || sameZone(instance.zone, 'legend'))) {
-      publishMove({ type: 'MOVE_TO_BATTLEFIELD', playerId: player.id, instanceId });
-      return;
-    }
-
     const pendingCard = cardsById.get(state?.cards.find((card) => card.instanceId === pendingSpellInstanceId)?.cardId ?? '');
     const targetScope = cardTargetScope(pendingCard);
     const isValidPendingTarget = targetScope === 'friendly' ? isOwnBattlefieldCard : targetScope === 'enemy' ? isEnemyBattlefieldCard : isOwnBattlefieldCard || isEnemyBattlefieldCard;
@@ -451,6 +446,8 @@ export function GameBoard() {
         .reduce((total, rune) => total + rune.normalEnergy, 0);
   const opponentUntappedRunes = (state.runes ?? []).filter((rune) => rune.ownerId === opponent?.userId && !rune.tapped).length;
   const isMyTurn = state.activePlayerId === player.id;
+  const canPlayReactions = state.currentPhase === 'MAIN' && !isMyTurn;
+  const hasSpellReaction = hand.some((instance) => cardsById.get(instance.cardId)?.type?.toLowerCase() === 'spell');
   const ownRuneZone = zones.find((zone) => zone.zoneName === 'rune' && zone.ownerId === player.id);
   const hasTappedOwnRune = (state.runes ?? []).some((rune) => rune.ownerId === player.id && rune.tapped);
   const canUndoRunes = isMyTurn && state.currentPhase === 'MAIN' && !state.cardPlayedThisTurn && hasTappedOwnRune;
@@ -563,6 +560,11 @@ export function GameBoard() {
         />
       ) : null}
       <PhaseBar currentPhase={state.currentPhase ?? 'MAIN'} isMyTurn={isMyTurn} canPass={canPass} opponentName={opponentName} onPassPhase={handlePassPhase} bottom={handHeight} />
+      {canPlayReactions && hasSpellReaction ? (
+        <div className="pointer-events-none absolute left-0 z-20 flex justify-center text-xs font-medium text-forge" style={{ right: `${SIDEBAR_WIDTH}px`, bottom: handHeight + PHASE_BAR_HEIGHT + 6 }}>
+          Opponent&apos;s turn - you may play spells as reactions
+        </div>
+      ) : null}
       <GameSidebar log={state.log} chat={chat} deckCards={deckCards} onSend={sendChat} onDeal={dealCard} onDrawHand={drawHand} onHover={handleCardHover} />
       <div className="pointer-events-auto absolute right-[288px] top-2 z-20 flex items-center gap-2">
         <details className="relative">
@@ -612,6 +614,7 @@ export function GameBoard() {
           onHover={handleCardHover}
           effectiveEnergy={spendableEnergy}
           canPlayCards={state.currentPhase === 'MAIN' && isMyTurn}
+          canPlayReactions={canPlayReactions}
           embedded
           maxHeight={handHeight}
         />

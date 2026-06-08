@@ -130,7 +130,7 @@ export function CardSprite({
           {!instance.faceDown && cardDef.power != null && cardDef.health != null ? (
             <>
               <Rect x={CARD_WIDTH - 28} y={CARD_HEIGHT - 18} width={26} height={14} fill="rgba(0,0,0,0.5)" cornerRadius={3} />
-              <Text x={CARD_WIDTH - 28} y={CARD_HEIGHT - 16} width={26} text={`${effectivePower}/${instance.currentHealth ?? cardDef.health}`} align="center" fontSize={9} fontStyle="bold" fill="#6fd3b6" />
+              <Text x={CARD_WIDTH - 28} y={CARD_HEIGHT - 16} width={26} text={`${effectivePower} | ${instance.currentHealth ?? cardDef.health}`} align="center" fontSize={10} fontStyle="bold" fill="#6fd3b6" />
             </>
           ) : null}
         </>

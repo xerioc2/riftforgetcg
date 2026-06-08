@@ -30,7 +30,17 @@ public class RulesValidator {
     if (move instanceof AdjustScoreMove || move instanceof DealCardMove) return;
     if (move instanceof TapCardMove tap) { validateOwnedCard(state, tap.playerId(), tap.instanceId()); return; }
     if (move instanceof FlipCardMove flip) { validateOwnedCard(state, flip.playerId(), flip.instanceId()); return; }
-    if (!move.playerId().equals(state.getActivePlayerId())) throw new IllegalMoveException("Not your turn.");
+    if (!move.playerId().equals(state.getActivePlayerId())) {
+      if (move instanceof PlayCardMove play && state.getCurrentPhase() == Phase.MAIN) {
+        CardInstance card = findCard(state, play.instanceId());
+        CardDefinition def = cardDataService.getCard(card.getCardId());
+        if ("Spell".equalsIgnoreCase(def.type())) {
+          validatePlayCard(state, play);
+          return;
+        }
+      }
+      throw new IllegalMoveException("Not your turn.");
+    }
     if (move instanceof VisionChoiceMove vision) { validateVisionChoice(state, vision); return; }
     if (move instanceof PassPhaseMove) return;
     if (move instanceof UndoRunesMove undo) { validateUndoRunes(state, undo); return; }
@@ -96,6 +106,11 @@ public class RulesValidator {
   private void validateTarget(LiveGameState state, PlayCardMove move, CardInstance card) {
     if (move.targetInstanceId() == null || move.targetInstanceId().isBlank()) throw new IllegalMoveException("This card requires a target.");
     CardInstance target = findCard(state, move.targetInstanceId());
+    if (target.getZone() == ZoneName.BASE
+        && cardDataService.hasKeyword(target, "HIDDEN")
+        && !target.getOwnerId().equals(move.playerId())) {
+      throw new IllegalMoveException("Cannot target a unit with Hidden while it's at their base.");
+    }
     if (target.getZone() != ZoneName.BATTLEFIELD) throw new IllegalMoveException("Target must be on the battlefield.");
     if (cardDataService.requiresFriendlyTarget(card.getCardId()) && !target.getOwnerId().equals(move.playerId())) {
       throw new IllegalMoveException("That card requires a friendly unit.");

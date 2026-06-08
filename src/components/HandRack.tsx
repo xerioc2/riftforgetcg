@@ -10,6 +10,7 @@ export function HandRack({
   onHover,
   effectiveEnergy,
   canPlayCards,
+  canPlayReactions = false,
   embedded = false,
   maxHeight,
 }: {
@@ -21,6 +22,7 @@ export function HandRack({
   onHover: (card: RiftCard | null) => void;
   effectiveEnergy: number;
   canPlayCards: boolean;
+  canPlayReactions?: boolean;
   embedded?: boolean;
   maxHeight?: number;
 }) {
@@ -59,8 +61,10 @@ export function HandRack({
   const selectedCard = selectedInstance ? cards.get(selectedInstance.cardId) : undefined;
   const selectedCost = selectedCard?.cost ?? 0;
   const canAffordSelected = selectedCost <= effectiveEnergy;
+  const selectedIsReaction = canPlayReactions && selectedCard?.type?.toLowerCase() === 'spell';
+  const canPlaySelected = canPlayCards || selectedIsReaction;
   const playSelected = () => {
-    if (!selectedInstance || !canPlayCards || !canAffordSelected) return;
+    if (!selectedInstance || !canPlaySelected || !canAffordSelected) return;
     onPlay(selectedInstance.instanceId);
     setSelected(null);
   };
@@ -90,8 +94,8 @@ export function HandRack({
           <span className={canAffordSelected ? 'text-mint' : 'text-ember'}>
             Cost {selectedCost} / Spendable {effectiveEnergy}
           </span>
-          <button className="btn-primary min-h-7 px-3 py-1 text-xs" disabled={!canPlayCards || !canAffordSelected} onClick={playSelected}>
-            Play
+          <button className="btn-primary min-h-7 px-3 py-1 text-xs" disabled={!canPlaySelected || !canAffordSelected} onClick={playSelected}>
+            {selectedIsReaction ? 'Respond' : 'Play'}
           </button>
           <button className="btn-secondary min-h-7 px-3 py-1 text-xs" onClick={() => setSelected(null)}>
             Cancel
@@ -109,6 +113,8 @@ export function HandRack({
           const card = cards.get(instance.cardId);
           const isHovered = hovered === instance.instanceId;
           const isSelected = selected === instance.instanceId;
+          const isReaction = canPlayReactions && card?.type?.toLowerCase() === 'spell';
+          const isPlayable = canPlayCards || isReaction;
           return (
             <button
               key={instance.instanceId}
@@ -117,15 +123,16 @@ export function HandRack({
                 width: dimensions.width,
                 height: dimensions.height,
                 transform: isHovered || isSelected ? 'translateY(-8px)' : 'translateY(0)',
-                borderColor: isSelected ? '#d8b05d' : '#2b333d',
+                borderColor: isSelected || isReaction ? '#d8b05d' : '#2b333d',
                 borderWidth: isSelected ? 2 : 1,
                 zIndex: isHovered || isSelected ? 50 : 1,
                 borderRadius: 4,
+                opacity: isPlayable ? 1 : 0.55,
               }}
               onClick={() => setSelected(isSelected ? null : instance.instanceId)}
               onDoubleClick={() => {
                 setSelected(instance.instanceId);
-                if (canPlayCards && (card?.cost ?? 0) <= effectiveEnergy) {
+                if (isPlayable && (card?.cost ?? 0) <= effectiveEnergy) {
                   onPlay(instance.instanceId);
                   setSelected(null);
                 }
@@ -143,6 +150,7 @@ export function HandRack({
                 onHover(null);
               }}
             >
+              {isReaction ? <span className="absolute inset-x-0 top-0 z-10 bg-forge/90 py-0.5 text-center text-[10px] font-bold uppercase text-ink">Respond</span> : null}
               {card?.imageUrl ? <img className="h-full w-full object-contain" src={card.imageUrl} alt={card.name} /> : <span className="block p-1 text-xs text-slate-300">{card?.name ?? '?'}</span>}
             </button>
           );
