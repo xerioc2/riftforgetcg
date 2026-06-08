@@ -38,6 +38,11 @@
     "resources": {
       "binaries/jre/": "jre/",
       "binaries/riftforge-server.jar": "riftforge-server.jar"
+    },
+    "windows": {
+      "nsis": {
+        "installerHooks": "nsis/preinstall.nsh"
+      }
     }
   }
 }

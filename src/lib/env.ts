@@ -8,12 +8,27 @@ function resolveGameServerUrl(): string {
   return 'http://localhost:8080';
 }
 
+let _resolvedServerUrl: string | null = null;
+
 export const config = {
   riftcodexApiBase: (import.meta.env.VITE_RIFTCODEX_API_BASE as string | undefined) ?? 'https://api.riftcodex.com',
   gameServerUrl: resolveGameServerUrl(),
 };
 
+export async function initServerUrl(): Promise<void> {
+  const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+  if (!isTauri) return;
+  try {
+    const { invoke } = await import('@tauri-apps/api/core');
+    const port = await invoke<number>('get_server_port');
+    _resolvedServerUrl = `http://localhost:${port}`;
+  } catch {
+    // Leave the default localhost:8080 URL in place.
+  }
+}
+
 export function getGameServerUrl(): string {
+  if (_resolvedServerUrl) return _resolvedServerUrl;
   const override = localStorage.getItem('riftforge.serverUrl');
   if (override && override.trim()) return override.trim();
   return config.gameServerUrl;

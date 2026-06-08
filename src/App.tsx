@@ -2,7 +2,7 @@ import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Nav } from './components/Nav';
 import { ServerLoader } from './components/ServerLoader';
-import { getGameServerUrl } from './lib/env';
+import { getGameServerUrl, initServerUrl } from './lib/env';
 import { getOrCreateLocalPlayer, saveLocalPlayer } from './lib/localPlayer';
 import { PlayerContext } from './lib/playerContext';
 import { DeckBuild } from './pages/DeckBuild';
@@ -17,11 +17,23 @@ function App() {
   const initialPlayer = useMemo(() => getOrCreateLocalPlayer(), []);
   const [player, setPlayer] = useState(initialPlayer);
   const [name, setName] = useState(initialPlayer.name);
+  const [serverUrlInitialized, setServerUrlInitialized] = useState(false);
   const [serverReady, setServerReady] = useState(false);
   const [serverCheckStartedAt, setServerCheckStartedAt] = useState(() => Date.now());
   const [showServerHelp, setShowServerHelp] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+    void initServerUrl().finally(() => {
+      if (!cancelled) setServerUrlInitialized(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!serverUrlInitialized) return;
     let cancelled = false;
     let interval = 0;
     const poll = async () => {
@@ -46,9 +58,9 @@ function App() {
       window.clearInterval(interval);
       window.clearTimeout(helpTimer);
     };
-  }, [serverCheckStartedAt]);
+  }, [serverCheckStartedAt, serverUrlInitialized]);
 
-  if (!serverReady) {
+  if (!serverUrlInitialized || !serverReady) {
     return (
       <ServerLoader
         serverUrl={getGameServerUrl()}
