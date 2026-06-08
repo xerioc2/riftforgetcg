@@ -1,7 +1,7 @@
 import { config, getGameServerUrl } from './env';
 import type { CardType, RiftCard } from '../types';
 
-const CACHE_KEY = 'riftforge.cards.v1';
+const CACHE_KEY = 'riftforge.cards.v2';
 const CANDIDATE_PATHS = ['/cards'];
 
 type UnknownRecord = Record<string, unknown>;
@@ -89,8 +89,8 @@ export const normalizeRiftcodexCard = (raw: unknown): RiftCard => {
     imageUrl: absolutize(asString(card.imageUrl, card.image_url, images.full, images.large, image.url, media.image_url)),
     rulesText: asString(card.rulesText, card.oracleText, card.description, text.rules, text.plain),
     flavorText: asString(card.flavorText, text.flavor),
-    power: asNumber(card.power, card.attack, attributes.power, attributes.attack),
-    health: asNumber(card.health, card.defense, card.toughness, attributes.health),
+    power: asNumber(card.power, attributes.might, card.attack, attributes.power, attributes.attack),
+    health: asNumber(card.health, attributes.power, card.defense, card.toughness, attributes.health),
     keywords: asStringList(card.keywords, card.abilities, card.keywordAbilities, classification.keywords),
   };
 };

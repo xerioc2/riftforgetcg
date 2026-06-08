@@ -38,23 +38,25 @@ export function computeLayout(width: number, height: number, playerIds: string[]
     const battlefieldHeight = half - runeStrip - baseHeight - 8;
     const opponent = others[0] ?? 'opponent';
 
+    // Opponent (top half): Base at very top closest to them, Battlefield in middle, Runes near center
     zones.push(zone('p1-champion', 'Champion', 0, 0, 95, half, opponent, 'champion'));
     zones.push(zone('p1-legend', 'Legend', 97, 0, 95, half, opponent, 'legend'));
-    zones.push(zone('p1-battlefield', 'Battlefield', leftCol + 4, 0, center, battlefieldHeight, opponent, 'battlefield'));
-    zones.push(zone('p1-base', 'Base', leftCol + 4, battlefieldHeight + 4, center, baseHeight, opponent, 'base'));
-    zones.push(zone('p1-rune-deck', 'Rune Deck', leftCol + 4, battlefieldHeight + baseHeight + 8, 80, runeStrip, opponent, 'rune-deck'));
-    zones.push(zone('p1-rune', 'Runes', leftCol + 88, battlefieldHeight + baseHeight + 8, center - 88, runeStrip, opponent, 'rune'));
+    zones.push(zone('p1-base', 'Base', leftCol + 4, 0, center, baseHeight, opponent, 'base'));
+    zones.push(zone('p1-battlefield', 'Battlefield', leftCol + 4, baseHeight + 4, center, battlefieldHeight, opponent, 'battlefield'));
+    zones.push(zone('p1-rune-deck', 'Rune Deck', leftCol + 4, baseHeight + battlefieldHeight + 8, 80, runeStrip, opponent, 'rune-deck'));
+    zones.push(zone('p1-rune', 'Runes', leftCol + 88, baseHeight + battlefieldHeight + 8, center - 88, runeStrip, opponent, 'rune'));
     zones.push(zone('p1-deck', 'Deck', width - rightCol, 0, 95, 120, opponent, 'deck'));
     zones.push(zone('p1-discard', 'Trash', width - rightCol, 124, 95, 80, opponent, 'discard'));
     zones.push(zone('center', '', 0, half, width, divider, null, 'limbo'));
 
+    // Local player (bottom half): Runes near center, Battlefield in middle, Base at very bottom closest to player
     const localY = half + divider;
     zones.push(zone('p0-champion', 'Champion', 0, localY, 95, half, local, 'champion'));
     zones.push(zone('p0-legend', 'Legend', 97, localY, 95, half, local, 'legend'));
-    zones.push(zone('p0-base', 'Base', leftCol + 4, localY, center, baseHeight, local, 'base'));
-    zones.push(zone('p0-battlefield', 'Battlefield', leftCol + 4, localY + baseHeight + 4, center, battlefieldHeight, local, 'battlefield'));
-    zones.push(zone('p0-rune-deck', 'Rune Deck', leftCol + 4, localY + baseHeight + battlefieldHeight + 8, 80, runeStrip, local, 'rune-deck'));
-    zones.push(zone('p0-rune', 'Runes', leftCol + 88, localY + baseHeight + battlefieldHeight + 8, center - 88, runeStrip, local, 'rune'));
+    zones.push(zone('p0-rune-deck', 'Rune Deck', leftCol + 4, localY, 80, runeStrip, local, 'rune-deck'));
+    zones.push(zone('p0-rune', 'Runes', leftCol + 88, localY, center - 88, runeStrip, local, 'rune'));
+    zones.push(zone('p0-battlefield', 'Battlefield', leftCol + 4, localY + runeStrip + 4, center, battlefieldHeight, local, 'battlefield'));
+    zones.push(zone('p0-base', 'Base', leftCol + 4, localY + runeStrip + battlefieldHeight + 8, center, baseHeight, local, 'base'));
     zones.push(zone('p0-deck', 'Deck', width - rightCol, localY, 95, 120, local, 'deck'));
     zones.push(zone('p0-discard', 'Trash', width - rightCol, localY + 124, 95, 80, local, 'discard'));
     return zones;

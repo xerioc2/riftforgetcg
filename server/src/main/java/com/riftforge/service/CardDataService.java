@@ -233,8 +233,8 @@ public class CardDataService {
         firstText(card, set, "setName", "expansion", "label"),
         firstText(card, media, "imageUrl", "image_url"),
         firstText(card, text, "rulesText", "oracleText", "description", "rules", "plain"),
-        firstInt(card, attributes, "power", "attack"),
-        firstInt(card, attributes, "health", "defense", "toughness"),
+        firstInt(card, attributes, "might", "power", "attack"),
+        firstInt(card, attributes, "power", "health", "defense", "toughness"),
         stringList(card, classification, "keywords", "abilities", "keywordAbilities"));
   }
 
