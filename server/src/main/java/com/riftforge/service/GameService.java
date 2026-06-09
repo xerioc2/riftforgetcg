@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.locks.ReentrantLock;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.context.ApplicationEventPublisher;
 import org.slf4j.Logger;
@@ -32,6 +33,7 @@ import org.springframework.stereotype.Service;
 public class GameService {
   private static final Logger log = LoggerFactory.getLogger(GameService.class);
   private final ConcurrentHashMap<String, LiveGameState> games = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, ReentrantLock> roomLocks = new ConcurrentHashMap<>();
   private final GameEngine engine;
   private final CardDataService cardDataService;
   private final SimpMessagingTemplate messaging;
@@ -61,21 +63,36 @@ public class GameService {
   }
 
   public void processMove(String roomCode, MoveRequest move) {
-    LiveGameState before = games.get(roomCode);
-    if (before == null) throw new IllegalStateException("Game not found: " + roomCode);
+    String normalizedRoomCode = roomCode.toUpperCase();
+    ReentrantLock lock = lockFor(normalizedRoomCode);
+    LiveGameState next = null;
+    boolean recordMatch = false;
+    String validationError = null;
+    Exception unexpectedError = null;
+    lock.lock();
     try {
+      LiveGameState before = games.get(normalizedRoomCode);
+      if (before == null) throw new IllegalStateException("Game not found: " + normalizedRoomCode);
       String previousWinnerId = before.getWinnerId();
-      LiveGameState next = engine.applyMove(before, move);
-      games.put(roomCode, next);
-      if (next.getWinnerId() != null && previousWinnerId == null) {
-        matchHistoryService.record(next);
-      }
-      broadcast(roomCode, next);
+      next = engine.applyMove(before, move);
+      games.put(normalizedRoomCode, next);
+      recordMatch = next.getWinnerId() != null && previousWinnerId == null;
     } catch (IllegalMoveException e) {
-      broadcastError(roomCode, e.getMessage(), move.playerId());
+      validationError = e.getMessage();
     } catch (Exception e) {
-      log.error("Failed to process {} in room {}", move.getClass().getSimpleName(), roomCode, e);
-      broadcastError(roomCode, "Server error: " + e.getMessage(), move.playerId());
+      unexpectedError = e;
+    } finally {
+      lock.unlock();
+    }
+
+    if (next != null) {
+      if (recordMatch) matchHistoryService.record(next);
+      broadcast(normalizedRoomCode, next);
+    } else if (validationError != null) {
+      broadcastError(normalizedRoomCode, validationError, move.playerId());
+    } else if (unexpectedError != null) {
+      log.error("Failed to process {} in room {}", move.getClass().getSimpleName(), normalizedRoomCode, unexpectedError);
+      broadcastError(normalizedRoomCode, "Server error: " + unexpectedError.getMessage(), move.playerId());
     }
   }
 
@@ -94,6 +111,7 @@ public class GameService {
   @Scheduled(fixedDelay = 3_600_000)
   public void evictFinishedGames() {
     games.entrySet().removeIf(entry -> entry.getValue().getWinnerId() != null);
+    roomLocks.keySet().removeIf(roomCode -> !games.containsKey(roomCode));
     log.info("Evicted finished games; {} active games remain", games.size());
   }
 
@@ -196,5 +214,9 @@ public class GameService {
 
   private void broadcastError(String roomCode, String message, String playerId) {
     messaging.convertAndSend("/topic/game/" + roomCode, new GameMessage.GameError(message, playerId));
+  }
+
+  private ReentrantLock lockFor(String roomCode) {
+    return roomLocks.computeIfAbsent(roomCode.toUpperCase(), ignored -> new ReentrantLock());
   }
 }
