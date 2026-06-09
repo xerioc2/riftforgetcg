@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Client } from '@stomp/stompjs';
 import { Link, useNavigate } from 'react-router-dom';
+import { deckToGameCardIds } from '../lib/deckUtils';
 import { getGameServerUrl } from '../lib/env';
 import { useLocalPlayer } from '../lib/playerContext';
 import { createMatchmakingClient } from '../lib/stompGame';
@@ -96,7 +97,7 @@ export function Home() {
     setMessage('');
     setSearching(true);
     searchingRef.current = true;
-    const deckCardIds = activeDeck.cards.flatMap((entry) => Array.from({ length: entry.quantity }, () => entry.cardId));
+    const deckCardIds = deckToGameCardIds(activeDeck);
     matchClientRef.current = createMatchmakingClient(
       player,
       (notification) => {

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Client } from '@stomp/stompjs';
 import { useNavigate, useParams } from 'react-router-dom';
+import { deckToGameCardIds } from '../lib/deckUtils';
 import { getGameServerUrl } from '../lib/env';
 import { useLocalPlayer } from '../lib/playerContext';
 import { createLobbyClient } from '../lib/stompGame';
@@ -20,6 +21,7 @@ export function Lobby() {
   const [botDeckId, setBotDeckId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [deckError, setDeckError] = useState<string | null>(null);
   const clientRef = useRef<Client | null>(null);
   const normalizedCode = code?.toUpperCase() ?? '';
 
@@ -59,23 +61,30 @@ export function Lobby() {
   const chooseDeck = (deckId: string) => {
     setActiveDeck(deckId);
     setMyDeckId(deckId);
+    setDeckError(null);
   };
 
   const deckCardIds = (deckId: string | null) => {
     const deck = decks.find((existing) => existing.id === deckId);
     if (!deck) return [];
-    return deck.cards.flatMap((entry) => Array.from({ length: entry.quantity }, () => entry.cardId));
+    return deckToGameCardIds(deck);
   };
 
   const selectedDeckCardIds = deckCardIds(myDeckId);
   const deckIsEmpty = selectedDeckCardIds.length === 0;
 
   const handleReady = async () => {
-    await fetch(`${getGameServerUrl()}/api/rooms/${normalizedCode}/ready`, {
+    const response = await fetch(`${getGameServerUrl()}/api/rooms/${normalizedCode}/ready`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ playerId: player.id, deckCardIds: selectedDeckCardIds }),
     });
+    if (!response.ok) {
+      const body = await response.text();
+      setDeckError(body || 'Deck is not valid.');
+      return;
+    }
+    setDeckError(null);
   };
 
   const handleSetBotDeck = async (deckId: string) => {
@@ -162,6 +171,7 @@ export function Lobby() {
               <button className="btn-primary mt-3 w-full" onClick={() => void handleReady()} disabled={!myDeckId || deckIsEmpty}>
                 {me?.ready ? 'Unready' : 'Ready up'}
               </button>
+              {deckError ? <p className="mt-2 text-sm text-ember">{deckError}</p> : null}
               {myDeckId && deckIsEmpty ? <p className="mt-2 text-xs text-ember">Deck is empty — add cards in the Deck Builder first.</p> : null}
             </>
           ) : (

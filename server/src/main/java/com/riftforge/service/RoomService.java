@@ -10,7 +10,9 @@ import com.riftforge.model.LobbyPlayer;
 import com.riftforge.model.RoomState;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -73,11 +75,51 @@ public class RoomService {
         .filter(p -> p.getId().equals(playerId))
         .findFirst()
         .ifPresent(p -> {
+          if (!p.isReady()) validateDeck(deckCardIds == null ? List.of() : deckCardIds);
           p.setReady(!p.isReady());
           p.setDeckCardIds(deckCardIds);
         });
     broadcast(code, room);
     return room;
+  }
+
+  private void validateDeck(List<String> cardIds) {
+    List<CardDefinition> submittedCards = new ArrayList<>();
+    for (String cardId : cardIds) {
+      CardDefinition def = resolveCard(cardId);
+      if (def == null) throw new IllegalArgumentException("Unknown card ID: " + cardId);
+      submittedCards.add(def);
+    }
+
+    boolean hasChampion = submittedCards.stream()
+        .anyMatch(card -> "Champion".equalsIgnoreCase(card.type()));
+    if (!hasChampion) throw new IllegalArgumentException("Deck must include a Champion card.");
+
+    long mainDeckCount = submittedCards.stream()
+        .filter(card -> !isType(card, "Rune"))
+        .filter(card -> !isType(card, "Battlefield"))
+        .filter(card -> !isType(card, "Champion"))
+        .count();
+    if (mainDeckCount < 20) throw new IllegalArgumentException("Main deck must have at least 20 cards.");
+
+    Map<String, Integer> copiesById = new HashMap<>();
+    for (CardDefinition card : submittedCards) {
+      if (isType(card, "Champion") || isType(card, "Rune") || isType(card, "Battlefield")) continue;
+      int copies = copiesById.merge(card.id(), 1, Integer::sum);
+      if (copies > 3) throw new IllegalArgumentException("Cannot include more than 3 copies of " + card.name() + ".");
+    }
+  }
+
+  private boolean isType(CardDefinition card, String type) {
+    return type.equalsIgnoreCase(card.type());
+  }
+
+  private CardDefinition resolveCard(String cardId) {
+    Map<String, CardDefinition> allCards = cardDataService.getAll();
+    CardDefinition def = allCards == null ? null : allCards.get(cardId);
+    if (def == null) def = cardDataService.getCard(cardId);
+    if (def == null || "Unknown".equalsIgnoreCase(def.type())) return null;
+    return def;
   }
 
   public RoomState setBotDeck(String code, List<String> deckCardIds) {
