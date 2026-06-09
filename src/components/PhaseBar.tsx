@@ -5,7 +5,6 @@ const PHASE_LABELS: Record<string, string> = {
   CHANNEL: 'Channel',
   DRAW: 'Draw',
   MAIN: 'Main Phase',
-  COMBAT: 'Combat',
   END: 'End Phase',
 };
 
@@ -17,16 +16,18 @@ interface PhaseBarProps {
   canPass: boolean;
   opponentName: string;
   onPassPhase: () => void;
+  activeShowdown?: boolean;
   bottom?: number;
 }
 
-export function PhaseBar({ currentPhase, isMyTurn, canPass, opponentName, onPassPhase, bottom = 172 }: PhaseBarProps) {
+export function PhaseBar({ currentPhase, isMyTurn, canPass, opponentName, onPassPhase, activeShowdown = false, bottom = 172 }: PhaseBarProps) {
+  const currentLabel = activeShowdown && currentPhase === 'MAIN' ? 'Main Phase - Showdown' : PHASE_LABELS[currentPhase] ?? currentPhase;
   return (
     <div className="pointer-events-auto absolute left-0 z-20 flex h-12 items-center gap-1 border-t border-line bg-panel/95 px-3" style={{ right: '280px', bottom }}>
       <div className="flex min-w-0 overflow-x-auto">
         {PHASES.map((phase) => (
           <span className={`shrink-0 px-3 py-1 text-xs font-semibold transition-colors ${currentPhase === phase ? 'bg-forge text-ink' : 'text-slate-500'}`} key={phase}>
-            {PHASE_LABELS[phase] ?? phase}
+            {phase === currentPhase ? currentLabel : PHASE_LABELS[phase] ?? phase}
           </span>
         ))}
       </div>
@@ -35,7 +36,7 @@ export function PhaseBar({ currentPhase, isMyTurn, canPass, opponentName, onPass
           {isMyTurn ? 'Your turn' : `${opponentName}'s turn`}
         </span>
         <button className="btn-primary min-h-7 px-4 py-1 text-xs disabled:opacity-40" disabled={!canPass} onClick={onPassPhase}>
-          Pass
+          {activeShowdown ? 'Resolve Showdown' : 'Pass'}
         </button>
       </div>
     </div>

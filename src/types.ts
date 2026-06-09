@@ -131,6 +131,7 @@ export type LogEntry = {
 export type LiveGameState = {
   roomCode: string;
   currentPhase?: string;
+  activeShowdown?: ShowdownState | null;
   activePlayerId?: string;
   firstPlayerId?: string;
   turnNumber?: number;
@@ -145,6 +146,12 @@ export type LiveGameState = {
   battlefieldController?: Record<string, string>;
   scoredBattlefieldsThisTurn?: string[];
   revealedHands?: RevealedHandSnapshot[];
+};
+
+export type ShowdownState = {
+  attackingPlayerId: string;
+  attackerInstanceIds: string[];
+  gankingBonuses?: Record<string, number>;
 };
 
 export type RevealedHandSnapshot = {

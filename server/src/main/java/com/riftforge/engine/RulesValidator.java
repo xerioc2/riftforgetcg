@@ -29,6 +29,9 @@ public class RulesValidator {
     }
     if (move instanceof MulliganMove) throw new IllegalMoveException("Mulligans are already complete.");
     if (move instanceof AdjustScoreMove || move instanceof DealCardMove) return;
+    if (state.getActiveShowdown() != null && !(move instanceof ResolveShowdownMove)) {
+      throw new IllegalMoveException("Resolve the active showdown first.");
+    }
     if (move instanceof TapCardMove tap) { validateOwnedCard(state, tap.playerId(), tap.instanceId()); return; }
     if (move instanceof FlipCardMove flip) { validateOwnedCard(state, flip.playerId(), flip.instanceId()); return; }
     if (!move.playerId().equals(state.getActivePlayerId())) {
@@ -43,6 +46,7 @@ public class RulesValidator {
       throw new IllegalMoveException("Not your turn.");
     }
     if (move instanceof VisionChoiceMove vision) { validateVisionChoice(state, vision); return; }
+    if (move instanceof ResolveShowdownMove resolve) { validateResolveShowdown(state, resolve); return; }
     if (move instanceof PassPhaseMove) return;
     if (move instanceof UndoRunesMove undo) { validateUndoRunes(state, undo); return; }
     if (move instanceof PlayCardMove play) { validatePlayCard(state, play); return; }
@@ -123,12 +127,21 @@ public class RulesValidator {
 
   private void validateMoveToBattlefield(LiveGameState state, MoveToBattlefieldMove move) {
     requireMain(state);
+    if (state.getActiveShowdown() != null) throw new IllegalMoveException("A showdown is already active.");
     CardInstance card = findCard(state, move.instanceId());
     if (!move.playerId().equals(card.getOwnerId())) throw new IllegalMoveException("You do not own that card.");
     if (card.getZone() != ZoneName.BASE && card.getZone() != ZoneName.CHAMPION && card.getZone() != ZoneName.LEGEND) {
       throw new IllegalMoveException("Only cards from your base can move to the battlefield.");
     }
     if (card.isTapped()) throw new IllegalMoveException("Only ready cards can move to the battlefield.");
+  }
+
+  private void validateResolveShowdown(LiveGameState state, ResolveShowdownMove move) {
+    requireMain(state);
+    if (state.getActiveShowdown() == null) throw new IllegalMoveException("No showdown is active.");
+    if (!move.playerId().equals(state.getActiveShowdown().attackingPlayerId())) {
+      throw new IllegalMoveException("Only the attacking player can resolve this showdown.");
+    }
   }
 
   private void validateMoveCard(LiveGameState state, MoveCardMove move) {

@@ -7,6 +7,5 @@ public enum Phase {
   CHANNEL,
   DRAW,
   MAIN,
-  COMBAT,
   END
 }

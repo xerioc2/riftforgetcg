@@ -15,6 +15,7 @@ export type MoveRequest =
   | { type: 'MULLIGAN'; playerId: string; discardInstanceIds: string[] }
   | { type: 'UNDO_RUNES'; playerId: string }
   | { type: 'PASS_PHASE'; playerId: string }
+  | { type: 'RESOLVE_SHOWDOWN'; playerId: string }
   | { type: 'ADJUST_SCORE'; playerId: string; targetPlayerId: string; delta: number }
   | { type: 'VISION_CHOICE'; playerId: string; recycle: boolean }
   | { type: 'DISMISS_REVEALED'; playerId: string; instanceId: string };

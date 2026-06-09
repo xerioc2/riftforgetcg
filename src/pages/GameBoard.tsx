@@ -134,11 +134,11 @@ export function GameBoard() {
   }, [handHeight]);
 
   useEffect(() => {
-    if (state?.currentPhase !== 'MAIN') {
+    if (state?.currentPhase !== 'MAIN' || state?.activeShowdown) {
       setPendingRuneTaps(new Set());
       setPendingSpellInstanceId(null);
     }
-  }, [state?.currentPhase]);
+  }, [state?.activeShowdown, state?.currentPhase]);
 
   useEffect(() => {
     if (state?.currentPhase === 'MULLIGAN' && !hasMulliganed) {
@@ -156,7 +156,7 @@ export function GameBoard() {
 
   const handleIncomingState = useCallback(
     (incoming: LiveGameState) => {
-      const prevPhase = prevState.current?.currentPhase;
+      const prevShowdown = prevState.current?.activeShowdown;
       const prevScore = prevState.current?.players.find((item) => item.userId === player.id)?.score ?? 0;
       const newScore = incoming.players.find((item) => item.userId === player.id)?.score ?? 0;
       let newBattlefieldCards = 0;
@@ -172,7 +172,7 @@ export function GameBoard() {
       if (incoming.winnerId === player.id && prevState.current?.winnerId !== incoming.winnerId) void play('victory');
       else if (incoming.winnerId && prevState.current?.winnerId !== incoming.winnerId) void play('defeat');
       if (newBattlefieldCards > 0) void play('cardPlay');
-      if (incoming.currentPhase === 'COMBAT' && prevPhase !== 'COMBAT') void play('attack');
+      if (incoming.activeShowdown && !prevShowdown) void play('attack');
       const playerLogs = incoming.log.filter((entry) => entry.userId === player.id);
       const visionLog = [...playerLogs].reverse().find((entry) => entry.text.startsWith('VISION_PEEK|'));
       const visionResolution = [...playerLogs].reverse().find((entry) => entry.text.startsWith('VISION_RESOLVED|'));
@@ -327,7 +327,7 @@ export function GameBoard() {
     const instance = state?.cards.find((card) => card.instanceId === instanceId);
     if (!instance) return;
     const zone = pointZone(x, y, zones, instance.zone);
-    if (sameZone(instance.zone, 'base') && sameZone(zone, 'battlefield') && instance.ownerId === player.id) {
+    if (sameZone(instance.zone, 'base') && sameZone(zone, 'battlefield') && instance.ownerId === player.id && !state?.activeShowdown) {
       publishMove({ type: 'MOVE_TO_BATTLEFIELD', playerId: player.id, instanceId });
       return;
     }
@@ -376,6 +376,10 @@ export function GameBoard() {
   };
 
   const handlePassPhase = () => {
+    if (state?.activeShowdown) {
+      publishMove({ type: 'RESOLVE_SHOWDOWN', playerId: player.id });
+      return;
+    }
     publishMove({ type: 'PASS_PHASE', playerId: player.id });
   };
 
@@ -435,11 +439,12 @@ export function GameBoard() {
         .reduce((total, rune) => total + rune.normalEnergy, 0);
   const opponentUntappedRunes = (state.runes ?? []).filter((rune) => rune.ownerId === opponent?.userId && !rune.tapped).length;
   const isMyTurn = state.activePlayerId === player.id;
-  const canPlayReactions = state.currentPhase === 'MAIN' && !isMyTurn;
+  const showdownActive = Boolean(state.activeShowdown);
+  const canPlayReactions = state.currentPhase === 'MAIN' && !isMyTurn && !showdownActive;
   const hasSpellReaction = hand.some((instance) => cardsById.get(instance.cardId)?.type?.toLowerCase() === 'spell');
   const ownRuneZone = zones.find((zone) => zone.zoneName === 'rune' && zone.ownerId === player.id);
   const hasTappedOwnRune = (state.runes ?? []).some((rune) => rune.ownerId === player.id && rune.tapped);
-  const canUndoRunes = isMyTurn && state.currentPhase === 'MAIN' && !state.cardPlayedThisTurn && hasTappedOwnRune;
+  const canUndoRunes = isMyTurn && state.currentPhase === 'MAIN' && !showdownActive && !state.cardPlayedThisTurn && hasTappedOwnRune;
   const canPass = state.currentPhase === 'MULLIGAN' ? false : isMyTurn;
 
   return (
@@ -573,7 +578,7 @@ export function GameBoard() {
           onLeave={() => navigate('/')}
         />
       ) : null}
-      <PhaseBar currentPhase={state.currentPhase ?? 'MAIN'} isMyTurn={isMyTurn} canPass={canPass} opponentName={opponentName} onPassPhase={handlePassPhase} bottom={handHeight} />
+      <PhaseBar currentPhase={state.currentPhase ?? 'MAIN'} isMyTurn={isMyTurn} canPass={canPass} opponentName={opponentName} onPassPhase={handlePassPhase} activeShowdown={showdownActive} bottom={handHeight} />
       {canPlayReactions && hasSpellReaction ? (
         <div className="pointer-events-none absolute left-0 z-20 flex justify-center text-xs font-medium text-forge" style={{ right: `${SIDEBAR_WIDTH}px`, bottom: handHeight + PHASE_BAR_HEIGHT + 6 }}>
           Opponent&apos;s turn - you may play spells as reactions
@@ -610,7 +615,7 @@ export function GameBoard() {
           cardScale={cardScale}
           onHover={handleCardHover}
           effectiveEnergy={spendableEnergy}
-          canPlayCards={state.currentPhase === 'MAIN' && isMyTurn}
+          canPlayCards={state.currentPhase === 'MAIN' && isMyTurn && !showdownActive}
           canPlayReactions={canPlayReactions}
           embedded
           maxHeight={handHeight}

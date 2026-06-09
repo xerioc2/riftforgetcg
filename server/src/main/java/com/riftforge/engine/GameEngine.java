@@ -7,8 +7,10 @@ import com.riftforge.service.CardDataService;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
@@ -47,6 +49,7 @@ public class GameEngine {
       case TapRuneMove m -> applyTapRune(state, m);
       case DiscardRuneMove m -> applyDiscardRune(state, m);
       case MoveToBattlefieldMove m -> applyMoveToBattlefield(state, m);
+      case ResolveShowdownMove m -> applyResolveShowdown(state, m);
       case MulliganMove m -> applyMulligan(state, m);
       case UndoRunesMove m -> applyUndoRunes(state, m);
       case PassPhaseMove m -> applyPassPhase(state);
@@ -212,15 +215,26 @@ public class GameEngine {
       state.getBattlefieldController().put("BATTLEFIELD", move.playerId());
       return state;
     }
-    state.setCurrentPhase(Phase.COMBAT);
-    CombatResolver.CombatResult result = combatResolver.resolve(state, move.playerId());
-    if (gankingBonus > 0) {
-      card.setTemporaryPowerModifier(Math.max(0, card.getTemporaryPowerModifier() - gankingBonus));
-    }
-    if (result.attackersRemain() && result.defendersEliminated()) conquerBattlefield(state, move.playerId());
-    else if (!result.defendersEliminated()) returnBattlefieldCardsToBase(state, move.playerId());
-    log(state, move.playerId(), "Combat resolved.");
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        move.playerId(),
+        List.of(card.getInstanceId()),
+        gankingBonus > 0 ? new HashMap<>(Map.of(card.getInstanceId(), gankingBonus)) : new HashMap<>()));
+    log(state, move.playerId(), "Showdown started.");
+    return state;
+  }
+
+  private LiveGameState applyResolveShowdown(LiveGameState state, ResolveShowdownMove move) {
+    LiveGameState.ShowdownState showdown = state.getActiveShowdown();
+    CombatResolver.CombatResult result = combatResolver.resolve(state, showdown.attackingPlayerId());
+    showdown.gankingBonuses().forEach((instanceId, bonus) -> state.getCards().stream()
+        .filter(card -> card.getInstanceId().equals(instanceId))
+        .findFirst()
+        .ifPresent(card -> card.setTemporaryPowerModifier(Math.max(0, card.getTemporaryPowerModifier() - bonus))));
+    if (result.attackersRemain() && result.defendersEliminated()) conquerBattlefield(state, showdown.attackingPlayerId());
+    else if (!result.defendersEliminated()) returnBattlefieldCardsToBase(state, showdown.attackingPlayerId());
+    state.setActiveShowdown(null);
     state.setCurrentPhase(Phase.MAIN);
+    log(state, move.playerId(), "Showdown resolved.");
     return state;
   }
 
@@ -245,7 +259,6 @@ public class GameEngine {
       case CHANNEL -> { applyChannel(state); next = Phase.DRAW; }
       case DRAW -> { applyDraw(state); clearEnergy(state); next = Phase.MAIN; }
       case MAIN -> next = Phase.END;
-      case COMBAT -> next = Phase.MAIN;
       case END -> {
         finishEndPhase(state);
         clearEnergy(state);

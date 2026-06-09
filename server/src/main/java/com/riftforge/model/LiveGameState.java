@@ -24,8 +24,10 @@ public class LiveGameState {
   private Map<String, String> battlefieldController = new HashMap<>();
   private Set<String> scoredBattlefieldsThisTurn = new HashSet<>();
   private List<RevealedHandSnapshot> revealedHands = new ArrayList<>();
+  private ShowdownState activeShowdown;
 
   public record LogEntry(String id, String timestamp, String userId, String text) {}
+  public record ShowdownState(String attackingPlayerId, List<String> attackerInstanceIds, Map<String, Integer> gankingBonuses) {}
 
   public String getRoomCode() { return roomCode; }
   public void setRoomCode(String roomCode) { this.roomCode = roomCode; }
@@ -59,4 +61,6 @@ public class LiveGameState {
   public void setScoredBattlefieldsThisTurn(Set<String> scoredBattlefieldsThisTurn) { this.scoredBattlefieldsThisTurn = scoredBattlefieldsThisTurn; }
   public List<RevealedHandSnapshot> getRevealedHands() { return revealedHands; }
   public void setRevealedHands(List<RevealedHandSnapshot> revealedHands) { this.revealedHands = revealedHands; }
+  public ShowdownState getActiveShowdown() { return activeShowdown; }
+  public void setActiveShowdown(ShowdownState activeShowdown) { this.activeShowdown = activeShowdown; }
 }

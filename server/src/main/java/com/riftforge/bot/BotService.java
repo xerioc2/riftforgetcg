@@ -13,6 +13,7 @@ import com.riftforge.model.move.PassPhaseMove;
 import com.riftforge.model.move.PlayCardMove;
 import com.riftforge.model.move.MoveToBattlefieldMove;
 import com.riftforge.model.move.MulliganMove;
+import com.riftforge.model.move.ResolveShowdownMove;
 import com.riftforge.model.move.TapRuneMove;
 import com.riftforge.service.CardDataService;
 import com.riftforge.service.GameService;
@@ -81,9 +82,13 @@ public class BotService {
   }
 
   private void doActiveTurn(String roomCode, LiveGameState state, String botId) {
+    if (state.getActiveShowdown() != null) {
+      gameService.processMove(roomCode, new ResolveShowdownMove(botId));
+      return;
+    }
     switch (state.getCurrentPhase()) {
       case MULLIGAN -> doMulligan(roomCode, state, botId);
-      case AWAKEN, BEGINNING, CHANNEL, DRAW, COMBAT, END -> gameService.processMove(roomCode, new PassPhaseMove(botId));
+      case AWAKEN, BEGINNING, CHANNEL, DRAW, END -> gameService.processMove(roomCode, new PassPhaseMove(botId));
       case MAIN -> doMain(roomCode, state, botId);
     }
   }
@@ -103,7 +108,13 @@ public class BotService {
       gameService.processMove(roomCode, new MoveToBattlefieldMove(botId, champion.getInstanceId()));
       sleepBriefly(200);
       state = gameService.currentState(roomCode);
+      if (state != null && state.getActiveShowdown() != null) {
+        gameService.processMove(roomCode, new ResolveShowdownMove(botId));
+        sleepBriefly(200);
+        state = gameService.currentState(roomCode);
+      }
     }
+    if (state == null) return;
 
     List<CardInstance> readyBaseCards = state.getCards().stream()
         .filter(c -> botId.equals(c.getOwnerId()) && c.getZone() == ZoneName.BASE && !c.isTapped())
@@ -115,7 +126,13 @@ public class BotService {
       gameService.processMove(roomCode, new MoveToBattlefieldMove(botId, card.getInstanceId()));
       sleepBriefly(200);
       state = gameService.currentState(roomCode);
+      if (state != null && state.getActiveShowdown() != null) {
+        gameService.processMove(roomCode, new ResolveShowdownMove(botId));
+        sleepBriefly(200);
+        state = gameService.currentState(roomCode);
+      }
     }
+    if (state == null) return;
 
     List<RuneState> untappedRunes = state.getRunes().stream()
         .filter(r -> botId.equals(r.getOwnerId()) && !r.isTapped())
