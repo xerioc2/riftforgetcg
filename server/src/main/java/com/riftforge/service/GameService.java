@@ -5,8 +5,10 @@ import com.riftforge.engine.IllegalMoveException;
 import com.riftforge.bot.GameStateChangedEvent;
 import com.riftforge.model.CardDefinition;
 import com.riftforge.model.CardInstance;
+import com.riftforge.model.CompletedMatchSnapshot;
 import com.riftforge.model.GameMode;
 import com.riftforge.model.LiveGameState;
+import com.riftforge.model.MatchRecord;
 import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
 import com.riftforge.model.RuneState;
@@ -28,6 +30,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+
+import static com.riftforge.bot.BotConstants.ALL_BOT_IDS;
 
 @Service
 public class GameService {
@@ -66,7 +70,7 @@ public class GameService {
     String normalizedRoomCode = roomCode.toUpperCase();
     ReentrantLock lock = lockFor(normalizedRoomCode);
     LiveGameState next = null;
-    boolean recordMatch = false;
+    CompletedMatchSnapshot completedMatch = null;
     String validationError = null;
     Exception unexpectedError = null;
     lock.lock();
@@ -76,7 +80,9 @@ public class GameService {
       String previousWinnerId = before.getWinnerId();
       next = engine.applyMove(before, move);
       games.put(normalizedRoomCode, next);
-      recordMatch = next.getWinnerId() != null && previousWinnerId == null;
+      if (next.getWinnerId() != null && previousWinnerId == null) {
+        completedMatch = completedMatchSnapshot(next);
+      }
     } catch (IllegalMoveException e) {
       validationError = e.getMessage();
     } catch (Exception e) {
@@ -86,7 +92,7 @@ public class GameService {
     }
 
     if (next != null) {
-      if (recordMatch) matchHistoryService.record(next);
+      if (completedMatch != null) matchHistoryService.record(completedMatch);
       broadcast(normalizedRoomCode, next);
     } else if (validationError != null) {
       broadcastError(normalizedRoomCode, validationError, move.playerId());
@@ -120,9 +126,17 @@ public class GameService {
   }
 
   public LiveGameState reset(String roomCode, List<String> playerIds, Map<String, List<String>> decksByPlayer, Map<String, String> playerNames, GameMode gameMode) {
-    LiveGameState state = createInitialState(roomCode, playerIds, decksByPlayer, playerNames, gameMode);
-    games.put(roomCode, state);
-    broadcast(roomCode, state);
+    String normalizedRoomCode = roomCode.toUpperCase();
+    ReentrantLock lock = lockFor(normalizedRoomCode);
+    LiveGameState state;
+    lock.lock();
+    try {
+      state = createInitialState(normalizedRoomCode, playerIds, decksByPlayer, playerNames, gameMode);
+      games.put(normalizedRoomCode, state);
+    } finally {
+      lock.unlock();
+    }
+    broadcast(normalizedRoomCode, state);
     return state;
   }
 
@@ -214,6 +228,18 @@ public class GameService {
 
   private void broadcastError(String roomCode, String message, String playerId) {
     messaging.convertAndSend("/topic/game/" + roomCode, new GameMessage.GameError(message, playerId));
+  }
+
+  private CompletedMatchSnapshot completedMatchSnapshot(LiveGameState state) {
+    List<MatchRecord.PlayerSummary> players = state.getPlayers().stream()
+        .map(player -> new MatchRecord.PlayerSummary(
+            player.getUserId(),
+            player.getName() == null || player.getName().isBlank() ? player.getUserId() : player.getName(),
+            player.getScore()))
+        .toList();
+    boolean hasBotPlayer = state.getPlayers().stream()
+        .anyMatch(player -> ALL_BOT_IDS.contains(player.getUserId()));
+    return new CompletedMatchSnapshot(state.getTurnNumber(), state.getWinnerId(), players, hasBotPlayer);
   }
 
   private ReentrantLock lockFor(String roomCode) {

@@ -1,6 +1,7 @@
 package com.riftforge.service;
 
 import com.riftforge.bot.BotConstants;
+import com.riftforge.model.CompletedMatchSnapshot;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.MatchRecord;
 import java.time.Instant;
@@ -32,6 +33,19 @@ public class MatchHistoryService {
         state.getTurnNumber(),
         state.getWinnerId(),
         players));
+
+    while (history.size() > MAX_RECORDS) history.removeLast();
+  }
+
+  public synchronized void record(CompletedMatchSnapshot snapshot) {
+    if (snapshot.hasBotPlayer()) return;
+
+    history.addFirst(new MatchRecord(
+        UUID.randomUUID().toString(),
+        Instant.now().toString(),
+        snapshot.turnCount(),
+        snapshot.winnerId(),
+        snapshot.players()));
 
     while (history.size() > MAX_RECORDS) history.removeLast();
   }
