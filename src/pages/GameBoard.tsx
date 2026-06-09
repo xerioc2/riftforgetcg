@@ -19,7 +19,6 @@ import { useLocalPlayer } from '../lib/playerContext';
 import { play, preload } from '../lib/sfx';
 import { createGameClient, joinGame, sendMove } from '../lib/stompGame';
 import { useCardStore } from '../store/cards';
-import { useDeckStore } from '../store/decks';
 import { useGameStore } from '../store/game';
 import type { CardInstance, LiveGameState, RevealedHandSnapshot, RiftCard, ZoneName } from '../types';
 
@@ -57,7 +56,6 @@ export function GameBoard() {
   const navigate = useNavigate();
   const player = useLocalPlayer();
   const { cards, loadCards } = useCardStore();
-  const { decks, activeDeckId } = useDeckStore();
   const { state, chat, setState, addChat } = useGameStore();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -88,7 +86,6 @@ export function GameBoard() {
   const handledVisionLogRef = useRef<string | null>(null);
 
   const roomCode = code?.toUpperCase() ?? '';
-  const activeDeck = decks.find((deck) => deck.id === activeDeckId) ?? decks[0];
   const cardsById = useMemo(() => new Map(cards.map((card) => [card.id, card])), [cards]);
   const playerIds = useMemo(() => {
     const ids = state?.players.map((item) => item.userId) ?? [];
@@ -111,20 +108,6 @@ export function GameBoard() {
   const hand = useMemo(() => (state?.cards ?? []).filter((card) => card.ownerId === player.id && sameZone(card.zone, 'hand')), [player.id, state?.cards]);
   const handInstanceKey = useMemo(() => hand.map((card) => card.instanceId).sort().join(','), [hand]);
   const hasMulliganed = state?.mulligansDone?.includes(player.id) ?? false;
-  const deckCards = useMemo(() => {
-    const onBoardCounts = new Map<string, number>();
-    for (const instance of state?.cards ?? []) {
-      if (instance.ownerId === player.id) onBoardCounts.set(instance.cardId, (onBoardCounts.get(instance.cardId) ?? 0) + 1);
-    }
-    return activeDeck.cards
-      .map((entry) => {
-        const card = cardsById.get(entry.cardId);
-        if (!card || card.type === 'Champion') return null;
-        return { card, remaining: Math.max(0, entry.quantity - (onBoardCounts.get(entry.cardId) ?? 0)) };
-      })
-      .filter((entry): entry is { card: RiftCard; remaining: number } => Boolean(entry && entry.remaining > 0));
-  }, [activeDeck.cards, cardsById, player.id, state?.cards]);
-
   useEffect(() => {
     if (cards.length === 0) void loadCards();
   }, [cards.length, loadCards]);
@@ -281,20 +264,6 @@ export function GameBoard() {
     }, 1000);
   };
 
-  const dealCard = (card: RiftCard) => {
-    publishMove({ type: 'DEAL_CARD', playerId: player.id, cardId: card.id, targetZone: 'HAND', x: size.width / 2, y: size.height - 54 });
-  };
-
-  const drawHand = () => {
-    const pool = deckCards.flatMap(({ card, remaining }) => Array.from({ length: remaining }, () => card));
-    [...pool]
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 5)
-      .forEach((card, index) => {
-        publishMove({ type: 'DEAL_CARD', playerId: player.id, cardId: card.id, targetZone: 'HAND', x: 120 + index * 92, y: size.height - 54 });
-      });
-  };
-
   const commitRunesForCard = (cardDef: RiftCard | undefined, additionalCost = 0) => {
     const playerEnergy = state?.players.find((statePlayer) => statePlayer.userId === player.id)?.availableEnergy ?? 0;
     const selectedRunes = new Set(pendingRuneTaps);
@@ -429,7 +398,7 @@ export function GameBoard() {
       <CenteredState>
         <p>{error || 'Game unavailable.'}</p>
         <button className="btn-secondary mt-4" onClick={() => navigate('/')}>
-          Leave
+          Home
         </button>
       </CenteredState>
     );
@@ -452,8 +421,8 @@ export function GameBoard() {
         return card ? { instanceId, card } : null;
       })
       .filter((entry): entry is { instanceId: string; card: RiftCard } => Boolean(entry));
-  const opponentDeckCount = visibleCardsFor(opponent?.userId, 'deck').length;
-  const myDeckCount = visibleCardsFor(player.id, 'deck').length;
+  const opponentDeckCount = opponent?.deckCount ?? 0;
+  const myDeckCount = me?.deckCount ?? 0;
   const opponentDiscardCards = visibleCardsFor(opponent?.userId, 'discard');
   const myDiscardCards = visibleCardsFor(player.id, 'discard');
   const opponentRevealedSnapshot = state.revealedHands?.find((snapshot) => snapshot.revealedToPlayerId === player.id && snapshot.revealedOwnerId === opponent?.userId);
@@ -573,10 +542,12 @@ export function GameBoard() {
           isActive={state.activePlayerId === opponent.userId}
           isMe={false}
           deckCount={opponentDeckCount}
+          runeDeckCount={opponent.runePoolRemaining ?? 0}
           discardCards={opponentDiscardCards}
           revealedSnapshot={opponentRevealedSnapshot}
           revealedCards={revealedCardsFor(opponentRevealedSnapshot)}
           onDismissRevealed={dismissRevealed}
+          onHover={handleCardHover}
         />
       ) : null}
       {me ? (
@@ -591,10 +562,15 @@ export function GameBoard() {
           isMe
           bottom={handHeight + PHASE_BAR_HEIGHT + 4}
           deckCount={myDeckCount}
+          runeDeckCount={me.runePoolRemaining ?? 0}
           discardCards={myDiscardCards}
           revealedSnapshot={myRevealedSnapshot}
           revealedCards={revealedCardsFor(myRevealedSnapshot)}
           onDismissRevealed={dismissRevealed}
+          onHover={handleCardHover}
+          cardScale={cardScale}
+          onCardScaleChange={setCardScale}
+          onLeave={() => navigate('/')}
         />
       ) : null}
       <PhaseBar currentPhase={state.currentPhase ?? 'MAIN'} isMyTurn={isMyTurn} canPass={canPass} opponentName={opponentName} onPassPhase={handlePassPhase} bottom={handHeight} />
@@ -603,24 +579,7 @@ export function GameBoard() {
           Opponent&apos;s turn - you may play spells as reactions
         </div>
       ) : null}
-      <GameSidebar log={state.log} chat={chat} deckCards={deckCards} onSend={sendChat} onDeal={dealCard} onDrawHand={drawHand} onHover={handleCardHover} />
-      <div className="pointer-events-auto absolute right-[288px] top-2 z-20 flex items-center gap-2">
-        <details className="relative">
-          <summary className="icon-btn cursor-pointer select-none text-xs" title="Settings" aria-label="Settings">
-            &#9881;
-          </summary>
-          <div className="absolute right-0 top-10 flex items-center gap-2 border border-line bg-panel p-2 shadow-glow">
-            <label className="text-xs text-slate-300" htmlFor="card-size">
-              Size
-            </label>
-            <input id="card-size" type="range" min="0.8" max="2" step="0.1" value={cardScale} onChange={(event) => setCardScale(Number(event.target.value))} className="w-24 accent-forge" />
-            <span className="w-8 text-right text-xs text-forge">{Math.round(cardScale * 100)}%</span>
-          </div>
-        </details>
-        <button className="btn-secondary min-h-8 px-3 py-1 text-xs" onClick={() => navigate('/')}>
-          Leave
-        </button>
-      </div>
+      <GameSidebar log={state.log} chat={chat} onSend={sendChat} />
       <div
         className="pointer-events-auto absolute left-0 z-30 flex h-2 cursor-ns-resize items-center justify-center bg-line/50 hover:bg-forge/40"
         style={{ bottom: handHeight + PHASE_BAR_HEIGHT - 4, right: `${SIDEBAR_WIDTH}px` }}
@@ -804,7 +763,7 @@ export function GameBoard() {
               Play Again
             </button>
             <button className="btn-secondary" onClick={() => navigate('/')}>
-              Leave
+              Home
             </button>
           </div>
         </div>

@@ -1,6 +1,7 @@
 package com.riftforge.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,4 +25,6 @@ public class PlayerState {
   public void setRunePoolRemaining(int runePoolRemaining) { this.runePoolRemaining = runePoolRemaining; }
   public List<String> getDeckPool() { return deckPool; }
   public void setDeckPool(List<String> deckPool) { this.deckPool = deckPool; }
+  @JsonProperty("deckCount")
+  public int getDeckCount() { return deckPool == null ? 0 : deckPool.size(); }
 }

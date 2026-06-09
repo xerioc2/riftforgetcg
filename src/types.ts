@@ -110,6 +110,7 @@ export type PlayerGameState = {
   score: number;
   availableEnergy?: number;
   runePoolRemaining?: number;
+  deckCount?: number;
 };
 
 export type MatchRecord = {
