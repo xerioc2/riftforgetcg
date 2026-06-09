@@ -35,6 +35,8 @@ export type Deck = {
   id: string;
   userId?: string;
   name: string;
+  legendCardId?: string;
+  /** @deprecated Use legendCardId. Older local decks stored the selected Legend here. */
   championCardId?: string;
   cards: DeckCard[];
   updatedAt: string;
@@ -51,6 +53,7 @@ export type DeckValidation = {
 };
 
 export type RoomStatus = 'waiting' | 'playing' | 'finished';
+export type GameMode = 'ENFORCED' | 'SANDBOX';
 
 export type PresencePlayer = {
   userId: string;
@@ -83,6 +86,7 @@ export type RoomState = {
   players: DevLobbyPlayer[];
   status: 'waiting' | 'playing';
   botEnabled: boolean;
+  gameMode?: GameMode;
 };
 
 export type ZoneName = 'hand' | 'battlefield' | 'base' | 'rune' | 'rune-deck' | 'champion' | 'legend' | 'discard' | 'deck' | 'limbo';
@@ -131,6 +135,7 @@ export type LogEntry = {
 export type LiveGameState = {
   roomCode: string;
   currentPhase?: string;
+  gameMode?: GameMode;
   activeShowdown?: ShowdownState | null;
   activePlayerId?: string;
   firstPlayerId?: string;

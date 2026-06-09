@@ -6,7 +6,11 @@ const STORAGE_KEY = 'riftforge.decks.v1';
 const readDecks = (): Deck[] => {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? (JSON.parse(saved) as Deck[]) : [];
+    const decks = saved ? (JSON.parse(saved) as Deck[]) : [];
+    return decks.map((deck) => ({
+      ...deck,
+      legendCardId: deck.legendCardId ?? deck.championCardId,
+    }));
   } catch {
     return [];
   }

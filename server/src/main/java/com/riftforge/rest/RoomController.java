@@ -1,6 +1,7 @@
 package com.riftforge.rest;
 
 import com.riftforge.model.LobbyPlayer;
+import com.riftforge.model.GameMode;
 import com.riftforge.model.RoomState;
 import com.riftforge.service.GameService;
 import com.riftforge.service.RoomService;
@@ -32,7 +33,12 @@ public class RoomController {
     return ResponseEntity.badRequest().body(ex.getMessage());
   }
 
-  record CreateRequest(String playerId, String playerName, boolean withBot) {}
+  @ExceptionHandler(IllegalStateException.class)
+  public ResponseEntity<String> badRequest(IllegalStateException ex) {
+    return ResponseEntity.badRequest().body(ex.getMessage());
+  }
+
+  record CreateRequest(String playerId, String playerName, boolean withBot, GameMode gameMode) {}
   record JoinRequest(String playerId, String playerName) {}
   record ReadyRequest(String playerId, List<String> deckCardIds) {}
   record StartRequest(String playerId) {}
@@ -40,7 +46,7 @@ public class RoomController {
 
   @PostMapping
   public RoomState create(@RequestBody CreateRequest req) {
-    return roomService.create(req.playerId(), req.playerName(), req.withBot());
+    return roomService.create(req.playerId(), req.playerName(), req.withBot(), req.gameMode());
   }
 
   @GetMapping("/{code}")
@@ -69,7 +75,7 @@ public class RoomController {
     Map<String, List<String>> decks = room.getPlayers().stream().collect(Collectors.toMap(LobbyPlayer::getId, LobbyPlayer::getDeckCardIds));
     Map<String, String> names = room.getPlayers().stream().collect(Collectors.toMap(LobbyPlayer::getId, LobbyPlayer::getName));
     List<String> playerIds = room.getPlayers().stream().map(LobbyPlayer::getId).toList();
-    gameService.initGame(code.toUpperCase(), playerIds, decks, names);
+    gameService.initGame(code.toUpperCase(), playerIds, decks, names, room.getGameMode());
     return ResponseEntity.ok(room);
   }
 
@@ -80,7 +86,7 @@ public class RoomController {
     Map<String, List<String>> decks = room.getPlayers().stream().collect(Collectors.toMap(LobbyPlayer::getId, LobbyPlayer::getDeckCardIds));
     Map<String, String> names = room.getPlayers().stream().collect(Collectors.toMap(LobbyPlayer::getId, LobbyPlayer::getName));
     List<String> playerIds = room.getPlayers().stream().map(LobbyPlayer::getId).toList();
-    gameService.initGame(code, playerIds, decks, names);
+    gameService.initGame(code, playerIds, decks, names, room.getGameMode());
     return ResponseEntity.ok(Map.of("code", code));
   }
 }

@@ -1,6 +1,8 @@
 import type { DeckCard, RiftCard } from '../types';
 
 export type DeckImportResult = {
+  legendCardId?: string;
+  /** @deprecated Use legendCardId. */
   championCardId?: string;
   cards: DeckCard[];
   matchedLines: number;
@@ -95,6 +97,7 @@ export function importDeckText(text: string, catalog: RiftCard[]): DeckImportRes
   }
 
   return {
+    legendCardId: championCardId,
     championCardId,
     cards: [...quantities].map(([cardId, quantity]) => ({ cardId, quantity })),
     matchedLines,

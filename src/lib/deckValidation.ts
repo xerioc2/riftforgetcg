@@ -1,9 +1,10 @@
 import type { Deck, DeckValidation, RiftCard } from '../types';
+import { getDeckLegendCardId } from './deckUtils';
 
 const MAX_COPIES = 3;
 
 export function validateDeck(deck: Deck, cardsById: Map<string, RiftCard>): DeckValidation {
-  const champion = deck.championCardId ? cardsById.get(deck.championCardId) : undefined;
+  const champion = getDeckLegendCardId(deck) ? cardsById.get(getDeckLegendCardId(deck) ?? '') : undefined;
   const domains = champion?.domains ?? [];
   const messages: string[] = [];
   const entries = deck.cards

@@ -57,7 +57,7 @@ public class GameRestController {
     List<String> playerIds = room.getPlayers().stream().map(LobbyPlayer::getId).toList();
     Map<String, List<String>> decks = room.getPlayers().stream().collect(Collectors.toMap(LobbyPlayer::getId, LobbyPlayer::getDeckCardIds));
     Map<String, String> names = room.getPlayers().stream().collect(Collectors.toMap(LobbyPlayer::getId, LobbyPlayer::getName));
-    gameService.reset(code.toUpperCase(), playerIds, decks, names);
+    gameService.reset(code.toUpperCase(), playerIds, decks, names, room.getGameMode());
     return ResponseEntity.ok().build();
   }
 }

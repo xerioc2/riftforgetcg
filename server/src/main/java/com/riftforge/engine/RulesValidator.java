@@ -2,6 +2,7 @@ package com.riftforge.engine;
 
 import com.riftforge.model.CardDefinition;
 import com.riftforge.model.CardInstance;
+import com.riftforge.model.GameMode;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.Phase;
 import com.riftforge.model.RuneState;
@@ -28,7 +29,10 @@ public class RulesValidator {
       throw new IllegalMoveException("Complete your mulligan before making other moves.");
     }
     if (move instanceof MulliganMove) throw new IllegalMoveException("Mulligans are already complete.");
-    if (move instanceof AdjustScoreMove || move instanceof DealCardMove) return;
+    if (move instanceof AdjustScoreMove || move instanceof DealCardMove) {
+      validateSandboxOnly(state, move);
+      return;
+    }
     if (state.getActiveShowdown() != null && !(move instanceof ResolveShowdownMove)) {
       throw new IllegalMoveException("Resolve the active showdown first.");
     }
@@ -72,6 +76,12 @@ public class RulesValidator {
         throw new IllegalMoveException("You can only mulligan cards from your opening hand.");
       }
     }
+  }
+
+  private void validateSandboxOnly(LiveGameState state, MoveRequest move) {
+    if (state.getGameMode() == GameMode.SANDBOX) return;
+    String moveName = move instanceof DealCardMove ? "Deal Card" : "Adjust Score";
+    throw new IllegalMoveException(moveName + " is only available in sandbox games.");
   }
 
   private void validatePlayCard(LiveGameState state, PlayCardMove move) {

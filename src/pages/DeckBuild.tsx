@@ -6,6 +6,7 @@ import { useCardStore } from '../store/cards';
 import { useDeckStore } from '../store/decks';
 import { validateDeck } from '../lib/deckValidation';
 import { importDeckText } from '../lib/deckImport';
+import { getDeckLegendCardId } from '../lib/deckUtils';
 import type { CardFilters, Deck, RiftCard } from '../types';
 
 const emptyFilters: CardFilters = {
@@ -67,7 +68,7 @@ export function DeckBuild() {
 
   const addCard = (card: RiftCard) => {
     if (card.type === 'Legend') {
-      patchDeck({ championCardId: card.id });
+      patchDeck({ legendCardId: card.id, championCardId: card.id });
       return;
     }
 
@@ -98,12 +99,13 @@ export function DeckBuild() {
     if (result.matchedLines === 0) return result;
 
     patchDeck({
-      championCardId: result.championCardId,
+      legendCardId: result.legendCardId,
+      championCardId: result.legendCardId,
       cards: result.cards,
     });
     const skipped = result.skippedSideboard ? ` Skipped ${result.skippedSideboard} sideboard cards.` : '';
     setSaveMessage(
-      `Imported ${result.cards.reduce((sum, card) => sum + card.quantity, 0)} cards${result.championCardId ? ' and a legend' : ''}.${skipped}`,
+      `Imported ${result.cards.reduce((sum, card) => sum + card.quantity, 0)} cards${result.legendCardId ? ' and a legend' : ''}.${skipped}`,
     );
     return result;
   };
@@ -123,7 +125,7 @@ export function DeckBuild() {
           {error ? <Notice tone="bad">{error}</Notice> : null}
           <div className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
             {filteredCards.map((card) => (
-              <CardTile key={card.id} card={card} selected={activeDeck.championCardId === card.id} onAdd={() => addCard(card)} onDetails={() => setSelectedCard(card)} />
+              <CardTile key={card.id} card={card} selected={getDeckLegendCardId(activeDeck) === card.id} onAdd={() => addCard(card)} onDetails={() => setSelectedCard(card)} />
             ))}
           </div>
           {!loading && filteredCards.length === 0 ? <Notice tone="warn">No cards match these filters. Try refreshing or clearing a filter.</Notice> : null}

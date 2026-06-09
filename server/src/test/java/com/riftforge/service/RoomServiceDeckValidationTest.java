@@ -34,31 +34,37 @@ class RoomServiceDeckValidationTest {
 
   @Test
   void validDeckPassesValidation() {
+    add("legend", "Legend");
     add("champion", "Champion");
-    List<String> deck = new ArrayList<>(List.of("champion"));
+    List<String> deck = new ArrayList<>(List.of("legend", "champion"));
     addMainDeckCards(deck, 20);
     RoomState room = roomService.create("p1", "Player One", false);
 
     assertThatNoException().isThrownBy(() -> roomService.ready(room.getCode(), "p1", deck));
 
     assertThat(room.getPlayers().getFirst().isReady()).isTrue();
+    assertThatNoException().isThrownBy(() -> roomService.start(room.getCode(), "p1"));
+    assertThat(room.getStatus()).isEqualTo("playing");
   }
 
   @Test
-  void missingChampionIsRejected() {
+  void missingLegendIsRejected() {
+    add("champion", "Champion");
     List<String> deck = new ArrayList<>();
+    deck.add("champion");
     addMainDeckCards(deck, 20);
     RoomState room = roomService.create("p1", "Player One", false);
 
     assertThatThrownBy(() -> roomService.ready(room.getCode(), "p1", deck))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("Deck must include a Champion card.");
+        .hasMessage("Deck must include a Legend card.");
   }
 
   @Test
   void unknownCardIdIsRejected() {
+    add("legend", "Legend");
     add("champion", "Champion");
-    List<String> deck = new ArrayList<>(List.of("champion", "missing-card"));
+    List<String> deck = new ArrayList<>(List.of("legend", "champion", "missing-card"));
     addMainDeckCards(deck, 20);
     RoomState room = roomService.create("p1", "Player One", false);
 
@@ -69,9 +75,10 @@ class RoomServiceDeckValidationTest {
 
   @Test
   void moreThanThreeCopiesIsRejected() {
+    add("legend", "Legend");
     add("champion", "Champion");
     add("copy-card", "Unit");
-    List<String> deck = new ArrayList<>(List.of("champion", "copy-card", "copy-card", "copy-card", "copy-card"));
+    List<String> deck = new ArrayList<>(List.of("legend", "champion", "copy-card", "copy-card", "copy-card", "copy-card"));
     addMainDeckCards(deck, 16);
     RoomState room = roomService.create("p1", "Player One", false);
 
@@ -82,8 +89,9 @@ class RoomServiceDeckValidationTest {
 
   @Test
   void deckUnderTwentyMainCardsIsRejected() {
+    add("legend", "Legend");
     add("champion", "Champion");
-    List<String> deck = new ArrayList<>(List.of("champion"));
+    List<String> deck = new ArrayList<>(List.of("legend", "champion"));
     addMainDeckCards(deck, 19);
     RoomState room = roomService.create("p1", "Player One", false);
 

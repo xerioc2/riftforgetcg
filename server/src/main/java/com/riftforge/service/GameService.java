@@ -5,6 +5,7 @@ import com.riftforge.engine.IllegalMoveException;
 import com.riftforge.bot.GameStateChangedEvent;
 import com.riftforge.model.CardDefinition;
 import com.riftforge.model.CardInstance;
+import com.riftforge.model.GameMode;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
@@ -46,11 +47,15 @@ public class GameService {
   }
 
   public void initGame(String roomCode, List<String> playerIds, Map<String, List<String>> decksByPlayer, Map<String, String> playerNames) {
+    initGame(roomCode, playerIds, decksByPlayer, playerNames, GameMode.ENFORCED);
+  }
+
+  public void initGame(String roomCode, List<String> playerIds, Map<String, List<String>> decksByPlayer, Map<String, String> playerNames, GameMode gameMode) {
     if (games.containsKey(roomCode)) {
       log.warn("initGame called on existing game {}, ignoring", roomCode);
       return;
     }
-    LiveGameState state = createInitialState(roomCode, playerIds, decksByPlayer, playerNames);
+    LiveGameState state = createInitialState(roomCode, playerIds, decksByPlayer, playerNames, gameMode);
     games.put(roomCode, state);
     broadcast(roomCode, state);
   }
@@ -93,15 +98,20 @@ public class GameService {
   }
 
   public LiveGameState reset(String roomCode, List<String> playerIds, Map<String, List<String>> decksByPlayer, Map<String, String> playerNames) {
-    LiveGameState state = createInitialState(roomCode, playerIds, decksByPlayer, playerNames);
+    return reset(roomCode, playerIds, decksByPlayer, playerNames, GameMode.ENFORCED);
+  }
+
+  public LiveGameState reset(String roomCode, List<String> playerIds, Map<String, List<String>> decksByPlayer, Map<String, String> playerNames, GameMode gameMode) {
+    LiveGameState state = createInitialState(roomCode, playerIds, decksByPlayer, playerNames, gameMode);
     games.put(roomCode, state);
     broadcast(roomCode, state);
     return state;
   }
 
-  private LiveGameState createInitialState(String roomCode, List<String> playerIds, Map<String, List<String>> decksByPlayer, Map<String, String> playerNames) {
+  private LiveGameState createInitialState(String roomCode, List<String> playerIds, Map<String, List<String>> decksByPlayer, Map<String, String> playerNames, GameMode gameMode) {
     LiveGameState state = new LiveGameState();
     state.setRoomCode(roomCode);
+    state.setGameMode(gameMode);
     state.setCurrentPhase(Phase.MULLIGAN);
     String firstPlayerId = playerIds.isEmpty() ? null
         : playerIds.get(ThreadLocalRandom.current().nextInt(playerIds.size()));

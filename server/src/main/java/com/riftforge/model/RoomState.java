@@ -9,6 +9,7 @@ public class RoomState {
   private List<LobbyPlayer> players = new ArrayList<>();
   private String status = "waiting";
   private boolean botEnabled;
+  private GameMode gameMode = GameMode.ENFORCED;
 
   public String getCode() { return code; }
   public void setCode(String code) { this.code = code; }
@@ -20,4 +21,6 @@ public class RoomState {
   public void setStatus(String status) { this.status = status; }
   public boolean isBotEnabled() { return botEnabled; }
   public void setBotEnabled(boolean botEnabled) { this.botEnabled = botEnabled; }
+  public GameMode getGameMode() { return gameMode; }
+  public void setGameMode(GameMode gameMode) { this.gameMode = gameMode == null ? GameMode.ENFORCED : gameMode; }
 }

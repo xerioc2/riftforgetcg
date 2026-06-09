@@ -25,6 +25,7 @@ public class LiveGameState {
   private Set<String> scoredBattlefieldsThisTurn = new HashSet<>();
   private List<RevealedHandSnapshot> revealedHands = new ArrayList<>();
   private ShowdownState activeShowdown;
+  private GameMode gameMode = GameMode.ENFORCED;
 
   public record LogEntry(String id, String timestamp, String userId, String text) {}
   public record ShowdownState(String attackingPlayerId, List<String> attackerInstanceIds, Map<String, Integer> gankingBonuses) {}
@@ -63,4 +64,6 @@ public class LiveGameState {
   public void setRevealedHands(List<RevealedHandSnapshot> revealedHands) { this.revealedHands = revealedHands; }
   public ShowdownState getActiveShowdown() { return activeShowdown; }
   public void setActiveShowdown(ShowdownState activeShowdown) { this.activeShowdown = activeShowdown; }
+  public GameMode getGameMode() { return gameMode; }
+  public void setGameMode(GameMode gameMode) { this.gameMode = gameMode == null ? GameMode.ENFORCED : gameMode; }
 }

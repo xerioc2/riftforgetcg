@@ -98,11 +98,15 @@ export function Lobby() {
   };
 
   const handleStart = async () => {
-    await fetch(`${getGameServerUrl()}/api/rooms/${normalizedCode}/start`, {
+    const response = await fetch(`${getGameServerUrl()}/api/rooms/${normalizedCode}/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ playerId: player.id }),
     });
+    if (!response.ok) {
+      const body = await response.text();
+      setDeckError(body || 'Unable to start game.');
+    }
   };
 
   if (loading) return <CenteredState>Loading lobby...</CenteredState>;

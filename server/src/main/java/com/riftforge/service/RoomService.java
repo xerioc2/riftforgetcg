@@ -6,6 +6,7 @@ import static com.riftforge.bot.BotConstants.BOT2_ID;
 import static com.riftforge.bot.BotConstants.BOT2_NAME;
 
 import com.riftforge.model.CardDefinition;
+import com.riftforge.model.GameMode;
 import com.riftforge.model.LobbyPlayer;
 import com.riftforge.model.RoomState;
 import java.util.ArrayList;
@@ -33,11 +34,16 @@ public class RoomService {
   }
 
   public RoomState create(String hostId, String hostName, boolean withBot) {
+    return create(hostId, hostName, withBot, GameMode.ENFORCED);
+  }
+
+  public RoomState create(String hostId, String hostName, boolean withBot, GameMode gameMode) {
     String code = generateCode();
     RoomState room = new RoomState();
     room.setCode(code);
     room.setHostId(hostId);
     room.setBotEnabled(withBot);
+    room.setGameMode(gameMode);
     room.getPlayers().add(new LobbyPlayer(hostId, hostName, false, List.of()));
     if (withBot) room.getPlayers().add(new LobbyPlayer(BOT_ID, BOT_NAME, true, generateBotDeck()));
     rooms.put(code, room);
@@ -50,6 +56,7 @@ public class RoomService {
     room.setCode(code);
     room.setHostId(BOT_ID);
     room.setBotEnabled(true);
+    room.setGameMode(GameMode.ENFORCED);
     room.getPlayers().add(new LobbyPlayer(BOT_ID, BOT_NAME, true, generateBotDeck()));
     room.getPlayers().add(new LobbyPlayer(BOT2_ID, BOT2_NAME, true, generateBotDeck()));
     room.setStatus("playing");
@@ -91,20 +98,34 @@ public class RoomService {
       submittedCards.add(def);
     }
 
-    boolean hasChampion = submittedCards.stream()
-        .anyMatch(card -> "Champion".equalsIgnoreCase(card.type()));
-    if (!hasChampion) throw new IllegalArgumentException("Deck must include a Champion card.");
+    boolean hasLegend = submittedCards.stream()
+        .anyMatch(card -> "Legend".equalsIgnoreCase(card.type()));
+    if (!hasLegend) throw new IllegalArgumentException("Deck must include a Legend card.");
 
     long mainDeckCount = submittedCards.stream()
         .filter(card -> !isType(card, "Rune"))
         .filter(card -> !isType(card, "Battlefield"))
         .filter(card -> !isType(card, "Champion"))
+        .filter(card -> !isType(card, "Legend"))
         .count();
     if (mainDeckCount < 20) throw new IllegalArgumentException("Main deck must have at least 20 cards.");
 
+    long runeCount = submittedCards.stream().filter(card -> isType(card, "Rune")).count();
+    if (runeCount > 0 && runeCount != 12) throw new IllegalArgumentException("Rune Pool must contain exactly 12 runes.");
+
+    List<CardDefinition> battlefields = submittedCards.stream()
+        .filter(card -> isType(card, "Battlefield"))
+        .toList();
+    if (!battlefields.isEmpty() && battlefields.size() != 3) {
+      throw new IllegalArgumentException("Choose exactly 3 Battlefields.");
+    }
+    if (battlefields.stream().map(CardDefinition::name).distinct().count() != battlefields.size()) {
+      throw new IllegalArgumentException("Battlefields must have unique names.");
+    }
+
     Map<String, Integer> copiesById = new HashMap<>();
     for (CardDefinition card : submittedCards) {
-      if (isType(card, "Champion") || isType(card, "Rune") || isType(card, "Battlefield")) continue;
+      if (isType(card, "Champion") || isType(card, "Legend") || isType(card, "Rune") || isType(card, "Battlefield")) continue;
       int copies = copiesById.merge(card.id(), 1, Integer::sum);
       if (copies > 3) throw new IllegalArgumentException("Cannot include more than 3 copies of " + card.name() + ".");
     }
@@ -139,6 +160,7 @@ public class RoomService {
         .filter(p -> !BOT_ID.equals(p.getId()))
         .allMatch(LobbyPlayer::isReady);
     if (!humanReady) throw new IllegalStateException("Not all players are ready.");
+    room.getPlayers().forEach(player -> validateDeck(player.getDeckCardIds()));
     room.setStatus("playing");
     broadcast(code, room);
     return room;
@@ -169,6 +191,10 @@ public class RoomService {
     List<CardDefinition> all = new ArrayList<>(cardDataService.getAll().values());
     List<String> deck = new ArrayList<>();
     all.stream()
+        .filter(card -> "Legend".equalsIgnoreCase(card.type()))
+        .findFirst()
+        .ifPresent(card -> deck.add(card.id()));
+    all.stream()
         .filter(card -> "Champion".equalsIgnoreCase(card.type()))
         .findFirst()
         .ifPresent(card -> deck.add(card.id()));
@@ -180,6 +206,6 @@ public class RoomService {
           deck.add(card.id());
           deck.add(card.id());
         });
-    return deck.stream().limit(20).toList();
+    return deck;
   }
 }
