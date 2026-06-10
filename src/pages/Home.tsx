@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Client } from '@stomp/stompjs';
 import { Link, useNavigate } from 'react-router-dom';
 import { deckToGameCardIds } from '../lib/deckUtils';
 import { getGameServerUrl } from '../lib/env';
 import { useLocalPlayer } from '../lib/playerContext';
 import { saveRoomSession, type TokenizedRoom } from '../lib/roomSession';
-import { createMatchmakingClient } from '../lib/stompGame';
+import { createMatchmakingClient, createPresenceClient } from '../lib/stompGame';
 import { useDeckStore } from '../store/decks';
+import type { PresenceSummary } from '../types';
 
 export function Home() {
   const player = useLocalPlayer();
@@ -19,10 +20,14 @@ export function Home() {
   const [searching, setSearching] = useState(false);
   const [watchingAi, setWatchingAi] = useState(false);
   const [queueSize, setQueueSize] = useState(0);
+  const [presence, setPresence] = useState<PresenceSummary | null>(null);
+  const [presenceOffline, setPresenceOffline] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [serverUrl, setServerUrl] = useState(() => localStorage.getItem('riftforge.serverUrl') ?? '');
   const matchClientRef = useRef<Client | null>(null);
+  const presenceClientRef = useRef<Client | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const presencePollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const searchingRef = useRef(false);
 
   const handleCreate = async () => {
@@ -90,6 +95,19 @@ export function Home() {
       // Keep waiting; a reconnect or later poll may recover.
     }
   };
+
+  const updatePresence = useCallback(async () => {
+    try {
+      const response = await fetch(`${getGameServerUrl()}/api/presence`);
+      if (!response.ok) throw new Error('Presence unavailable.');
+      const data = (await response.json()) as PresenceSummary;
+      setPresence(data);
+      if (data.queueSize !== undefined) setQueueSize(data.queueSize);
+      setPresenceOffline(false);
+    } catch {
+      setPresenceOffline(true);
+    }
+  }, []);
 
   const handleFindMatch = async () => {
     if (searchingRef.current) return;
@@ -161,7 +179,22 @@ export function Home() {
   };
 
   useEffect(() => {
+    presenceClientRef.current = createPresenceClient(
+      player,
+      (nextPresence) => {
+        setPresence(nextPresence);
+        if (nextPresence.queueSize !== undefined) setQueueSize(nextPresence.queueSize);
+        setPresenceOffline(false);
+      },
+      () => setPresenceOffline(true),
+    );
+    void updatePresence();
+    presencePollRef.current = setInterval(() => void updatePresence(), 15000);
     return () => {
+      if (presencePollRef.current) clearInterval(presencePollRef.current);
+      presencePollRef.current = null;
+      void presenceClientRef.current?.deactivate();
+      presenceClientRef.current = null;
       stopPolling();
       if (!searchingRef.current) return;
       void matchClientRef.current?.deactivate();
@@ -171,7 +204,7 @@ export function Home() {
         body: JSON.stringify({ playerId: player.id }),
       });
     };
-  }, [player.id]);
+  }, [player, updatePresence]);
 
   return (
     <main className="grid min-h-[calc(100vh-73px)] place-items-center bg-ink px-5 py-10 text-slate-100">
@@ -179,6 +212,11 @@ export function Home() {
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-forge">RiftForge</p>
         <h1 className="mt-3 text-4xl font-semibold text-white">Play Riftbound</h1>
         <p className="mt-4 text-base leading-7 text-slate-300">Welcome, {player.name}. Create a room locally or join with a code.</p>
+        <p className="mt-2 text-sm text-slate-400">
+          {presenceOffline && !presence
+            ? 'Presence unavailable'
+            : `${presence?.onlinePlayers ?? 1} player${(presence?.onlinePlayers ?? 1) === 1 ? '' : 's'} online`}
+        </p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <article className="border border-line bg-panel p-4 shadow-glow">

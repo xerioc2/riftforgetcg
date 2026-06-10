@@ -68,7 +68,16 @@ export function DeckBuild() {
 
   const addCard = (card: RiftCard) => {
     if (card.type === 'Legend') {
-      patchDeck({ legendCardId: card.id, championCardId: card.id });
+      patchDeck({ legendCardId: card.id });
+      return;
+    }
+
+    if (card.type === 'Champion') {
+      const nextCards = [
+        ...activeDeck.cards.filter((entry) => cardsById.get(entry.cardId)?.type !== 'Champion'),
+        { cardId: card.id, quantity: 1 },
+      ];
+      patchDeck({ championCardId: card.id, cards: nextCards });
       return;
     }
 
@@ -89,8 +98,8 @@ export function DeckBuild() {
 
   const exportDeck = async () => {
     const lines = deckEntries.map((entry) => `${entry.quantity}x ${entry.card.name}`);
-    const champion = validation.champion ? [`Legend: ${validation.champion.name}`] : [];
-    await navigator.clipboard.writeText([...champion, ...lines].join('\n'));
+    const legend = validation.legend ? [`Legend: ${validation.legend.name}`] : [];
+    await navigator.clipboard.writeText([...legend, ...lines].join('\n'));
     setSaveMessage('Deck copied to clipboard.');
   };
 
@@ -100,7 +109,7 @@ export function DeckBuild() {
 
     patchDeck({
       legendCardId: result.legendCardId,
-      championCardId: result.legendCardId,
+      championCardId: result.championCardId,
       cards: result.cards,
     });
     const skipped = result.skippedSideboard ? ` Skipped ${result.skippedSideboard} sideboard cards.` : '';
@@ -229,7 +238,7 @@ function CardTile({ card, selected, onAdd, onDetails }: { card: RiftCard; select
             Details
           </button>
           <button className="btn-primary" onClick={onAdd}>
-            {card.type === 'Legend' ? 'Set legend' : 'Add card'}
+            {card.type === 'Legend' ? 'Set legend' : card.type === 'Champion' ? 'Add champion' : 'Add card'}
           </button>
         </div>
       </div>
@@ -286,17 +295,18 @@ function DeckBuilder({
       <input className="input mt-3 w-full text-lg font-semibold" value={deck.name} onChange={(event) => onRename(event.target.value)} />
 
       <div className="mt-4 grid grid-cols-2 gap-3 text-center">
-        <DeckMetric label="Main Deck" value={`${validation.totalCards}/40`} />
+        <DeckMetric label="Main Cards" value={`${validation.mainDeckCards}/39`} />
+        <DeckMetric label="Champion" value={validation.champion?.name ?? 'None'} />
         <DeckMetric label="Runes" value={`${validation.runeCards}/12`} />
         <DeckMetric label="Battlefields" value={`${validation.battlefieldCards}/3`} />
-        <DeckMetric label="Legend" value={validation.champion?.name ?? 'None'} />
+        <DeckMetric label="Legend" value={validation.legend?.name ?? 'None'} />
         <div className="col-span-2">
           <DeckMetric label="Domains" value={validation.domains.join(', ') || 'Unset'} />
         </div>
       </div>
 
       <div className={cx('mt-4 border px-3 py-3 text-sm', validation.valid ? 'border-mint/40 text-mint' : 'border-forge/50 text-forge')}>
-        {validation.valid ? 'Deck passes current Phase 1 validation.' : validation.messages.slice(0, 4).join(' ')}
+        {validation.valid ? 'Deck passes constructed validation.' : validation.messages.slice(0, 4).join(' ')}
       </div>
 
       <div className="mt-4 max-h-[46vh] overflow-auto border border-line">

@@ -25,10 +25,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.context.event.EventListener;
 import org.springframework.context.annotation.Lazy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class BotService {
+  private static final Logger log = LoggerFactory.getLogger(BotService.class);
   private final Set<String> actingRooms = ConcurrentHashMap.newKeySet();
   private final GameService gameService;
   private final CardDataService cardDataService;
@@ -70,9 +73,27 @@ public class BotService {
         Thread.sleep(delay);
         LiveGameState current = gameService.currentState(event.getRoomCode());
         if (current == null || current.getWinnerId() != null) return;
+        log.debug(
+            "Bot acting: room={}, bot={}, phase={}, activePlayer={}, activeShowdown={}, gameMode={}",
+            event.getRoomCode(),
+            botId,
+            current.getCurrentPhase(),
+            current.getActivePlayerId(),
+            current.getActiveShowdown() != null,
+            current.getGameMode());
         doActiveTurn(event.getRoomCode(), current, botId);
-      } catch (Exception ignored) {
+      } catch (Exception e) {
         // A bot failure must never interrupt the game server.
+        LiveGameState current = gameService.currentState(event.getRoomCode());
+        log.warn(
+            "Bot action failed: room={}, bot={}, phase={}, activePlayer={}, activeShowdown={}, gameMode={}",
+            event.getRoomCode(),
+            botId,
+            current == null ? null : current.getCurrentPhase(),
+            current == null ? null : current.getActivePlayerId(),
+            current != null && current.getActiveShowdown() != null,
+            current == null ? null : current.getGameMode(),
+            e);
       } finally {
         actingRooms.remove(event.getRoomCode());
         LiveGameState latest = gameService.currentState(event.getRoomCode());

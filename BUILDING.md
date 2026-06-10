@@ -37,16 +37,16 @@ Install project dependencies before the first build:
 npm install
 ```
 
-## Pre-built Installer
+## Pre-built Downloads
 
-A Windows installer is available at the repository root:
+Packaged installers are distributed through
+[GitHub Releases](https://github.com/xerioc2/riftforgetcg/releases). The
+repository contains source code and build scripts; generated installers are not
+tracked in normal Git history.
 
-```text
-RiftForgeInstaller.exe
-```
-
-Download and run it — no prerequisites required. The installer bundles a
-stripped Java 21 runtime; players do not need Java installed.
+Download the latest Windows installer from the latest release and run it - no
+prerequisites required. The installer bundles a stripped Java 21 runtime; players
+do not need Java installed.
 
 ## Build An Installer
 
@@ -79,6 +79,21 @@ src-tauri/target/release/bundle/nsis/RiftForge_<version>_x64-setup.exe
 Typical outputs on other platforms are `.dmg` files on macOS and
 `.deb`/`.AppImage` packages on Linux.
 
+## Publishing A Release
+
+Generated installer binaries should be uploaded as GitHub Release assets:
+
+1. Build the desktop app with the commands above.
+2. Create a release tag, for example `v0.1.0-alpha`.
+3. Create a GitHub Release for that tag.
+4. Upload the generated installer from `src-tauri/target/release/bundle/` as a
+   release asset.
+
+Do not commit generated installers to the repository. Git LFS is not needed
+unless future large source assets must remain versioned with the repo. If the
+repository size becomes a problem later, consider a separate history-cleanup
+task; do not rewrite history as part of routine release publishing.
+
 ## Development
 
 Desktop development continues to use the normal JVM server:
@@ -102,6 +117,8 @@ remains unchanged.
 
 - Do not commit files under `src-tauri/binaries/`; the JRE and server JAR are
   platform-specific build output.
+- Do not commit generated installers such as `RiftForgeInstaller.exe`; attach
+  them to GitHub Releases instead.
 - The packaged frontend connects to the bundled server at
   `http://localhost:8080`.
 - Closing the desktop window stops the bundled Java server process.

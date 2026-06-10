@@ -36,7 +36,6 @@ export type Deck = {
   userId?: string;
   name: string;
   legendCardId?: string;
-  /** @deprecated Use legendCardId. Older local decks stored the selected Legend here. */
   championCardId?: string;
   cards: DeckCard[];
   updatedAt: string;
@@ -45,9 +44,12 @@ export type Deck = {
 export type DeckValidation = {
   valid: boolean;
   messages: string[];
+  legend?: RiftCard;
   champion?: RiftCard;
   domains: string[];
   totalCards: number;
+  mainDeckCards: number;
+  championCards: number;
   runeCards: number;
   battlefieldCards: number;
 };
@@ -123,6 +125,12 @@ export type MatchRecord = {
   turnCount: number;
   winnerId: string;
   players: { userId: string; name: string; score: number }[];
+};
+
+export type PresenceSummary = {
+  onlinePlayers: number;
+  activeRooms: number;
+  queueSize?: number;
 };
 
 export type LogEntry = {

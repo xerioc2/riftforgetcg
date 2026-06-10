@@ -9,9 +9,20 @@ dependencies.
 > RiftForge is a fan-made project and is not affiliated with or endorsed by
 > Riot Games. Riftbound and League of Legends are trademarks of Riot Games.
 
+## Downloads
+
+Packaged builds are distributed through
+[GitHub Releases](https://github.com/xerioc2/riftforgetcg/releases), not stored
+in the repository source tree.
+
+- The latest Windows installer is attached to the latest GitHub Release.
+- Source code remains in this repository.
+- Local developers can build from source using [BUILDING.md](BUILDING.md).
+
 ## Playing Right Now
 
-**Download:** grab `RiftForgeInstaller.exe` from the root of this repo and run it.
+**Download:** grab the latest Windows installer from
+[GitHub Releases](https://github.com/xerioc2/riftforgetcg/releases) and run it.
 The app bundles its own game server — no Java or other installs required.
 
 **Playing solo or vs bot:** just open the app and go. The bundled server starts
@@ -284,7 +295,7 @@ mvn -q test
   from the `/history` page
 - README screenshots and architecture diagram
 - CI workflow for `npm run build` + `mvn test`
-- Move installer binary to GitHub Releases
+- Publish installer builds as GitHub Release assets
 - Tighten Tauri CSP
 - Fix NSIS installer to kill only the RiftForge sidecar process, not all `java.exe` instances
 - Supabase Auth and account-backed deck persistence
@@ -306,8 +317,8 @@ mvn -q test
   Champion, runes, or battlefields — this divergence is documented and tested
 - Counter spells, complex multi-target effects, and cards with no implemented
   effect are rejected; full card-effect coverage is still in progress
-- A pre-built Windows installer (`RiftForgeInstaller.exe`) is at the repository
-  root; macOS and Linux require building from source (see [BUILDING.md](BUILDING.md))
+- Pre-built installers are distributed as GitHub Release assets; macOS and Linux
+  packages can be built from source (see [BUILDING.md](BUILDING.md))
 - Chat messages are local only and are not synced to opponents
 
 ## Project Structure

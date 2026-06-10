@@ -10,6 +10,7 @@ const readDecks = (): Deck[] => {
     return decks.map((deck) => ({
       ...deck,
       legendCardId: deck.legendCardId ?? deck.championCardId,
+      championCardId: deck.legendCardId ? deck.championCardId : undefined,
     }));
   } catch {
     return [];

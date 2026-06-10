@@ -2,7 +2,6 @@ import type { DeckCard, RiftCard } from '../types';
 
 export type DeckImportResult = {
   legendCardId?: string;
-  /** @deprecated Use legendCardId. */
   championCardId?: string;
   cards: DeckCard[];
   matchedLines: number;
@@ -30,6 +29,7 @@ export function importDeckText(text: string, catalog: RiftCard[]): DeckImportRes
     cardsByName.set(name, [...(cardsByName.get(name) ?? []), card]);
   }
 
+  let legendCardId: string | undefined;
   let championCardId: string | undefined;
   let matchedLines = 0;
   let skippedSideboard = 0;
@@ -53,7 +53,7 @@ export function importDeckText(text: string, catalog: RiftCard[]): DeckImportRes
     if (legacyLeaderMatch) {
       const legend = choosePrinting(cardsByName.get(normalizeName(legacyLeaderMatch[1])) ?? [], 'Legend');
       if (legend) {
-        championCardId = legend.id;
+        legendCardId = legend.id;
         matchedLines++;
       } else {
         unmatched.push(line);
@@ -81,7 +81,7 @@ export function importDeckText(text: string, catalog: RiftCard[]): DeckImportRes
     const printings = cardsByName.get(normalizeName(name)) ?? [];
     const legend = choosePrinting(printings, 'Legend');
     if (section === 'legend' && legend) {
-      championCardId = legend.id;
+      legendCardId = legend.id;
       matchedLines++;
       continue;
     }
@@ -92,12 +92,13 @@ export function importDeckText(text: string, catalog: RiftCard[]): DeckImportRes
       continue;
     }
 
+    if (card.type === 'Champion') championCardId = card.id;
     quantities.set(card.id, (quantities.get(card.id) ?? 0) + quantity);
     matchedLines++;
   }
 
   return {
-    legendCardId: championCardId,
+    legendCardId,
     championCardId,
     cards: [...quantities].map(([cardId, quantity]) => ({ cardId, quantity })),
     matchedLines,

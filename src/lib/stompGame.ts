@@ -1,7 +1,7 @@
 import { Client } from '@stomp/stompjs';
 import { getGameServerUrl } from './env';
 import type { LocalPlayer } from './localPlayer';
-import type { LiveGameState, RoomState } from '../types';
+import type { LiveGameState, PresenceSummary, RoomState } from '../types';
 
 export type MoveRequest =
   | { type: 'DEAL_CARD'; playerId: string; cardId: string; targetZone: string; x: number; y: number }
@@ -100,6 +100,24 @@ export function createMatchmakingClient(player: LocalPlayer, onMatch: (notificat
       client.subscribe(`/topic/matchmaking/${player.id}`, handleNotification);
       onConnected?.();
     },
+    reconnectDelay: 5000,
+  });
+  client.activate();
+  return client;
+}
+
+export function createPresenceClient(player: LocalPlayer, onPresence: (presence: PresenceSummary) => void, onDisconnect?: () => void): Client {
+  const wsUrl = `${getGameServerUrl().replace(/^http/, 'ws')}/ws`;
+  const client = new Client({
+    brokerURL: wsUrl,
+    connectHeaders: { playerId: player.id, playerName: player.name, role: 'LOBBY' },
+    onConnect: () => {
+      client.subscribe('/topic/presence', (frame) => {
+        onPresence(JSON.parse(frame.body) as PresenceSummary);
+      });
+    },
+    onWebSocketClose: () => onDisconnect?.(),
+    onStompError: () => onDisconnect?.(),
     reconnectDelay: 5000,
   });
   client.activate();

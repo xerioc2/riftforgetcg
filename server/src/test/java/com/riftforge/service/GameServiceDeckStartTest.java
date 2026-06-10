@@ -11,6 +11,7 @@ import com.riftforge.model.LiveGameState;
 import com.riftforge.model.LobbyPlayer;
 import com.riftforge.model.RoomState;
 import com.riftforge.model.ZoneName;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,15 +47,23 @@ class GameServiceDeckStartTest {
   }
 
   @Test
-  void gameStartPlacesLegendAndChampionInCorrectZones() {
+  void fullConstructedGameStartPartitionsDeckSections() {
     add("legend", "Legend");
     add("champion", "Champion");
-    addMainDeckCards(20);
-    List<String> deck = deck("legend", "champion");
+    addMainDeckCards(39);
+    addRunes(12);
+    addBattlefields(3);
+    List<String> deck = constructedDeck("legend", "champion");
 
     gameService.initGame("ROOM", List.of("p1"), Map.of("p1", deck), Map.of("p1", "Player One"));
 
     LiveGameState state = gameService.currentState("ROOM");
+    assertThat(state.getPlayers().getFirst().getDeckCount()).isEqualTo(35);
+    assertThat(state.getPlayers().getFirst().getRunePoolRemaining()).isEqualTo(12);
+    assertThat(state.getPlayers().getFirst().getSelectedBattlefields()).containsExactlyInAnyOrder("battlefield-0", "battlefield-1", "battlefield-2");
+    assertThat(state.getPlayers().getFirst().getDeckPool())
+        .allSatisfy(cardId -> assertThat(cards.get(cardId).type())
+            .isNotIn("Rune", "Battlefield", "Legend", "Champion"));
     assertThat(state.getCards()).anySatisfy(card -> {
       assertThat(card.getCardId()).isEqualTo("legend");
       assertThat(card.getZone()).isEqualTo(ZoneName.LEGEND);
@@ -63,6 +72,11 @@ class GameServiceDeckStartTest {
       assertThat(card.getCardId()).isEqualTo("champion");
       assertThat(card.getZone()).isEqualTo(ZoneName.CHAMPION);
     });
+    assertThat(state.getCards())
+        .filteredOn(card -> card.getOwnerId().equals("p1") && card.getZone() == ZoneName.HAND)
+        .hasSize(4)
+        .allSatisfy(card -> assertThat(cards.get(card.getCardId()).type())
+            .isNotIn("Rune", "Battlefield", "Legend", "Champion"));
   }
 
   @Test
@@ -94,19 +108,35 @@ class GameServiceDeckStartTest {
     }
   }
 
-  private List<String> deck(String legendId, String championId) {
-    return cards.values().stream()
+  private List<String> constructedDeck(String legendId, String championId) {
+    List<String> deck = new ArrayList<>();
+    deck.add(legendId);
+    deck.add(championId);
+    deck.addAll(cards.values().stream()
         .map(CardDefinition::id)
         .filter(id -> id.startsWith("unit-"))
-        .collect(Collectors.collectingAndThen(Collectors.toList(), units -> {
-          units.add(0, championId);
-          units.add(0, legendId);
-          return units;
-        }));
+        .toList());
+    deck.addAll(cards.values().stream()
+        .map(CardDefinition::id)
+        .filter(id -> id.startsWith("rune-"))
+        .toList());
+    deck.addAll(cards.values().stream()
+        .map(CardDefinition::id)
+        .filter(id -> id.startsWith("battlefield-"))
+        .toList());
+    return deck;
   }
 
   private void addMainDeckCards(int count) {
     for (int i = 0; i < count; i++) add("unit-" + i, "Unit");
+  }
+
+  private void addRunes(int count) {
+    for (int i = 0; i < count; i++) add("rune-" + i, "Rune");
+  }
+
+  private void addBattlefields(int count) {
+    for (int i = 0; i < count; i++) add("battlefield-" + i, "Battlefield");
   }
 
   private void add(String id, String type) {

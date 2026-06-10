@@ -105,10 +105,11 @@ public class RoomService {
         .anyMatch(card -> "Legend".equalsIgnoreCase(card.type()));
     if (!hasLegend) throw new IllegalArgumentException("Deck must include a Legend card.");
 
-    boolean hasChampion = submittedCards.stream()
-        .anyMatch(card -> isType(card, "Champion"));
-    if (format == DeckFormat.FULL_CONSTRUCTED && !hasChampion) {
-      throw new IllegalArgumentException("Deck must include a Champion card.");
+    long championCount = submittedCards.stream()
+        .filter(card -> isType(card, "Champion"))
+        .count();
+    if (format == DeckFormat.FULL_CONSTRUCTED && championCount != 1) {
+      throw new IllegalArgumentException("Deck must include exactly 1 Champion card.");
     }
 
     long mainDeckCount = submittedCards.stream()

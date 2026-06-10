@@ -12,6 +12,7 @@ public class PlayerState {
   private int availableEnergy;
   private int runePoolRemaining;
   @JsonIgnore private List<String> deckPool = new ArrayList<>();
+  @JsonIgnore private List<String> selectedBattlefields = new ArrayList<>();
 
   public String getUserId() { return userId; }
   public void setUserId(String userId) { this.userId = userId; }
@@ -25,6 +26,9 @@ public class PlayerState {
   public void setRunePoolRemaining(int runePoolRemaining) { this.runePoolRemaining = runePoolRemaining; }
   public List<String> getDeckPool() { return deckPool; }
   public void setDeckPool(List<String> deckPool) { this.deckPool = deckPool; }
+  @JsonIgnore
+  public List<String> getSelectedBattlefields() { return selectedBattlefields; }
+  public void setSelectedBattlefields(List<String> selectedBattlefields) { this.selectedBattlefields = selectedBattlefields; }
   @JsonProperty("deckCount")
   public int getDeckCount() { return deckPool == null ? 0 : deckPool.size(); }
 }

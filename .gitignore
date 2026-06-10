@@ -1,7 +1,7 @@
 node_modules
-dist
-target
-server/target
+dist/
+target/
+server/target/
 src-tauri/binaries/
 src-tauri/binaries/jre/
 src-tauri/binaries/riftforge-server.jar
@@ -11,3 +11,14 @@ src-tauri/target/
 .DS_Store
 *.tsbuildinfo
 .claude/settings.local.json
+
+# Packaged desktop artifacts belong in GitHub Releases, not source control.
+RiftForgeInstaller.exe
+RiftForge_*.exe
+*.msi
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+src-tauri/target/release/
+src-tauri/target/release/bundle/

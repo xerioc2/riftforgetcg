@@ -164,7 +164,7 @@ public class GameService {
       player.setName(playerNames.getOrDefault(id, id));
       player.setScore(0);
       player.setAvailableEnergy(0);
-      player.setRunePoolRemaining(10);
+      player.setRunePoolRemaining(0);
       return player;
     }).toList());
 
@@ -172,14 +172,22 @@ public class GameService {
     for (String playerId : playerIds) {
       List<String> deck = decksByPlayer.getOrDefault(playerId, List.of());
       List<String> champions = deck.stream()
-          .filter(id -> "Champion".equalsIgnoreCase(cardDataService.getCard(id).type()))
+          .filter(id -> isCardType(id, "Champion"))
           .toList();
       List<String> legends = deck.stream()
-          .filter(id -> "Legend".equalsIgnoreCase(cardDataService.getCard(id).type()))
+          .filter(id -> isCardType(id, "Legend"))
+          .toList();
+      List<String> runes = deck.stream()
+          .filter(id -> isCardType(id, "Rune"))
+          .toList();
+      List<String> battlefields = deck.stream()
+          .filter(id -> isCardType(id, "Battlefield"))
           .toList();
       List<String> dealable = deck.stream()
-          .filter(id -> !"Champion".equalsIgnoreCase(cardDataService.getCard(id).type()))
-          .filter(id -> !"Legend".equalsIgnoreCase(cardDataService.getCard(id).type()))
+          .filter(id -> !isCardType(id, "Champion"))
+          .filter(id -> !isCardType(id, "Legend"))
+          .filter(id -> !isCardType(id, "Rune"))
+          .filter(id -> !isCardType(id, "Battlefield"))
           .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
       if (!champions.isEmpty()) {
         state.getCards().add(createZoneCard(champions.get(0), playerId, ZoneName.CHAMPION, ++zIndex));
@@ -207,9 +215,20 @@ public class GameService {
       state.getPlayers().stream()
           .filter(player -> player.getUserId().equals(playerId))
           .findFirst()
-          .ifPresent(player -> player.setDeckPool(new ArrayList<>(dealable.subList(Math.min(4, dealable.size()), dealable.size()))));
+          .ifPresent(player -> {
+            player.setDeckPool(new ArrayList<>(dealable.subList(Math.min(4, dealable.size()), dealable.size())));
+            // TODO: Consume individual rune card identities when rune-specific effects exist.
+            player.setRunePoolRemaining(runes.isEmpty() ? 10 : runes.size());
+            // TODO: Use selected battlefield cards when full battlefield setup is implemented.
+            player.setSelectedBattlefields(new ArrayList<>(battlefields));
+          });
     }
     return state;
+  }
+
+  private boolean isCardType(String cardId, String type) {
+    CardDefinition def = cardDataService.getCard(cardId);
+    return def != null && type.equalsIgnoreCase(def.type());
   }
 
   private CardInstance createZoneCard(String cardId, String playerId, ZoneName zone, int zIndex) {

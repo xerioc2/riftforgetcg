@@ -1,5 +1,6 @@
 package com.riftforge.config;
 
+import com.riftforge.service.PresenceService;
 import com.riftforge.service.RoomTokenService;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
@@ -19,9 +20,11 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
   private final RoomTokenService roomTokenService;
+  private final PresenceService presenceService;
 
-  public WebSocketConfig(RoomTokenService roomTokenService) {
+  public WebSocketConfig(RoomTokenService roomTokenService, PresenceService presenceService) {
     this.roomTokenService = roomTokenService;
+    this.presenceService = presenceService;
   }
 
   @Override
@@ -46,14 +49,19 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
           String playerId = acc.getFirstNativeHeader("playerId");
           String roomCode = acc.getFirstNativeHeader("roomCode");
           String sessionToken = acc.getFirstNativeHeader("sessionToken");
-          if (isBlank(roomCode) && isBlank(sessionToken)) {
-            return msg;
-          }
-          if (isBlank(playerId) || !roomTokenService.validate(sessionToken, roomCode, playerId)) {
+          String role = acc.getFirstNativeHeader("role");
+          boolean roomScoped = !isBlank(roomCode) || !isBlank(sessionToken);
+          if (roomScoped && (isBlank(playerId) || !roomTokenService.validate(sessionToken, roomCode, playerId))) {
             throw new MessageDeliveryException("Invalid or missing session token.");
           }
-          if (!playerId.isBlank()) {
+          if (!isBlank(playerId)) {
             acc.setUser(() -> playerId);
+            if (acc.getSessionAttributes() != null) {
+              acc.getSessionAttributes().put(PresenceService.ATTR_PLAYER_ID, playerId);
+              acc.getSessionAttributes().put(PresenceService.ATTR_ROOM_CODE, roomCode);
+              acc.getSessionAttributes().put(PresenceService.ATTR_ROLE, isBlank(role) ? (roomScoped ? "PLAYER" : "GLOBAL") : role);
+            }
+            presenceService.connect(acc.getSessionId(), playerId, roomCode, isBlank(role) ? (roomScoped ? "PLAYER" : "GLOBAL") : role);
           }
         }
         return msg;

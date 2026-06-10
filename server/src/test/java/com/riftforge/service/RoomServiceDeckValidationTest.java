@@ -126,7 +126,7 @@ class RoomServiceDeckValidationTest {
   }
 
   @Test
-  void missingChampionIsRejected() {
+  void fullConstructedDeckWithNoChampionIsRejected() {
     add("legend", "Legend");
     List<String> deck = new ArrayList<>(List.of("legend"));
     addMainDeckCards(deck, 39);
@@ -136,7 +136,23 @@ class RoomServiceDeckValidationTest {
 
     assertThatThrownBy(() -> roomService.ready(room.getCode(), "p1", deck))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("Deck must include a Champion card.");
+        .hasMessage("Deck must include exactly 1 Champion card.");
+  }
+
+  @Test
+  void fullConstructedDeckWithTwoChampionsIsRejected() {
+    add("legend", "Legend");
+    add("champion-1", "Champion");
+    add("champion-2", "Champion");
+    List<String> deck = new ArrayList<>(List.of("legend", "champion-1", "champion-2"));
+    addMainDeckCards(deck, 39);
+    addRunes(deck, 12);
+    addBattlefields(deck, 3);
+    RoomState room = roomService.create("p1", "Player One", false);
+
+    assertThatThrownBy(() -> roomService.ready(room.getCode(), "p1", deck))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Deck must include exactly 1 Champion card.");
   }
 
   @Test
