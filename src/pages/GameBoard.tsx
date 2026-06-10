@@ -42,6 +42,10 @@ function hasKeyword(card: RiftCard | undefined, keyword: string) {
   return card?.keywords?.some((value) => value.toUpperCase().startsWith(keyword.toUpperCase())) ?? false;
 }
 
+function hasMaskedOwnHand(state: LiveGameState, playerId: string) {
+  return state.cards.some((card) => card.ownerId === playerId && sameZone(card.zone, 'hand') && card.cardId === 'hidden');
+}
+
 function autoPlaceInZone(zone: ZoneRect, existingCount: number, cardW = 88, cardH = 112): { x: number; y: number } {
   const cols = Math.max(1, Math.floor((zone.width - 16) / (cardW + 8)));
   const col = existingCount % cols;
@@ -209,8 +213,8 @@ export function GameBoard() {
           roomCode,
           player,
           getRoomSessionToken(roomCode, player.id),
-          (msg) => {
-            if (msg.type === 'STATE_UPDATE') handleIncomingState(msg.state);
+          (msg, source) => {
+            if (msg.type === 'STATE_UPDATE' && !(source === 'room' && hasMaskedOwnHand(msg.state, player.id))) handleIncomingState(msg.state);
             if (msg.type === 'ERROR') addChat({ id: crypto.randomUUID(), userId: msg.playerId, email: null, text: msg.message, sentAt: new Date().toISOString() });
           },
           () => joinGame(client, roomCode),
@@ -246,9 +250,28 @@ export function GameBoard() {
     };
   }, [addChat, handleIncomingState, player, roomCode]);
 
+  const fetchProjectedState = useCallback(() => {
+    if (!roomCode) return;
+    const stateUrl = `${getGameServerUrl()}/api/game/${roomCode}/state?viewerPlayerId=${encodeURIComponent(player.id)}`;
+    void fetch(stateUrl)
+      .then((r) => (r.ok ? r.json() as Promise<LiveGameState> : Promise.reject(new Error('State refresh failed.'))))
+      .then(handleIncomingState)
+      .catch(() => {});
+  }, [handleIncomingState, player.id, roomCode]);
+
   const publishMove = (move: Parameters<typeof sendMove>[2]) => {
-    if (!stompClientRef.current) return;
+    if (!stompClientRef.current || !wsConnected) {
+      addChat({
+        id: crypto.randomUUID(),
+        userId: player.id,
+        email: null,
+        text: 'Connection is not ready. Reconnecting...',
+        sentAt: new Date().toISOString(),
+      });
+      return;
+    }
     sendMove(stompClientRef.current, roomCode, move);
+    window.setTimeout(fetchProjectedState, 300);
   };
 
   const handleCardHover = (card: RiftCard | null, instance?: CardInstance) => {
@@ -746,10 +769,11 @@ export function GameBoard() {
                 })}
               </div>
               <div className="mt-6 flex justify-end gap-3">
-                <button className="btn-secondary" onClick={() => submitMulligan([...mulliganDiscardIds])}>
+                {!wsConnected ? <p className="mr-auto self-center text-sm text-ember">Connection lost - reconnecting...</p> : null}
+                <button className="btn-secondary disabled:opacity-40" disabled={!wsConnected} onClick={() => submitMulligan([...mulliganDiscardIds])}>
                   Mulligan Selected
                 </button>
-                <button className="btn-primary" onClick={() => submitMulligan([])}>
+                <button className="btn-primary disabled:opacity-40" disabled={!wsConnected} onClick={() => submitMulligan([])}>
                   Keep All
                 </button>
               </div>

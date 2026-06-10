@@ -22,12 +22,13 @@ export type MoveRequest =
 
 export type ServerMessage = { type: 'STATE_UPDATE'; state: LiveGameState } | { type: 'ERROR'; message: string; playerId: string };
 export type MatchNotification = { roomCode: string; sessionToken?: string };
+export type MessageSource = 'room' | 'user';
 
 export function createGameClient(
   roomCode: string,
   player: LocalPlayer,
   sessionToken: string | undefined,
-  onMessage: (msg: ServerMessage) => void,
+  onMessage: (msg: ServerMessage, source: MessageSource) => void,
   onConnected: () => void,
   onConnectionChange?: (connected: boolean) => void,
   useUserState = true,
@@ -36,17 +37,20 @@ export function createGameClient(
   const connectHeaders: Record<string, string> = useUserState
     ? { playerId: player.id, playerName: player.name, roomCode, sessionToken: sessionToken ?? '' }
     : { playerId: player.id, playerName: player.name };
+  let receivedUserState = false;
   const client = new Client({
     brokerURL: wsUrl,
     connectHeaders,
     onConnect: () => {
       client.subscribe(`/topic/game/${roomCode}`, (frame) => {
         const msg = JSON.parse(frame.body) as ServerMessage;
-        if (!useUserState || msg.type === 'ERROR') onMessage(msg);
+        if (!useUserState || msg.type === 'ERROR' || (msg.type === 'STATE_UPDATE' && !receivedUserState)) onMessage(msg, 'room');
       });
       if (useUserState) {
         client.subscribe(`/user/topic/game/${roomCode}`, (frame) => {
-          onMessage(JSON.parse(frame.body) as ServerMessage);
+          const msg = JSON.parse(frame.body) as ServerMessage;
+          if (msg.type === 'STATE_UPDATE') receivedUserState = true;
+          onMessage(msg, 'user');
         });
       }
       onConnected();
