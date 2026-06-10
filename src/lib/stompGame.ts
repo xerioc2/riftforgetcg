@@ -64,7 +64,13 @@ export function createGameClient(
   return client;
 }
 
-export function createLobbyClient(roomCode: string, player: LocalPlayer, sessionToken: string | undefined, onRoom: (room: RoomState) => void): Client {
+export function createLobbyClient(
+  roomCode: string,
+  player: LocalPlayer,
+  sessionToken: string | undefined,
+  onRoom: (room: RoomState) => void,
+  onPresence?: (presence: PresenceSummary) => void,
+): Client {
   const wsUrl = `${getGameServerUrl().replace(/^http/, 'ws')}/ws`;
   const connectHeaders: Record<string, string> = sessionToken
     ? { playerId: player.id, playerName: player.name, roomCode, sessionToken }
@@ -76,6 +82,11 @@ export function createLobbyClient(roomCode: string, player: LocalPlayer, session
       client.subscribe(`/topic/lobby/${roomCode}`, (frame) => {
         onRoom(JSON.parse(frame.body) as RoomState);
       });
+      if (onPresence) {
+        client.subscribe('/topic/presence', (frame) => {
+          onPresence(JSON.parse(frame.body) as PresenceSummary);
+        });
+      }
     },
     reconnectDelay: 5000,
   });

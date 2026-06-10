@@ -24,6 +24,7 @@ public class PlayerState {
   public void setAvailableEnergy(int availableEnergy) { this.availableEnergy = availableEnergy; }
   public int getRunePoolRemaining() { return runePoolRemaining; }
   public void setRunePoolRemaining(int runePoolRemaining) { this.runePoolRemaining = runePoolRemaining; }
+  @JsonIgnore
   public List<String> getDeckPool() { return deckPool; }
   public void setDeckPool(List<String> deckPool) { this.deckPool = deckPool; }
   @JsonIgnore

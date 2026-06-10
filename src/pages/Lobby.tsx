@@ -7,7 +7,7 @@ import { useLocalPlayer } from '../lib/playerContext';
 import { getRoomSessionToken } from '../lib/roomSession';
 import { createLobbyClient } from '../lib/stompGame';
 import { useDeckStore } from '../store/decks';
-import type { RoomState } from '../types';
+import type { PresenceSummary, RoomState } from '../types';
 
 const cx = (...classes: Array<string | false | undefined>) => classes.filter(Boolean).join(' ');
 const BOT_ID = 'bot-player-riftbot';
@@ -23,6 +23,7 @@ export function Lobby() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deckError, setDeckError] = useState<string | null>(null);
+  const [presence, setPresence] = useState<PresenceSummary | null>(null);
   const clientRef = useRef<Client | null>(null);
   const normalizedCode = code?.toUpperCase() ?? '';
 
@@ -36,12 +37,19 @@ export function Lobby() {
   );
 
   useEffect(() => {
+    let cancelled = false;
     const setup = async () => {
       try {
         const res = await fetch(`${getGameServerUrl()}/api/rooms/${normalizedCode}`);
         if (!res.ok) throw new Error('Room not found.');
         setRoom((await res.json()) as RoomState);
-        clientRef.current = createLobbyClient(normalizedCode, player, getRoomSessionToken(normalizedCode, player.id), setRoom);
+        clientRef.current = createLobbyClient(normalizedCode, player, getRoomSessionToken(normalizedCode, player.id), setRoom, setPresence);
+        void fetch(`${getGameServerUrl()}/api/presence`)
+          .then((presenceResponse) => presenceResponse.ok ? presenceResponse.json() as Promise<PresenceSummary> : null)
+          .then((nextPresence) => {
+            if (nextPresence && !cancelled) setPresence(nextPresence);
+          })
+          .catch(() => {});
         setLoading(false);
       } catch (setupError) {
         setError(setupError instanceof Error ? setupError.message : 'Unable to load lobby.');
@@ -50,6 +58,7 @@ export function Lobby() {
     };
     void setup();
     return () => {
+      cancelled = true;
       void clientRef.current?.deactivate();
       clientRef.current = null;
     };
@@ -73,12 +82,13 @@ export function Lobby() {
 
   const selectedDeckCardIds = deckCardIds(myDeckId);
   const deckIsEmpty = selectedDeckCardIds.length === 0;
+  const sessionToken = getRoomSessionToken(normalizedCode, player.id);
 
   const handleReady = async () => {
     const response = await fetch(`${getGameServerUrl()}/api/rooms/${normalizedCode}/ready`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ playerId: player.id, deckCardIds: selectedDeckCardIds }),
+      body: JSON.stringify({ playerId: player.id, sessionToken, deckCardIds: selectedDeckCardIds }),
     });
     if (!response.ok) {
       const body = await response.text();
@@ -91,18 +101,19 @@ export function Lobby() {
   const handleSetBotDeck = async (deckId: string) => {
     setBotDeckId(deckId || null);
     const ids = deckId ? deckCardIds(deckId) : [];
-    await fetch(`${getGameServerUrl()}/api/rooms/${normalizedCode}/bot-deck`, {
+    const response = await fetch(`${getGameServerUrl()}/api/rooms/${normalizedCode}/bot-deck`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ deckCardIds: ids }),
+      body: JSON.stringify({ playerId: player.id, sessionToken, deckCardIds: ids }),
     });
+    if (!response.ok) setDeckError(await response.text() || 'Unable to set bot deck.');
   };
 
   const handleStart = async () => {
     const response = await fetch(`${getGameServerUrl()}/api/rooms/${normalizedCode}/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ playerId: player.id }),
+      body: JSON.stringify({ playerId: player.id, sessionToken }),
     });
     if (!response.ok) {
       const body = await response.text();
@@ -131,6 +142,11 @@ export function Lobby() {
             <div>
               <p className="text-sm uppercase tracking-[0.18em] text-forge">Room code</p>
               <h1 className="mt-2 font-mono text-4xl font-semibold text-white">{room.code}</h1>
+              {presence ? (
+                <p className="mt-2 text-sm text-slate-400">
+                  {presence.onlinePlayers} player{presence.onlinePlayers === 1 ? '' : 's'} online
+                </p>
+              ) : null}
             </div>
             <button className="btn-secondary" onClick={() => void navigator.clipboard.writeText(room.code)}>
               Copy code

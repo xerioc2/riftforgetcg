@@ -113,6 +113,13 @@ export function GameBoard() {
   const hand = useMemo(() => (state?.cards ?? []).filter((card) => card.ownerId === player.id && sameZone(card.zone, 'hand')), [player.id, state?.cards]);
   const handInstanceKey = useMemo(() => hand.map((card) => card.instanceId).sort().join(','), [hand]);
   const hasMulliganed = state?.mulligansDone?.includes(player.id) ?? false;
+  const roomSessionToken = useMemo(() => (roomCode ? getRoomSessionToken(roomCode, player.id) : undefined), [player.id, roomCode]);
+  const playerStateUrl = useMemo(() => {
+    if (!roomCode) return '';
+    const params = new URLSearchParams({ playerId: player.id });
+    if (roomSessionToken) params.set('sessionToken', roomSessionToken);
+    return `${getGameServerUrl()}/api/game/${roomCode}/state?${params.toString()}`;
+  }, [player.id, roomCode, roomSessionToken]);
   useEffect(() => {
     if (cards.length === 0) void loadCards();
   }, [cards.length, loadCards]);
@@ -198,13 +205,12 @@ export function GameBoard() {
   );
 
   useEffect(() => {
-    if (!roomCode) return;
+    if (!roomCode || !playerStateUrl) return;
     let cancelled = false;
-    const stateUrl = `${getGameServerUrl()}/api/game/${roomCode}/state?viewerPlayerId=${encodeURIComponent(player.id)}`;
     const setup = async () => {
       try {
-        const stateResponse = await fetch(stateUrl);
-        if (!stateResponse.ok) throw new Error('Game state not found.');
+        const stateResponse = await fetch(playerStateUrl);
+        if (!stateResponse.ok) throw new Error(await stateResponse.text() || 'Game state not found.');
         const initialState = (await stateResponse.json()) as LiveGameState;
         if (cancelled) return;
         handleIncomingState(initialState);
@@ -221,8 +227,8 @@ export function GameBoard() {
           (connected) => {
             setWsConnected(connected);
             if (connected && hasConnectedRef.current) {
-              void fetch(stateUrl)
-                .then((r) => r.json() as Promise<LiveGameState>)
+              void fetch(playerStateUrl)
+                .then((r) => (r.ok ? r.json() as Promise<LiveGameState> : Promise.reject(new Error('State refresh failed.'))))
                 .then(handleIncomingState)
                 .catch(() => {});
             }
@@ -248,16 +254,15 @@ export function GameBoard() {
       void stompClientRef.current?.deactivate();
       stompClientRef.current = null;
     };
-  }, [addChat, handleIncomingState, player, roomCode]);
+  }, [addChat, handleIncomingState, player, playerStateUrl, roomCode]);
 
   const fetchProjectedState = useCallback(() => {
-    if (!roomCode) return;
-    const stateUrl = `${getGameServerUrl()}/api/game/${roomCode}/state?viewerPlayerId=${encodeURIComponent(player.id)}`;
-    void fetch(stateUrl)
+    if (!playerStateUrl) return;
+    void fetch(playerStateUrl)
       .then((r) => (r.ok ? r.json() as Promise<LiveGameState> : Promise.reject(new Error('State refresh failed.'))))
       .then(handleIncomingState)
       .catch(() => {});
-  }, [handleIncomingState, player.id, roomCode]);
+  }, [handleIncomingState, playerStateUrl]);
 
   const publishMove = (move: Parameters<typeof sendMove>[2]) => {
     if (!stompClientRef.current || !wsConnected) {
@@ -418,7 +423,9 @@ export function GameBoard() {
   };
 
   const handleReset = async () => {
-    await fetch(`${getGameServerUrl()}/api/game/${roomCode}/reset`, { method: 'POST' });
+    const params = new URLSearchParams({ playerId: player.id });
+    if (roomSessionToken) params.set('sessionToken', roomSessionToken);
+    await fetch(`${getGameServerUrl()}/api/game/${roomCode}/reset?${params.toString()}`, { method: 'POST' });
   };
 
   if (loading) return <CenteredState>Loading game...</CenteredState>;

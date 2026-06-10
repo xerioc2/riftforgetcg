@@ -33,14 +33,14 @@ public class PresenceService {
     if (sessions.remove(sessionId) != null) broadcast();
   }
 
-  public PresenceSummary summary(int queueSize) {
+  public PresenceSummary summary(int playersSearching) {
     Set<String> playerIds = ConcurrentHashMap.newKeySet();
     Set<String> roomCodes = ConcurrentHashMap.newKeySet();
     sessions.values().forEach(session -> {
       if (!isBlank(session.playerId())) playerIds.add(session.playerId());
       if (!isBlank(session.roomCode())) roomCodes.add(session.roomCode());
     });
-    return new PresenceSummary(playerIds.size(), roomCodes.size(), queueSize);
+    return new PresenceSummary(playerIds.size(), roomCodes.size(), playersSearching, playersSearching);
   }
 
   @EventListener
@@ -49,6 +49,7 @@ public class PresenceService {
   }
 
   private void broadcast() {
+    // TODO: Push live matchmaking queue size here when queue-change events are emitted.
     messaging.convertAndSend("/topic/presence", summary(0));
   }
 
@@ -66,5 +67,5 @@ public class PresenceService {
     }
   }
 
-  public record PresenceSummary(int onlinePlayers, int activeRooms, int queueSize) {}
+  public record PresenceSummary(int onlinePlayers, int activeRooms, int playersSearching, int queueSize) {}
 }

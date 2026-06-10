@@ -9,6 +9,7 @@ import com.riftforge.service.RoomTokenService;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -43,9 +44,9 @@ public class RoomController {
 
   record CreateRequest(String playerId, String playerName, boolean withBot, GameMode gameMode) {}
   record JoinRequest(String playerId, String playerName) {}
-  record ReadyRequest(String playerId, List<String> deckCardIds) {}
-  record StartRequest(String playerId) {}
-  record BotDeckRequest(List<String> deckCardIds) {}
+  record ReadyRequest(String playerId, String sessionToken, List<String> deckCardIds) {}
+  record StartRequest(String playerId, String sessionToken) {}
+  record BotDeckRequest(String playerId, String sessionToken, List<String> deckCardIds) {}
   record TokenizedRoom(RoomState room, String sessionToken) {}
 
   @PostMapping
@@ -68,17 +69,25 @@ public class RoomController {
   }
 
   @PostMapping("/{code}/ready")
-  public RoomState ready(@PathVariable String code, @RequestBody ReadyRequest req) {
-    return roomService.ready(code, req.playerId(), req.deckCardIds());
+  public ResponseEntity<?> ready(@PathVariable String code, @RequestBody ReadyRequest req) {
+    ResponseEntity<String> authError = validatePlayer(code, req.playerId(), req.sessionToken());
+    if (authError != null) return authError;
+    return ResponseEntity.ok(roomService.ready(code, req.playerId(), req.deckCardIds()));
   }
 
   @PostMapping("/{code}/bot-deck")
-  public RoomState setBotDeck(@PathVariable String code, @RequestBody BotDeckRequest req) {
-    return roomService.setBotDeck(code, req.deckCardIds());
+  public ResponseEntity<?> setBotDeck(@PathVariable String code, @RequestBody BotDeckRequest req) {
+    RoomState room = roomService.get(code);
+    ResponseEntity<String> authError = validateHost(room, code, req.playerId(), req.sessionToken());
+    if (authError != null) return authError;
+    return ResponseEntity.ok(roomService.setBotDeck(code, req.deckCardIds()));
   }
 
   @PostMapping("/{code}/start")
-  public ResponseEntity<RoomState> start(@PathVariable String code, @RequestBody StartRequest req) {
+  public ResponseEntity<?> start(@PathVariable String code, @RequestBody StartRequest req) {
+    RoomState existingRoom = roomService.get(code);
+    ResponseEntity<String> authError = validateHost(existingRoom, code, req.playerId(), req.sessionToken());
+    if (authError != null) return authError;
     RoomState room = roomService.start(code, req.playerId());
     Map<String, List<String>> decks = room.getPlayers().stream().collect(Collectors.toMap(LobbyPlayer::getId, LobbyPlayer::getDeckCardIds));
     Map<String, String> names = room.getPlayers().stream().collect(Collectors.toMap(LobbyPlayer::getId, LobbyPlayer::getName));
@@ -96,5 +105,24 @@ public class RoomController {
     List<String> playerIds = room.getPlayers().stream().map(LobbyPlayer::getId).toList();
     gameService.initGame(code, playerIds, decks, names, room.getGameMode());
     return ResponseEntity.ok(Map.of("code", code));
+  }
+
+  private ResponseEntity<String> validatePlayer(String code, String playerId, String sessionToken) {
+    if (playerId == null || playerId.isBlank() || sessionToken == null || sessionToken.isBlank()) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Room action requires playerId and sessionToken.");
+    }
+    if (!roomTokenService.validate(sessionToken, code, playerId)) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Invalid or missing session token.");
+    }
+    return null;
+  }
+
+  private ResponseEntity<String> validateHost(RoomState room, String code, String playerId, String sessionToken) {
+    ResponseEntity<String> playerError = validatePlayer(code, playerId, sessionToken);
+    if (playerError != null) return playerError;
+    if (!playerId.equals(room.getHostId())) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Only the room host can perform that action.");
+    }
+    return null;
   }
 }

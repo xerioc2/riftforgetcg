@@ -29,11 +29,11 @@ export async function addPlayerToRoom(code: string, userId: string, playerName =
   return (await response.json()) as TokenizedRoom;
 }
 
-export async function startRoom(code: string, playerId = ''): Promise<RoomState> {
+export async function startRoom(code: string, playerId = '', sessionToken?: string): Promise<RoomState> {
   const response = await fetch(`${getGameServerUrl()}/api/rooms/${code.toUpperCase()}/start`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ playerId }),
+    body: JSON.stringify({ playerId, sessionToken }),
   });
   if (!response.ok) throw new Error('Unable to start room.');
   return (await response.json()) as RoomState;

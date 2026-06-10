@@ -33,7 +33,10 @@ public class GameStateProjectionService {
     view.setGameMode(state.getGameMode());
     view.setPlayers(state.getPlayers().stream().map(this::copyPlayer).toList());
     view.setRunes(state.getRunes().stream().map(this::copyRune).toList());
-    view.setRevealedHands(state.getRevealedHands().stream().map(this::copyRevealedHand).toList());
+    view.setRevealedHands(state.getRevealedHands().stream()
+        .filter(snapshot -> viewerPlayerId != null && viewerPlayerId.equals(snapshot.getRevealedToPlayerId()))
+        .map(this::copyRevealedHand)
+        .toList());
     view.setCards(state.getCards().stream()
         .map(card -> copyCardForViewer(card, viewerPlayerId))
         .toList());

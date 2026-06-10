@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.riftforge.model.CardInstance;
 import com.riftforge.model.LiveGameState;
+import com.riftforge.model.RevealedHandSnapshot;
 import com.riftforge.model.ZoneName;
 import java.time.Instant;
 import java.util.List;
@@ -96,6 +97,30 @@ class GameStateProjectionServiceTest {
         .containsExactly("Played a card.");
   }
 
+  @Test
+  void playerOnlySeesRevealedHandSnapshotsAddressedToThem() {
+    LiveGameState state = state();
+    state.setRevealedHands(List.of(
+        revealedHand("p1", "p2", "p2-card"),
+        revealedHand("p2", "p1", "p1-card")));
+
+    LiveGameState view = projectionService.toPublicView(state, "p1");
+
+    assertThat(view.getRevealedHands()).hasSize(1);
+    assertThat(view.getRevealedHands().getFirst().getRevealedToPlayerId()).isEqualTo("p1");
+    assertThat(view.getRevealedHands().getFirst().getInstanceIds()).containsExactly("p2-card");
+  }
+
+  @Test
+  void spectatorDoesNotSeeRevealedHandSnapshots() {
+    LiveGameState state = state();
+    state.setRevealedHands(List.of(revealedHand("p1", "p2", "p2-card")));
+
+    LiveGameState view = projectionService.toPublicView(state, null);
+
+    assertThat(view.getRevealedHands()).isEmpty();
+  }
+
   private LiveGameState state(CardInstance... cards) {
     LiveGameState state = new LiveGameState();
     state.setCards(List.of(cards));
@@ -118,5 +143,13 @@ class GameStateProjectionServiceTest {
 
   private LiveGameState.LogEntry log(String id, String userId, String text) {
     return new LiveGameState.LogEntry(id, Instant.now().toString(), userId, text);
+  }
+
+  private RevealedHandSnapshot revealedHand(String toPlayerId, String ownerId, String... instanceIds) {
+    RevealedHandSnapshot snapshot = new RevealedHandSnapshot();
+    snapshot.setRevealedToPlayerId(toPlayerId);
+    snapshot.setRevealedOwnerId(ownerId);
+    snapshot.setInstanceIds(List.of(instanceIds));
+    return snapshot;
   }
 }

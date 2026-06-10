@@ -130,6 +130,7 @@ export type MatchRecord = {
 export type PresenceSummary = {
   onlinePlayers: number;
   activeRooms: number;
+  playersSearching?: number;
   queueSize?: number;
 };
 
