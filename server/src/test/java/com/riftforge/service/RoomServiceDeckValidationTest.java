@@ -178,6 +178,16 @@ class RoomServiceDeckValidationTest {
     assertThatNoException().isThrownBy(() -> roomService.setBotDeck(room.getCode(), botDeck));
   }
 
+  @Test
+  void playtestBotDeckAcceptsNoChampion() {
+    add("legend", "Legend");
+    List<String> botDeck = new ArrayList<>(List.of("legend"));
+    addMainDeckCards(botDeck, 20);
+    RoomState room = roomService.create("p1", "Player One", true);
+
+    assertThatNoException().isThrownBy(() -> roomService.setBotDeck(room.getCode(), botDeck));
+  }
+
   private void addMainDeckCards(List<String> deck, int count) {
     for (int i = 0; i < count; i++) {
       String id = "unit-" + i;

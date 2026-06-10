@@ -120,9 +120,12 @@ opposing units already there, a **Showdown** starts:
   run in parallel
 - **Completed-match snapshotting** — match history captures a value snapshot
   under the room lock; the live mutable state is never passed to history after unlock
-- Server-side deck validation on ready and start: unknown card IDs, missing
-  Legend, under-20 main-deck cards, and over-3-copy violations are rejected with
-  a 400 response (basic validation; full constructed-format enforcement is planned)
+- **Deck validation** on ready and start enforces two profiles:
+  - `FULL_CONSTRUCTED` (human players): 1 Legend, 1 Champion, exactly 39
+    non-Champion main-deck cards, exactly 12 runes, exactly 3 unique battlefields,
+    ≤3 copies per card — violations return 400 with a specific message
+  - `PLAYTEST_BOT` (generated bot decks): Legend required, ≥20 main-deck cards,
+    Champion/runes/battlefields optional — intentionally loose for dev/test piles
 - Finished games evicted from memory hourly; duplicate `initGame` calls ignored
 - STOMP reconnect: client re-fetches state and shows a banner on connection loss
 
@@ -298,9 +301,9 @@ mvn -q test
 - `TapCardMove`, `FlipCardMove`, and `MoveCardMove` are sandbox-only in ENFORCED
   games; they have no legal rules use case yet and are gated rather than
   phase/zone validated
-- Server-side deck format validation enforces 40 main cards, 12 runes, and 3
-  battlefields for human players, but currently counts the Champion separately
-  from the 40; the correct model is 39 non-Champion main cards + 1 Champion = 40
+- `FULL_CONSTRUCTED` deck validation requires exactly 39 non-Champion main cards +
+  1 Champion; `PLAYTEST_BOT` validation is intentionally loose and does not require
+  Champion, runes, or battlefields — this divergence is documented and tested
 - Counter spells, complex multi-target effects, and cards with no implemented
   effect are rejected; full card-effect coverage is still in progress
 - A pre-built Windows installer (`RiftForgeInstaller.exe`) is at the repository
