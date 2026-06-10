@@ -29,15 +29,17 @@ public class RulesValidator {
       throw new IllegalMoveException("Complete your mulligan before making other moves.");
     }
     if (move instanceof MulliganMove) throw new IllegalMoveException("Mulligans are already complete.");
-    if (move instanceof AdjustScoreMove || move instanceof DealCardMove) {
+    if (move instanceof AdjustScoreMove
+        || move instanceof DealCardMove
+        || move instanceof TapCardMove
+        || move instanceof FlipCardMove
+        || move instanceof MoveCardMove) {
       validateSandboxOnly(state, move);
       return;
     }
     if (state.getActiveShowdown() != null && !(move instanceof ResolveShowdownMove)) {
       throw new IllegalMoveException("Resolve the active showdown first.");
     }
-    if (move instanceof TapCardMove tap) { validateOwnedCard(state, tap.playerId(), tap.instanceId()); return; }
-    if (move instanceof FlipCardMove flip) { validateOwnedCard(state, flip.playerId(), flip.instanceId()); return; }
     if (!move.playerId().equals(state.getActivePlayerId())) {
       if (move instanceof PlayCardMove play && state.getCurrentPhase() == Phase.MAIN) {
         CardInstance card = findCard(state, play.instanceId());
@@ -55,7 +57,6 @@ public class RulesValidator {
     if (move instanceof UndoRunesMove undo) { validateUndoRunes(state, undo); return; }
     if (move instanceof PlayCardMove play) { validatePlayCard(state, play); return; }
     if (move instanceof MoveToBattlefieldMove deploy) { validateMoveToBattlefield(state, deploy); return; }
-    if (move instanceof MoveCardMove moveCard) { validateMoveCard(state, moveCard); return; }
     if (move instanceof TapRuneMove tapRune) { validateTapRune(state, tapRune); return; }
     if (move instanceof DiscardRuneMove discardRune) validateDiscardRune(state, discardRune);
   }
@@ -80,7 +81,12 @@ public class RulesValidator {
 
   private void validateSandboxOnly(LiveGameState state, MoveRequest move) {
     if (state.getGameMode() == GameMode.SANDBOX) return;
-    String moveName = move instanceof DealCardMove ? "Deal Card" : "Adjust Score";
+    String moveName = "That action";
+    if (move instanceof DealCardMove) moveName = "Deal Card";
+    if (move instanceof AdjustScoreMove) moveName = "Adjust Score";
+    if (move instanceof TapCardMove) moveName = "Tap Card";
+    if (move instanceof FlipCardMove) moveName = "Flip Card";
+    if (move instanceof MoveCardMove) moveName = "Move Card";
     throw new IllegalMoveException(moveName + " is only available in sandbox games.");
   }
 
@@ -154,12 +160,6 @@ public class RulesValidator {
     }
   }
 
-  private void validateMoveCard(LiveGameState state, MoveCardMove move) {
-    CardInstance card = findCard(state, move.instanceId());
-    if (!move.playerId().equals(card.getOwnerId())) throw new IllegalMoveException("You do not own that card.");
-    if (move.targetZone() == ZoneName.BATTLEFIELD) throw new IllegalMoveException("Use Move to Battlefield during MAIN.");
-  }
-
   private void validateUndoRunes(LiveGameState state, UndoRunesMove move) {
     requireMain(state);
     if (state.isCardPlayedThisTurn()) throw new IllegalMoveException("Cannot undo after playing a card.");
@@ -180,11 +180,6 @@ public class RulesValidator {
     RuneState rune = findRune(state, move.runeInstanceId());
     if (!move.playerId().equals(rune.getOwnerId())) throw new IllegalMoveException("You do not own that rune.");
     if (rune.isTapped()) throw new IllegalMoveException("Cannot discard an already-tapped rune.");
-  }
-
-  private void validateOwnedCard(LiveGameState state, String playerId, String instanceId) {
-    CardInstance card = findCard(state, instanceId);
-    if (!playerId.equals(card.getOwnerId())) throw new IllegalMoveException("You do not own that card.");
   }
 
   private void requireMain(LiveGameState state) {

@@ -4,8 +4,10 @@ import static com.riftforge.bot.BotConstants.BOT_ID;
 import static com.riftforge.bot.BotConstants.BOT_NAME;
 import static com.riftforge.bot.BotConstants.BOT2_ID;
 import static com.riftforge.bot.BotConstants.BOT2_NAME;
+import static com.riftforge.bot.BotConstants.ALL_BOT_IDS;
 
 import com.riftforge.model.CardDefinition;
+import com.riftforge.model.DeckFormat;
 import com.riftforge.model.GameMode;
 import com.riftforge.model.LobbyPlayer;
 import com.riftforge.model.RoomState;
@@ -78,19 +80,20 @@ public class RoomService {
 
   public RoomState ready(String code, String playerId, List<String> deckCardIds) {
     RoomState room = get(code);
+    List<String> submittedDeck = deckCardIds == null ? List.of() : deckCardIds;
     room.getPlayers().stream()
         .filter(p -> p.getId().equals(playerId))
         .findFirst()
         .ifPresent(p -> {
-          if (!p.isReady()) validateDeck(deckCardIds == null ? List.of() : deckCardIds);
+          if (!p.isReady()) validateDeck(submittedDeck, deckFormatFor(p.getId()));
           p.setReady(!p.isReady());
-          p.setDeckCardIds(deckCardIds);
+          p.setDeckCardIds(submittedDeck);
         });
     broadcast(code, room);
     return room;
   }
 
-  private void validateDeck(List<String> cardIds) {
+  private void validateDeck(List<String> cardIds, DeckFormat format) {
     List<CardDefinition> submittedCards = new ArrayList<>();
     for (String cardId : cardIds) {
       CardDefinition def = resolveCard(cardId);
@@ -102,21 +105,34 @@ public class RoomService {
         .anyMatch(card -> "Legend".equalsIgnoreCase(card.type()));
     if (!hasLegend) throw new IllegalArgumentException("Deck must include a Legend card.");
 
+    boolean hasChampion = submittedCards.stream()
+        .anyMatch(card -> isType(card, "Champion"));
+    if (format == DeckFormat.FULL_CONSTRUCTED && !hasChampion) {
+      throw new IllegalArgumentException("Deck must include a Champion card.");
+    }
+
     long mainDeckCount = submittedCards.stream()
         .filter(card -> !isType(card, "Rune"))
         .filter(card -> !isType(card, "Battlefield"))
         .filter(card -> !isType(card, "Champion"))
         .filter(card -> !isType(card, "Legend"))
         .count();
-    if (mainDeckCount < 20) throw new IllegalArgumentException("Main deck must have at least 20 cards.");
+    if (format == DeckFormat.FULL_CONSTRUCTED && mainDeckCount != 39) {
+      throw new IllegalArgumentException("Main deck must contain exactly 39 cards (Champion is in addition).");
+    }
+    if (format == DeckFormat.PLAYTEST_BOT && mainDeckCount < 20) {
+      throw new IllegalArgumentException("Main deck must have at least 20 cards.");
+    }
 
     long runeCount = submittedCards.stream().filter(card -> isType(card, "Rune")).count();
-    if (runeCount > 0 && runeCount != 12) throw new IllegalArgumentException("Rune Pool must contain exactly 12 runes.");
+    if (format == DeckFormat.FULL_CONSTRUCTED && runeCount != 12) {
+      throw new IllegalArgumentException("Rune Pool must contain exactly 12 runes.");
+    }
 
     List<CardDefinition> battlefields = submittedCards.stream()
         .filter(card -> isType(card, "Battlefield"))
         .toList();
-    if (!battlefields.isEmpty() && battlefields.size() != 3) {
+    if (format == DeckFormat.FULL_CONSTRUCTED && battlefields.size() != 3) {
       throw new IllegalArgumentException("Choose exactly 3 Battlefields.");
     }
     if (battlefields.stream().map(CardDefinition::name).distinct().count() != battlefields.size()) {
@@ -148,7 +164,11 @@ public class RoomService {
     room.getPlayers().stream()
         .filter(p -> BOT_ID.equals(p.getId()))
         .findFirst()
-        .ifPresent(p -> p.setDeckCardIds(deckCardIds.isEmpty() ? generateBotDeck() : deckCardIds));
+        .ifPresent(p -> {
+          List<String> resolvedDeck = deckCardIds.isEmpty() ? generateBotDeck() : deckCardIds;
+          validateDeck(resolvedDeck, DeckFormat.PLAYTEST_BOT);
+          p.setDeckCardIds(resolvedDeck);
+        });
     broadcast(code, room);
     return room;
   }
@@ -160,7 +180,7 @@ public class RoomService {
         .filter(p -> !BOT_ID.equals(p.getId()))
         .allMatch(LobbyPlayer::isReady);
     if (!humanReady) throw new IllegalStateException("Not all players are ready.");
-    room.getPlayers().forEach(player -> validateDeck(player.getDeckCardIds()));
+    room.getPlayers().forEach(player -> validateDeck(player.getDeckCardIds(), deckFormatFor(player.getId())));
     room.setStatus("playing");
     broadcast(code, room);
     return room;
@@ -184,6 +204,10 @@ public class RoomService {
       code = IntStream.range(0, 4).mapToObj(i -> String.valueOf(chars.charAt(rng.nextInt(chars.length())))).collect(Collectors.joining());
     } while (rooms.containsKey(code));
     return code;
+  }
+
+  private DeckFormat deckFormatFor(String playerId) {
+    return ALL_BOT_IDS.contains(playerId) ? DeckFormat.PLAYTEST_BOT : DeckFormat.FULL_CONSTRUCTED;
   }
 
   private List<String> generateBotDeck() {

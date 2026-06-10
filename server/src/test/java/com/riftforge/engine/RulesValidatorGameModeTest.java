@@ -11,7 +11,10 @@ import com.riftforge.model.PlayerState;
 import com.riftforge.model.ZoneName;
 import com.riftforge.model.move.AdjustScoreMove;
 import com.riftforge.model.move.DealCardMove;
+import com.riftforge.model.move.FlipCardMove;
+import com.riftforge.model.move.MoveCardMove;
 import com.riftforge.model.move.MoveToBattlefieldMove;
+import com.riftforge.model.move.TapCardMove;
 import com.riftforge.service.CardDataService;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +49,27 @@ class RulesValidatorGameModeTest {
   }
 
   @Test
+  void enforcedGameRejectsTapCard() {
+    assertThatThrownBy(() -> validator.validate(state(GameMode.ENFORCED), new TapCardMove("p1", "unit")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Tap Card is only available in sandbox games.");
+  }
+
+  @Test
+  void enforcedGameRejectsFlipCard() {
+    assertThatThrownBy(() -> validator.validate(state(GameMode.ENFORCED), new FlipCardMove("p1", "unit")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Flip Card is only available in sandbox games.");
+  }
+
+  @Test
+  void enforcedGameRejectsMoveCard() {
+    assertThatThrownBy(() -> validator.validate(state(GameMode.ENFORCED), new MoveCardMove("p1", "unit", ZoneName.DISCARD, 0, 0)))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Move Card is only available in sandbox games.");
+  }
+
+  @Test
   void sandboxGameAllowsDealCard() {
     assertThatNoException().isThrownBy(() ->
         validator.validate(state(GameMode.SANDBOX), new DealCardMove("p1", "unit", "HAND", 0, 0)));
@@ -55,6 +79,24 @@ class RulesValidatorGameModeTest {
   void sandboxGameAllowsAdjustScore() {
     assertThatNoException().isThrownBy(() ->
         validator.validate(state(GameMode.SANDBOX), new AdjustScoreMove("p1", "p1", 1)));
+  }
+
+  @Test
+  void sandboxGameAllowsTapCard() {
+    assertThatNoException().isThrownBy(() ->
+        validator.validate(state(GameMode.SANDBOX), new TapCardMove("p1", "unit")));
+  }
+
+  @Test
+  void sandboxGameAllowsFlipCard() {
+    assertThatNoException().isThrownBy(() ->
+        validator.validate(state(GameMode.SANDBOX), new FlipCardMove("p1", "unit")));
+  }
+
+  @Test
+  void sandboxGameAllowsMoveCard() {
+    assertThatNoException().isThrownBy(() ->
+        validator.validate(state(GameMode.SANDBOX), new MoveCardMove("p1", "unit", ZoneName.DISCARD, 0, 0)));
   }
 
   @Test
