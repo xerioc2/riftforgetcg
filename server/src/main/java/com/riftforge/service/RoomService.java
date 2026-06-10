@@ -11,6 +11,7 @@ import com.riftforge.model.DeckFormat;
 import com.riftforge.model.GameMode;
 import com.riftforge.model.LobbyPlayer;
 import com.riftforge.model.RoomState;
+import com.riftforge.rules.TournamentLegality;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -98,6 +99,9 @@ public class RoomService {
     for (String cardId : cardIds) {
       CardDefinition def = resolveCard(cardId);
       if (def == null) throw new IllegalArgumentException("Unknown card ID: " + cardId);
+      if (format == DeckFormat.FULL_CONSTRUCTED && TournamentLegality.isBannedInConstructed(def)) {
+        throw new IllegalArgumentException(def.name() + " is banned in Constructed.");
+      }
       submittedCards.add(def);
     }
 

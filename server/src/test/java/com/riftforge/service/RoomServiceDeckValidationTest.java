@@ -170,6 +170,38 @@ class RoomServiceDeckValidationTest {
   }
 
   @Test
+  void fullConstructedDeckWithBannedCardIsRejected() {
+    add("legend", "Legend");
+    add("champion", "Champion");
+    add("called-shot", "Unit", "Called Shot");
+    List<String> deck = new ArrayList<>(List.of("legend", "champion", "called-shot"));
+    addMainDeckCards(deck, 38);
+    addRunes(deck, 12);
+    addBattlefields(deck, 3);
+    RoomState room = roomService.create("p1", "Player One", false);
+
+    assertThatThrownBy(() -> roomService.ready(room.getCode(), "p1", deck))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Called Shot is banned in Constructed.");
+  }
+
+  @Test
+  void fullConstructedDeckWithBannedBattlefieldIsRejected() {
+    add("legend", "Legend");
+    add("champion", "Champion");
+    add("dreaming-tree", "Battlefield", "Dreaming Tree");
+    List<String> deck = new ArrayList<>(List.of("legend", "champion", "dreaming-tree"));
+    addMainDeckCards(deck, 39);
+    addRunes(deck, 12);
+    addBattlefields(deck, 2);
+    RoomState room = roomService.create("p1", "Player One", false);
+
+    assertThatThrownBy(() -> roomService.ready(room.getCode(), "p1", deck))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Dreaming Tree is banned in Constructed.");
+  }
+
+  @Test
   void fullConstructedDeckWithFewerThanThreeBattlefieldsIsRejected() {
     add("legend", "Legend");
     add("champion", "Champion");
@@ -229,7 +261,11 @@ class RoomServiceDeckValidationTest {
   }
 
   private void add(String id, String type) {
-    cards.put(id, new CardDefinition(id, name(id), type, null, List.of(), 0, 0, null, null, null, null, 1, 1, List.of()));
+    add(id, type, name(id));
+  }
+
+  private void add(String id, String type, String name) {
+    cards.put(id, new CardDefinition(id, name, type, null, List.of(), 0, 0, null, null, null, null, 1, 1, List.of()));
   }
 
   private String name(String id) {
