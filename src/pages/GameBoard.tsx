@@ -16,6 +16,7 @@ import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
 import { cardTargetScope, unsupportedCardReason } from '../lib/cardActions';
 import { useLocalPlayer } from '../lib/playerContext';
+import { getRoomSessionToken } from '../lib/roomSession';
 import { play, preload } from '../lib/sfx';
 import { createGameClient, joinGame, sendMove } from '../lib/stompGame';
 import { useCardStore } from '../store/cards';
@@ -207,6 +208,7 @@ export function GameBoard() {
         const client = createGameClient(
           roomCode,
           player,
+          getRoomSessionToken(roomCode, player.id),
           (msg) => {
             if (msg.type === 'STATE_UPDATE') handleIncomingState(msg.state);
             if (msg.type === 'ERROR') addChat({ id: crypto.randomUUID(), userId: msg.playerId, email: null, text: msg.message, sentAt: new Date().toISOString() });

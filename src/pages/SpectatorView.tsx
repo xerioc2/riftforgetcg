@@ -66,6 +66,7 @@ export function SpectatorView() {
         const client = createGameClient(
           roomCode,
           spectator,
+          undefined,
           (msg) => {
             if (msg.type === 'STATE_UPDATE') setState(msg.state);
             if (msg.type === 'ERROR') addChat({ id: crypto.randomUUID(), userId: msg.playerId, email: null, text: msg.message, sentAt: new Date().toISOString() });

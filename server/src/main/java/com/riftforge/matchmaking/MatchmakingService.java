@@ -3,6 +3,7 @@ package com.riftforge.matchmaking;
 import com.riftforge.model.RoomState;
 import com.riftforge.service.GameService;
 import com.riftforge.service.RoomService;
+import com.riftforge.service.RoomTokenService;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -19,11 +20,13 @@ public class MatchmakingService {
   private final Set<String> queued = ConcurrentHashMap.newKeySet();
   private final RoomService roomService;
   private final GameService gameService;
+  private final RoomTokenService roomTokenService;
   private final SimpMessagingTemplate messaging;
 
-  public MatchmakingService(RoomService roomService, @Lazy GameService gameService, SimpMessagingTemplate messaging) {
+  public MatchmakingService(RoomService roomService, @Lazy GameService gameService, RoomTokenService roomTokenService, SimpMessagingTemplate messaging) {
     this.roomService = roomService;
     this.gameService = gameService;
+    this.roomTokenService = roomTokenService;
     this.messaging = messaging;
   }
 
@@ -63,9 +66,10 @@ public class MatchmakingService {
         room.getGameMode()
     );
 
-    MatchNotification notification = new MatchNotification(room.getCode());
-    notifyPlayer(p1.playerId(), notification);
-    notifyPlayer(p2.playerId(), notification);
+    String p1Token = roomTokenService.issue(room.getCode(), p1.playerId(), "PLAYER");
+    String p2Token = roomTokenService.issue(room.getCode(), p2.playerId(), "PLAYER");
+    notifyPlayer(p1.playerId(), new MatchNotification(room.getCode(), p1Token));
+    notifyPlayer(p2.playerId(), new MatchNotification(room.getCode(), p2Token));
   }
 
   private void notifyPlayer(String playerId, MatchNotification notification) {

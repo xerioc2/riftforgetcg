@@ -1,3 +1,3 @@
 package com.riftforge.matchmaking;
 
-public record MatchNotification(String roomCode) {}
+public record MatchNotification(String roomCode, String sessionToken) {}

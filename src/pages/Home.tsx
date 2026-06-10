@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { deckToGameCardIds } from '../lib/deckUtils';
 import { getGameServerUrl } from '../lib/env';
 import { useLocalPlayer } from '../lib/playerContext';
+import { saveRoomSession, type TokenizedRoom } from '../lib/roomSession';
 import { createMatchmakingClient } from '../lib/stompGame';
 import { useDeckStore } from '../store/decks';
 
@@ -39,8 +40,9 @@ export function Home() {
       setMessage('Unable to create room. Is the server running?');
       return;
     }
-    const room = (await res.json()) as { code: string };
-    navigate(`/lobby/${room.code}`);
+    const tokenizedRoom = (await res.json()) as TokenizedRoom;
+    saveRoomSession(tokenizedRoom.room.code, player.id, tokenizedRoom.sessionToken);
+    navigate(`/lobby/${tokenizedRoom.room.code}`);
   };
 
   const handleJoin = async () => {
@@ -55,6 +57,8 @@ export function Home() {
       setMessage('Room not found or already started.');
       return;
     }
+    const tokenizedRoom = (await res.json()) as TokenizedRoom;
+    saveRoomSession(tokenizedRoom.room.code, player.id, tokenizedRoom.sessionToken);
     navigate(`/lobby/${code}`);
   };
 
@@ -105,6 +109,7 @@ export function Home() {
         stopPolling();
         void matchClientRef.current?.deactivate();
         matchClientRef.current = null;
+        if (notification.sessionToken) saveRoomSession(notification.roomCode, player.id, notification.sessionToken);
         searchingRef.current = false;
         setSearching(false);
         navigate(`/game/${notification.roomCode}`);

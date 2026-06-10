@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { deckToGameCardIds } from '../lib/deckUtils';
 import { getGameServerUrl } from '../lib/env';
 import { useLocalPlayer } from '../lib/playerContext';
+import { getRoomSessionToken } from '../lib/roomSession';
 import { createLobbyClient } from '../lib/stompGame';
 import { useDeckStore } from '../store/decks';
 import type { RoomState } from '../types';
@@ -40,7 +41,7 @@ export function Lobby() {
         const res = await fetch(`${getGameServerUrl()}/api/rooms/${normalizedCode}`);
         if (!res.ok) throw new Error('Room not found.');
         setRoom((await res.json()) as RoomState);
-        clientRef.current = createLobbyClient(normalizedCode, player, setRoom);
+        clientRef.current = createLobbyClient(normalizedCode, player, getRoomSessionToken(normalizedCode, player.id), setRoom);
         setLoading(false);
       } catch (setupError) {
         setError(setupError instanceof Error ? setupError.message : 'Unable to load lobby.');

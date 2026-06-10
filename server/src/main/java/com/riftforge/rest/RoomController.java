@@ -5,6 +5,7 @@ import com.riftforge.model.GameMode;
 import com.riftforge.model.RoomState;
 import com.riftforge.service.GameService;
 import com.riftforge.service.RoomService;
+import com.riftforge.service.RoomTokenService;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -22,10 +23,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class RoomController {
   private final RoomService roomService;
   private final GameService gameService;
+  private final RoomTokenService roomTokenService;
 
-  public RoomController(RoomService roomService, GameService gameService) {
+  public RoomController(RoomService roomService, GameService gameService, RoomTokenService roomTokenService) {
     this.roomService = roomService;
     this.gameService = gameService;
+    this.roomTokenService = roomTokenService;
   }
 
   @ExceptionHandler(IllegalArgumentException.class)
@@ -43,10 +46,13 @@ public class RoomController {
   record ReadyRequest(String playerId, List<String> deckCardIds) {}
   record StartRequest(String playerId) {}
   record BotDeckRequest(List<String> deckCardIds) {}
+  record TokenizedRoom(RoomState room, String sessionToken) {}
 
   @PostMapping
-  public RoomState create(@RequestBody CreateRequest req) {
-    return roomService.create(req.playerId(), req.playerName(), req.withBot(), req.gameMode());
+  public TokenizedRoom create(@RequestBody CreateRequest req) {
+    RoomState room = roomService.create(req.playerId(), req.playerName(), req.withBot(), req.gameMode());
+    String sessionToken = roomTokenService.issue(room.getCode(), req.playerId(), "PLAYER");
+    return new TokenizedRoom(room, sessionToken);
   }
 
   @GetMapping("/{code}")
@@ -55,8 +61,10 @@ public class RoomController {
   }
 
   @PostMapping("/{code}/join")
-  public RoomState join(@PathVariable String code, @RequestBody JoinRequest req) {
-    return roomService.join(code, req.playerId(), req.playerName());
+  public TokenizedRoom join(@PathVariable String code, @RequestBody JoinRequest req) {
+    RoomState room = roomService.join(code, req.playerId(), req.playerName());
+    String sessionToken = roomTokenService.issue(room.getCode(), req.playerId(), "PLAYER");
+    return new TokenizedRoom(room, sessionToken);
   }
 
   @PostMapping("/{code}/ready")

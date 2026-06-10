@@ -21,20 +21,24 @@ export type MoveRequest =
   | { type: 'DISMISS_REVEALED'; playerId: string; instanceId: string };
 
 export type ServerMessage = { type: 'STATE_UPDATE'; state: LiveGameState } | { type: 'ERROR'; message: string; playerId: string };
-export type MatchNotification = { roomCode: string };
+export type MatchNotification = { roomCode: string; sessionToken?: string };
 
 export function createGameClient(
   roomCode: string,
   player: LocalPlayer,
+  sessionToken: string | undefined,
   onMessage: (msg: ServerMessage) => void,
   onConnected: () => void,
   onConnectionChange?: (connected: boolean) => void,
   useUserState = true,
 ): Client {
   const wsUrl = `${getGameServerUrl().replace(/^http/, 'ws')}/ws`;
+  const connectHeaders: Record<string, string> = useUserState
+    ? { playerId: player.id, playerName: player.name, roomCode, sessionToken: sessionToken ?? '' }
+    : { playerId: player.id, playerName: player.name };
   const client = new Client({
     brokerURL: wsUrl,
-    connectHeaders: { playerId: player.id, playerName: player.name },
+    connectHeaders,
     onConnect: () => {
       client.subscribe(`/topic/game/${roomCode}`, (frame) => {
         const msg = JSON.parse(frame.body) as ServerMessage;
@@ -56,11 +60,14 @@ export function createGameClient(
   return client;
 }
 
-export function createLobbyClient(roomCode: string, player: LocalPlayer, onRoom: (room: RoomState) => void): Client {
+export function createLobbyClient(roomCode: string, player: LocalPlayer, sessionToken: string | undefined, onRoom: (room: RoomState) => void): Client {
   const wsUrl = `${getGameServerUrl().replace(/^http/, 'ws')}/ws`;
+  const connectHeaders: Record<string, string> = sessionToken
+    ? { playerId: player.id, playerName: player.name, roomCode, sessionToken }
+    : { playerId: player.id, playerName: player.name };
   const client = new Client({
     brokerURL: wsUrl,
-    connectHeaders: { playerId: player.id, playerName: player.name },
+    connectHeaders,
     onConnect: () => {
       client.subscribe(`/topic/lobby/${roomCode}`, (frame) => {
         onRoom(JSON.parse(frame.body) as RoomState);
