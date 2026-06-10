@@ -36,13 +36,15 @@ class GameServiceMoveSerializationTest {
   @Mock SimpMessagingTemplate messaging;
   @Mock ApplicationEventPublisher eventPublisher;
   @Mock MatchHistoryService matchHistoryService;
+  GameStateProjectionService projectionService;
   ExecutorService executor;
   GameService gameService;
 
   @BeforeEach
   void setUp() {
     executor = Executors.newFixedThreadPool(2);
-    gameService = new GameService(engine, cardDataService, messaging, eventPublisher, matchHistoryService);
+    projectionService = new GameStateProjectionService();
+    gameService = new GameService(engine, cardDataService, messaging, eventPublisher, matchHistoryService, projectionService);
   }
 
   @AfterEach

@@ -29,6 +29,7 @@ export function createGameClient(
   onMessage: (msg: ServerMessage) => void,
   onConnected: () => void,
   onConnectionChange?: (connected: boolean) => void,
+  useUserState = true,
 ): Client {
   const wsUrl = `${getGameServerUrl().replace(/^http/, 'ws')}/ws`;
   const client = new Client({
@@ -36,11 +37,14 @@ export function createGameClient(
     connectHeaders: { playerId: player.id, playerName: player.name },
     onConnect: () => {
       client.subscribe(`/topic/game/${roomCode}`, (frame) => {
-        onMessage(JSON.parse(frame.body) as ServerMessage);
+        const msg = JSON.parse(frame.body) as ServerMessage;
+        if (!useUserState || msg.type === 'ERROR') onMessage(msg);
       });
-      client.subscribe(`/user/topic/game/${roomCode}`, (frame) => {
-        onMessage(JSON.parse(frame.body) as ServerMessage);
-      });
+      if (useUserState) {
+        client.subscribe(`/user/topic/game/${roomCode}`, (frame) => {
+          onMessage(JSON.parse(frame.body) as ServerMessage);
+        });
+      }
       onConnected();
       onConnectionChange?.(true);
     },

@@ -39,7 +39,7 @@ class GameServiceDeckStartTest {
   @BeforeEach
   void setUp() {
     cards = new HashMap<>();
-    gameService = new GameService(engine, cardDataService, messaging, eventPublisher, new MatchHistoryService());
+    gameService = new GameService(engine, cardDataService, messaging, eventPublisher, new MatchHistoryService(), new GameStateProjectionService());
     roomService = new RoomService(messaging, cardDataService);
     when(cardDataService.getAll()).thenReturn(cards);
     when(cardDataService.getCard(anyString())).thenAnswer(invocation -> cards.get(invocation.getArgument(0)));

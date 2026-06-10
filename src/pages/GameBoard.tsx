@@ -195,9 +195,10 @@ export function GameBoard() {
   useEffect(() => {
     if (!roomCode) return;
     let cancelled = false;
+    const stateUrl = `${getGameServerUrl()}/api/game/${roomCode}/state?viewerPlayerId=${encodeURIComponent(player.id)}`;
     const setup = async () => {
       try {
-        const stateResponse = await fetch(`${getGameServerUrl()}/api/game/${roomCode}/state`);
+        const stateResponse = await fetch(stateUrl);
         if (!stateResponse.ok) throw new Error('Game state not found.');
         const initialState = (await stateResponse.json()) as LiveGameState;
         if (cancelled) return;
@@ -214,7 +215,7 @@ export function GameBoard() {
           (connected) => {
             setWsConnected(connected);
             if (connected && hasConnectedRef.current) {
-              void fetch(`${getGameServerUrl()}/api/game/${roomCode}/state`)
+              void fetch(stateUrl)
                 .then((r) => r.json() as Promise<LiveGameState>)
                 .then(handleIncomingState)
                 .catch(() => {});

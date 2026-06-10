@@ -43,13 +43,15 @@ public class GameService {
   private final SimpMessagingTemplate messaging;
   private final ApplicationEventPublisher eventPublisher;
   private final MatchHistoryService matchHistoryService;
+  private final GameStateProjectionService projectionService;
 
-  public GameService(GameEngine engine, CardDataService cardDataService, SimpMessagingTemplate messaging, ApplicationEventPublisher eventPublisher, MatchHistoryService matchHistoryService) {
+  public GameService(GameEngine engine, CardDataService cardDataService, SimpMessagingTemplate messaging, ApplicationEventPublisher eventPublisher, MatchHistoryService matchHistoryService, GameStateProjectionService projectionService) {
     this.engine = engine;
     this.cardDataService = cardDataService;
     this.messaging = messaging;
     this.eventPublisher = eventPublisher;
     this.matchHistoryService = matchHistoryService;
+    this.projectionService = projectionService;
   }
 
   public void initGame(String roomCode, List<String> playerIds, Map<String, List<String>> decksByPlayer, Map<String, String> playerNames) {
@@ -105,13 +107,18 @@ public class GameService {
   public void sendCurrentStateTo(String roomCode, String userId) {
     LiveGameState state = games.get(roomCode);
     if (state != null) {
-      messaging.convertAndSendToUser(userId, "/topic/game/" + roomCode, new GameMessage.StateUpdate(state));
+      messaging.convertAndSendToUser(userId, "/topic/game/" + roomCode, new GameMessage.StateUpdate(projectionService.toPublicView(state, userId)));
       eventPublisher.publishEvent(new GameStateChangedEvent(this, roomCode, state));
     }
   }
 
   public LiveGameState currentState(String roomCode) {
     return games.get(roomCode);
+  }
+
+  public LiveGameState currentStateFor(String roomCode, String viewerPlayerId) {
+    LiveGameState state = games.get(roomCode);
+    return state == null ? null : projectionService.toPublicView(state, viewerPlayerId);
   }
 
   @Scheduled(fixedDelay = 3_600_000)
@@ -222,7 +229,13 @@ public class GameService {
   }
 
   private void broadcast(String roomCode, LiveGameState state) {
-    messaging.convertAndSend("/topic/game/" + roomCode, new GameMessage.StateUpdate(state));
+    for (PlayerState player : state.getPlayers()) {
+      messaging.convertAndSendToUser(
+          player.getUserId(),
+          "/topic/game/" + roomCode,
+          new GameMessage.StateUpdate(projectionService.toPublicView(state, player.getUserId())));
+    }
+    messaging.convertAndSend("/topic/game/" + roomCode, new GameMessage.StateUpdate(projectionService.toPublicView(state, null)));
     eventPublisher.publishEvent(new GameStateChangedEvent(this, roomCode, state));
   }
 

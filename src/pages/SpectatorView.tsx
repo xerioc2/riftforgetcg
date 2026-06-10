@@ -76,6 +76,7 @@ export function SpectatorView() {
             if (connected && hasConnectedRef.current) void refreshState().catch(() => {});
             if (connected) hasConnectedRef.current = true;
           },
+          false,
         );
         stompClientRef.current = client;
       } catch {
