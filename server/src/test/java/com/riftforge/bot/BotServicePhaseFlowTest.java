@@ -14,6 +14,7 @@ import com.riftforge.model.LiveGameState;
 import com.riftforge.model.LobbyPlayer;
 import com.riftforge.model.Phase;
 import com.riftforge.model.RoomState;
+import com.riftforge.rules.LegalActionsService;
 import com.riftforge.service.CardDataService;
 import com.riftforge.service.GameService;
 import com.riftforge.service.GameStateProjectionService;
@@ -53,7 +54,7 @@ class BotServicePhaseFlowTest {
     CombatResolver combatResolver = new CombatResolver(cardDataService, effects, cardZoneService);
     RulesValidator rulesValidator = new RulesValidator(cardDataService);
     GameEngine engine = new GameEngine(rulesValidator, combatResolver, cardZoneService, cardDataService, effects, 8);
-    gameService = new GameService(engine, cardDataService, messaging, eventPublisher, new MatchHistoryService(), new GameStateProjectionService());
+    gameService = new GameService(engine, cardDataService, messaging, eventPublisher, new MatchHistoryService(), new GameStateProjectionService(new LegalActionsService()));
     roomService = new RoomService(messaging, cardDataService);
     botService = new BotService(gameService, cardDataService);
     when(cardDataService.getAll()).thenReturn(cards);

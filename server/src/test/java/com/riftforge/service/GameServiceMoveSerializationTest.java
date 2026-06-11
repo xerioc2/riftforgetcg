@@ -11,6 +11,7 @@ import com.riftforge.model.LiveGameState;
 import com.riftforge.model.MatchRecord;
 import com.riftforge.model.Phase;
 import com.riftforge.model.move.PassPhaseMove;
+import com.riftforge.rules.LegalActionsService;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -43,7 +44,7 @@ class GameServiceMoveSerializationTest {
   @BeforeEach
   void setUp() {
     executor = Executors.newFixedThreadPool(2);
-    projectionService = new GameStateProjectionService();
+    projectionService = new GameStateProjectionService(new LegalActionsService());
     gameService = new GameService(engine, cardDataService, messaging, eventPublisher, matchHistoryService, projectionService);
   }
 

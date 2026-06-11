@@ -11,6 +11,7 @@ import com.riftforge.model.LiveGameState;
 import com.riftforge.model.LobbyPlayer;
 import com.riftforge.model.RoomState;
 import com.riftforge.model.ZoneName;
+import com.riftforge.rules.LegalActionsService;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -40,7 +41,7 @@ class GameServiceDeckStartTest {
   @BeforeEach
   void setUp() {
     cards = new HashMap<>();
-    gameService = new GameService(engine, cardDataService, messaging, eventPublisher, new MatchHistoryService(), new GameStateProjectionService());
+    gameService = new GameService(engine, cardDataService, messaging, eventPublisher, new MatchHistoryService(), new GameStateProjectionService(new LegalActionsService()));
     roomService = new RoomService(messaging, cardDataService);
     when(cardDataService.getAll()).thenReturn(cards);
     when(cardDataService.getCard(anyString())).thenAnswer(invocation -> cards.get(invocation.getArgument(0)));

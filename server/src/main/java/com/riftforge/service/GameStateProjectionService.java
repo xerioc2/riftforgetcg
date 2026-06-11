@@ -19,10 +19,6 @@ public class GameStateProjectionService {
   public static final String HIDDEN_CARD_ID = "hidden";
   private final LegalActionsService legalActionsService;
 
-  public GameStateProjectionService() {
-    this(new LegalActionsService());
-  }
-
   public GameStateProjectionService(LegalActionsService legalActionsService) {
     this.legalActionsService = legalActionsService;
   }
