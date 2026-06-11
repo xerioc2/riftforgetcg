@@ -118,6 +118,10 @@ public class GameService {
     return games.get(normalizeRoomCode(roomCode));
   }
 
+  public List<LiveGameState> activeStates() {
+    return List.copyOf(games.values());
+  }
+
   public LiveGameState currentStateFor(String roomCode, String viewerPlayerId) {
     LiveGameState state = games.get(normalizeRoomCode(roomCode));
     return state == null ? null : projectionService.toPublicView(state, viewerPlayerId);

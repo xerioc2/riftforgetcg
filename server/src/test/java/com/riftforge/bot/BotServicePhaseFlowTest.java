@@ -251,6 +251,29 @@ class BotServicePhaseFlowTest {
   }
 
   @Test
+  void recoverySweepAdvancesStuckBotAwakenStateWithoutFreshEvent() throws Exception {
+    String roomCode = "5MLF";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState stuck = gameService.currentState(roomCode);
+    stuck.setActivePlayerId(BOT_ID);
+    stuck.setFirstPlayerId(BOT_ID);
+    stuck.setCurrentPhase(Phase.AWAKEN);
+    stuck.setTurnNumber(1);
+    stuck.setActiveShowdown(null);
+
+    botService.recoverMissedBotTurns();
+
+    LiveGameState latest = waitUntilNotAwakenWithBotActive(gameService, roomCode);
+    latest.setWinnerId("test-complete");
+    assertThat(latest.getCurrentPhase()).isIn(Phase.BEGINNING, Phase.CHANNEL, Phase.DRAW, Phase.MAIN, Phase.END);
+    waitForNoActingRooms();
+  }
+
+  @Test
   void publishedHumanEndToBotAwakenEventAdvancesBot() throws Exception {
     ForwardingEventPublisher publisher = new ForwardingEventPublisher();
     GameService eventedGameService = new GameService(

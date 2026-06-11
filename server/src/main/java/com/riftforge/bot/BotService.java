@@ -29,6 +29,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.context.annotation.Lazy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -48,6 +49,23 @@ public class BotService {
     log.info("BotService active; bot ids={}", ALL_BOT_IDS);
   }
 
+  @Scheduled(fixedDelay = 1_000, initialDelay = 1_000)
+  void recoverMissedBotTurns() {
+    for (LiveGameState state : gameService.activeStates()) {
+      if (state == null || state.getWinnerId() != null) continue;
+      String roomCode = normalizeRoomCode(state.getRoomCode());
+      String actingBotId = actingBotId(state);
+      if (actingBotId == null || actingRooms.contains(roomCode)) continue;
+      log.info(
+          "Bot sweep found pending bot action: room={}, phase={}, activePlayer={}, actingBotId={}",
+          roomCode,
+          state.getCurrentPhase(),
+          state.getActivePlayerId(),
+          actingBotId);
+      onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+    }
+  }
+
   @EventListener
   public void onStateChanged(GameStateChangedEvent event) {
     String roomCode = normalizeRoomCode(event.getRoomCode());
@@ -63,17 +81,7 @@ public class BotService {
         .map(PlayerState::getUserId)
         .toList();
 
-    String actingBotId = null;
-    if (state.getCurrentPhase() == Phase.MULLIGAN) {
-      actingBotId = state.getPlayers().stream()
-          .map(PlayerState::getUserId)
-          .filter(this::isBotId)
-          .filter(id -> !state.getMulligansDone().contains(id))
-          .findFirst()
-          .orElse(null);
-    } else if (isBotId(state.getActivePlayerId())) {
-      actingBotId = state.getActivePlayerId();
-    }
+    String actingBotId = actingBotId(state);
     boolean alreadyActing = actingRooms.contains(roomCode);
     log.info(
         "Bot event received: rawRoom={}, room={}, phase={}, activePlayer={}, players={}, botIds={}, anyBotInGame={}, actingBotId={}, actingRoomsBeforeAdd={}, actingRoomAlready={}",
@@ -317,6 +325,19 @@ public class BotService {
 
   private boolean isBotId(String playerId) {
     return playerId != null && ALL_BOT_IDS.stream().anyMatch(botId -> botId.equalsIgnoreCase(playerId));
+  }
+
+  private String actingBotId(LiveGameState state) {
+    if (state.getCurrentPhase() == Phase.MULLIGAN) {
+      return state.getPlayers().stream()
+          .map(PlayerState::getUserId)
+          .filter(this::isBotId)
+          .filter(id -> !state.getMulligansDone().contains(id))
+          .findFirst()
+          .orElse(null);
+    }
+    if (isBotId(state.getActivePlayerId())) return state.getActivePlayerId();
+    return null;
   }
 
   private String normalizeRoomCode(String roomCode) {
