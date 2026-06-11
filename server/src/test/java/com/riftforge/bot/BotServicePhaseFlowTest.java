@@ -1,5 +1,6 @@
 package com.riftforge.bot;
 
+import static com.riftforge.bot.BotConstants.ALL_BOT_IDS;
 import static com.riftforge.bot.BotConstants.BOT_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -15,16 +16,19 @@ import com.riftforge.model.LiveGameState;
 import com.riftforge.model.LobbyPlayer;
 import com.riftforge.model.Phase;
 import com.riftforge.model.RoomState;
+import com.riftforge.model.move.PassPhaseMove;
 import com.riftforge.rules.LegalActionsService;
 import com.riftforge.service.CardDataService;
 import com.riftforge.service.GameService;
 import com.riftforge.service.GameStateProjectionService;
 import com.riftforge.service.MatchHistoryService;
 import com.riftforge.service.RoomService;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -63,6 +67,39 @@ class BotServicePhaseFlowTest {
     add("legend", "Legend", 0);
     add("champion", "Champion", 0);
     for (int i = 0; i < 10; i++) add("unit-" + i, "Unit", 99);
+  }
+
+  @Test
+  void roomBotIdMatchesConfiguredBotIds() {
+    RoomState room = roomService.create("human", "Human", true);
+    LobbyPlayer bot = room.getPlayers().stream()
+        .filter(player -> player.getName().equals("RiftBot"))
+        .findFirst()
+        .orElseThrow();
+
+    assertThat(bot.getId()).isEqualTo(BOT_ID);
+    assertThat(ALL_BOT_IDS).contains(bot.getId());
+  }
+
+  @Test
+  void passPhaseMoveAdvancesAwakenToBeginningForActiveBot() {
+    String roomCode = "wake";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setActivePlayerId(BOT_ID);
+    state.setFirstPlayerId(BOT_ID);
+    state.setCurrentPhase(Phase.AWAKEN);
+
+    gameService.processMove(roomCode, new PassPhaseMove(BOT_ID));
+
+    LiveGameState latest = gameService.currentState(roomCode);
+    assertThat(latest.getCurrentPhase()).isEqualTo(Phase.BEGINNING);
+    assertThat(latest.getLog())
+        .anySatisfy(entry -> assertThat(entry.text()).isEqualTo("Advanced to BEGINNING"));
   }
 
   @Test
@@ -106,6 +143,7 @@ class BotServicePhaseFlowTest {
         Phase.CHANNEL,
         Phase.DRAW,
         Phase.MAIN);
+    waitForNoActingRooms();
   }
 
   @Test
@@ -147,6 +185,45 @@ class BotServicePhaseFlowTest {
         Phase.CHANNEL,
         Phase.DRAW,
         Phase.MAIN);
+    waitForNoActingRooms();
+  }
+
+  @Test
+  void botEventUsesNormalizedRoomCodeWhenLookingUpState() throws Exception {
+    String roomCode = "MIX1";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState initial = gameService.currentState("mix1");
+    initial.setActivePlayerId(BOT_ID);
+    initial.setFirstPlayerId(BOT_ID);
+    initial.setCurrentPhase(Phase.AWAKEN);
+
+    List<Phase> observed = new ArrayList<>();
+    observed.add(initial.getCurrentPhase());
+    botService.onStateChanged(new GameStateChangedEvent(this, "mix1", initial));
+
+    long deadline = System.currentTimeMillis() + 5_000;
+    while (System.currentTimeMillis() < deadline) {
+      LiveGameState state = gameService.currentState("MiX1");
+      Phase phase = state.getCurrentPhase();
+      if (observed.isEmpty() || observed.get(observed.size() - 1) != phase) observed.add(phase);
+      if (phase == Phase.MAIN) {
+        state.setWinnerId("test-complete");
+        break;
+      }
+      Thread.sleep(25);
+    }
+
+    assertThat(observed).containsSubsequence(
+        Phase.AWAKEN,
+        Phase.BEGINNING,
+        Phase.CHANNEL,
+        Phase.DRAW,
+        Phase.MAIN);
+    waitForNoActingRooms();
   }
 
   private void add(String id, String type, int cost) {
@@ -162,5 +239,21 @@ class BotServicePhaseFlowTest {
       deck.add("unit-" + i);
     }
     return deck;
+  }
+
+  @SuppressWarnings("unchecked")
+  private Set<String> actingRooms() throws Exception {
+    Field field = BotService.class.getDeclaredField("actingRooms");
+    field.setAccessible(true);
+    return (Set<String>) field.get(botService);
+  }
+
+  private void waitForNoActingRooms() throws Exception {
+    long deadline = System.currentTimeMillis() + 2_000;
+    while (System.currentTimeMillis() < deadline) {
+      if (actingRooms().isEmpty()) return;
+      Thread.sleep(25);
+    }
+    assertThat(actingRooms()).isEmpty();
   }
 }

@@ -29,6 +29,7 @@ import org.springframework.web.client.RestClient;
 @Service
 public class CardDataService {
   private static final Logger log = LoggerFactory.getLogger(CardDataService.class);
+  private static final int CARD_CACHE_VERSION = 2;
   private static final int PAGE_SIZE = 50;
   private static final long CACHE_MAX_AGE_MILLIS = 24 * 60 * 60 * 1000L;
 
@@ -59,7 +60,8 @@ public class CardDataService {
       log.info("Loaded {} cards from Riftcodex", cards.size());
       saveCache();
     } catch (Exception ex) {
-      log.warn("Could not load cards from Riftcodex at {}. Using placeholder card.", apiUrl, ex);
+      if (loadStaleCacheFallback()) return;
+      log.warn("Could not load cards from Riftcodex at {} and no usable cache was available. Using placeholder card.", apiUrl, ex);
       installPlaceholder();
     }
   }
@@ -82,9 +84,12 @@ public class CardDataService {
       long age = System.currentTimeMillis() - Files.getLastModifiedTime(cacheFile).toMillis();
       if (age >= CACHE_MAX_AGE_MILLIS) return false;
 
-      Map<String, CardDefinition> cachedCards = mapper.readValue(
-          cacheFile.toFile(),
-          new TypeReference<Map<String, CardDefinition>>() {});
+      CacheReadResult cache = readCache();
+      if (!cache.currentVersion()) {
+        log.warn("Ignoring stale card cache version; refetching.");
+        return false;
+      }
+      Map<String, CardDefinition> cachedCards = cache.cards();
       if (cachedCards.isEmpty()) return false;
       int repairedCards = repairCachedCombatHealth(cachedCards);
 
@@ -98,6 +103,27 @@ public class CardDataService {
       return true;
     } catch (Exception ex) {
       log.warn("Could not load card cache from {}. Fetching from Riftcodex.", cacheFile, ex);
+      return false;
+    }
+  }
+
+  private boolean loadStaleCacheFallback() {
+    try {
+      if (!Files.exists(cacheFile)) return false;
+      CacheReadResult cache = readCache();
+      if (cache.cards().isEmpty()) return false;
+      int repairedCards = repairCachedCombatHealth(cache.cards());
+      cards.clear();
+      cards.putAll(cache.cards());
+      log.warn(
+          "Using stale card cache version {} because Riftcodex could not be reached. Card stats may be stale until the next successful refresh.",
+          cache.version() == null ? "unversioned" : cache.version());
+      if (repairedCards > 0) {
+        log.warn("Repaired {} cached Unit/Champion card(s) with invalid engine health.", repairedCards);
+      }
+      return true;
+    } catch (Exception ex) {
+      log.warn("Could not load stale card cache fallback from {}.", cacheFile, ex);
       return false;
     }
   }
@@ -127,12 +153,31 @@ public class CardDataService {
   private void saveCache() {
     try {
       Files.createDirectories(cacheFile.getParent());
-      mapper.writeValue(cacheFile.toFile(), cards);
+      mapper.writeValue(cacheFile.toFile(), new CardCacheFile(CARD_CACHE_VERSION, cards));
       log.info("Saved {} cards to cache", cards.size());
     } catch (Exception ex) {
       log.warn("Could not save card cache to {}", cacheFile, ex);
     }
   }
+
+  private CacheReadResult readCache() throws Exception {
+    JsonNode root = mapper.readTree(cacheFile.toFile());
+    if (root.has("version") && root.has("cards")) {
+      int version = root.path("version").asInt();
+      Map<String, CardDefinition> cachedCards = mapper.convertValue(
+          root.path("cards"),
+          new TypeReference<Map<String, CardDefinition>>() {});
+      return new CacheReadResult(version, version == CARD_CACHE_VERSION, cachedCards);
+    }
+    Map<String, CardDefinition> unversionedCards = mapper.convertValue(
+        root,
+        new TypeReference<Map<String, CardDefinition>>() {});
+    return new CacheReadResult(null, false, unversionedCards);
+  }
+
+  private record CardCacheFile(int version, Map<String, CardDefinition> cards) {}
+
+  private record CacheReadResult(Integer version, boolean currentVersion, Map<String, CardDefinition> cards) {}
 
   private JsonNode fetchPage(int page) throws Exception {
     String separator = apiUrl.contains("?") ? "&" : "?";

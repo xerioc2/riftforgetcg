@@ -59,17 +59,18 @@ public class GameService {
   }
 
   public void initGame(String roomCode, List<String> playerIds, Map<String, List<String>> decksByPlayer, Map<String, String> playerNames, GameMode gameMode) {
-    if (games.containsKey(roomCode)) {
-      log.warn("initGame called on existing game {}, ignoring", roomCode);
+    String normalizedRoomCode = normalizeRoomCode(roomCode);
+    if (games.containsKey(normalizedRoomCode)) {
+      log.warn("initGame called on existing game {}, ignoring", normalizedRoomCode);
       return;
     }
-    LiveGameState state = createInitialState(roomCode, playerIds, decksByPlayer, playerNames, gameMode);
-    games.put(roomCode, state);
-    broadcast(roomCode, state);
+    LiveGameState state = createInitialState(normalizedRoomCode, playerIds, decksByPlayer, playerNames, gameMode);
+    games.put(normalizedRoomCode, state);
+    broadcast(normalizedRoomCode, state);
   }
 
   public void processMove(String roomCode, MoveRequest move) {
-    String normalizedRoomCode = roomCode.toUpperCase();
+    String normalizedRoomCode = normalizeRoomCode(roomCode);
     ReentrantLock lock = lockFor(normalizedRoomCode);
     LiveGameState next = null;
     CompletedMatchSnapshot completedMatch = null;
@@ -105,19 +106,20 @@ public class GameService {
   }
 
   public void sendCurrentStateTo(String roomCode, String userId) {
-    LiveGameState state = games.get(roomCode);
+    String normalizedRoomCode = normalizeRoomCode(roomCode);
+    LiveGameState state = games.get(normalizedRoomCode);
     if (state != null) {
-      messaging.convertAndSendToUser(userId, "/topic/game/" + roomCode, new GameMessage.StateUpdate(projectionService.toPublicView(state, userId)));
-      eventPublisher.publishEvent(new GameStateChangedEvent(this, roomCode, state));
+      messaging.convertAndSendToUser(userId, "/topic/game/" + normalizedRoomCode, new GameMessage.StateUpdate(projectionService.toPublicView(state, userId)));
+      eventPublisher.publishEvent(new GameStateChangedEvent(this, normalizedRoomCode, state));
     }
   }
 
   public LiveGameState currentState(String roomCode) {
-    return games.get(roomCode);
+    return games.get(normalizeRoomCode(roomCode));
   }
 
   public LiveGameState currentStateFor(String roomCode, String viewerPlayerId) {
-    LiveGameState state = games.get(roomCode);
+    LiveGameState state = games.get(normalizeRoomCode(roomCode));
     return state == null ? null : projectionService.toPublicView(state, viewerPlayerId);
   }
 
@@ -133,7 +135,7 @@ public class GameService {
   }
 
   public LiveGameState reset(String roomCode, List<String> playerIds, Map<String, List<String>> decksByPlayer, Map<String, String> playerNames, GameMode gameMode) {
-    String normalizedRoomCode = roomCode.toUpperCase();
+    String normalizedRoomCode = normalizeRoomCode(roomCode);
     ReentrantLock lock = lockFor(normalizedRoomCode);
     LiveGameState state;
     lock.lock();
@@ -275,6 +277,10 @@ public class GameService {
   }
 
   private ReentrantLock lockFor(String roomCode) {
-    return roomLocks.computeIfAbsent(roomCode.toUpperCase(), ignored -> new ReentrantLock());
+    return roomLocks.computeIfAbsent(normalizeRoomCode(roomCode), ignored -> new ReentrantLock());
+  }
+
+  private String normalizeRoomCode(String roomCode) {
+    return roomCode == null ? "" : roomCode.toUpperCase();
   }
 }

@@ -44,51 +44,72 @@ public class BotService {
 
   @EventListener
   public void onStateChanged(GameStateChangedEvent event) {
+    String roomCode = normalizeRoomCode(event.getRoomCode());
     LiveGameState state = event.getState();
-    if (state.getWinnerId() != null) return;
+    if (state.getWinnerId() != null) {
+      log.debug("Bot event ignored for finished game: rawRoom={}, room={}, winner={}", event.getRoomCode(), roomCode, state.getWinnerId());
+      return;
+    }
 
     boolean anyBotInGame = state.getPlayers().stream()
-        .anyMatch(p -> ALL_BOT_IDS.contains(p.getUserId()));
-    if (!anyBotInGame) return;
+        .anyMatch(p -> isBotId(p.getUserId()));
+    List<String> playerIds = state.getPlayers().stream()
+        .map(PlayerState::getUserId)
+        .toList();
 
     String actingBotId = null;
     if (state.getCurrentPhase() == Phase.MULLIGAN) {
       actingBotId = state.getPlayers().stream()
           .map(PlayerState::getUserId)
-          .filter(ALL_BOT_IDS::contains)
+          .filter(this::isBotId)
           .filter(id -> !state.getMulligansDone().contains(id))
           .findFirst()
           .orElse(null);
-    } else if (ALL_BOT_IDS.contains(state.getActivePlayerId())) {
+    } else if (isBotId(state.getActivePlayerId())) {
       actingBotId = state.getActivePlayerId();
     }
+    boolean alreadyActing = actingRooms.contains(roomCode);
+    log.info(
+        "Bot event: rawRoom={}, room={}, phase={}, activePlayer={}, players={}, botIds={}, anyBotInGame={}, actingBotId={}, actingRoomAlready={}",
+        event.getRoomCode(),
+        roomCode,
+        state.getCurrentPhase(),
+        state.getActivePlayerId(),
+        playerIds,
+        ALL_BOT_IDS,
+        anyBotInGame,
+        actingBotId,
+        alreadyActing);
+    if (!anyBotInGame) return;
     if (actingBotId == null) return;
-    if (!actingRooms.add(event.getRoomCode())) return;
+    boolean addedActingRoom = actingRooms.add(roomCode);
+    log.info("Bot acting-room guard: room={}, added={}, activeRooms={}", roomCode, addedActingRoom, actingRooms);
+    if (!addedActingRoom) return;
 
     boolean isBotVsBot = state.getPlayers().stream()
-        .allMatch(p -> ALL_BOT_IDS.contains(p.getUserId()));
+        .allMatch(p -> isBotId(p.getUserId()));
     long delay = isBotVsBot ? 350L : 700L;
     final String botId = actingBotId;
     CompletableFuture.runAsync(() -> {
       try {
         Thread.sleep(delay);
-        LiveGameState current = gameService.currentState(event.getRoomCode());
+        LiveGameState current = gameService.currentState(roomCode);
         if (current == null || current.getWinnerId() != null) return;
         log.debug(
             "Bot acting: room={}, bot={}, phase={}, activePlayer={}, activeShowdown={}, gameMode={}",
-            event.getRoomCode(),
+            roomCode,
             botId,
             current.getCurrentPhase(),
             current.getActivePlayerId(),
             current.getActiveShowdown() != null,
             current.getGameMode());
-        doActiveTurn(event.getRoomCode(), current, botId);
+        doActiveTurn(roomCode, current, botId);
       } catch (Exception e) {
         // A bot failure must never interrupt the game server.
-        LiveGameState current = gameService.currentState(event.getRoomCode());
+        LiveGameState current = gameService.currentState(roomCode);
         log.warn(
             "Bot action failed: room={}, bot={}, phase={}, activePlayer={}, activeShowdown={}, gameMode={}",
-            event.getRoomCode(),
+            roomCode,
             botId,
             current == null ? null : current.getCurrentPhase(),
             current == null ? null : current.getActivePlayerId(),
@@ -96,9 +117,9 @@ public class BotService {
             current == null ? null : current.getGameMode(),
             e);
       } finally {
-        actingRooms.remove(event.getRoomCode());
-        LiveGameState latest = gameService.currentState(event.getRoomCode());
-        if (latest != null) onStateChanged(new GameStateChangedEvent(this, event.getRoomCode(), latest));
+        actingRooms.remove(roomCode);
+        LiveGameState latest = gameService.currentState(roomCode);
+        if (latest != null) onStateChanged(new GameStateChangedEvent(this, roomCode, latest));
       }
     });
   }
@@ -205,6 +226,7 @@ public class BotService {
   }
 
   private void processBotMove(String roomCode, LiveGameState state, String botId, MoveRequest move) {
+    Phase beforePhase = state == null ? null : state.getCurrentPhase();
     log.debug(
         "Bot move: room={}, bot={}, phase={}, activePlayer={}, activeShowdown={}, gameMode={}, move={}",
         roomCode,
@@ -215,6 +237,28 @@ public class BotService {
         state == null ? null : state.getGameMode(),
         move.getClass().getSimpleName());
     gameService.processMove(roomCode, move);
+    LiveGameState latest = gameService.currentState(roomCode);
+    log.debug(
+        "Bot move result: room={}, bot={}, move={}, latestPhase={}, latestActivePlayer={}, winner={}, activeShowdown={}",
+        roomCode,
+        botId,
+        move.getClass().getSimpleName(),
+        latest == null ? null : latest.getCurrentPhase(),
+        latest == null ? null : latest.getActivePlayerId(),
+        latest == null ? null : latest.getWinnerId(),
+        latest != null && latest.getActiveShowdown() != null);
+    if (move instanceof PassPhaseMove
+        && latest != null
+        && beforePhase == latest.getCurrentPhase()
+        && botId.equals(latest.getActivePlayerId())
+        && latest.getWinnerId() == null) {
+      log.warn(
+          "Bot PassPhaseMove did not advance phase: room={}, bot={}, phase={}, activePlayer={}",
+          roomCode,
+          botId,
+          latest.getCurrentPhase(),
+          latest.getActivePlayerId());
+    }
   }
 
   private boolean hasValidSpellTarget(LiveGameState state, CardInstance card, String botId) {
@@ -250,5 +294,13 @@ public class BotService {
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     }
+  }
+
+  private boolean isBotId(String playerId) {
+    return playerId != null && ALL_BOT_IDS.stream().anyMatch(botId -> botId.equalsIgnoreCase(playerId));
+  }
+
+  private String normalizeRoomCode(String roomCode) {
+    return roomCode == null ? "" : roomCode.toUpperCase();
   }
 }
