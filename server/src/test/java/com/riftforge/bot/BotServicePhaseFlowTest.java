@@ -1,5 +1,6 @@
 package com.riftforge.bot;
 
+import static com.riftforge.bot.BotConstants.BOT_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
@@ -107,7 +108,59 @@ class BotServicePhaseFlowTest {
         Phase.MAIN);
   }
 
+  @Test
+  void activeBotProgressesFromAwakenToMain() throws Exception {
+    String roomCode = "BOT1";
+    List<String> playerIds = List.of("human", BOT_ID);
+    Map<String, List<String>> decks = Map.of(
+        "human", playtestDeck(),
+        BOT_ID, playtestDeck());
+    Map<String, String> names = Map.of(
+        "human", "Human",
+        BOT_ID, "RiftBot");
+    gameService.initGame(roomCode, playerIds, decks, names);
+
+    LiveGameState initial = gameService.currentState(roomCode);
+    initial.setActivePlayerId(BOT_ID);
+    initial.setFirstPlayerId(BOT_ID);
+    initial.setCurrentPhase(Phase.AWAKEN);
+
+    List<Phase> observed = new ArrayList<>();
+    observed.add(initial.getCurrentPhase());
+    botService.onStateChanged(new GameStateChangedEvent(this, roomCode, initial));
+
+    long deadline = System.currentTimeMillis() + 5_000;
+    while (System.currentTimeMillis() < deadline) {
+      LiveGameState state = gameService.currentState(roomCode);
+      Phase phase = state.getCurrentPhase();
+      if (observed.isEmpty() || observed.get(observed.size() - 1) != phase) observed.add(phase);
+      if (phase == Phase.MAIN) {
+        state.setWinnerId("test-complete");
+        break;
+      }
+      Thread.sleep(25);
+    }
+
+    assertThat(observed).containsSubsequence(
+        Phase.AWAKEN,
+        Phase.BEGINNING,
+        Phase.CHANNEL,
+        Phase.DRAW,
+        Phase.MAIN);
+  }
+
   private void add(String id, String type, int cost) {
     cards.put(id, new CardDefinition(id, id, type, null, List.of(), cost, 0, null, null, null, null, 1, 1, List.of()));
+  }
+
+  private List<String> playtestDeck() {
+    List<String> deck = new ArrayList<>();
+    deck.add("legend");
+    deck.add("champion");
+    for (int i = 0; i < 10; i++) {
+      deck.add("unit-" + i);
+      deck.add("unit-" + i);
+    }
+    return deck;
   }
 }

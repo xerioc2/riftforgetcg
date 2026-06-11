@@ -228,7 +228,7 @@ public class GameService {
 
   private boolean isCardType(String cardId, String type) {
     CardDefinition def = cardDataService.getCard(cardId);
-    return def != null && type.equalsIgnoreCase(def.type());
+    return def != null && def.type() != null && type.equalsIgnoreCase(def.type().trim());
   }
 
   private CardInstance createZoneCard(String cardId, String playerId, ZoneName zone, int zIndex) {

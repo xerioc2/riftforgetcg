@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -85,10 +86,15 @@ public class CardDataService {
           cacheFile.toFile(),
           new TypeReference<Map<String, CardDefinition>>() {});
       if (cachedCards.isEmpty()) return false;
+      int repairedCards = repairCachedCombatHealth(cachedCards);
 
       cards.clear();
       cards.putAll(cachedCards);
       log.info("Loaded {} cards from cache (~/.riftforge/cards-cache.json)", cards.size());
+      if (repairedCards > 0) {
+        log.warn("Repaired {} cached Unit/Champion card(s) with invalid engine health.", repairedCards);
+        saveCache();
+      }
       return true;
     } catch (Exception ex) {
       log.warn("Could not load card cache from {}. Fetching from Riftcodex.", cacheFile, ex);
@@ -235,10 +241,14 @@ public class CardDataService {
     JsonNode set = card.path("set");
     JsonNode media = card.path("media");
     String id = firstText(card, "id", "cardId", "uuid", "slug", "collectorNumber", "name");
+    String name = firstText(card, "name", "title");
+    String type = cardType(card, classification);
+    int might = firstInt(card, attributes, "might", "attack");
+    int health = combatHealth(card, attributes, id, name, type, might);
     return new CardDefinition(
         id,
-        firstText(card, "name", "title"),
-        cardType(card, classification),
+        name,
+        type,
         firstText(card, "champion", "championName", "legend"),
         stringList(card, classification, "domains", "domain", "colors", "colorIdentity"),
         firstInt(card, attributes, "cost", "energyCost", "normalCost", "energy"),
@@ -247,9 +257,36 @@ public class CardDataService {
         firstText(card, set, "setName", "expansion", "label"),
         firstText(card, media, "imageUrl", "image_url"),
         firstText(card, text, "rulesText", "oracleText", "description", "rules", "plain"),
-        firstInt(card, attributes, "might", "power", "attack"),
-        firstInt(card, attributes, "power", "health", "defense", "toughness"),
+        might,
+        health,
         stringList(card, classification, "keywords", "abilities", "keywordAbilities"));
+  }
+
+  private int repairCachedCombatHealth(Map<String, CardDefinition> cachedCards) {
+    int repaired = 0;
+    Map<String, CardDefinition> replacements = new HashMap<>();
+    for (CardDefinition card : cachedCards.values()) {
+      if (!isCombatant(card.type()) || card.health() > 0) continue;
+      int fallbackHealth = Math.max(1, card.power());
+      replacements.put(card.id(), new CardDefinition(
+          card.id(),
+          card.name(),
+          card.type(),
+          card.champion(),
+          card.domains(),
+          card.cost(),
+          card.premiumCost(),
+          card.rarity(),
+          card.set(),
+          card.imageUrl(),
+          card.rulesText(),
+          card.power(),
+          fallbackHealth,
+          card.keywords()));
+      repaired++;
+    }
+    cachedCards.putAll(replacements);
+    return repaired;
   }
 
   private JsonNode firstArray(JsonNode root, String... names) {
@@ -262,6 +299,26 @@ public class CardDataService {
     return "Champion".equalsIgnoreCase(supertype)
         ? "Champion"
         : firstText(card, classification, "type", "cardType", "supertype");
+  }
+
+  private int combatHealth(JsonNode card, JsonNode attributes, String id, String name, String type, int might) {
+    Integer explicitHealth = firstInteger(card, attributes, "health", "defense", "toughness");
+    if (explicitHealth != null) return explicitHealth;
+    if (!isCombatant(type)) return 0;
+
+    int fallbackHealth = Math.max(1, might);
+    log.warn(
+        "Riftcodex card {} ({}, type {}) has no explicit health field in attributes {}. Using engine health {} from Might fallback.",
+        id,
+        name,
+        type,
+        attributes.isMissingNode() ? "{}" : attributes.toString(),
+        fallbackHealth);
+    return fallbackHealth;
+  }
+
+  private boolean isCombatant(String type) {
+    return "Unit".equalsIgnoreCase(type) || "Champion".equalsIgnoreCase(type);
   }
 
   private String firstText(JsonNode primary, String... names) {
@@ -281,24 +338,40 @@ public class CardDataService {
   }
 
   private int firstInt(JsonNode primary, JsonNode secondary, String... names) {
+    Integer value = firstInteger(primary, secondary, names);
+    return value == null ? 0 : value;
+  }
+
+  private Integer firstInteger(JsonNode primary, JsonNode secondary, String... names) {
     for (String name : names) {
       JsonNode value = primary.path(name);
       if (value.isNumber()) return value.asInt();
-      if (value.isTextual()) return parseInt(value.asText());
+      if (value.isTextual()) {
+        Integer parsed = parseInteger(value.asText());
+        if (parsed != null) return parsed;
+      }
       if (secondary != null) {
         JsonNode nested = secondary.path(name);
         if (nested.isNumber()) return nested.asInt();
-        if (nested.isTextual()) return parseInt(nested.asText());
+        if (nested.isTextual()) {
+          Integer parsed = parseInteger(nested.asText());
+          if (parsed != null) return parsed;
+        }
       }
     }
-    return 0;
+    return null;
   }
 
   private int parseInt(String value) {
+    Integer parsed = parseInteger(value);
+    return parsed == null ? 0 : parsed;
+  }
+
+  private Integer parseInteger(String value) {
     try {
       return Integer.parseInt(value);
     } catch (NumberFormatException ex) {
-      return 0;
+      return null;
     }
   }
 

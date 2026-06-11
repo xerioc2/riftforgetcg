@@ -37,57 +37,59 @@ surfaces Partial cards as warnings, and always rejects Banned constructed cards.
 
 Starter decks are curated for legal constructed shape and banned-card avoidance,
 not complete rules coverage. Both starter decks are currently **Experimental**.
+The full code-backed audit, including card IDs, detected keywords, current
+support-gate result, and rules text, lives in `docs/CARD_RULES_BACKLOG.md`.
 
-| Card name | Starter deck | Type | Status | Notes |
-| --- | --- | --- | --- | --- |
-| Irelia - Blade Dancer | Irelia Tempo | Legend | Experimental | Identity/setup card; full Legend text support may be partial. |
-| Irelia - Fervent | Irelia Tempo | Champion | Experimental | Starts in Champion zone; full card-specific effects may be partial. |
-| Defy | Irelia Tempo | Spell | Heuristic partial | Spell behavior depends on generic text handling. |
-| Discipline | Irelia Tempo | Spell | Heuristic partial | Spell behavior depends on generic text handling. |
-| Tideturner | Irelia Tempo | Unit | Experimental | Unit play/combat supported for common playtest flow. |
-| Stellacorn Herder | Irelia Tempo | Unit | Experimental | Unit play/combat supported for common playtest flow. |
-| Guardian Angel | Irelia Tempo | Gear | Heuristic partial | Gear/equip timing remains partial. |
-| Boots of Swiftness | Irelia Tempo | Gear | Heuristic partial | Gear/equip timing remains partial. |
-| Defiant Dance | Irelia Tempo | Spell | Heuristic partial | Spell behavior depends on generic text handling. |
-| Scuttle Crab | Irelia Tempo | Unit | Experimental | Unit play/combat supported for common playtest flow. |
-| Charm | Irelia Tempo | Spell | Heuristic partial | Spell behavior depends on generic text handling. |
-| En Garde | Irelia Tempo | Spell | Heuristic partial | Spell behavior depends on generic text handling. |
-| Gust | Irelia Tempo | Spell | Heuristic partial | Spell behavior depends on generic text handling. |
-| Ride The Wind | Irelia Tempo | Spell | Heuristic partial | Spell behavior depends on generic text handling. |
-| Stacked Deck | Irelia Tempo | Spell | Heuristic partial | Spell behavior depends on generic text handling. |
-| Not So Fast | Irelia Tempo | Spell | Heuristic partial | Spell behavior depends on generic text handling. |
-| Star-Crossed | Irelia Tempo | Spell | Heuristic partial | Spell behavior depends on generic text handling. |
-| Adaptatron | Irelia Tempo | Unit | Experimental | Unit play/combat supported for common playtest flow. |
-| Calm Rune | Irelia Tempo | Rune | Partial | Rune deck setup and basic rune actions are implemented; payment nuance remains incomplete. |
-| Chaos Rune | Irelia Tempo | Rune | Partial | Rune deck setup and basic rune actions are implemented; payment nuance remains incomplete. |
-| Targon's Peak | Irelia Tempo | Battlefield | Experimental | Battlefield selection/setup is tracked; full battlefield text may be partial. |
-| Sunken Temple | Irelia Tempo | Battlefield | Experimental | Battlefield selection/setup is tracked; full battlefield text may be partial. |
-| Abandoned Hall | Irelia Tempo | Battlefield | Experimental | Battlefield selection/setup is tracked; full battlefield text may be partial. |
-| Fiora - Grand Duelist | Fiora Vanguard | Legend | Experimental | Identity/setup card; full Legend text support may be partial. |
-| Fiora - Worthy | Fiora Vanguard | Champion | Experimental | Starts in Champion zone; full card-specific effects may be partial. |
-| Daring Poro | Fiora Vanguard | Unit | Experimental | Unit play/combat supported for common playtest flow. |
-| Keeper's Verdict | Fiora Vanguard | Spell | Heuristic partial | Spell behavior depends on generic text handling. |
-| Spectral Matron | Fiora Vanguard | Unit | Experimental | Unit play/combat supported for common playtest flow. |
-| Stalking Wolf | Fiora Vanguard | Unit | Experimental | Unit play/combat supported for common playtest flow. |
-| Noxian Drummer | Fiora Vanguard | Unit | Experimental | Unit play/combat supported for common playtest flow. |
-| Loyal Poro | Fiora Vanguard | Unit | Experimental | Unit play/combat supported for common playtest flow. |
-| Vanguard Captain | Fiora Vanguard | Unit | Experimental | Unit play/combat supported for common playtest flow. |
-| Facebreaker | Fiora Vanguard | Spell | Heuristic partial | Spell behavior depends on generic text handling. |
-| Vanguard Sergeant | Fiora Vanguard | Unit | Experimental | Unit play/combat supported for common playtest flow. |
-| Laurent Duelist | Fiora Vanguard | Unit | Experimental | Unit play/combat supported for common playtest flow. |
-| Crowd Favorite | Fiora Vanguard | Unit | Experimental | Unit play/combat supported for common playtest flow. |
-| Riposte | Fiora Vanguard | Spell | Heuristic partial | Spell behavior depends on generic text handling. |
-| Dune Drake | Fiora Vanguard | Unit | Experimental | Unit play/combat supported for common playtest flow. |
-| Body Rune | Fiora Vanguard | Rune | Partial | Rune deck setup and basic rune actions are implemented; payment nuance remains incomplete. |
-| Order Rune | Fiora Vanguard | Rune | Partial | Rune deck setup and basic rune actions are implemented; payment nuance remains incomplete. |
-| Aspirant's Climb | Fiora Vanguard | Battlefield | Experimental | Battlefield selection/setup is tracked; full battlefield text may be partial. |
-| Hall of Legends | Fiora Vanguard | Battlefield | Experimental | Battlefield selection/setup is tracked; full battlefield text may be partial. |
-| Fortified Position | Fiora Vanguard | Battlefield | Experimental | Battlefield selection/setup is tracked; full battlefield text may be partial. |
+| Card name | Starter deck | Type | Current status | Implementation bucket | Actionable note |
+| --- | --- | --- | --- | --- | --- |
+| Irelia - Blade Dancer | Irelia Tempo | Legend | Partial | Legend text | Needs legend activated/triggered readying hooks and payment prompts. |
+| Irelia - Fervent | Irelia Tempo | Champion | Partial | Champion text | Needs Deflect targeting tax and choose/ready might trigger. |
+| Defy | Irelia Tempo | Spell | Unsupported | Unsupported/unknown text pattern | Blocked by `isUnsupportedAction`; needs reaction stack/counter-spell timing. |
+| Discipline | Irelia Tempo | Spell | Partial | Spell: draw/card selection | Needs explicit script for reaction timing, +2 might target, and draw 1. |
+| Tideturner | Irelia Tempo | Unit | Partial | Unit with triggered ability | Needs Hidden support and play trigger that swaps locations with a friendly unit. |
+| Stellacorn Herder | Irelia Tempo | Unit | Partial | Unit with triggered ability | Needs move trigger that draws 1. |
+| Guardian Angel | Irelia Tempo | Gear | Partial | Gear/equipment | Needs equipment attachment/payment handler; current equip support is only generic. |
+| Boots of Swiftness | Irelia Tempo | Gear | Partial | Gear/equipment | Needs equipment attachment/payment handler; current equip support is only generic. |
+| Defiant Dance | Irelia Tempo | Spell | Unsupported | Spell: stat/might modifier | Blocked by multi-target text; needs two-target stat modifier script. |
+| Scuttle Crab | Irelia Tempo | Unit | Partial | Unit with triggered ability | Needs on-play draw, Deathknell reveal/XP, and hand/facedown reveal safety. |
+| Charm | Irelia Tempo | Spell | Unsupported | Unsupported/unknown text pattern | Blocked by unsupported move effect; needs enemy-unit movement target rules. |
+| En Garde | Irelia Tempo | Spell | Partial | Spell: stat/might modifier | Needs explicit target and lone-unit conditional might script. |
+| Gust | Irelia Tempo | Spell | Partial | Spell: bounce/return | Needs explicit target filter for battlefield units with 3 or less Might. |
+| Ride The Wind | Irelia Tempo | Spell | Partial | Spell: ready/exhaust | Needs friendly-unit move plus ready script. |
+| Stacked Deck | Irelia Tempo | Spell | Unsupported | Spell: draw/card selection | Needs look-at-top-3 choice UI and recycle ordering. |
+| Not So Fast | Irelia Tempo | Spell | Unsupported | Unsupported/unknown text pattern | Blocked by counter/reaction timing; needs spell/ability stack target model. |
+| Star-Crossed | Irelia Tempo | Spell | Unsupported | Spell: bounce/return | Blocked by multi-target text; needs friendly/enemy paired return script. |
+| Adaptatron | Irelia Tempo | Unit | Partial | Unit with triggered ability | Needs conquer trigger, gear-kill target, and buff placement. |
+| Calm Rune | Irelia Tempo | Rune | Supported | Rune/payment rules | Basic rune setup/actions are covered; deeper payment edge cases remain roadmap work. |
+| Chaos Rune | Irelia Tempo | Rune | Supported | Rune/payment rules | Basic rune setup/actions are covered; deeper payment edge cases remain roadmap work. |
+| Targon's Peak | Irelia Tempo | Battlefield | Partial | Battlefield ability | Needs conquer-delayed rune-readying battlefield trigger. |
+| Sunken Temple | Irelia Tempo | Battlefield | Partial | Battlefield ability | Needs Mighty check, optional payment, and draw trigger on conquer. |
+| Abandoned Hall | Irelia Tempo | Battlefield | Partial | Battlefield ability | Needs spell-play trigger and per-controller unit buff target. |
+| Fiora - Grand Duelist | Fiora Vanguard | Legend | Partial | Legend text | Needs Mighty-state detection and optional exhausted rune channel trigger. |
+| Fiora - Worthy | Fiora Vanguard | Champion | Partial | Champion text | Needs Mighty-state detection, Order rune payment, and ready target trigger. |
+| Daring Poro | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs Assault keyword value support confirmation and direct card test. |
+| Keeper's Verdict | Fiora Vanguard | Spell | Unsupported | Spell: draw/card selection | Needs enemy-unit target plus owner top/bottom deck choice. |
+| Spectral Matron | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs trash-unit selection and free-play cost bypass with power-cost handling. |
+| Stalking Wolf | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs Ambush/reaction timing and additional-cost kill validation. |
+| Noxian Drummer | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs move-to-battlefield token creation. |
+| Loyal Poro | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs Deathknell condition and draw trigger. |
+| Vanguard Captain | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs Legion condition plus Recruit token creation. |
+| Facebreaker | Fiora Vanguard | Spell | Unsupported | Unsupported/unknown text pattern | Needs Hidden support plus friendly/enemy stun target script. |
+| Vanguard Sergeant | Fiora Vanguard | Unit | Partial | Basic unit with no special text | Candidate for first direct "basic unit supported" promotion after tests. |
+| Laurent Duelist | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs Assault 2 keyword support confirmation and direct card test. |
+| Crowd Favorite | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs XP/Hunt, activated XP spend, and Buff state support. |
+| Riposte | Fiora Vanguard | Spell | Partial | Spell: stat/might modifier | Needs reaction timing, spell target model, counter behavior, and variable might buff. |
+| Dune Drake | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs attack trigger checking ready enemy units at the battlefield. |
+| Body Rune | Fiora Vanguard | Rune | Supported | Rune/payment rules | Basic rune setup/actions are covered; deeper payment edge cases remain roadmap work. |
+| Order Rune | Fiora Vanguard | Rune | Supported | Rune/payment rules | Basic rune setup/actions are covered; deeper payment edge cases remain roadmap work. |
+| Aspirant's Climb | Fiora Vanguard | Battlefield | Partial | Battlefield ability | Needs target-score modification from selected battlefield setup. |
+| Hall of Legends | Fiora Vanguard | Battlefield | Partial | Battlefield ability | Needs conquer optional payment and legend readying trigger. |
+| Fortified Position | Fiora Vanguard | Battlefield | Partial | Battlefield ability | Needs defend trigger, target choice, and Shield 2 combat modifier. |
 
 ## Next Matrix Work
 
 - Replace placeholder IDs with canonical Riftcodex IDs and card names.
-- Promote starter deck cards from experimental to partial/supported only after
-  card-specific scripts and tests exist.
+- Promote starter deck cards to Supported only after card-specific scripts and
+  tests exist.
 - Split "heuristic partial" rows into explicit card scripts as effects are implemented.
 - Add a test column value only when a card has a direct unit/integration test.

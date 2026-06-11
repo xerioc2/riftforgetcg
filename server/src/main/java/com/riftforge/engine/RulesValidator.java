@@ -238,7 +238,7 @@ public class RulesValidator {
   }
 
   private boolean isType(CardDefinition def, String type) {
-    return def != null && type.equalsIgnoreCase(def.type());
+    return def != null && def.type() != null && type.equalsIgnoreCase(def.type().trim());
   }
 
   private void validateResolveShowdown(LiveGameState state, ResolveShowdownMove move) {

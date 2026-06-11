@@ -200,7 +200,7 @@ public class RoomService {
   private record DeckValidationResult(List<CardSupportSummary> support, List<String> warnings) {}
 
   private boolean isType(CardDefinition card, String type) {
-    return type.equalsIgnoreCase(card.type());
+    return card.type() != null && type.equalsIgnoreCase(card.type().trim());
   }
 
   private CardDefinition resolveCard(String cardId) {

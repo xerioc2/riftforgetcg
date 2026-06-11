@@ -16,7 +16,9 @@ import com.riftforge.model.ZoneName;
 import com.riftforge.model.move.MoveToBattlefieldMove;
 import com.riftforge.model.move.PlayCardMove;
 import com.riftforge.model.move.RepositionCardMove;
+import com.riftforge.rules.LegalActionsService;
 import com.riftforge.service.CardDataService;
+import com.riftforge.service.GameStateProjectionService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -61,6 +63,27 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void zeroHealthStarterUnitStaysInBaseWhenPlayed() {
+    LiveGameState state = state(card("tideturner", "p1", ZoneName.HAND));
+    state.getPlayers().getFirst().setAvailableEnergy(2);
+    stubCard("tideturner", "Tideturner", "Unit", 2, 2, 0, "[Hidden] When you play me, you may choose a unit you control.");
+
+    engine.applyMove(state, play("tideturner", ZoneName.BASE));
+
+    CardInstance tideturner = state.getCards().getFirst();
+    assertThat(tideturner.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(tideturner.getZone()).isNotEqualTo(ZoneName.DISCARD);
+    assertThat(state.getCards()).noneMatch(card -> card.getOwnerId().equals("p1") && card.getZone() == ZoneName.HAND);
+
+    LiveGameState projected = new GameStateProjectionService(new LegalActionsService()).toPublicView(state, "p1");
+    assertThat(projected.getCards())
+        .anySatisfy(card -> {
+          assertThat(card.getCardId()).isEqualTo("tideturner");
+          assertThat(card.getZone()).isEqualTo(ZoneName.BASE);
+        });
+  }
+
+  @Test
   void unitCannotBePlayedDirectlyToBattlefield() {
     LiveGameState state = state(card("unit", "p1", ZoneName.HAND));
     stubCard("unit", "Unit", 0);
@@ -78,6 +101,16 @@ class GameEnginePlayCardTypeTest {
     engine.applyMove(state, play("spell", ZoneName.BASE));
 
     assertThat(state.getCards().getFirst().getZone()).isEqualTo(ZoneName.DISCARD);
+  }
+
+  @Test
+  void unknownCardTypeIsRejectedInsteadOfUsingFallbackZoneRouting() {
+    LiveGameState state = state(card("mystery", "p1", ZoneName.HAND));
+    stubCard("mystery", "Mystery Card", "Mystery", 0, 0, 0, null);
+
+    assertThatThrownBy(() -> engine.applyMove(state, play("mystery", ZoneName.BASE)))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("That card type cannot be played from hand.");
   }
 
   @Test
@@ -245,7 +278,11 @@ class GameEnginePlayCardTypeTest {
   }
 
   private void stubCard(String id, String type, int cost) {
+    stubCard(id, id, type, cost, 1, 1, null);
+  }
+
+  private void stubCard(String id, String name, String type, int cost, int power, int health, String rulesText) {
     when(cardDataService.getCard(id)).thenReturn(
-        new CardDefinition(id, id, type, null, List.of(), cost, 0, null, null, null, null, 1, 1, List.of()));
+        new CardDefinition(id, name, type, null, List.of(), cost, 0, null, null, null, rulesText, power, health, List.of()));
   }
 }

@@ -13,6 +13,7 @@ import com.riftforge.model.move.PassPhaseMove;
 import com.riftforge.model.move.PlayCardMove;
 import com.riftforge.model.move.MoveToBattlefieldMove;
 import com.riftforge.model.move.MulliganMove;
+import com.riftforge.model.move.MoveRequest;
 import com.riftforge.model.move.ResolveShowdownMove;
 import com.riftforge.model.move.TapRuneMove;
 import com.riftforge.service.CardDataService;
@@ -104,18 +105,18 @@ public class BotService {
 
   private void doActiveTurn(String roomCode, LiveGameState state, String botId) {
     if (state.getActiveShowdown() != null) {
-      gameService.processMove(roomCode, new ResolveShowdownMove(botId));
+      processBotMove(roomCode, state, botId, new ResolveShowdownMove(botId));
       return;
     }
     switch (state.getCurrentPhase()) {
       case MULLIGAN -> doMulligan(roomCode, state, botId);
-      case AWAKEN, BEGINNING, CHANNEL, DRAW, END -> gameService.processMove(roomCode, new PassPhaseMove(botId));
+      case AWAKEN, BEGINNING, CHANNEL, DRAW, END -> processBotMove(roomCode, state, botId, new PassPhaseMove(botId));
       case MAIN -> doMain(roomCode, state, botId);
     }
   }
 
   private void doMulligan(String roomCode, LiveGameState state, String botId) {
-    gameService.processMove(roomCode, new MulliganMove(botId, List.of()));
+    processBotMove(roomCode, state, botId, new MulliganMove(botId, List.of()));
   }
 
   private void doMain(String roomCode, LiveGameState state, String botId) {
@@ -126,11 +127,11 @@ public class BotService {
       int battlefieldCount = (int) state.getCards().stream()
           .filter(c -> botId.equals(c.getOwnerId()) && c.getZone() == ZoneName.BATTLEFIELD)
           .count();
-      gameService.processMove(roomCode, new MoveToBattlefieldMove(botId, champion.getInstanceId()));
+      processBotMove(roomCode, state, botId, new MoveToBattlefieldMove(botId, champion.getInstanceId()));
       sleepBriefly(200);
       state = gameService.currentState(roomCode);
       if (state != null && state.getActiveShowdown() != null) {
-        gameService.processMove(roomCode, new ResolveShowdownMove(botId));
+        processBotMove(roomCode, state, botId, new ResolveShowdownMove(botId));
         sleepBriefly(200);
         state = gameService.currentState(roomCode);
       }
@@ -144,11 +145,11 @@ public class BotService {
       int battlefieldCount = (int) state.getCards().stream()
           .filter(c -> botId.equals(c.getOwnerId()) && c.getZone() == ZoneName.BATTLEFIELD)
           .count();
-      gameService.processMove(roomCode, new MoveToBattlefieldMove(botId, card.getInstanceId()));
+      processBotMove(roomCode, state, botId, new MoveToBattlefieldMove(botId, card.getInstanceId()));
       sleepBriefly(200);
       state = gameService.currentState(roomCode);
       if (state != null && state.getActiveShowdown() != null) {
-        gameService.processMove(roomCode, new ResolveShowdownMove(botId));
+        processBotMove(roomCode, state, botId, new ResolveShowdownMove(botId));
         sleepBriefly(200);
         state = gameService.currentState(roomCode);
       }
@@ -159,8 +160,10 @@ public class BotService {
         .filter(r -> botId.equals(r.getOwnerId()) && !r.isTapped())
         .toList();
     for (RuneState rune : untappedRunes) {
-      gameService.processMove(roomCode, new TapRuneMove(botId, rune.getInstanceId()));
+      processBotMove(roomCode, state, botId, new TapRuneMove(botId, rune.getInstanceId()));
       sleepBriefly(200);
+      state = gameService.currentState(roomCode);
+      if (state == null) return;
     }
 
     LiveGameState playableState = gameService.currentState(roomCode);
@@ -169,7 +172,7 @@ public class BotService {
             && c.getZone() == ZoneName.HAND
             && cardDataService.getCard(c.getCardId()).cost() <= botEnergy(playableState, botId));
     if (!anyPlayable) {
-      gameService.processMove(roomCode, new PassPhaseMove(botId));
+      processBotMove(roomCode, playableState, botId, new PassPhaseMove(botId));
       return;
     }
 
@@ -193,12 +196,25 @@ public class BotService {
         int boardCount = (int) current.getCards().stream()
             .filter(c -> botId.equals(c.getOwnerId()) && (c.getZone() == ZoneName.BASE || c.getZone() == ZoneName.BATTLEFIELD))
             .count();
-        gameService.processMove(roomCode, new PlayCardMove(botId, pick.get().getInstanceId(), ZoneName.BASE, 60 + boardCount * 100, 220, targetInstanceId));
+        processBotMove(roomCode, current, botId, new PlayCardMove(botId, pick.get().getInstanceId(), ZoneName.BASE, 60 + boardCount * 100, 220, targetInstanceId));
         sleepBriefly(300);
         played = true;
       }
     }
-    gameService.processMove(roomCode, new PassPhaseMove(botId));
+    processBotMove(roomCode, gameService.currentState(roomCode), botId, new PassPhaseMove(botId));
+  }
+
+  private void processBotMove(String roomCode, LiveGameState state, String botId, MoveRequest move) {
+    log.debug(
+        "Bot move: room={}, bot={}, phase={}, activePlayer={}, activeShowdown={}, gameMode={}, move={}",
+        roomCode,
+        botId,
+        state == null ? null : state.getCurrentPhase(),
+        state == null ? null : state.getActivePlayerId(),
+        state != null && state.getActiveShowdown() != null,
+        state == null ? null : state.getGameMode(),
+        move.getClass().getSimpleName());
+    gameService.processMove(roomCode, move);
   }
 
   private boolean hasValidSpellTarget(LiveGameState state, CardInstance card, String botId) {

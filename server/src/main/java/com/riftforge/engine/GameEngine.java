@@ -16,10 +16,13 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 public class GameEngine {
+  private static final Logger LOGGER = LoggerFactory.getLogger(GameEngine.class);
   private static final int MAX_RUNES = 11;
 
   private final RulesValidator rulesValidator;
@@ -100,9 +103,20 @@ public class GameEngine {
   private LiveGameState applyPlayCard(LiveGameState state, PlayCardMove move) {
     CardInstance card = findCard(state, move.instanceId());
     CardDefinition def = cardDataService.getCard(card.getCardId());
+    String cardTypeLower = normalizeCardType(def.type());
     boolean cardPlayedEarlierThisTurn = state.isCardPlayedThisTurn();
     int paidCost = def.cost() + (move.accelerate() ? 1 : 0);
     applyPayment(state, move, paidCost);
+    LOGGER.debug(
+        "PLAY_CARD routing: player={}, cardId={}, cardName={}, cardType={}, fromZone={}, targetZone={}, x={}, y={}",
+        move.playerId(),
+        card.getCardId(),
+        def.name(),
+        def.type(),
+        card.getZone(),
+        move.targetZone(),
+        move.x(),
+        move.y());
     card.setZone(move.targetZone());
     card.setX(move.x());
     card.setY(move.y());
@@ -125,7 +139,6 @@ public class GameEngine {
       String topCardName = topCardId.isBlank() ? "No card" : cardDataService.getCard(topCardId).name();
       log(state, move.playerId(), "VISION_PEEK|" + topCardId + "|" + topCardName);
     }
-    String cardTypeLower = def.type() != null ? def.type().toLowerCase() : "";
     applyRulesTextEffect(card, target, state, def);
     moveDestroyedBoardCards(state);
     if (cardTypeLower.equals("spell")) {
@@ -567,6 +580,7 @@ public class GameEngine {
           CardDefinition def = cardDataService.getCard(card.getCardId());
           return def != null
               && ("Champion".equalsIgnoreCase(def.type()) || "Unit".equalsIgnoreCase(def.type()))
+              && def.health() > 0
               && card.getCurrentHealth() <= 0;
         })
         .toList();
@@ -648,6 +662,10 @@ public class GameEngine {
   private void checkWinCondition(LiveGameState state) {
     if (state.getWinnerId() != null) return;
     state.getPlayers().stream().filter(p -> p.getScore() >= targetScore).findFirst().ifPresent(p -> state.setWinnerId(p.getUserId()));
+  }
+
+  private String normalizeCardType(String type) {
+    return type == null ? "" : type.trim().toLowerCase();
   }
 
   private CardInstance findCard(LiveGameState state, String id) {
