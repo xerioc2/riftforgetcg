@@ -1,4 +1,5 @@
-import type { DeckCard, RiftCard } from '../types';
+import type { Deck, DeckCard, RiftCard } from '../types';
+import { getDeckLegendCardId } from './deckUtils';
 
 export type DeckImportResult = {
   legendCardId?: string;
@@ -12,8 +13,8 @@ export type DeckImportResult = {
 const normalizeName = (value: string) =>
   value
     .trim()
-    .replace(/[’‘]/g, "'")
-    .replace(/\s*[,–—-]\s*/g, ' - ')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/\s*[,/\u2013\u2014]\s*/g, ' - ')
     .replace(/\s+/g, ' ')
     .toLowerCase();
 
@@ -42,22 +43,27 @@ export function importDeckText(text: string, catalog: RiftCard[]): DeckImportRes
     if (!line || line.startsWith('#') || line.startsWith('//')) continue;
 
     const sectionMatch = line.match(
-      /^(legend|champions?|main\s*deck|deck|cards?|units?|spells?|gear|rune\s*pool|runes?|battlefields?|sideboard)\s*:?\s*$/i,
+      /^(legend|champions?|main\s*deck|maindeck|deck|cards?|units?|spells?|gear|rune\s*pool|runes?|battlefields?|sideboard)\s*:?\s*$/i,
     );
     if (sectionMatch) {
       section = sectionMatch[1].replace(/\s+/g, '').toLowerCase();
       continue;
     }
 
-    const legacyLeaderMatch = line.match(/^(?:legend|champion)\s*:\s*(.+)$/i);
-    if (legacyLeaderMatch) {
-      const legend = choosePrinting(cardsByName.get(normalizeName(legacyLeaderMatch[1])) ?? [], 'Legend');
-      if (legend) {
-        legendCardId = legend.id;
-        matchedLines++;
-      } else {
+    const leaderMatch = line.match(/^(legend|champion)\s*:\s*(.+)$/i);
+    if (leaderMatch) {
+      const targetType = /^champion$/i.test(leaderMatch[1]) ? 'Champion' : 'Legend';
+      const card = choosePrinting(cardsByName.get(normalizeName(leaderMatch[2])) ?? [], targetType);
+      if (!card) {
         unmatched.push(line);
+        continue;
       }
+      if (targetType === 'Legend') legendCardId = card.id;
+      if (targetType === 'Champion') {
+        championCardId = card.id;
+        quantities.set(card.id, (quantities.get(card.id) ?? 0) + 1);
+      }
+      matchedLines++;
       continue;
     }
 
@@ -86,7 +92,8 @@ export function importDeckText(text: string, catalog: RiftCard[]): DeckImportRes
       continue;
     }
 
-    const card = choosePrinting(printings, section === 'champion' ? 'Champion' : undefined);
+    const targetType = section === 'champion' || section === 'champions' ? 'Champion' : undefined;
+    const card = choosePrinting(printings, targetType);
     if (!card) {
       unmatched.push(line);
       continue;
@@ -105,4 +112,35 @@ export function importDeckText(text: string, catalog: RiftCard[]): DeckImportRes
     unmatched,
     skippedSideboard,
   };
+}
+
+export function exportDeckText(deck: Deck, cardsById: Map<string, RiftCard>): string {
+  const legend = getDeckLegendCardId(deck) ? cardsById.get(getDeckLegendCardId(deck) ?? '') : undefined;
+  const entries = deck.cards
+    .map((entry) => ({ ...entry, card: cardsById.get(entry.cardId) }))
+    .filter((entry): entry is typeof entry & { card: RiftCard } => Boolean(entry.card));
+  const champion = entries.find(({ card }) => card.type === 'Champion')?.card
+    ?? (deck.championCardId ? cardsById.get(deck.championCardId) : undefined);
+  const main = entries
+    .filter(({ card }) => card.type !== 'Legend' && card.type !== 'Champion' && card.type !== 'Rune' && card.type !== 'Battlefield')
+    .sort(compareDeckEntries);
+  const runes = entries.filter(({ card }) => card.type === 'Rune').sort(compareDeckEntries);
+  const battlefields = entries.filter(({ card }) => card.type === 'Battlefield').sort(compareDeckEntries);
+
+  const lines: string[] = [];
+  lines.push('Legend:');
+  if (legend) lines.push(`1 ${legend.name}`);
+  lines.push('', 'Champion:');
+  if (champion) lines.push(`1 ${champion.name}`);
+  lines.push('', 'MainDeck:');
+  main.forEach((entry) => lines.push(`${entry.quantity} ${entry.card.name}`));
+  lines.push('', 'Battlefields:');
+  battlefields.forEach((entry) => lines.push(`${entry.quantity} ${entry.card.name}`));
+  lines.push('', 'Rune Pool:');
+  runes.forEach((entry) => lines.push(`${entry.quantity} ${entry.card.name}`));
+  return lines.join('\n');
+}
+
+function compareDeckEntries(a: DeckCard & { card: RiftCard }, b: DeckCard & { card: RiftCard }) {
+  return (a.card.cost ?? 99) - (b.card.cost ?? 99) || a.card.name.localeCompare(b.card.name);
 }

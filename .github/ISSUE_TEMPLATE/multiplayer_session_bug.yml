@@ -1,0 +1,32 @@
+name: Multiplayer/session bug
+description: Report lobby, matchmaking, reconnect, token, or desync issues.
+title: "[Session] "
+labels: ["multiplayer/session bug"]
+body:
+  - type: textarea
+    id: issue
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
+  - type: input
+    id: room
+    attributes:
+      label: Room code
+      description: Optional. Do not share private tokens.
+  - type: textarea
+    id: debug
+    attributes:
+      label: Debug info
+      description: Use the in-game "Copy debug info" button and paste the result here.
+      render: json
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console or server logs

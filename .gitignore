@@ -13,6 +13,7 @@ src-tauri/target/
 .claude/settings.local.json
 
 # Packaged desktop artifacts belong in GitHub Releases, not source control.
+*.exe
 RiftForgeInstaller.exe
 RiftForge_*.exe
 *.msi

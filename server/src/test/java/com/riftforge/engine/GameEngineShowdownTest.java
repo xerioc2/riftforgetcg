@@ -13,6 +13,7 @@ import com.riftforge.model.CardInstance;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
+import com.riftforge.model.ShowdownStep;
 import com.riftforge.model.ZoneName;
 import com.riftforge.model.move.MoveToBattlefieldMove;
 import com.riftforge.model.move.PassPhaseMove;
@@ -63,6 +64,7 @@ class GameEngineShowdownTest {
     assertThat(state.getActiveShowdown()).isNotNull();
     assertThat(state.getActiveShowdown().attackingPlayerId()).isEqualTo("p1");
     assertThat(state.getActiveShowdown().attackerInstanceIds()).containsExactly("attacker");
+    assertThat(state.getActiveShowdown().step()).isEqualTo(ShowdownStep.ACTION_WINDOW);
   }
 
   @Test

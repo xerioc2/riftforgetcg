@@ -61,8 +61,10 @@ export function HandRack({
   const selectedCard = selectedInstance ? cards.get(selectedInstance.cardId) : undefined;
   const selectedCost = selectedCard?.cost ?? 0;
   const canAffordSelected = selectedCost <= effectiveEnergy;
+  const selectedType = selectedCard?.type?.toLowerCase();
+  const selectedCanPlayFromHand = selectedType !== 'legend' && selectedType !== 'champion' && selectedType !== 'battlefield';
   const selectedIsReaction = canPlayReactions && selectedCard?.type?.toLowerCase() === 'spell';
-  const canPlaySelected = canPlayCards || selectedIsReaction;
+  const canPlaySelected = selectedCanPlayFromHand && (canPlayCards || selectedIsReaction);
   const playSelected = () => {
     if (!selectedInstance || !canPlaySelected || !canAffordSelected) return;
     onPlay(selectedInstance.instanceId);
@@ -94,6 +96,7 @@ export function HandRack({
           <span className={canAffordSelected ? 'text-mint' : 'text-ember'}>
             Cost {selectedCost} / Spendable {effectiveEnergy}
           </span>
+          {!selectedCanPlayFromHand ? <span className="text-xs text-ember">Setup card</span> : null}
           <button className="btn-primary min-h-7 px-3 py-1 text-xs" disabled={!canPlaySelected || !canAffordSelected} onClick={playSelected}>
             {selectedIsReaction ? 'Respond' : 'Play'}
           </button>
@@ -113,8 +116,10 @@ export function HandRack({
           const card = cards.get(instance.cardId);
           const isHovered = hovered === instance.instanceId;
           const isSelected = selected === instance.instanceId;
+          const type = card?.type?.toLowerCase();
+          const canPlayFromHand = type !== 'legend' && type !== 'champion' && type !== 'battlefield';
           const isReaction = canPlayReactions && card?.type?.toLowerCase() === 'spell';
-          const isPlayable = canPlayCards || isReaction;
+          const isPlayable = canPlayFromHand && (canPlayCards || isReaction);
           return (
             <button
               key={instance.instanceId}

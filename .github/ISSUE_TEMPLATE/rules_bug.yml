@@ -1,0 +1,41 @@
+name: Rules bug
+description: Report a mismatch with official Riftbound rules or turn structure.
+title: "[Rules] "
+labels: ["rules bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        RiftForge is an unofficial fan project. Please cite the official rule or card text when possible.
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected official behavior
+      description: What should happen according to official rules?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual RiftForge behavior
+      description: What happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      placeholder: "1. Start a game...\n2. Move to...\n3. Click..."
+    validations:
+      required: true
+  - type: textarea
+    id: debug
+    attributes:
+      label: Debug info
+      description: Use the in-game "Copy debug info" button and paste the result here.
+      render: json
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots, logs, or rule references
+

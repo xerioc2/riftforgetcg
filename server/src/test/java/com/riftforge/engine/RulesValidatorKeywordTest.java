@@ -2,7 +2,9 @@ package com.riftforge.engine;
 
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.when;
 
+import com.riftforge.model.CardDefinition;
 import com.riftforge.model.CardInstance;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.Phase;
@@ -32,12 +34,14 @@ class RulesValidatorKeywordTest {
   @Test
   void readyBaseUnitCanMoveToBattlefieldDuringMain() {
     CardInstance card = card("unit", "p1", ZoneName.BASE, false);
+    stubCard("unit", "Unit");
     assertThatNoException().isThrownBy(() -> validator.validate(state(Phase.MAIN, card), new MoveToBattlefieldMove("p1", "unit")));
   }
 
   @Test
   void exhaustedBaseUnitCannotMoveToBattlefield() {
     CardInstance card = card("unit", "p1", ZoneName.BASE, true);
+    stubCard("unit", "Unit");
     assertThatThrownBy(() -> validator.validate(state(Phase.MAIN, card), new MoveToBattlefieldMove("p1", "unit")))
         .isInstanceOf(IllegalMoveException.class)
         .hasMessageContaining("ready");
@@ -73,5 +77,10 @@ class RulesValidatorKeywordTest {
     state.setPlayers(new ArrayList<>(List.of(player)));
     state.setCards(new ArrayList<>(List.of(cards)));
     return state;
+  }
+
+  private void stubCard(String id, String type) {
+    when(cardDataService.getCard(id)).thenReturn(
+        new CardDefinition(id, id, type, null, List.of(), 0, 0, null, null, null, null, 1, 1, List.of()));
   }
 }

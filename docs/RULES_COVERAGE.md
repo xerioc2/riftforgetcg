@@ -26,11 +26,23 @@ Current implementation notes:
 - `RoomService.validateDeck` validates `FULL_CONSTRUCTED` as 1 Legend, exactly 1 Champion, exactly 39 non-special main cards, exactly 12 runes, exactly 3 unique battlefields, and a 3-copy limit for non-special cards.
 - `PLAYTEST_BOT` stays looser so bot games can run with generated test decks.
 - Constructed banlist names are centralized in `TournamentLegality` and rejected during `FULL_CONSTRUCTED` validation.
+- `CardSupportService` assigns conservative support metadata: Supported,
+  Partial, Unsupported, Banned, or Not Audited.
+- Ready validation can optionally enforce supported-cards-only mode, blocking
+  Unsupported or Not Audited cards while surfacing Partial cards as warnings.
+- The deck builder imports and exports tournament-style sections: Legend,
+  Champion, MainDeck, Battlefields, and Rune Pool.
+- The deck builder validation report surfaces legality errors, banned cards,
+  unsupported cards, partial cards, and missing card data before lobby ready.
 
 Known gaps:
 - Domain identity and signature-card legality are not fully enforced.
 - Sideboards, match deck registration, set legality, and rotation are not implemented.
 - Copy limits are by card ID, not normalized card name or all official identity rules.
+- Support metadata is intentionally conservative and still needs card-by-card
+  audits for most of the card pool.
+- Imported sideboards are currently skipped rather than modeled as match
+  sideboards.
 
 Test coverage:
 - `RoomServiceDeckValidationTest`
@@ -85,11 +97,14 @@ Current implementation notes:
 - Engine phases are `MULLIGAN`, `AWAKEN`, `BEGINNING`, `CHANNEL`, `DRAW`, `MAIN`, `END`.
 - Phase passing is server-authoritative.
 - Early phases do not expose normal main actions through `LegalActionsService`.
+- Server-computed legal actions are included in player-specific projected state so the client can hide or disable actions using the same conservative action matrix.
+- Current action windows include mulligan, basic phase pass, active-player Main Phase actions, active showdown resolution, and sandbox actions only in SANDBOX mode.
 
 Known gaps:
 - Official cleanup/HOT FEPR sequencing is not fully modeled.
 - The engine still uses `END` while current official terminology uses Ending/expiration details.
 - Trigger and chain timing is highly simplified.
+- Reaction/action windows and priority/chain timing are not represented in the legal-action projection yet.
 
 Test coverage:
 - `LegalActionsServiceTest`
@@ -123,16 +138,19 @@ Status: Partial
 
 Current implementation notes:
 - Units can be played from hand to base during MAIN if the player has enough available energy.
+- Units are blocked from direct hand-to-battlefield play.
+- Only Units and Champions can move to the battlefield to start a showdown.
 - ACCELERATE is supported with the extra-energy flag.
 - Some keywords modify entry/combat behavior.
 
 Known gaps:
-- Play legality by type, chain permissions, Ambush/Reaction windows, and target-location permissions are incomplete.
-- Domain and power-cost validation are incomplete.
+- Chain permissions, Ambush/Reaction windows, and target-location permissions are incomplete.
+- Domain and power-cost validation are partial.
 
 Test coverage:
 - `RulesValidatorGameModeTest`
 - `LegalActionsServiceTest`
+- `GameEnginePlayCardTypeTest`
 
 Priority: P0.
 
@@ -142,6 +160,8 @@ Status: Partial
 
 Current implementation notes:
 - Spells can be played during MAIN.
+- Spells resolve through the supported effect path and move to discard afterward.
+- Spells cannot move to the battlefield as units.
 - Targeted-spell heuristics require a valid battlefield target.
 - Unsupported spell shapes are blocked by `CardDataService.isUnsupportedAction`.
 - VISION/Predict-like peeking has a basic private choice flow.
@@ -153,6 +173,7 @@ Known gaps:
 Test coverage:
 - Rules validator keyword/target tests.
 - Projection tests for private VISION logs.
+- `GameEnginePlayCardTypeTest`
 
 Priority: P0.
 
@@ -162,13 +183,15 @@ Status: Partial
 
 Current implementation notes:
 - Basic `[Equip]` gear can attach to a target and apply some keyword hooks.
+- Gear can be played to base when supported.
+- Gear cannot move to the battlefield or fight as a unit.
 - Non-equip gear is treated as unsupported.
 
 Known gaps:
 - Equipment timing, replacement, attachment legality, and many card-specific gear effects are incomplete.
 
 Test coverage:
-- Indirect validator coverage.
+- `GameEnginePlayCardTypeTest`
 
 Priority: P1.
 
@@ -179,13 +202,18 @@ Status: Partial
 Current implementation notes:
 - `MoveToBattlefieldMove` is the enforced movement path.
 - Free-form `MoveCardMove` is sandbox-only.
+- `RepositionCardMove` changes x/y only and cannot change zones.
+- Repositioning is limited to owned cards in public zones.
+- Movement validates ownership, active player, readiness, source zone, and card type.
 - Showdowns are staged when movement creates battlefield opposition.
+- Moving to an empty battlefield updates `battlefieldController`.
 
 Known gaps:
 - Multiple battlefields, movement costs, readiness/exhaustion edge cases, Ganking exceptions, and effect-driven movement need a richer location model.
 
 Test coverage:
 - `GameEngineShowdownTest`
+- `GameEnginePlayCardTypeTest`
 - `RulesValidatorGameModeTest`
 - `LegalActionsServiceTest`
 
@@ -198,6 +226,9 @@ Status: Partial
 Current implementation notes:
 - Battlefield control is tracked in `battlefieldController`.
 - Conquer and hold can award points in simplified single-battlefield flow.
+- Moving an unopposed unit or Champion to the battlefield sets that player as
+  the current controller.
+- Moving into an opposed battlefield starts `activeShowdown`.
 
 Known gaps:
 - Multiple battlefields and official contested/control cleanup are not fully modeled.
@@ -205,6 +236,8 @@ Known gaps:
 
 Test coverage:
 - Showdown/combat tests cover basic conquer flow indirectly.
+- `GameEnginePlayCardTypeTest` covers unopposed controller assignment and
+  contested showdown start.
 
 Priority: P0.
 
@@ -214,12 +247,15 @@ Status: Partial
 
 Current implementation notes:
 - Showdown is modeled as `activeShowdown` while `currentPhase` remains MAIN.
+- `activeShowdown.step` exposes the current simplified showdown step to the
+  client; contested movement opens at ACTION_WINDOW.
 - Nested showdowns are blocked.
 - Resolving clears `activeShowdown` and returns to normal MAIN actions.
 - Legal-action visibility pauses normal main actions during an active showdown.
 
 Known gaps:
-- Non-combat showdowns, multiple battlefields, staged combat conversion, open states, and chain/timing permissions are simplified.
+- Non-combat showdowns, multiple battlefields, interactive action windows,
+  staged combat conversion, and chain/timing permissions are simplified.
 
 Test coverage:
 - `GameEngineShowdownTest`
@@ -233,10 +269,16 @@ Status: Partial
 
 Current implementation notes:
 - `CombatResolver` resolves simplified attacker/defender combat.
-- ASSAULT, SHIELD, TANK-related validation, and some combat keywords have partial support.
+- Damage is assigned deterministically with Tank-priority lethal assignment.
+- Damage is simultaneous; killed units move to trash after both sides assign
+  damage.
+- Survivors heal during combat cleanup.
+- ASSAULT, SHIELD, TANK priority, and STUN have partial support.
 
 Known gaps:
-- Official damage assignment order, lethal assignment, combat designation cleanup, replacement/prevention, and multi-unit combat details are incomplete.
+- Player-chosen damage assignment, prevention/replacement, combat designation
+  cleanup, multiple battlefield combat, and many multi-unit edge cases are
+  incomplete.
 
 Test coverage:
 - `CombatResolverTest`
@@ -249,14 +291,20 @@ Priority: P0.
 Status: Partial
 
 Current implementation notes:
-- Hold scoring exists at beginning.
-- Conquer scoring exists after showdown resolution.
+- Hold scoring runs during Beginning for each battlefield controlled by the
+  active player in `battlefieldController`.
+- Conquer scoring runs after showdown resolution when attackers survive and
+  defenders are eliminated.
+- `scoredBattlefieldsThisTurn` prevents duplicate scoring for the same
+  battlefield in one turn.
 
 Known gaps:
-- Multiple battlefield scoring and official cleanup timing are incomplete.
+- Multiple named battlefields are represented by controller keys, but full
+  official battlefield selection, assignment, and cleanup timing are incomplete.
 
 Test coverage:
-- Indirect engine tests.
+- `GameEngineScoringTest`
+- `GameEngineShowdownTest`
 
 Priority: P1.
 
@@ -265,15 +313,21 @@ Priority: P1.
 Status: Partial
 
 Current implementation notes:
-- Conquer has a guard for the target-score-minus-one winning point rule in the simplified battlefield model.
+- Conquer has a guard for the target-score-minus-one winning point rule. If a
+  Conquer point would be an illegal final point because not every battlefield has
+  been scored this turn, it draws instead of scoring.
 - Hold can still award the winning point.
+- Winner is set only when a player legally reaches the configured target score.
+- Match history records completed-match snapshots with public player summaries.
 
 Known gaps:
 - Official "win during cleanup if score is greater than/equal to victory score and greater than opponents" is not fully modeled.
 - Multiplayer/tie/burnout edge cases are not modeled.
 
 Test coverage:
-- Existing engine tests cover only simplified paths.
+- `GameEngineScoringTest`
+- `MatchHistoryServiceTest`
+- `GameServiceMoveSerializationTest`
 
 Priority: P1.
 
@@ -283,17 +337,25 @@ Status: Partial
 
 Current implementation notes:
 - Keyword parsing exists in `CardDataService`.
+- `EffectHandlerRegistry` provides a central support-status lookup for tracked
+  keywords and reports missing handlers as explicit unsupported behavior instead
+  of silent no-ops.
+- Initial keyword handlers include Tank and Vision, with existing combat/rules
+  code still handling some keyword behavior directly.
 - Several keywords have direct or heuristic handling: ACCELERATE, AMBUSH, ASSAULT, DEFLECT, GANKING, HIDDEN, LEGION, SHIELD, TANK, TEMPORARY, VISION, WEAPONMASTER.
 
 Known gaps:
+- The handler registry is a scaffold; most tracked keywords still need
+  dedicated handlers before they can be called fully supported.
 - The complete official keyword list, dependent keywords, inactive text, conditional permissions, XP/Hunt/Level, and full action/reaction behavior are incomplete.
 - Some legacy placeholder keywords remain in early hard-coded effects and should be audited against current official names.
 
 Test coverage:
 - `RulesValidatorKeywordTest`
 - `CombatResolverTest`
+- `EffectHandlerRegistryTest`
 
-Priority: P0 for timing keywords and supported-card registry.
+Priority: P0 for expanding keyword handlers and connecting card-specific script metadata.
 
 ## Card-Specific Effects
 
@@ -301,16 +363,26 @@ Status: Partial
 
 Current implementation notes:
 - `CardEffectRegistry` contains a small number of hard-coded effects.
+- Effect architecture scaffolding exists for keyword, on-play, triggered,
+  activated, static modifier, and replacement handlers.
+- `EffectHandlerRegistry` centralizes support-status decisions for tracked
+  keywords and unsupported generic spell/gear shapes.
+- `CardSupportService` is the current card-support metadata source for deck
+  warnings and supported-only gates.
 - `GameEngine.applyRulesTextEffect` supports a few generic rules-text patterns.
 - Unsupported spell/gear patterns are rejected instead of silently pretending to work.
 
 Known gaps:
 - Most real cards have no precise scripted effect.
-- No declarative card script registry exists yet.
+- The declarative/scripted card registry is still early and not wired for most
+  real cards.
+- Supported status should not be promoted until a card has explicit behavior
+  and tests.
 - Optional triggers, may choices, targeting decisions, and chain items are incomplete.
 
 Test coverage:
 - Scattered validator/engine tests.
+- `EffectHandlerRegistryTest`
 
 Priority: P0.
 
@@ -360,26 +432,56 @@ Status: Partial
 
 Current implementation notes:
 - `LegalActionsService` returns conservative high-level actions for the current player.
+- Player-specific `GameStateProjectionService` output now includes `legalActions` for the viewer.
+- Spectator/public projections receive an empty legal-action set.
+- The frontend consumes `state.legalActions` to gate mulligan/keep, pass phase, play card, move to battlefield, rune actions, active showdown resolution, and sandbox-only controls.
 - `RulesValidator` remains the source of enforcement.
 - The service intentionally does not claim support for card-specific or reaction windows that are not implemented.
+- Currently modeled windows: mulligan, basic phase pass, Main Phase active-player actions, active showdown resolution, and SANDBOX-only developer actions.
 
 Known gaps:
-- No REST endpoint exposes legal actions yet.
 - Actions are not card-instance-specific.
-- Chain/timing permissions and full target legality are future work.
+- Reaction/action windows are future work.
+- Card-specific legal action prompts are not generated.
+- Target-specific and payment-specific legal action generation is incomplete.
+- Chain/timing permissions and full priority handling are future work.
 
 Test coverage:
 - `LegalActionsServiceTest`
+- `GameStateProjectionServiceTest`
+
+Priority: P1.
+
+## UI Guidance
+
+Status: Partial
+
+Current implementation notes:
+- The client uses projected `legalActions` for major game-action affordances instead of relying only on local phase guesses.
+- Unavailable phase/showdown controls are hidden.
+- Mulligan and Keep buttons require `MULLIGAN` or `KEEP_HAND`.
+- Normal Main Phase controls require `PLAY_CARD`, `MOVE_TO_BATTLEFIELD`, rune actions, or sandbox-specific actions as appropriate.
+- Same-zone card organization uses `REPOSITION_CARD`; cross-zone `MOVE_CARD` is
+  sandbox-only.
+
+Known gaps:
+- UI does not yet show card-specific legality explanations before a server rejection.
+- Action prompts are not generated per card, target, payment mode, or reaction window.
+- Client error presentation still needs a clearer visible notification path.
+
+Test coverage:
+- Frontend build/type checking.
+- Server projection tests cover the data contract that the UI consumes.
 
 Priority: P1.
 
 ## Next Rules Sprints
 
 1. Rune payment validation: domain/power costs, recycling, cost modifiers.
-2. Play-card legality by type: unit, spell, gear, action/reaction permissions.
-3. Movement legality: multiple battlefields, exhaustion, Ganking, effect movement.
-4. Showdown timing/cleanup precision: staged showdowns, combat conversion, open states.
-5. Combat damage assignment: lethal assignment, multi-unit combat, prevention/replacement.
-6. Winning point rule: cleanup win checks, multiplayer/tie/burnout cases.
-7. Keyword/effect registry: official keyword inventory and per-card script metadata.
+2. Play-card legality edge cases: action/reaction permissions, gear attachment detail, card-specific prompts.
+3. Movement legality edge cases: multiple battlefields, Ganking, effect-driven movement.
+4. Showdown timing edge cases: interactive action windows, combat conversion, open states.
+5. Combat damage assignment edge cases: player assignment, multi-unit combat, prevention/replacement.
+6. Winning point edge cases: official cleanup timing, multiplayer/tie/burnout cases.
+7. Keyword/effect registry expansion: official keyword inventory and per-card script metadata.
 8. Tournament legality: sideboards, set legality, rotation, match procedure, errata tracking.

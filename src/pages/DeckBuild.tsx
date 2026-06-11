@@ -5,9 +5,12 @@ import { ManaCurve } from '../components/ManaCurve';
 import { useCardStore } from '../store/cards';
 import { useDeckStore } from '../store/decks';
 import { validateDeck } from '../lib/deckValidation';
-import { importDeckText } from '../lib/deckImport';
+import { cardSupportStatus } from '../lib/deckSupport';
+import { exportDeckText, importDeckText } from '../lib/deckImport';
 import { getDeckLegendCardId } from '../lib/deckUtils';
+import { STARTER_DECKS, resolveStarterDeck, type StarterDeckSpec } from '../lib/starterDecks';
 import type { CardFilters, Deck, RiftCard } from '../types';
+import { notifyError, notifySuccess } from '../store/toasts';
 
 const emptyFilters: CardFilters = {
   search: '',
@@ -21,7 +24,7 @@ const cx = (...classes: Array<string | false | undefined>) => classes.filter(Boo
 
 export function DeckBuild() {
   const { cards, loading, error, loadCards } = useCardStore();
-  const { decks, activeDeckId, setActiveDeck, createDeck, updateDeck, deleteDeck } = useDeckStore();
+  const { decks, activeDeckId, setActiveDeck, setDecks, createDeck, updateDeck, deleteDeck } = useDeckStore();
   const [filters, setFilters] = useState<CardFilters>(emptyFilters);
   const [saveMessage, setSaveMessage] = useState('');
   const [selectedCard, setSelectedCard] = useState<RiftCard | null>(null);
@@ -97,10 +100,8 @@ export function DeckBuild() {
   };
 
   const exportDeck = async () => {
-    const lines = deckEntries.map((entry) => `${entry.quantity}x ${entry.card.name}`);
-    const legend = validation.legend ? [`Legend: ${validation.legend.name}`] : [];
-    await navigator.clipboard.writeText([...legend, ...lines].join('\n'));
-    setSaveMessage('Deck copied to clipboard.');
+    await navigator.clipboard.writeText(exportDeckText(activeDeck, cardsById));
+    setSaveMessage('Deck copied to clipboard in tournament format.');
   };
 
   const importDeck = (text: string) => {
@@ -117,6 +118,21 @@ export function DeckBuild() {
       `Imported ${result.cards.reduce((sum, card) => sum + card.quantity, 0)} cards${result.legendCardId ? ' and a legend' : ''}.${skipped}`,
     );
     return result;
+  };
+
+  const loadStarterDeck = (spec: StarterDeckSpec) => {
+    const result = resolveStarterDeck(spec, cards);
+    if (!result.deck) {
+      const message = `Missing cards: ${result.missingCards.join(', ')}.`;
+      setSaveMessage(`Could not load ${spec.name}. ${message}`);
+      notifyError(`Could not load ${spec.name}`, message);
+      return;
+    }
+    const nextDecks = [...decks, result.deck];
+    setDecks(nextDecks);
+    setActiveDeck(result.deck.id);
+    setSaveMessage(`Loaded starter deck: ${spec.name}.`);
+    notifySuccess('Starter deck loaded', spec.name);
   };
 
   return (
@@ -154,13 +170,14 @@ export function DeckBuild() {
             onSave={() => setSaveMessage('Deck saved locally.')}
             onImport={() => setShowImport(true)}
             onExport={() => void exportDeck()}
+            onLoadStarter={loadStarterDeck}
             canSave
             saveMessage={saveMessage}
           />
         </aside>
       </div>
       <CardModal card={selectedCard} onClose={() => setSelectedCard(null)} />
-      <DeckImportModal open={showImport} onClose={() => setShowImport(false)} onImport={importDeck} />
+      <DeckImportModal open={showImport} catalog={cards} onClose={() => setShowImport(false)} onImport={importDeck} />
     </main>
   );
 }
@@ -212,6 +229,7 @@ function Select({ value, label, options, onChange }: { value: string; label: str
 }
 
 function CardTile({ card, selected, onAdd, onDetails }: { card: RiftCard; selected: boolean; onAdd: () => void; onDetails: () => void }) {
+  const support = cardSupportStatus(card);
   return (
     <article className={cx('flex min-h-[320px] flex-col overflow-hidden border bg-panel', selected ? 'border-forge' : 'border-line')}>
       <div className="flex aspect-[5/3] items-center justify-center bg-slate-950">
@@ -224,6 +242,19 @@ function CardTile({ card, selected, onAdd, onDetails }: { card: RiftCard; select
             {card.cost !== undefined ? <span className="badge">{card.cost}</span> : null}
           </div>
           <p className="mt-1 text-xs uppercase tracking-wide text-slate-400">{[card.type, card.rarity, card.set].filter(Boolean).join(' / ')}</p>
+          <p
+            className={cx(
+              'mt-2 inline-flex border px-2 py-1 text-xs font-semibold uppercase tracking-wide',
+              support.status === 'SUPPORTED'
+                ? 'border-mint/40 text-mint'
+                : support.status === 'PARTIAL'
+                  ? 'border-forge/50 text-forge'
+                  : 'border-ember/50 text-ember',
+            )}
+            title={support.reason}
+          >
+            {support.status.replace('_', ' ')}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {card.domains.map((domain) => (
@@ -259,6 +290,7 @@ function DeckBuilder({
   onSave,
   onImport,
   onExport,
+  onLoadStarter,
   canSave,
   saveMessage,
 }: {
@@ -274,6 +306,7 @@ function DeckBuilder({
   onSave: () => void;
   onImport: () => void;
   onExport: () => void;
+  onLoadStarter: (spec: StarterDeckSpec) => void;
   canSave: boolean;
   saveMessage: string;
 }) {
@@ -307,6 +340,35 @@ function DeckBuilder({
 
       <div className={cx('mt-4 border px-3 py-3 text-sm', validation.valid ? 'border-mint/40 text-mint' : 'border-forge/50 text-forge')}>
         {validation.valid ? 'Deck passes constructed validation.' : validation.messages.slice(0, 4).join(' ')}
+      </div>
+      <ValidationReport validation={validation} />
+
+      <div className="mt-4 border border-line bg-ink p-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-white">Starter decks</p>
+            <p className="mt-1 text-xs text-slate-400">Recommended alpha playtest lists with known limitations.</p>
+          </div>
+        </div>
+        <div className="mt-3 space-y-3">
+          {STARTER_DECKS.map((starter) => (
+            <div className="border border-line bg-panel p-3" key={starter.id}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-semibold text-white">{starter.name}</p>
+                  <p className="mt-1 text-xs uppercase tracking-wide text-forge">{starter.status}</p>
+                </div>
+                <button className="btn-secondary shrink-0 px-3 py-2 text-sm" onClick={() => onLoadStarter(starter)}>
+                  Load
+                </button>
+              </div>
+              <p className="mt-2 text-sm leading-5 text-slate-300">{starter.description}</p>
+              {starter.warnings.length > 0 ? (
+                <p className="mt-2 text-xs leading-5 text-ember">{starter.warnings.join(' ')}</p>
+              ) : null}
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="mt-4 max-h-[46vh] overflow-auto border border-line">
@@ -353,15 +415,32 @@ function DeckBuilder({
 
 function DeckImportModal({
   open,
+  catalog,
   onClose,
   onImport,
 }: {
   open: boolean;
+  catalog: RiftCard[];
   onClose: () => void;
   onImport: (text: string) => ReturnType<typeof importDeckText>;
 }) {
   const [text, setText] = useState('');
   const [unmatched, setUnmatched] = useState<string[]>([]);
+  const preview = useMemo(() => (text.trim() ? importDeckText(text, catalog) : null), [catalog, text]);
+  const catalogById = useMemo(() => new Map(catalog.map((card) => [card.id, card])), [catalog]);
+  const previewCounts = useMemo(() => {
+    const result = { main: 0, champion: 0, runes: 0, battlefields: 0 };
+    if (!preview) return result;
+    for (const entry of preview.cards) {
+      const card = catalogById.get(entry.cardId);
+      if (!card) continue;
+      if (card.type === 'Champion') result.champion += entry.quantity;
+      else if (card.type === 'Rune') result.runes += entry.quantity;
+      else if (card.type === 'Battlefield') result.battlefields += entry.quantity;
+      else if (card.type !== 'Legend') result.main += entry.quantity;
+    }
+    return result;
+  }, [catalogById, preview]);
 
   if (!open) return null;
 
@@ -390,6 +469,22 @@ function DeckImportModal({
           placeholder={'Legend:\n1 Irelia, Blade Dancer\n\nChampion:\n1 Irelia, Fervent\n\nMainDeck:\n3 Defy'}
           autoFocus
         />
+        {preview ? (
+          <div className="mt-4 border border-line bg-ink px-3 py-3 text-sm text-slate-300">
+            <p className="font-semibold text-white">Import preview</p>
+            <div className="mt-2 grid grid-cols-2 gap-2 text-xs sm:grid-cols-5">
+              <span className="badge">Legend {preview.legendCardId ? '1' : '0'}</span>
+              <span className="badge">Champion {previewCounts.champion}</span>
+              <span className="badge">Main {previewCounts.main}</span>
+              <span className="badge">Runes {previewCounts.runes}</span>
+              <span className="badge">Battlefields {previewCounts.battlefields}</span>
+            </div>
+            {preview.skippedSideboard > 0 ? <p className="mt-2 text-xs text-slate-400">Skipped {preview.skippedSideboard} sideboard cards.</p> : null}
+            {preview.unmatched.length > 0 ? (
+              <p className="mt-2 text-xs text-ember">Unresolved cards will be listed below. Check spelling, punctuation, and alternate card names.</p>
+            ) : null}
+          </div>
+        ) : null}
         {unmatched.length > 0 ? (
           <div className="mt-4 max-h-32 overflow-auto border border-ember/50 px-3 py-2 text-sm text-ember">
             <p className="font-semibold">Could not match:</p>
@@ -418,6 +513,62 @@ function DeckMetric({ label, value }: { label: string; value: string | number })
     <div className="border border-line bg-ink px-2 py-3">
       <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
       <p className="mt-1 truncate text-sm font-semibold text-white">{value}</p>
+    </div>
+  );
+}
+
+function ValidationReport({ validation }: { validation: ReturnType<typeof validateDeck> }) {
+  const sections = [
+    {
+      label: 'Illegal',
+      tone: 'bad' as const,
+      items: validation.messages,
+    },
+    {
+      label: 'Banned',
+      tone: 'bad' as const,
+      items: validation.bannedCards.map((card) => card.name),
+    },
+    {
+      label: 'Unsupported',
+      tone: 'bad' as const,
+      items: validation.unsupportedCards.map(({ card, reason }) => `${card.name}: ${reason}`),
+    },
+    {
+      label: 'Partial',
+      tone: 'warn' as const,
+      items: validation.partialCards.map(({ card }) => card.name),
+    },
+    {
+      label: 'Missing data',
+      tone: 'bad' as const,
+      items: validation.missingCardIds,
+    },
+  ].filter((section) => section.items.length > 0);
+
+  if (sections.length === 0) {
+    return (
+      <div className="mt-3 border border-mint/30 bg-ink px-3 py-3 text-sm text-mint">
+        Legal for current constructed validation. All cards have a support status.
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-3 space-y-2">
+      {sections.map((section) => (
+        <div
+          className={cx(
+            'border bg-ink px-3 py-3 text-xs leading-5',
+            section.tone === 'bad' ? 'border-ember/50 text-ember' : 'border-forge/50 text-forge',
+          )}
+          key={section.label}
+        >
+          <p className="font-semibold">{section.label}</p>
+          <p className="mt-1">{section.items.slice(0, 5).join(' ')}</p>
+          {section.items.length > 5 ? <p className="mt-1">+{section.items.length - 5} more</p> : null}
+        </div>
+      ))}
     </div>
   );
 }

@@ -1,0 +1,40 @@
+name: Card behavior bug
+description: Report a card that resolves incorrectly or is unsupported unexpectedly.
+title: "[Card] "
+labels: ["card behavior bug"]
+body:
+  - type: input
+    id: card
+    attributes:
+      label: Card name
+      placeholder: "Example: Defy"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected card behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual RiftForge behavior
+    validations:
+      required: true
+  - type: textarea
+    id: deck
+    attributes:
+      label: Deck or starter deck used
+      description: Do not include hidden opponent information.
+  - type: textarea
+    id: debug
+    attributes:
+      label: Debug info
+      description: Use the in-game "Copy debug info" button and paste the result here.
+      render: json
+  - type: textarea
+    id: media
+    attributes:
+      label: Screenshots or video
+

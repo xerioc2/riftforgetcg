@@ -37,11 +37,7 @@ public class CombatResolver {
     assignDamage(attackers, defenders, damage, true);
     assignDamage(defenders, attackers, damage, false);
 
-    for (CardInstance card : state.getCards().stream().filter(c -> c.getZone() == ZoneName.BATTLEFIELD).toList()) {
-      int assigned = damage.getOrDefault(card.getInstanceId(), 0);
-      if (assigned < effectiveMight(card, false)) continue;
-      destroy(state, card);
-    }
+    applyDamage(state, damage);
 
     boolean attackersRemain = !battlefieldCards(state, attackingPlayerId).isEmpty();
     boolean defendersEliminated = state.getCards().stream()
@@ -57,10 +53,24 @@ public class CombatResolver {
         .toList();
     for (CardInstance target : ordered) {
       if (pool <= 0) break;
-      int lethal = Math.max(1, effectiveMight(target, !attacking));
+      int lethal = lethalDamage(target);
       int assigned = Math.min(pool, lethal);
       damage.merge(target.getInstanceId(), assigned, Integer::sum);
       pool -= assigned;
+    }
+  }
+
+  private void applyDamage(LiveGameState state, Map<String, Integer> damage) {
+    for (CardInstance card : state.getCards().stream().filter(c -> c.getZone() == ZoneName.BATTLEFIELD).toList()) {
+      int assigned = damage.getOrDefault(card.getInstanceId(), 0);
+      if (assigned <= 0) continue;
+      int currentHealth = card.getCurrentHealth() > 0 ? card.getCurrentHealth() : cardDataService.getCard(card.getCardId()).health();
+      card.setCurrentHealth(Math.max(0, currentHealth - assigned));
+    }
+    for (CardInstance card : state.getCards().stream().filter(c -> c.getZone() == ZoneName.BATTLEFIELD).toList()) {
+      if (damage.getOrDefault(card.getInstanceId(), 0) <= 0) continue;
+      if (card.getCurrentHealth() > 0) continue;
+      destroy(state, card);
     }
   }
 
@@ -71,11 +81,18 @@ public class CombatResolver {
   }
 
   private int effectiveMight(CardInstance card, boolean attacking) {
+    if (cardDataService.hasKeyword(card, "STUN") || cardDataService.hasKeyword(card, "STUNNED")) return 0;
     CardDefinition def = cardDataService.getCard(card.getCardId());
     int situational = attacking
         ? cardDataService.getKeywordValue(card, "ASSAULT")
         : cardDataService.getKeywordValue(card, "SHIELD");
     return Math.max(0, def.power() + card.getMightBonus() + card.getTemporaryPowerModifier() + situational);
+  }
+
+  private int lethalDamage(CardInstance card) {
+    int currentHealth = card.getCurrentHealth();
+    if (currentHealth <= 0) currentHealth = cardDataService.getCard(card.getCardId()).health();
+    return Math.max(1, currentHealth);
   }
 
   private void destroy(LiveGameState state, CardInstance card) {

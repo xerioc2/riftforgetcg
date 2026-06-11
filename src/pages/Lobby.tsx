@@ -1,12 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Client } from '@stomp/stompjs';
 import { useNavigate, useParams } from 'react-router-dom';
+import { deckSupportEntries, unsupportedDeckEntries } from '../lib/deckSupport';
 import { deckToGameCardIds } from '../lib/deckUtils';
+import { validateDeck } from '../lib/deckValidation';
 import { getGameServerUrl } from '../lib/env';
+import { readableHttpError } from '../lib/http';
 import { useLocalPlayer } from '../lib/playerContext';
 import { getRoomSessionToken } from '../lib/roomSession';
 import { createLobbyClient } from '../lib/stompGame';
+import { useCardStore } from '../store/cards';
 import { useDeckStore } from '../store/decks';
+import { notifyError, notifyWarning } from '../store/toasts';
 import type { PresenceSummary, RoomState } from '../types';
 
 const cx = (...classes: Array<string | false | undefined>) => classes.filter(Boolean).join(' ');
@@ -16,6 +21,7 @@ export function Lobby() {
   const { code } = useParams();
   const navigate = useNavigate();
   const player = useLocalPlayer();
+  const { cards, loadCards } = useCardStore();
   const { decks, activeDeckId, setActiveDeck } = useDeckStore();
   const [room, setRoom] = useState<RoomState | null>(null);
   const [myDeckId, setMyDeckId] = useState<string | null>(activeDeckId ?? null);
@@ -23,11 +29,18 @@ export function Lobby() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deckError, setDeckError] = useState<string | null>(null);
+  const [supportedCardsOnly, setSupportedCardsOnly] = useState(false);
   const [presence, setPresence] = useState<PresenceSummary | null>(null);
   const clientRef = useRef<Client | null>(null);
   const normalizedCode = code?.toUpperCase() ?? '';
 
   const deckNames = useMemo(() => new Map(decks.map((deck) => [deck.id, deck.name])), [decks]);
+  const cardsById = useMemo(() => new Map(cards.map((card) => [card.id, card])), [cards]);
+  const selectedDeck = useMemo(() => decks.find((deck) => deck.id === myDeckId), [decks, myDeckId]);
+  const deckValidation = useMemo(() => selectedDeck ? validateDeck(selectedDeck, cardsById) : null, [cardsById, selectedDeck]);
+  const supportEntries = useMemo(() => deckSupportEntries(selectedDeck, cardsById), [cardsById, selectedDeck]);
+  const unsupportedCards = useMemo(() => unsupportedDeckEntries(selectedDeck, cardsById), [cardsById, selectedDeck]);
+  const partialCards = useMemo(() => supportEntries.filter((entry) => entry.status === 'PARTIAL'), [supportEntries]);
   const me = room?.players.find((lobbyPlayer) => lobbyPlayer.id === player.id);
   const isPlayer = Boolean(me);
   const canStart = Boolean(
@@ -35,6 +48,10 @@ export function Lobby() {
       room.players.length >= 2 &&
       room.players.filter((lobbyPlayer) => lobbyPlayer.id !== BOT_ID).every((lobbyPlayer) => lobbyPlayer.ready),
   );
+
+  useEffect(() => {
+    if (cards.length === 0) void loadCards();
+  }, [cards.length, loadCards]);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,7 +69,9 @@ export function Lobby() {
           .catch(() => {});
         setLoading(false);
       } catch (setupError) {
-        setError(setupError instanceof Error ? setupError.message : 'Unable to load lobby.');
+        const message = setupError instanceof Error ? setupError.message : 'Unable to load lobby.';
+        setError(message);
+        notifyError('Unable to load lobby', message);
         setLoading(false);
       }
     };
@@ -88,14 +107,24 @@ export function Lobby() {
     const response = await fetch(`${getGameServerUrl()}/api/rooms/${normalizedCode}/ready`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ playerId: player.id, sessionToken, deckCardIds: selectedDeckCardIds }),
+      body: JSON.stringify({ playerId: player.id, sessionToken, deckCardIds: selectedDeckCardIds, supportedCardsOnly }),
     });
     if (!response.ok) {
-      const body = await response.text();
-      setDeckError(body || 'Deck is not valid.');
+      const message = await readableHttpError(response, 'Deck is not valid.');
+      setDeckError(message);
+      notifyError('Ready failed', message);
       return;
     }
+    const nextRoom = (await response.json()) as RoomState;
+    setRoom(nextRoom);
     setDeckError(null);
+    const nextMe = nextRoom.players.find((lobbyPlayer) => lobbyPlayer.id === player.id);
+    if (nextMe?.deckWarnings && nextMe.deckWarnings.length > 0) {
+      notifyWarning('Deck has partial support', nextMe.deckWarnings.slice(0, 2).join(' '));
+    }
+    if (unsupportedCards.length > 0) {
+      notifyWarning('Deck has unsupported effects', `${unsupportedCards.slice(0, 3).map(({ card }) => card.name).join(', ')} may not work fully yet.`);
+    }
   };
 
   const handleSetBotDeck = async (deckId: string) => {
@@ -106,7 +135,11 @@ export function Lobby() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ playerId: player.id, sessionToken, deckCardIds: ids }),
     });
-    if (!response.ok) setDeckError(await response.text() || 'Unable to set bot deck.');
+    if (!response.ok) {
+      const message = await readableHttpError(response, 'Unable to set bot deck.');
+      setDeckError(message);
+      notifyError('Unable to set bot deck', message);
+    }
   };
 
   const handleStart = async () => {
@@ -116,8 +149,9 @@ export function Lobby() {
       body: JSON.stringify({ playerId: player.id, sessionToken }),
     });
     if (!response.ok) {
-      const body = await response.text();
-      setDeckError(body || 'Unable to start game.');
+      const message = await readableHttpError(response, 'Unable to start game.');
+      setDeckError(message);
+      notifyError('Unable to start game', message);
     }
   };
 
@@ -189,9 +223,52 @@ export function Lobby() {
                   </option>
                 ))}
               </select>
-              <button className="btn-primary mt-3 w-full" onClick={() => void handleReady()} disabled={!myDeckId || deckIsEmpty}>
+              <button className="btn-primary mt-3 w-full" onClick={() => void handleReady()} disabled={!myDeckId || deckIsEmpty || (!me?.ready && !deckValidation?.valid)}>
                 {me?.ready ? 'Unready' : 'Ready up'}
               </button>
+              {deckValidation && !deckValidation.valid ? (
+                <div className="mt-3 border border-ember/50 px-3 py-2 text-xs leading-5 text-ember">
+                  <p className="font-semibold">Deck is not legal yet:</p>
+                  <p className="mt-1">{deckValidation.messages.slice(0, 3).join(' ')}</p>
+                </div>
+              ) : null}
+              <label className="mt-3 flex items-start gap-2 border border-line bg-ink px-3 py-2 text-xs leading-5 text-slate-300">
+                <input
+                  className="mt-1"
+                  type="checkbox"
+                  checked={supportedCardsOnly}
+                  onChange={(event) => setSupportedCardsOnly(event.target.checked)}
+                  disabled={Boolean(me?.ready)}
+                />
+                <span>
+                  Supported-cards-only mode
+                  <span className="block text-slate-500">Blocks unsupported or not-audited cards. Partial cards still show warnings.</span>
+                </span>
+              </label>
+              {unsupportedCards.length > 0 ? (
+                <div className="mt-3 border border-forge/50 px-3 py-2 text-xs leading-5 text-forge">
+                  <p className="font-semibold">Unsupported card effects in this deck:</p>
+                  <p className="mt-1">
+                    {unsupportedCards.slice(0, 5).map(({ card }) => card.name).join(', ')}
+                    {unsupportedCards.length > 5 ? `, +${unsupportedCards.length - 5} more` : ''}
+                  </p>
+                </div>
+              ) : null}
+              {partialCards.length > 0 ? (
+                <div className="mt-3 border border-forge/50 px-3 py-2 text-xs leading-5 text-forge">
+                  <p className="font-semibold">Partial support warnings:</p>
+                  <p className="mt-1">
+                    {partialCards.slice(0, 5).map(({ card }) => card.name).join(', ')}
+                    {partialCards.length > 5 ? `, +${partialCards.length - 5} more` : ''}
+                  </p>
+                </div>
+              ) : null}
+              {me?.deckWarnings && me.deckWarnings.length > 0 ? (
+                <div className="mt-3 border border-forge/50 px-3 py-2 text-xs leading-5 text-forge">
+                  <p className="font-semibold">Server deck warnings:</p>
+                  <p className="mt-1">{me.deckWarnings.slice(0, 3).join(' ')}</p>
+                </div>
+              ) : null}
               {deckError ? <p className="mt-2 text-sm text-ember">{deckError}</p> : null}
               {myDeckId && deckIsEmpty ? <p className="mt-2 text-xs text-ember">Deck is empty — add cards in the Deck Builder first.</p> : null}
             </>

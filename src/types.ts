@@ -18,6 +18,15 @@ export type RiftCard = {
   keywords?: string[];
 };
 
+export type CardSupportStatus = 'SUPPORTED' | 'PARTIAL' | 'UNSUPPORTED' | 'BANNED' | 'NOT_AUDITED';
+
+export type CardSupportSummary = {
+  cardId: string;
+  name: string;
+  status: CardSupportStatus;
+  reason: string;
+};
+
 export type CardFilters = {
   search: string;
   champion: string;
@@ -52,10 +61,32 @@ export type DeckValidation = {
   championCards: number;
   runeCards: number;
   battlefieldCards: number;
+  bannedCards: RiftCard[];
+  unsupportedCards: Array<{ card: RiftCard; reason: string }>;
+  partialCards: Array<{ card: RiftCard; reason: string }>;
+  missingCardIds: string[];
 };
 
 export type RoomStatus = 'waiting' | 'playing' | 'finished';
 export type GameMode = 'ENFORCED' | 'SANDBOX';
+export type LegalAction =
+  | 'KEEP_HAND'
+  | 'MULLIGAN'
+  | 'PASS_PHASE'
+  | 'END_TURN'
+  | 'PLAY_CARD'
+  | 'MOVE_TO_BATTLEFIELD'
+  | 'REPOSITION_CARD'
+  | 'RESOLVE_SHOWDOWN'
+  | 'TAP_RUNE'
+  | 'DISCARD_RUNE'
+  | 'UNDO_RUNES'
+  | 'VISION_CHOICE'
+  | 'SANDBOX_DEAL_CARD'
+  | 'SANDBOX_ADJUST_SCORE'
+  | 'SANDBOX_TAP_CARD'
+  | 'SANDBOX_FLIP_CARD'
+  | 'SANDBOX_MOVE_CARD';
 
 export type PresencePlayer = {
   userId: string;
@@ -80,6 +111,8 @@ export type DevLobbyPlayer = {
   name: string;
   ready: boolean;
   deckCardIds: string[];
+  deckWarnings?: string[];
+  deckSupport?: CardSupportSummary[];
 };
 
 export type RoomState = {
@@ -160,12 +193,14 @@ export type LiveGameState = {
   battlefieldController?: Record<string, string>;
   scoredBattlefieldsThisTurn?: string[];
   revealedHands?: RevealedHandSnapshot[];
+  legalActions?: LegalAction[];
 };
 
 export type ShowdownState = {
   attackingPlayerId: string;
   attackerInstanceIds: string[];
   gankingBonuses?: Record<string, number>;
+  step?: 'STAGED' | 'ACTION_WINDOW' | 'ASSIGN_DAMAGE' | 'RESOLVE_DAMAGE' | 'CLEANUP' | 'COMPLETE';
 };
 
 export type RevealedHandSnapshot = {

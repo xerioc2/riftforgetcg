@@ -8,6 +8,8 @@ public class LobbyPlayer {
   private String name;
   private boolean ready;
   private List<String> deckCardIds = new ArrayList<>();
+  private List<String> deckWarnings = new ArrayList<>();
+  private List<CardSupportSummary> deckSupport = new ArrayList<>();
 
   public LobbyPlayer() {}
 
@@ -26,4 +28,8 @@ public class LobbyPlayer {
   public void setReady(boolean ready) { this.ready = ready; }
   public List<String> getDeckCardIds() { return deckCardIds; }
   public void setDeckCardIds(List<String> deckCardIds) { this.deckCardIds = deckCardIds; }
+  public List<String> getDeckWarnings() { return deckWarnings; }
+  public void setDeckWarnings(List<String> deckWarnings) { this.deckWarnings = deckWarnings == null ? new ArrayList<>() : new ArrayList<>(deckWarnings); }
+  public List<CardSupportSummary> getDeckSupport() { return deckSupport; }
+  public void setDeckSupport(List<CardSupportSummary> deckSupport) { this.deckSupport = deckSupport == null ? new ArrayList<>() : new ArrayList<>(deckSupport); }
 }

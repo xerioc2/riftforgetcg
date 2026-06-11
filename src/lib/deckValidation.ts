@@ -1,5 +1,7 @@
 import type { Deck, DeckValidation, RiftCard } from '../types';
+import { deckSupportEntries } from './deckSupport';
 import { getDeckLegendCardId } from './deckUtils';
+import { isBannedInConstructed } from './tournamentLegality';
 
 const MAX_COPIES = 3;
 
@@ -10,6 +12,15 @@ export function validateDeck(deck: Deck, cardsById: Map<string, RiftCard>): Deck
   const entries = deck.cards
     .map((entry) => ({ ...entry, card: cardsById.get(entry.cardId) }))
     .filter((entry): entry is typeof entry & { card: RiftCard } => Boolean(entry.card));
+  const missingCardIds = deck.cards.filter((entry) => !cardsById.has(entry.cardId)).map((entry) => entry.cardId);
+  const supportEntries = deckSupportEntries(deck, cardsById);
+  const bannedCards = entries.map(({ card }) => card).filter(isBannedInConstructed);
+  const unsupportedCards = supportEntries
+    .filter((entry) => entry.status === 'UNSUPPORTED' || entry.status === 'NOT_AUDITED')
+    .map(({ card, reason }) => ({ card, reason }));
+  const partialCards = supportEntries
+    .filter((entry) => entry.status === 'PARTIAL')
+    .map(({ card, reason }) => ({ card, reason }));
   const mainDeckCards = entries
     .filter(({ card }) => card.type !== 'Rune' && card.type !== 'Battlefield' && card.type !== 'Legend' && card.type !== 'Champion')
     .reduce((sum, card) => sum + card.quantity, 0);
@@ -21,6 +32,7 @@ export function validateDeck(deck: Deck, cardsById: Map<string, RiftCard>): Deck
 
   if (!deck.name.trim()) messages.push('Deck needs a name.');
   if (!legend) messages.push('Choose a Legend to set the deck domains.');
+  if (missingCardIds.length > 0) messages.push(`${missingCardIds.length} saved card ID${missingCardIds.length === 1 ? '' : 's'} are missing from card data.`);
   if (championCards !== 1) messages.push(`Choose exactly 1 Champion (${championCards}/1).`);
   if (mainDeckCards !== 39) messages.push(`Main Deck must contain exactly 39 non-Champion cards (${mainDeckCards}/39).`);
   if (runeCards !== 12) messages.push(`Rune Pool must contain exactly 12 runes (${runeCards}/12).`);
@@ -28,6 +40,7 @@ export function validateDeck(deck: Deck, cardsById: Map<string, RiftCard>): Deck
   if (new Set(battlefieldEntries.map(({ card }) => card.name)).size !== battlefieldCards) {
     messages.push('Battlefields must have unique names.');
   }
+  for (const card of bannedCards) messages.push(`${card.name} is banned in Constructed.`);
 
   for (const entry of entries) {
     const { card } = entry;
@@ -52,5 +65,9 @@ export function validateDeck(deck: Deck, cardsById: Map<string, RiftCard>): Deck
     championCards,
     runeCards,
     battlefieldCards,
+    bannedCards,
+    unsupportedCards,
+    partialCards,
+    missingCardIds,
   };
 }

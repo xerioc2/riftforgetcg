@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import com.riftforge.model.CardDefinition;
+import com.riftforge.model.CardSupportStatus;
 import com.riftforge.model.RoomState;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,7 +29,7 @@ class RoomServiceDeckValidationTest {
   @BeforeEach
   void setUp() {
     cards = new HashMap<>();
-    roomService = new RoomService(messaging, cardDataService);
+    roomService = new RoomService(messaging, cardDataService, new CardSupportService(cardDataService));
     when(cardDataService.getAll()).thenReturn(cards);
   }
 
@@ -47,6 +48,31 @@ class RoomServiceDeckValidationTest {
     assertThat(room.getPlayers().getFirst().isReady()).isTrue();
     assertThatNoException().isThrownBy(() -> roomService.start(room.getCode(), "p1"));
     assertThat(room.getStatus()).isEqualTo("playing");
+  }
+
+  @Test
+  void ireliaStarterDeckPassesValidation() {
+    List<String> deck = addIreliaStarterDeck();
+    RoomState room = roomService.create("p1", "Player One", false);
+
+    assertThatNoException().isThrownBy(() -> roomService.ready(room.getCode(), "p1", deck));
+
+    assertThat(room.getPlayers().getFirst().isReady()).isTrue();
+  }
+
+  @Test
+  void botUsesStarterDeckWhenCardsAreAvailable() {
+    addIreliaStarterDeck();
+
+    RoomState room = roomService.create("p1", "Player One", true);
+    List<String> botDeck = room.getPlayers().stream()
+        .filter(player -> "bot-player-riftbot".equals(player.getId()))
+        .findFirst()
+        .orElseThrow()
+        .getDeckCardIds();
+
+    assertThat(botDeck).hasSize(56);
+    assertThatNoException().isThrownBy(() -> roomService.setBotDeck(room.getCode(), botDeck));
   }
 
   @Test
@@ -236,6 +262,61 @@ class RoomServiceDeckValidationTest {
     assertThatNoException().isThrownBy(() -> roomService.setBotDeck(room.getCode(), botDeck));
   }
 
+  @Test
+  void unsupportedCardIsBlockedInSupportedOnlyMode() {
+    add("legend", "Legend");
+    add("champion", "Champion");
+    add("unsupported-spell", "Spell", "Unimplemented Spell");
+    when(cardDataService.isUnsupportedAction("unsupported-spell")).thenReturn(true);
+    List<String> deck = new ArrayList<>(List.of("legend", "champion", "unsupported-spell"));
+    addMainDeckCards(deck, 38);
+    addRunes(deck, 12);
+    addBattlefields(deck, 3);
+    RoomState room = roomService.create("p1", "Player One", false);
+
+    assertThatThrownBy(() -> roomService.ready(room.getCode(), "p1", deck, true))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Deck contains unsupported or not-audited cards")
+        .hasMessageContaining("Unimplemented Spell (UNSUPPORTED)");
+  }
+
+  @Test
+  void partialCardsProduceReadyWarnings() {
+    add("legend", "Legend");
+    add("champion", "Champion");
+    List<String> deck = new ArrayList<>(List.of("legend", "champion"));
+    addMainDeckCards(deck, 39);
+    addRunes(deck, 12);
+    addBattlefields(deck, 3);
+    RoomState room = roomService.create("p1", "Player One", false);
+
+    roomService.ready(room.getCode(), "p1", deck, true);
+
+    assertThat(room.getPlayers().getFirst().getDeckWarnings()).isNotEmpty();
+    assertThat(room.getPlayers().getFirst().getDeckSupport())
+        .anySatisfy(summary -> assertThat(summary.status()).isEqualTo(CardSupportStatus.PARTIAL));
+  }
+
+  @Test
+  void supportedCardStatusAppearsInReadyResponse() {
+    add("legend", "Legend");
+    add("champion", "Champion");
+    List<String> deck = new ArrayList<>(List.of("legend", "champion"));
+    addMainDeckCards(deck, 39);
+    add("calm-rune", "Rune", "Calm Rune");
+    addCopies(deck, "calm-rune", 12);
+    addBattlefields(deck, 3);
+    RoomState room = roomService.create("p1", "Player One", false);
+
+    RoomState response = roomService.ready(room.getCode(), "p1", deck, true);
+
+    assertThat(response.getPlayers().getFirst().getDeckSupport())
+        .anySatisfy(summary -> {
+          assertThat(summary.name()).isEqualTo("Calm Rune");
+          assertThat(summary.status()).isEqualTo(CardSupportStatus.SUPPORTED);
+        });
+  }
+
   private void addMainDeckCards(List<String> deck, int count) {
     for (int i = 0; i < count; i++) {
       String id = "unit-" + i;
@@ -258,6 +339,60 @@ class RoomServiceDeckValidationTest {
       add(id, "Battlefield");
       deck.add(id);
     }
+  }
+
+  private List<String> addIreliaStarterDeck() {
+    add("irelia-legend", "Legend", "Irelia - Blade Dancer");
+    add("irelia-champion", "Champion", "Irelia - Fervent");
+    add("defy", "Spell", "Defy");
+    add("discipline", "Spell", "Discipline");
+    add("tideturner", "Unit", "Tideturner");
+    add("stellacorn-herder", "Unit", "Stellacorn Herder");
+    add("guardian-angel", "Gear", "Guardian Angel");
+    add("boots-of-swiftness", "Gear", "Boots of Swiftness");
+    add("defiant-dance", "Spell", "Defiant Dance");
+    add("scuttle-crab", "Unit", "Scuttle Crab");
+    add("charm", "Spell", "Charm");
+    add("en-garde", "Spell", "En Garde");
+    add("gust", "Spell", "Gust");
+    add("ride-the-wind", "Spell", "Ride The Wind");
+    add("stacked-deck", "Spell", "Stacked Deck");
+    add("not-so-fast", "Spell", "Not So Fast");
+    add("star-crossed", "Spell", "Star-Crossed");
+    add("adaptatron", "Unit", "Adaptatron");
+    add("calm-rune", "Rune", "Calm Rune");
+    add("chaos-rune", "Rune", "Chaos Rune");
+    add("targons-peak", "Battlefield", "Targon's Peak");
+    add("sunken-temple", "Battlefield", "Sunken Temple");
+    add("abandoned-hall", "Battlefield", "Abandoned Hall");
+
+    List<String> deck = new ArrayList<>(List.of("irelia-legend", "irelia-champion"));
+    addCopies(deck, "defy", 3);
+    addCopies(deck, "discipline", 3);
+    addCopies(deck, "tideturner", 3);
+    addCopies(deck, "stellacorn-herder", 3);
+    addCopies(deck, "guardian-angel", 3);
+    addCopies(deck, "boots-of-swiftness", 3);
+    addCopies(deck, "defiant-dance", 3);
+    addCopies(deck, "scuttle-crab", 3);
+    addCopies(deck, "charm", 2);
+    addCopies(deck, "en-garde", 2);
+    addCopies(deck, "gust", 2);
+    addCopies(deck, "ride-the-wind", 2);
+    addCopies(deck, "stacked-deck", 2);
+    addCopies(deck, "not-so-fast", 2);
+    addCopies(deck, "star-crossed", 2);
+    addCopies(deck, "adaptatron", 1);
+    addCopies(deck, "calm-rune", 6);
+    addCopies(deck, "chaos-rune", 6);
+    deck.add("targons-peak");
+    deck.add("sunken-temple");
+    deck.add("abandoned-hall");
+    return deck;
+  }
+
+  private void addCopies(List<String> deck, String cardId, int quantity) {
+    for (int i = 0; i < quantity; i++) deck.add(cardId);
   }
 
   private void add(String id, String type) {

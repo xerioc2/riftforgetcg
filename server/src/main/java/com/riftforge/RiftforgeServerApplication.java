@@ -27,7 +27,7 @@ public class RiftforgeServerApplication {
       for (Class<?> type : new Class<?>[] {
           MoveRequest.class,
           DealCardMove.class, TapCardMove.class, FlipCardMove.class,
-          PlayCardMove.class, MoveCardMove.class, TapRuneMove.class,
+          PlayCardMove.class, MoveCardMove.class, RepositionCardMove.class, TapRuneMove.class,
           DiscardRuneMove.class, MoveToBattlefieldMove.class,
           MulliganMove.class, UndoRunesMove.class, PassPhaseMove.class, ResolveShowdownMove.class, AdjustScoreMove.class, VisionChoiceMove.class,
           MatchRecord.class, MatchRecord.PlayerSummary.class

@@ -2,7 +2,9 @@ package com.riftforge.engine;
 
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.when;
 
+import com.riftforge.model.CardDefinition;
 import com.riftforge.model.CardInstance;
 import com.riftforge.model.GameMode;
 import com.riftforge.model.LiveGameState;
@@ -103,6 +105,7 @@ class RulesValidatorGameModeTest {
   void normalEnforcedMoveStillPasses() {
     LiveGameState state = state(GameMode.ENFORCED);
     state.getCards().add(card("unit", "p1", ZoneName.BASE));
+    stubCard("unit", "Unit");
 
     assertThatNoException().isThrownBy(() ->
         validator.validate(state, new MoveToBattlefieldMove("p1", "unit")));
@@ -128,5 +131,10 @@ class RulesValidatorGameModeTest {
     card.setZone(zone);
     card.setTapped(false);
     return card;
+  }
+
+  private void stubCard(String id, String type) {
+    when(cardDataService.getCard(id)).thenReturn(
+        new CardDefinition(id, id, type, null, List.of(), 0, 0, null, null, null, null, 1, 1, List.of()));
   }
 }

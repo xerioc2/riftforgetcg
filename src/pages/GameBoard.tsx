@@ -14,6 +14,7 @@ import { RuneSprite } from '../components/board/RuneSprite';
 import { computeLayout, type ZoneRect } from '../components/board/BoardLayout';
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
+import { readableHttpError } from '../lib/http';
 import { cardTargetScope, unsupportedCardReason } from '../lib/cardActions';
 import { useLocalPlayer } from '../lib/playerContext';
 import { getRoomSessionToken } from '../lib/roomSession';
@@ -21,7 +22,8 @@ import { play, preload } from '../lib/sfx';
 import { createGameClient, joinGame, sendMove } from '../lib/stompGame';
 import { useCardStore } from '../store/cards';
 import { useGameStore } from '../store/game';
-import type { CardInstance, LiveGameState, RevealedHandSnapshot, RiftCard, ZoneName } from '../types';
+import { notifyError, notifySuccess, notifyWarning, useToastStore } from '../store/toasts';
+import type { CardInstance, LegalAction, LiveGameState, RevealedHandSnapshot, RiftCard, ZoneName } from '../types';
 
 const NAV_HEIGHT = 73;
 const SIDEBAR_WIDTH = 280;
@@ -42,8 +44,19 @@ function hasKeyword(card: RiftCard | undefined, keyword: string) {
   return card?.keywords?.some((value) => value.toUpperCase().startsWith(keyword.toUpperCase())) ?? false;
 }
 
+function sharesDomain(card: RiftCard | undefined, rune: RiftCard | undefined) {
+  if (!card || !rune) return false;
+  return rune.domains
+    .filter((domain) => domain !== 'COLORLESS')
+    .some((domain) => card.domains.some((cardDomain) => cardDomain.toUpperCase() === domain.toUpperCase()));
+}
+
 function hasMaskedOwnHand(state: LiveGameState, playerId: string) {
   return state.cards.some((card) => card.ownerId === playerId && sameZone(card.zone, 'hand') && card.cardId === 'hidden');
+}
+
+function canTakeAction(state: LiveGameState | null, action: LegalAction) {
+  return state?.legalActions?.includes(action) ?? false;
 }
 
 function autoPlaceInZone(zone: ZoneRect, existingCount: number, cardW = 88, cardH = 112): { x: number; y: number } {
@@ -62,6 +75,7 @@ export function GameBoard() {
   const player = useLocalPlayer();
   const { cards, loadCards } = useCardStore();
   const { state, chat, setState, addChat } = useGameStore();
+  const lastError = useToastStore((store) => store.lastError);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [size, setSize] = useState({
@@ -221,7 +235,10 @@ export function GameBoard() {
           getRoomSessionToken(roomCode, player.id),
           (msg, source) => {
             if (msg.type === 'STATE_UPDATE' && !(source === 'room' && hasMaskedOwnHand(msg.state, player.id))) handleIncomingState(msg.state);
-            if (msg.type === 'ERROR') addChat({ id: crypto.randomUUID(), userId: msg.playerId, email: null, text: msg.message, sentAt: new Date().toISOString() });
+            if (msg.type === 'ERROR') {
+              addChat({ id: crypto.randomUUID(), userId: msg.playerId, email: null, text: msg.message, sentAt: new Date().toISOString() });
+              notifyError('Action failed', msg.message);
+            }
           },
           () => joinGame(client, roomCode),
           (connected) => {
@@ -230,9 +247,14 @@ export function GameBoard() {
               void fetch(playerStateUrl)
                 .then((r) => (r.ok ? r.json() as Promise<LiveGameState> : Promise.reject(new Error('State refresh failed.'))))
                 .then(handleIncomingState)
-                .catch(() => {});
+                .catch(() => notifyWarning('Reconnected, but state refresh failed.'));
             }
-            if (connected) hasConnectedRef.current = true;
+            if (connected) {
+              if (hasConnectedRef.current) notifySuccess('Reconnected');
+              hasConnectedRef.current = true;
+            } else if (hasConnectedRef.current) {
+              notifyWarning('Connection lost', 'RiftForge is trying to reconnect.');
+            }
           },
         );
         if (cancelled) {
@@ -243,7 +265,9 @@ export function GameBoard() {
         setLoading(false);
       } catch (setupError) {
         if (!cancelled) {
-          setError(setupError instanceof Error ? setupError.message : 'Unable to load game.');
+          const message = setupError instanceof Error ? setupError.message : 'Unable to load game.';
+          setError(message);
+          notifyError('Unable to load game', message);
           setLoading(false);
         }
       }
@@ -261,7 +285,7 @@ export function GameBoard() {
     void fetch(playerStateUrl)
       .then((r) => (r.ok ? r.json() as Promise<LiveGameState> : Promise.reject(new Error('State refresh failed.'))))
       .then(handleIncomingState)
-      .catch(() => {});
+      .catch(() => notifyWarning('Unable to refresh state.'));
   }, [handleIncomingState, playerStateUrl]);
 
   const publishMove = (move: Parameters<typeof sendMove>[2]) => {
@@ -273,6 +297,7 @@ export function GameBoard() {
         text: 'Connection is not ready. Reconnecting...',
         sentAt: new Date().toISOString(),
       });
+      notifyWarning('Connection is not ready', 'RiftForge is reconnecting. Try again in a moment.');
       return;
     }
     sendMove(stompClientRef.current, roomCode, move);
@@ -295,47 +320,81 @@ export function GameBoard() {
     }, 1000);
   };
 
-  const commitRunesForCard = (cardDef: RiftCard | undefined, additionalCost = 0) => {
+  const selectPaymentRunesForCard = (cardDef: RiftCard | undefined, additionalCost = 0) => {
     const playerEnergy = state?.players.find((statePlayer) => statePlayer.userId === player.id)?.availableEnergy ?? 0;
-    const selectedRunes = new Set(pendingRuneTaps);
-    let plannedEnergy = (state?.runes ?? [])
-      .filter((rune) => selectedRunes.has(rune.instanceId))
-      .reduce((total, rune) => total + rune.normalEnergy, 0);
+    const selectedRunes = new Set<string>();
+    let plannedEnergy = 0;
     const neededEnergy = Math.max(0, (cardDef?.cost ?? 0) + additionalCost - playerEnergy);
+    for (const runeId of pendingRuneTaps) {
+      if (plannedEnergy >= neededEnergy) break;
+      const rune = state?.runes?.find((candidate) => candidate.instanceId === runeId);
+      if (!rune || rune.ownerId !== player.id || rune.tapped) continue;
+      selectedRunes.add(rune.instanceId);
+      plannedEnergy += rune.normalEnergy;
+    }
     for (const rune of state?.runes ?? []) {
       if (plannedEnergy >= neededEnergy) break;
       if (rune.ownerId !== player.id || rune.tapped || selectedRunes.has(rune.instanceId)) continue;
       selectedRunes.add(rune.instanceId);
       plannedEnergy += rune.normalEnergy;
     }
-    for (const runeId of selectedRunes) {
-      publishMove({ type: 'TAP_RUNE', playerId: player.id, runeInstanceId: runeId });
+    const premiumRuneIds: string[] = [];
+    const premiumCost = cardDef?.premiumCost ?? 0;
+    if (premiumCost > 0) {
+      for (const rune of state?.runes ?? []) {
+        if (premiumRuneIds.length >= premiumCost) break;
+        if (rune.ownerId !== player.id || rune.tapped || selectedRunes.has(rune.instanceId)) continue;
+        if (!sharesDomain(cardDef, cardsById.get(rune.cardId))) continue;
+        premiumRuneIds.push(rune.instanceId);
+      }
+    }
+    if (plannedEnergy < neededEnergy) {
+      notifyWarning('Insufficient energy', `${cardDef?.name ?? 'That card'} needs ${neededEnergy} energy from ready runes.`);
+      return null;
+    }
+    if (premiumRuneIds.length < premiumCost) {
+      notifyWarning('Insufficient premium payment', `${cardDef?.name ?? 'That card'} needs ${premiumCost} matching domain rune${premiumCost === 1 ? '' : 's'}.`);
+      return null;
     }
     setPendingRuneTaps(new Set());
+    return { paymentRuneIds: [...selectedRunes], premiumRuneIds };
   };
 
   const playCardToBase = (instanceId: string, cardDef: RiftCard | undefined, accelerate = false) => {
-    commitRunesForCard(cardDef, accelerate ? 1 : 0);
+    const payment = selectPaymentRunesForCard(cardDef, accelerate ? 1 : 0);
+    if (!payment) return;
     const isRune = cardDef?.type?.toLowerCase() === 'rune';
     if (isRune) {
       const runeZone = zones.find((zone) => zone.zoneName === 'rune' && zone.ownerId === player.id);
       const runeCount = state?.runes?.filter((rune) => rune.ownerId === player.id).length ?? 0;
       const runeX = runeZone ? runeZone.x + 20 + runeCount * Math.max(30, (runeZone.width - 40) / 10) : size.width / 2;
       const runeY = runeZone ? runeZone.y + runeZone.height / 2 : size.height / 2;
-      publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'RUNE', x: runeX, y: runeY, accelerate });
+      publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'RUNE', x: runeX, y: runeY, accelerate, ...payment });
       return;
     }
     const base = zones.find((zone) => zone.zoneName === 'base' && zone.ownerId === player.id);
     const baseCount = state?.cards.filter((card) => card.ownerId === player.id && sameZone(card.zone, 'base')).length ?? 0;
     const position = base ? autoPlaceInZone(base, baseCount) : { x: size.width / 2, y: size.height / 2 };
-    publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'BASE', ...position, accelerate });
+    publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'BASE', ...position, accelerate, ...payment });
   };
 
   const playFromHand = (instanceId: string) => {
+    if (!canTakeAction(state, 'PLAY_CARD')) return;
     const cardDef = cardsById.get(state?.cards.find((c) => c.instanceId === instanceId)?.cardId ?? '');
+    const type = cardDef?.type?.toLowerCase();
+    if (type === 'legend' || type === 'champion' || type === 'battlefield') {
+      const message = type === 'legend'
+        ? 'Legends are identity cards and are not played from hand.'
+        : type === 'champion'
+          ? 'Champions start in the Champion zone and are not played from hand.'
+          : 'Battlefields are selected during setup and are not played from hand.';
+      notifyWarning('Cannot play that card', message);
+      return;
+    }
     const unsupportedReason = unsupportedCardReason(cardDef);
     if (unsupportedReason) {
       addChat({ id: crypto.randomUUID(), userId: player.id, email: null, text: unsupportedReason, sentAt: new Date().toISOString() });
+      notifyWarning('Unsupported card effect', unsupportedReason);
       return;
     }
     if (cardTargetScope(cardDef)) {
@@ -351,6 +410,7 @@ export function GameBoard() {
   };
 
   const discardFromHand = (instanceId: string) => {
+    if (!canTakeAction(state, 'SANDBOX_MOVE_CARD')) return;
     publishMove({ type: 'MOVE_CARD', playerId: player.id, instanceId, targetZone: 'DISCARD', x: size.width - 76, y: size.height - 170 });
   };
 
@@ -358,13 +418,24 @@ export function GameBoard() {
     const instance = state?.cards.find((card) => card.instanceId === instanceId);
     if (!instance) return;
     const zone = pointZone(x, y, zones, instance.zone);
-    if (sameZone(instance.zone, 'base') && sameZone(zone, 'battlefield') && instance.ownerId === player.id && !state?.activeShowdown) {
+    if ((sameZone(instance.zone, 'base') || sameZone(instance.zone, 'champion')) && sameZone(zone, 'battlefield') && instance.ownerId === player.id && canTakeAction(state, 'MOVE_TO_BATTLEFIELD')) {
+      const cardDef = cardsById.get(instance.cardId);
+      const type = cardDef?.type?.toLowerCase();
+      if (type !== 'unit' && type !== 'champion') {
+        notifyWarning('Cannot start showdown', 'Only Units and Champions can move to the battlefield.');
+        return;
+      }
       publishMove({ type: 'MOVE_TO_BATTLEFIELD', playerId: player.id, instanceId });
       return;
     }
     const targetZoneRect = zones.find((candidate) => candidate.zoneName === zone && candidate.ownerId === instance.ownerId) ?? zones.find((candidate) => candidate.zoneName === zone);
     const snappedX = targetZoneRect ? Math.max(targetZoneRect.x + 12, Math.min(targetZoneRect.x + targetZoneRect.width - 12, x)) : x;
     const snappedY = targetZoneRect ? Math.max(targetZoneRect.y + 12, Math.min(targetZoneRect.y + targetZoneRect.height - 12, y)) : y;
+    if (sameZone(instance.zone, zone) && instance.ownerId === player.id && canTakeAction(state, 'REPOSITION_CARD')) {
+      publishMove({ type: 'REPOSITION_CARD', playerId: player.id, instanceId, x: snappedX, y: snappedY });
+      return;
+    }
+    if (!canTakeAction(state, 'SANDBOX_MOVE_CARD')) return;
     publishMove({ type: 'MOVE_CARD', playerId: player.id, instanceId, targetZone: zone.toUpperCase().replace(/-/g, '_'), x: snappedX, y: snappedY });
   };
 
@@ -383,7 +454,8 @@ export function GameBoard() {
         return;
       }
       const spellDef = cardsById.get(spellInstance.cardId);
-      commitRunesForCard(spellDef);
+      const payment = selectPaymentRunesForCard(spellDef);
+      if (!payment) return;
       publishMove({
         type: 'PLAY_CARD',
         playerId: player.id,
@@ -392,6 +464,7 @@ export function GameBoard() {
         x: 0,
         y: 0,
         targetInstanceId: instanceId,
+        ...payment,
       });
       setPendingSpellInstanceId(null);
       return;
@@ -403,18 +476,27 @@ export function GameBoard() {
   const handleRuneTap = (runeInstanceId: string) => {
     const rune = state?.runes?.find((candidate) => candidate.instanceId === runeInstanceId);
     if (!rune || rune.ownerId !== player.id || rune.tapped) return;
-    publishMove({ type: 'TAP_RUNE', playerId: player.id, runeInstanceId });
+    if (!canTakeAction(state, 'TAP_RUNE')) return;
+    setPendingRuneTaps((previous) => {
+      const next = new Set(previous);
+      if (next.has(runeInstanceId)) next.delete(runeInstanceId);
+      else next.add(runeInstanceId);
+      return next;
+    });
   };
 
   const handlePassPhase = () => {
-    if (state?.activeShowdown) {
+    if (canTakeAction(state, 'RESOLVE_SHOWDOWN')) {
       publishMove({ type: 'RESOLVE_SHOWDOWN', playerId: player.id });
       return;
     }
+    if (!canTakeAction(state, 'PASS_PHASE')) return;
     publishMove({ type: 'PASS_PHASE', playerId: player.id });
   };
 
   const submitMulligan = (discardInstanceIds: string[]) => {
+    if (discardInstanceIds.length === 0 && !canTakeAction(state, 'KEEP_HAND')) return;
+    if (discardInstanceIds.length > 0 && !canTakeAction(state, 'MULLIGAN')) return;
     publishMove({ type: 'MULLIGAN', playerId: player.id, discardInstanceIds });
   };
 
@@ -425,7 +507,28 @@ export function GameBoard() {
   const handleReset = async () => {
     const params = new URLSearchParams({ playerId: player.id });
     if (roomSessionToken) params.set('sessionToken', roomSessionToken);
-    await fetch(`${getGameServerUrl()}/api/game/${roomCode}/reset?${params.toString()}`, { method: 'POST' });
+    const response = await fetch(`${getGameServerUrl()}/api/game/${roomCode}/reset?${params.toString()}`, { method: 'POST' });
+    if (!response.ok) notifyError('Reset failed', await readableHttpError(response, 'Unable to reset game.'));
+  };
+
+  const copyDebugInfo = async () => {
+    const payload = {
+      app: 'RiftForge',
+      roomCode,
+      phase: state?.currentPhase ?? 'unknown',
+      activePlayerId: state?.activePlayerId ?? 'unknown',
+      playerId: player.id,
+      playerName: player.name,
+      opponentIds: state?.players.filter((statePlayer) => statePlayer.userId !== player.id).map((statePlayer) => statePlayer.userId) ?? [],
+      turnNumber: state?.turnNumber ?? null,
+      gameMode: state?.gameMode ?? null,
+      activeShowdown: Boolean(state?.activeShowdown),
+      lastError: lastError ?? null,
+      serverUrl: getGameServerUrl(),
+      generatedAt: new Date().toISOString(),
+    };
+    await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+    notifySuccess('Debug info copied', 'Paste it into your bug report with screenshots or reproduction steps.');
   };
 
   if (loading) return <CenteredState>Loading game...</CenteredState>;
@@ -466,6 +569,9 @@ export function GameBoard() {
   const myRevealedSnapshot = state.revealedHands?.find((snapshot) => snapshot.revealedToPlayerId === player.id && snapshot.revealedOwnerId === player.id);
   const dismissRevealed = (instanceId: string) => publishMove({ type: 'DISMISS_REVEALED', playerId: player.id, instanceId });
   const myUntappedRunes = (state.runes ?? []).filter((rune) => rune.ownerId === player.id && !rune.tapped).length;
+  const pendingRuneEnergy = (state.runes ?? [])
+    .filter((rune) => pendingRuneTaps.has(rune.instanceId))
+    .reduce((total, rune) => total + rune.normalEnergy, 0);
   const spendableEnergy = (me?.availableEnergy ?? 0)
     + (state.runes ?? [])
         .filter((rune) => rune.ownerId === player.id && !rune.tapped)
@@ -473,12 +579,17 @@ export function GameBoard() {
   const opponentUntappedRunes = (state.runes ?? []).filter((rune) => rune.ownerId === opponent?.userId && !rune.tapped).length;
   const isMyTurn = state.activePlayerId === player.id;
   const showdownActive = Boolean(state.activeShowdown);
-  const canPlayReactions = state.currentPhase === 'MAIN' && !isMyTurn && !showdownActive;
+  const canPlayCards = canTakeAction(state, 'PLAY_CARD');
+  const canMoveToBattlefield = canTakeAction(state, 'MOVE_TO_BATTLEFIELD');
+  const canResolveShowdown = canTakeAction(state, 'RESOLVE_SHOWDOWN');
+  const canPlayReactions = canPlayCards && !isMyTurn;
   const hasSpellReaction = hand.some((instance) => cardsById.get(instance.cardId)?.type?.toLowerCase() === 'spell');
   const ownRuneZone = zones.find((zone) => zone.zoneName === 'rune' && zone.ownerId === player.id);
   const hasTappedOwnRune = (state.runes ?? []).some((rune) => rune.ownerId === player.id && rune.tapped);
-  const canUndoRunes = isMyTurn && state.currentPhase === 'MAIN' && !showdownActive && !state.cardPlayedThisTurn && hasTappedOwnRune;
-  const canPass = state.currentPhase === 'MULLIGAN' ? false : isMyTurn;
+  const canUndoRunes = canTakeAction(state, 'UNDO_RUNES') && hasTappedOwnRune;
+  const canPass = canTakeAction(state, 'PASS_PHASE') || canResolveShowdown;
+  const canMulligan = canTakeAction(state, 'MULLIGAN');
+  const canKeepHand = canTakeAction(state, 'KEEP_HAND');
 
   return (
     <main className="relative bg-ink text-slate-100" style={{ height: `calc(100vh - ${NAV_HEIGHT}px)` }} ref={containerRef}>
@@ -526,7 +637,9 @@ export function GameBoard() {
                 x={position.x}
                 y={position.y}
                 onTap={handleRuneTap}
-                onDiscard={(id) => publishMove({ type: 'DISCARD_RUNE', playerId: player.id, runeInstanceId: id })}
+                onDiscard={(id) => {
+                  if (canTakeAction(state, 'DISCARD_RUNE')) publishMove({ type: 'DISCARD_RUNE', playerId: player.id, runeInstanceId: id });
+                }}
               />
             );
           })}
@@ -549,8 +662,12 @@ export function GameBoard() {
                   selected={selectedInstanceId === instance.instanceId}
                   onDragEnd={moveInstance}
                   onClick={handleCardClick}
-                  onDoubleClick={(id) => publishMove({ type: 'TAP_CARD', playerId: player.id, instanceId: id })}
-                  onContextMenu={(id) => publishMove({ type: 'FLIP_CARD', playerId: player.id, instanceId: id })}
+                  onDoubleClick={(id) => {
+                    if (canTakeAction(state, 'SANDBOX_TAP_CARD')) publishMove({ type: 'TAP_CARD', playerId: player.id, instanceId: id });
+                  }}
+                  onContextMenu={(id) => {
+                    if (canTakeAction(state, 'SANDBOX_FLIP_CARD')) publishMove({ type: 'FLIP_CARD', playerId: player.id, instanceId: id });
+                  }}
                   animate={pendingAnimations.current.delete(instance.instanceId)}
                   scale={cardScale}
                   onHover={handleCardHover}
@@ -594,7 +711,7 @@ export function GameBoard() {
           score={me.score}
           handCount={hand.length}
           energy={me.availableEnergy ?? 0}
-          effectiveEnergy={(me.availableEnergy ?? 0) + pendingRuneTaps.size}
+          effectiveEnergy={(me.availableEnergy ?? 0) + pendingRuneEnergy}
           untappedRunes={myUntappedRunes}
           isActive={state.activePlayerId === player.id}
           isMe
@@ -611,7 +728,7 @@ export function GameBoard() {
           onLeave={() => navigate('/')}
         />
       ) : null}
-      <PhaseBar currentPhase={state.currentPhase ?? 'MAIN'} isMyTurn={isMyTurn} canPass={canPass} opponentName={opponentName} onPassPhase={handlePassPhase} activeShowdown={showdownActive} bottom={handHeight} />
+      <PhaseBar currentPhase={state.currentPhase ?? 'MAIN'} isMyTurn={isMyTurn} canPass={canPass} opponentName={opponentName} onPassPhase={handlePassPhase} activeShowdown={showdownActive} showdownStep={state.activeShowdown?.step} bottom={handHeight} />
       {canPlayReactions && hasSpellReaction ? (
         <div className="pointer-events-none absolute left-0 z-20 flex justify-center text-xs font-medium text-forge" style={{ right: `${SIDEBAR_WIDTH}px`, bottom: handHeight + PHASE_BAR_HEIGHT + 6 }}>
           Opponent&apos;s turn - you may play spells as reactions
@@ -648,7 +765,7 @@ export function GameBoard() {
           cardScale={cardScale}
           onHover={handleCardHover}
           effectiveEnergy={spendableEnergy}
-          canPlayCards={state.currentPhase === 'MAIN' && isMyTurn && !showdownActive}
+          canPlayCards={canPlayCards && isMyTurn}
           canPlayReactions={canPlayReactions}
           embedded
           maxHeight={handHeight}
@@ -719,7 +836,7 @@ export function GameBoard() {
           </section>
         </div>
       ) : null}
-      {state.currentPhase === 'MULLIGAN' ? (
+      {state.currentPhase === 'MULLIGAN' && (canKeepHand || canMulligan || hasMulliganed) ? (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-ink/95 px-6 py-8">
           {hasMulliganed ? (
             <section className="border border-line bg-panel px-10 py-8 text-center shadow-glow">
@@ -777,10 +894,10 @@ export function GameBoard() {
               </div>
               <div className="mt-6 flex justify-end gap-3">
                 {!wsConnected ? <p className="mr-auto self-center text-sm text-ember">Connection lost - reconnecting...</p> : null}
-                <button className="btn-secondary disabled:opacity-40" disabled={!wsConnected} onClick={() => submitMulligan([...mulliganDiscardIds])}>
+                <button className="btn-secondary disabled:opacity-40" disabled={!wsConnected || !canMulligan} onClick={() => submitMulligan([...mulliganDiscardIds])}>
                   Mulligan Selected
                 </button>
-                <button className="btn-primary disabled:opacity-40" disabled={!wsConnected} onClick={() => submitMulligan([])}>
+                <button className="btn-primary disabled:opacity-40" disabled={!wsConnected || !canKeepHand} onClick={() => submitMulligan([])}>
                   Keep All
                 </button>
               </div>
@@ -807,6 +924,9 @@ export function GameBoard() {
           </div>
         </div>
       ) : null}
+      <button className="absolute bottom-3 left-3 z-30 border border-line bg-panel px-3 py-2 text-xs font-semibold text-slate-300 hover:border-forge hover:text-forge" onClick={() => void copyDebugInfo()}>
+        Copy debug info
+      </button>
     </main>
   );
 }

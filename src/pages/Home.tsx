@@ -3,10 +3,12 @@ import type { Client } from '@stomp/stompjs';
 import { Link, useNavigate } from 'react-router-dom';
 import { deckToGameCardIds } from '../lib/deckUtils';
 import { getGameServerUrl } from '../lib/env';
+import { readableHttpError } from '../lib/http';
 import { useLocalPlayer } from '../lib/playerContext';
 import { saveRoomSession, type TokenizedRoom } from '../lib/roomSession';
 import { createMatchmakingClient, createPresenceClient } from '../lib/stompGame';
 import { useDeckStore } from '../store/decks';
+import { notifyError, notifyWarning } from '../store/toasts';
 import type { PresenceSummary } from '../types';
 
 export function Home() {
@@ -32,7 +34,8 @@ export function Home() {
 
   const handleCreate = async () => {
     if (!activeDeck || activeDeck.cards.length === 0) {
-      setMessage('Your deck is empty — add cards in the Deck Builder first.');
+      setMessage('Your deck is empty - add cards in the Deck Builder first.');
+      notifyWarning('Select a playable deck', 'Build or choose a deck before continuing.');
       return;
     }
     setMessage('');
@@ -42,7 +45,9 @@ export function Home() {
       body: JSON.stringify({ playerId: player.id, playerName: player.name, withBot }),
     });
     if (!res.ok) {
-      setMessage('Unable to create room. Is the server running?');
+      const message = await readableHttpError(res, 'Unable to create room.');
+      setMessage(message);
+      notifyError('Unable to create room', message);
       return;
     }
     const tokenizedRoom = (await res.json()) as TokenizedRoom;
@@ -59,7 +64,9 @@ export function Home() {
       body: JSON.stringify({ playerId: player.id, playerName: player.name }),
     });
     if (!res.ok) {
-      setMessage('Room not found or already started.');
+      const message = await readableHttpError(res, 'Room not found or already started.');
+      setMessage(message);
+      notifyError('Unable to join room', message);
       return;
     }
     const tokenizedRoom = (await res.json()) as TokenizedRoom;
@@ -71,12 +78,14 @@ export function Home() {
     setWatchingAi(true);
     try {
       const response = await fetch(`${getGameServerUrl()}/api/rooms/bot-vs-bot`, { method: 'POST' });
-      if (!response.ok) throw new Error('Unable to start AI game.');
+      if (!response.ok) throw new Error(await readableHttpError(response, 'Unable to start AI game.'));
       const { code } = (await response.json()) as { code: string };
       navigate(`/spectate/${code}`);
-    } catch {
+    } catch (watchError) {
       setWatchingAi(false);
-      setMessage('Unable to start AI game. Is the server running?');
+      const message = watchError instanceof Error ? watchError.message : 'Unable to start AI game. Is the server running?';
+      setMessage(message);
+      notifyError('Unable to start AI game', message);
     }
   };
 
@@ -112,7 +121,8 @@ export function Home() {
   const handleFindMatch = async () => {
     if (searchingRef.current) return;
     if (!activeDeck || activeDeck.cards.length === 0) {
-      setMessage('Your deck is empty — add cards in the Deck Builder first.');
+      setMessage('Your deck is empty - add cards in the Deck Builder first.');
+      notifyWarning('Select a playable deck', 'Build or choose a deck before continuing.');
       return;
     }
 
@@ -139,8 +149,8 @@ export function Home() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ playerId: player.id, playerName: player.name, deckCardIds }),
         })
-          .then((response) => {
-            if (!response.ok) throw new Error('Unable to join queue.');
+          .then(async (response) => {
+            if (!response.ok) throw new Error(await readableHttpError(response, 'Unable to join queue.'));
             if (!searchingRef.current) {
               void fetch(`${getGameServerUrl()}/api/matchmaking/leave`, {
                 method: 'POST',
@@ -152,9 +162,11 @@ export function Home() {
             void updateQueueSize();
             pollRef.current = setInterval(() => void updateQueueSize(), 3000);
           })
-          .catch(() => {
+          .catch((queueError) => {
             if (!searchingRef.current) return;
-            setMessage('Unable to join queue.');
+            const message = queueError instanceof Error ? queueError.message : 'Unable to join queue.';
+            setMessage(message);
+            notifyError('Unable to join queue', message);
             searchingRef.current = false;
             setSearching(false);
             void matchClientRef.current?.deactivate();

@@ -10,6 +10,15 @@ const PHASE_LABELS: Record<string, string> = {
 
 const PHASES = Object.keys(PHASE_LABELS);
 
+const SHOWDOWN_STEP_LABELS: Record<string, string> = {
+  STAGED: 'Staged',
+  ACTION_WINDOW: 'Action Window',
+  ASSIGN_DAMAGE: 'Assign Damage',
+  RESOLVE_DAMAGE: 'Resolve Damage',
+  CLEANUP: 'Cleanup',
+  COMPLETE: 'Complete',
+};
+
 interface PhaseBarProps {
   currentPhase: string;
   isMyTurn: boolean;
@@ -17,11 +26,13 @@ interface PhaseBarProps {
   opponentName: string;
   onPassPhase: () => void;
   activeShowdown?: boolean;
+  showdownStep?: string;
   bottom?: number;
 }
 
-export function PhaseBar({ currentPhase, isMyTurn, canPass, opponentName, onPassPhase, activeShowdown = false, bottom = 172 }: PhaseBarProps) {
-  const currentLabel = activeShowdown && currentPhase === 'MAIN' ? 'Main Phase - Showdown' : PHASE_LABELS[currentPhase] ?? currentPhase;
+export function PhaseBar({ currentPhase, isMyTurn, canPass, opponentName, onPassPhase, activeShowdown = false, showdownStep, bottom = 172 }: PhaseBarProps) {
+  const showdownLabel = showdownStep ? `Showdown: ${SHOWDOWN_STEP_LABELS[showdownStep] ?? showdownStep}` : 'Showdown';
+  const currentLabel = activeShowdown && currentPhase === 'MAIN' ? `Main Phase - ${showdownLabel}` : PHASE_LABELS[currentPhase] ?? currentPhase;
   return (
     <div className="pointer-events-auto absolute left-0 z-20 flex h-12 items-center gap-1 border-t border-line bg-panel/95 px-3" style={{ right: '280px', bottom }}>
       <div className="flex min-w-0 overflow-x-auto">
@@ -35,9 +46,11 @@ export function PhaseBar({ currentPhase, isMyTurn, canPass, opponentName, onPass
         <span className={`whitespace-nowrap text-xs font-semibold ${isMyTurn ? 'text-forge' : 'text-slate-300'}`}>
           {isMyTurn ? 'Your turn' : `${opponentName}'s turn`}
         </span>
-        <button className="btn-primary min-h-7 px-4 py-1 text-xs disabled:opacity-40" disabled={!canPass} onClick={onPassPhase}>
-          {activeShowdown ? 'Resolve Showdown' : 'Pass'}
-        </button>
+        {canPass ? (
+          <button className="btn-primary min-h-7 px-4 py-1 text-xs" onClick={onPassPhase}>
+            {activeShowdown ? 'Resolve Showdown' : 'Pass'}
+          </button>
+        ) : null}
       </div>
     </div>
   );

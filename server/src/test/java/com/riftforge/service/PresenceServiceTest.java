@@ -1,13 +1,10 @@
 package com.riftforge.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-
 import org.junit.jupiter.api.Test;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 class PresenceServiceTest {
-  private final PresenceService presenceService = new PresenceService(mock(SimpMessagingTemplate.class));
+  private final PresenceService presenceService = new PresenceService();
 
   @Test
   void oneConnectedSessionCountsAsOnePlayer() {

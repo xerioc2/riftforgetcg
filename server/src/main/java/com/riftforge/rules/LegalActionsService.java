@@ -9,6 +9,10 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class LegalActionsService {
+  public Set<LegalAction> legalActionsFor(LiveGameState state, String playerId) {
+    return legalActions(state, playerId);
+  }
+
   public Set<LegalAction> legalActions(LiveGameState state, String playerId) {
     if (state == null || playerId == null || state.getWinnerId() != null || !isPlayer(state, playerId)) {
       return Set.of();
@@ -42,6 +46,7 @@ public class LegalActionsService {
       actions.add(LegalAction.END_TURN);
       actions.add(LegalAction.PLAY_CARD);
       actions.add(LegalAction.MOVE_TO_BATTLEFIELD);
+      actions.add(LegalAction.REPOSITION_CARD);
       actions.add(LegalAction.TAP_RUNE);
       actions.add(LegalAction.DISCARD_RUNE);
       actions.add(LegalAction.UNDO_RUNES);

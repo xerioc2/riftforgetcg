@@ -48,6 +48,7 @@ class LegalActionsServiceTest {
             LegalAction.END_TURN,
             LegalAction.PLAY_CARD,
             LegalAction.MOVE_TO_BATTLEFIELD,
+            LegalAction.REPOSITION_CARD,
             LegalAction.TAP_RUNE,
             LegalAction.DISCARD_RUNE,
             LegalAction.UNDO_RUNES);
@@ -56,7 +57,7 @@ class LegalActionsServiceTest {
   @Test
   void nonActivePlayerCannotUseNormalMainActions() {
     assertThat(service.legalActions(state(Phase.MAIN, "p1"), "p2"))
-        .doesNotContain(LegalAction.PLAY_CARD, LegalAction.MOVE_TO_BATTLEFIELD, LegalAction.PASS_PHASE);
+        .doesNotContain(LegalAction.PLAY_CARD, LegalAction.MOVE_TO_BATTLEFIELD, LegalAction.REPOSITION_CARD, LegalAction.PASS_PHASE);
   }
 
   @Test
@@ -74,7 +75,7 @@ class LegalActionsServiceTest {
     state.setActiveShowdown(null);
 
     assertThat(service.legalActions(state, "p1"))
-        .contains(LegalAction.PLAY_CARD, LegalAction.MOVE_TO_BATTLEFIELD)
+        .contains(LegalAction.PLAY_CARD, LegalAction.MOVE_TO_BATTLEFIELD, LegalAction.REPOSITION_CARD)
         .doesNotContain(LegalAction.RESOLVE_SHOWDOWN);
   }
 

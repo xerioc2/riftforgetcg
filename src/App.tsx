@@ -2,6 +2,7 @@ import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Nav } from './components/Nav';
 import { ServerLoader } from './components/ServerLoader';
+import { ToastHost } from './components/ToastHost';
 import { getGameServerCandidates, getGameServerUrl, initServerUrl, setResolvedServerUrl } from './lib/env';
 import { getOrCreateLocalPlayer, saveLocalPlayer } from './lib/localPlayer';
 import { PlayerContext } from './lib/playerContext';
@@ -104,6 +105,7 @@ function App() {
     <PlayerContext.Provider value={player}>
       <BrowserRouter>
         <Nav />
+        <ToastHost />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/build" element={<DeckBuild />} />

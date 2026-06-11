@@ -6,7 +6,9 @@ import com.riftforge.model.PlayerState;
 import com.riftforge.model.RevealedHandSnapshot;
 import com.riftforge.model.RuneState;
 import com.riftforge.model.ZoneName;
+import com.riftforge.rules.LegalActionsService;
 import java.util.ArrayList;
+import java.util.Set;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Objects;
@@ -15,6 +17,15 @@ import org.springframework.stereotype.Service;
 @Service
 public class GameStateProjectionService {
   public static final String HIDDEN_CARD_ID = "hidden";
+  private final LegalActionsService legalActionsService;
+
+  public GameStateProjectionService() {
+    this(new LegalActionsService());
+  }
+
+  public GameStateProjectionService(LegalActionsService legalActionsService) {
+    this.legalActionsService = legalActionsService;
+  }
 
   public LiveGameState toPublicView(LiveGameState state, String viewerPlayerId) {
     LiveGameState view = new LiveGameState();
@@ -31,6 +42,7 @@ public class GameStateProjectionService {
     view.setScoredBattlefieldsThisTurn(new HashSet<>(state.getScoredBattlefieldsThisTurn()));
     view.setActiveShowdown(copyShowdown(state.getActiveShowdown()));
     view.setGameMode(state.getGameMode());
+    view.setLegalActions(viewerPlayerId == null ? Set.of() : legalActionsService.legalActionsFor(state, viewerPlayerId));
     view.setPlayers(state.getPlayers().stream().map(this::copyPlayer).toList());
     view.setRunes(state.getRunes().stream().map(this::copyRune).toList());
     view.setRevealedHands(state.getRevealedHands().stream()
@@ -100,6 +112,7 @@ public class GameStateProjectionService {
     return new LiveGameState.ShowdownState(
         showdown.attackingPlayerId(),
         new ArrayList<>(showdown.attackerInstanceIds()),
-        new HashMap<>(showdown.gankingBonuses()));
+        new HashMap<>(showdown.gankingBonuses()),
+        showdown.step());
   }
 }

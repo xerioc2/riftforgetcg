@@ -217,7 +217,7 @@ public class GameService {
           .findFirst()
           .ifPresent(player -> {
             player.setDeckPool(new ArrayList<>(dealable.subList(Math.min(4, dealable.size()), dealable.size())));
-            // TODO: Consume individual rune card identities when rune-specific effects exist.
+            player.setRuneDeckPool(new ArrayList<>(runes));
             player.setRunePoolRemaining(runes.isEmpty() ? 10 : runes.size());
             // TODO: Use selected battlefield cards when full battlefield setup is implemented.
             player.setSelectedBattlefields(new ArrayList<>(battlefields));

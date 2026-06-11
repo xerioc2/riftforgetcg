@@ -85,9 +85,66 @@ class CombatResolverTest {
     assertThat(backline.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
   }
 
+  @Test
+  void simultaneousDamageCanDestroyBothSides() {
+    CardInstance attacker = card("a", "attacker", "p1");
+    CardInstance defender = card("d", "defender", "p2");
+    stub(attacker, 2, 2);
+    stub(defender, 2, 2);
+
+    resolver.resolve(state(attacker, defender), "p1");
+
+    assertThat(attacker.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(defender.getZone()).isEqualTo(ZoneName.DISCARD);
+  }
+
+  @Test
+  void lethalDamageUsesCurrentHealth() {
+    CardInstance attacker = card("a", "attacker", "p1");
+    CardInstance defender = card("d", "defender", "p2");
+    defender.setCurrentHealth(1);
+    stub(attacker, 1, 3);
+    stub(defender, 0, 3);
+
+    resolver.resolve(state(attacker, defender), "p1");
+
+    assertThat(defender.getZone()).isEqualTo(ZoneName.DISCARD);
+  }
+
+  @Test
+  void survivorsHealAfterCombatCleanup() {
+    CardInstance attacker = card("a", "attacker", "p1");
+    CardInstance defender = card("d", "defender", "p2");
+    stub(attacker, 1, 3);
+    stub(defender, 0, 3);
+
+    resolver.resolve(state(attacker, defender), "p1");
+
+    assertThat(defender.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(defender.getCurrentHealth()).isEqualTo(3);
+  }
+
+  @Test
+  void stunnedUnitAssignsNoCombatDamage() {
+    CardInstance attacker = card("a", "attacker", "p1");
+    CardInstance defender = card("d", "defender", "p2");
+    stub(attacker, 5, 5);
+    stub(defender, 1, 1);
+    when(cardDataService.hasKeyword(attacker, "STUN")).thenReturn(true);
+
+    resolver.resolve(state(attacker, defender), "p1");
+
+    assertThat(attacker.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(defender.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+  }
+
   private void stub(CardInstance card, int might) {
+    stub(card, might, might);
+  }
+
+  private void stub(CardInstance card, int might, int health) {
     when(cardDataService.getCard(card.getCardId())).thenReturn(
-        new CardDefinition(card.getCardId(), card.getCardId(), "Unit", null, List.of(), 0, 0, null, null, null, null, might, might, List.of()));
+        new CardDefinition(card.getCardId(), card.getCardId(), "Unit", null, List.of(), 0, 0, null, null, null, null, might, health, List.of()));
   }
 
   private CardInstance card(String instanceId, String cardId, String ownerId) {

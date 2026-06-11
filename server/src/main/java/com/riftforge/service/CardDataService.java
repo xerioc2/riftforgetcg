@@ -3,6 +3,8 @@ package com.riftforge.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.riftforge.effect.EffectHandlerRegistry;
+import com.riftforge.effect.EffectSupportStatus;
 import com.riftforge.model.CardDefinition;
 import com.riftforge.model.CardInstance;
 import jakarta.annotation.PostConstruct;
@@ -17,6 +19,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -32,11 +35,18 @@ public class CardDataService {
   private final RestClient restClient = RestClient.create();
   private final ObjectMapper mapper;
   private final String apiUrl;
+  private final EffectHandlerRegistry effectHandlerRegistry;
   private final Path cacheFile = Path.of(System.getProperty("user.home"), ".riftforge", "cards-cache.json");
 
   public CardDataService(ObjectMapper mapper, @Value("${riftforge.riftcodex-api}") String apiUrl) {
+    this(mapper, apiUrl, null);
+  }
+
+  @Autowired
+  public CardDataService(ObjectMapper mapper, @Value("${riftforge.riftcodex-api}") String apiUrl, EffectHandlerRegistry effectHandlerRegistry) {
     this.mapper = mapper;
     this.apiUrl = apiUrl;
+    this.effectHandlerRegistry = effectHandlerRegistry;
   }
 
   @PostConstruct
@@ -197,6 +207,10 @@ public class CardDataService {
 
   public boolean isUnsupportedAction(String cardId) {
     CardDefinition def = getCard(cardId);
+    if (effectHandlerRegistry != null) {
+      EffectSupportStatus status = effectHandlerRegistry.supportStatus(def);
+      return !status.implemented();
+    }
     String text = def.rulesText();
     if (text == null) return false;
     String normalized = text.toLowerCase();

@@ -1,0 +1,33 @@
+name: UI bug
+description: Report layout, interaction, readability, or usability bugs.
+title: "[UI] "
+labels: ["ui bug"]
+body:
+  - type: textarea
+    id: issue
+    attributes:
+      label: What looked or felt wrong?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      placeholder: "Windows desktop installer, Chrome, Firefox, etc."
+  - type: textarea
+    id: debug
+    attributes:
+      label: Debug info
+      description: If this happened in a game, use "Copy debug info" and paste the result here.
+      render: json
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+

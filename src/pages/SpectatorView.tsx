@@ -9,9 +9,11 @@ import { computeLayout } from '../components/board/BoardLayout';
 import { ScorePanel } from '../components/board/ScorePanel';
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
+import { readableHttpError } from '../lib/http';
 import { createGameClient } from '../lib/stompGame';
 import { useCardStore } from '../store/cards';
 import { useGameStore } from '../store/game';
+import { notifyError, notifySuccess, notifyWarning } from '../store/toasts';
 
 const NAV_HEIGHT = 73;
 
@@ -55,7 +57,7 @@ export function SpectatorView() {
     let cancelled = false;
     const refreshState = async () => {
       const response = await fetch(`${getGameServerUrl()}/api/game/${roomCode}/state`);
-      if (!response.ok) throw new Error('Game state not found.');
+      if (!response.ok) throw new Error(await readableHttpError(response, 'Game state not found.'));
       const incoming = await response.json();
       if (!cancelled) setState(incoming);
     };
@@ -69,19 +71,29 @@ export function SpectatorView() {
           undefined,
           (msg) => {
             if (msg.type === 'STATE_UPDATE') setState(msg.state);
-            if (msg.type === 'ERROR') addChat({ id: crypto.randomUUID(), userId: msg.playerId, email: null, text: msg.message, sentAt: new Date().toISOString() });
+            if (msg.type === 'ERROR') {
+              addChat({ id: crypto.randomUUID(), userId: msg.playerId, email: null, text: msg.message, sentAt: new Date().toISOString() });
+              notifyError('Game error', msg.message);
+            }
           },
           () => setLoading(false),
           (connected) => {
             setWsConnected(connected);
-            if (connected && hasConnectedRef.current) void refreshState().catch(() => {});
+            if (connected && hasConnectedRef.current) {
+              notifySuccess('Reconnected');
+              void refreshState().catch(() => notifyWarning('Reconnected, but state refresh failed.'));
+            }
             if (connected) hasConnectedRef.current = true;
+            else if (hasConnectedRef.current) notifyWarning('Connection lost', 'Spectator view is trying to reconnect.');
           },
           false,
         );
         stompClientRef.current = client;
-      } catch {
-        if (!cancelled) setLoading(false);
+      } catch (setupError) {
+        if (!cancelled) {
+          notifyError('Unable to load spectator view', setupError instanceof Error ? setupError.message : 'Game unavailable.');
+          setLoading(false);
+        }
       }
     };
     void setup();

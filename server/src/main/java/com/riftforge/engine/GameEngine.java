@@ -46,6 +46,7 @@ public class GameEngine {
       case FlipCardMove m -> applyFlipCard(state, m);
       case PlayCardMove m -> applyPlayCard(state, m);
       case MoveCardMove m -> applyMoveCard(state, m);
+      case RepositionCardMove m -> applyRepositionCard(state, m);
       case TapRuneMove m -> applyTapRune(state, m);
       case DiscardRuneMove m -> applyDiscardRune(state, m);
       case MoveToBattlefieldMove m -> applyMoveToBattlefield(state, m);
@@ -101,7 +102,7 @@ public class GameEngine {
     CardDefinition def = cardDataService.getCard(card.getCardId());
     boolean cardPlayedEarlierThisTurn = state.isCardPlayedThisTurn();
     int paidCost = def.cost() + (move.accelerate() ? 1 : 0);
-    state.getPlayers().stream().filter(p -> p.getUserId().equals(move.playerId())).findFirst().ifPresent(p -> p.setAvailableEnergy(p.getAvailableEnergy() - paidCost));
+    applyPayment(state, move, paidCost);
     card.setZone(move.targetZone());
     card.setX(move.x());
     card.setY(move.y());
@@ -142,6 +143,25 @@ public class GameEngine {
     return state;
   }
 
+  private void applyPayment(LiveGameState state, PlayCardMove move, int cost) {
+    PlayerState player = player(state, move.playerId());
+    int selectedEnergy = 0;
+    for (String runeId : move.paymentRuneIds()) {
+      RuneState rune = findRune(state, runeId);
+      rune.setTapped(true);
+      selectedEnergy += rune.getNormalEnergy();
+    }
+    for (String runeId : move.premiumRuneIds()) {
+      RuneState rune = findRune(state, runeId);
+      state.getRunes().remove(rune);
+      if (rune.getCardId() != null && !rune.getCardId().isBlank()) {
+        player.getRuneDeckPool().add(rune.getCardId());
+        player.setRunePoolRemaining(player.getRuneDeckPool().size());
+      }
+    }
+    player.setAvailableEnergy(Math.max(0, player.getAvailableEnergy() + selectedEnergy - cost));
+  }
+
   private LiveGameState applyMoveCard(LiveGameState state, MoveCardMove move) {
     CardInstance card = findCard(state, move.instanceId());
     ZoneName sourceZone = card.getZone();
@@ -155,6 +175,14 @@ public class GameEngine {
       card.setHasSummoningSickness(false);
     }
     log(state, move.playerId(), "Moved " + cardDataService.getCard(card.getCardId()).name() + " to " + move.targetZone());
+    return state;
+  }
+
+  private LiveGameState applyRepositionCard(LiveGameState state, RepositionCardMove move) {
+    CardInstance card = findCard(state, move.instanceId());
+    card.setX(move.x());
+    card.setY(move.y());
+    log(state, move.playerId(), "Repositioned " + cardDataService.getCard(card.getCardId()).name() + ".");
     return state;
   }
 
@@ -218,14 +246,25 @@ public class GameEngine {
     state.setActiveShowdown(new LiveGameState.ShowdownState(
         move.playerId(),
         List.of(card.getInstanceId()),
-        gankingBonus > 0 ? new HashMap<>(Map.of(card.getInstanceId(), gankingBonus)) : new HashMap<>()));
+        gankingBonus > 0 ? new HashMap<>(Map.of(card.getInstanceId(), gankingBonus)) : new HashMap<>(),
+        ShowdownStep.ACTION_WINDOW));
     log(state, move.playerId(), "Showdown started.");
     return state;
   }
 
   private LiveGameState applyResolveShowdown(LiveGameState state, ResolveShowdownMove move) {
     LiveGameState.ShowdownState showdown = state.getActiveShowdown();
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        showdown.attackingPlayerId(),
+        showdown.attackerInstanceIds(),
+        showdown.gankingBonuses(),
+        ShowdownStep.ASSIGN_DAMAGE));
     CombatResolver.CombatResult result = combatResolver.resolve(state, showdown.attackingPlayerId());
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        showdown.attackingPlayerId(),
+        showdown.attackerInstanceIds(),
+        showdown.gankingBonuses(),
+        ShowdownStep.CLEANUP));
     showdown.gankingBonuses().forEach((instanceId, bonus) -> state.getCards().stream()
         .filter(card -> card.getInstanceId().equals(instanceId))
         .findFirst()
@@ -365,37 +404,59 @@ public class GameEngine {
     for (int i = 0; i < amount && currentCount < MAX_RUNES && granted < player.getRunePoolRemaining(); i++, currentCount++, granted++) {
       RuneState rune = new RuneState();
       rune.setInstanceId(UUID.randomUUID().toString());
+      if (!player.getRuneDeckPool().isEmpty()) {
+        rune.setCardId(player.getRuneDeckPool().remove(0));
+      }
       rune.setOwnerId(playerId);
       rune.setTapped(false);
       rune.setNormalEnergy(1);
       rune.setPremiumEnergy(2);
       state.getRunes().add(rune);
     }
-    player.setRunePoolRemaining(player.getRunePoolRemaining() - granted);
+    player.setRunePoolRemaining(player.getRuneDeckPool().isEmpty() ? Math.max(0, player.getRunePoolRemaining() - granted) : player.getRuneDeckPool().size());
   }
 
   private void scoreHeldBattlefield(LiveGameState state) {
     String activePlayerId = state.getActivePlayerId();
-    if (!activePlayerId.equals(state.getBattlefieldController().get("BATTLEFIELD"))) return;
-    if (!state.getScoredBattlefieldsThisTurn().add("BATTLEFIELD")) return;
-    PlayerState player = player(state, activePlayerId);
-    player.setScore(player.getScore() + 1);
-    log(state, activePlayerId, "Held the battlefield - score +1.");
+    for (String battlefieldId : battlefieldIds(state)) {
+      if (!activePlayerId.equals(state.getBattlefieldController().get(battlefieldId))) continue;
+      if (!state.getScoredBattlefieldsThisTurn().add(battlefieldId)) continue;
+      scorePoint(state, activePlayerId);
+      log(state, activePlayerId, "Held " + battlefieldLabel(battlefieldId) + " - score +1.");
+    }
   }
 
   private void conquerBattlefield(LiveGameState state, String playerId) {
-    state.getBattlefieldController().put("BATTLEFIELD", playerId);
-    if (state.getScoredBattlefieldsThisTurn().contains("BATTLEFIELD")) return;
+    String battlefieldId = "BATTLEFIELD";
+    state.getBattlefieldController().put(battlefieldId, playerId);
+    if (state.getScoredBattlefieldsThisTurn().contains(battlefieldId)) return;
     PlayerState scorer = player(state, playerId);
-    boolean scoredAllBattlefields = state.getScoredBattlefieldsThisTurn().containsAll(List.of("BATTLEFIELD"));
-    state.getScoredBattlefieldsThisTurn().add("BATTLEFIELD");
-    if (scorer.getScore() >= targetScore - 1 && !scoredAllBattlefields) {
+    state.getScoredBattlefieldsThisTurn().add(battlefieldId);
+    if (scorer.getScore() >= targetScore - 1 && !scoredAllBattlefieldsThisTurn(state)) {
       autoDraw(state, scorer.getUserId());
       log(state, scorer.getUserId(), "Conquers but draws a card (must score all battlefields to win).");
       return;
     }
-    scorer.setScore(scorer.getScore() + 1);
+    scorePoint(state, scorer.getUserId());
     log(state, scorer.getUserId(), scorer.getScore() >= targetScore ? "Conquers for the winning point!" : "Conquers - +1 point.");
+  }
+
+  private List<String> battlefieldIds(LiveGameState state) {
+    if (state.getBattlefieldController().isEmpty()) return List.of("BATTLEFIELD");
+    return state.getBattlefieldController().keySet().stream().sorted().toList();
+  }
+
+  private boolean scoredAllBattlefieldsThisTurn(LiveGameState state) {
+    return state.getScoredBattlefieldsThisTurn().containsAll(battlefieldIds(state));
+  }
+
+  private void scorePoint(LiveGameState state, String playerId) {
+    PlayerState scorer = player(state, playerId);
+    scorer.setScore(scorer.getScore() + 1);
+  }
+
+  private String battlefieldLabel(String battlefieldId) {
+    return "BATTLEFIELD".equals(battlefieldId) ? "the battlefield" : battlefieldId;
   }
 
   private void returnBattlefieldCardsToBase(LiveGameState state, String playerId) {
@@ -585,6 +646,7 @@ public class GameEngine {
   }
 
   private void checkWinCondition(LiveGameState state) {
+    if (state.getWinnerId() != null) return;
     state.getPlayers().stream().filter(p -> p.getScore() >= targetScore).findFirst().ifPresent(p -> state.setWinnerId(p.getUserId()));
   }
 

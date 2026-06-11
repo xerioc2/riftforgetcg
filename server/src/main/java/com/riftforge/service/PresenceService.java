@@ -5,7 +5,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.context.event.EventListener;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
@@ -16,21 +15,15 @@ public class PresenceService {
   public static final String ATTR_ROLE = "role";
 
   private final Map<String, PresenceSession> sessions = new ConcurrentHashMap<>();
-  private final SimpMessagingTemplate messaging;
-
-  public PresenceService(SimpMessagingTemplate messaging) {
-    this.messaging = messaging;
-  }
 
   public void connect(String sessionId, String playerId, String roomCode, String role) {
     if (isBlank(sessionId) || isBlank(playerId)) return;
     sessions.put(sessionId, new PresenceSession(playerId, normalizeRoomCode(roomCode), role));
-    broadcast();
   }
 
   public void disconnect(String sessionId) {
     if (isBlank(sessionId)) return;
-    if (sessions.remove(sessionId) != null) broadcast();
+    sessions.remove(sessionId);
   }
 
   public PresenceSummary summary(int playersSearching) {
@@ -46,11 +39,6 @@ public class PresenceService {
   @EventListener
   public void onDisconnect(SessionDisconnectEvent event) {
     disconnect(event.getSessionId());
-  }
-
-  private void broadcast() {
-    // TODO: Push live matchmaking queue size here when queue-change events are emitted.
-    messaging.convertAndSend("/topic/presence", summary(0));
   }
 
   private String normalizeRoomCode(String roomCode) {

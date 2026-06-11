@@ -50,6 +50,18 @@ do not need Java installed.
 
 ## Build An Installer
 
+The desktop scripts run the required frontend and backend builds for packaging.
+For a quick local validation before packaging, run each build directly:
+
+```bash
+npm run build
+```
+
+```bash
+cd server
+mvn -q -DskipTests package
+```
+
 Windows PowerShell:
 
 ```powershell
@@ -83,11 +95,23 @@ Typical outputs on other platforms are `.dmg` files on macOS and
 
 Generated installer binaries should be uploaded as GitHub Release assets:
 
-1. Build the desktop app with the commands above.
-2. Create a release tag, for example `v0.1.0-alpha`.
-3. Create a GitHub Release for that tag.
-4. Upload the generated installer from `src-tauri/target/release/bundle/` as a
-   release asset.
+1. Run validation:
+   ```bash
+   npm run build
+   cd server
+   mvn -q test
+   mvn -q -DskipTests compile
+   ```
+2. Build the desktop app with the commands above.
+3. Generate checksums for release assets. On Windows:
+   ```powershell
+   Get-FileHash .\src-tauri\target\release\bundle\nsis\RiftForge_<version>_x64-setup.exe -Algorithm SHA256
+   ```
+4. Create a release tag, for example `v0.1.0-alpha`.
+5. Create a GitHub Release for that tag.
+6. Use [docs/RELEASE_TEMPLATE.md](docs/RELEASE_TEMPLATE.md) for release notes.
+7. Upload the generated installer from `src-tauri/target/release/bundle/` as a
+   release asset and include checksums in the release notes.
 
 Do not commit generated installers to the repository. Git LFS is not needed
 unless future large source assets must remain versioned with the repo. If the

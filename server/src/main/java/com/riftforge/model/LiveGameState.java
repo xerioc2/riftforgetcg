@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import com.riftforge.rules.LegalAction;
 
 public class LiveGameState {
   private String roomCode;
@@ -26,9 +27,14 @@ public class LiveGameState {
   private List<RevealedHandSnapshot> revealedHands = new ArrayList<>();
   private ShowdownState activeShowdown;
   private GameMode gameMode = GameMode.ENFORCED;
+  private Set<LegalAction> legalActions = new HashSet<>();
 
   public record LogEntry(String id, String timestamp, String userId, String text) {}
-  public record ShowdownState(String attackingPlayerId, List<String> attackerInstanceIds, Map<String, Integer> gankingBonuses) {}
+  public record ShowdownState(String attackingPlayerId, List<String> attackerInstanceIds, Map<String, Integer> gankingBonuses, ShowdownStep step) {
+    public ShowdownState(String attackingPlayerId, List<String> attackerInstanceIds, Map<String, Integer> gankingBonuses) {
+      this(attackingPlayerId, attackerInstanceIds, gankingBonuses, ShowdownStep.ACTION_WINDOW);
+    }
+  }
 
   public String getRoomCode() { return roomCode; }
   public void setRoomCode(String roomCode) { this.roomCode = roomCode; }
@@ -66,4 +72,6 @@ public class LiveGameState {
   public void setActiveShowdown(ShowdownState activeShowdown) { this.activeShowdown = activeShowdown; }
   public GameMode getGameMode() { return gameMode; }
   public void setGameMode(GameMode gameMode) { this.gameMode = gameMode == null ? GameMode.ENFORCED : gameMode; }
+  public Set<LegalAction> getLegalActions() { return legalActions; }
+  public void setLegalActions(Set<LegalAction> legalActions) { this.legalActions = legalActions == null ? new HashSet<>() : legalActions; }
 }

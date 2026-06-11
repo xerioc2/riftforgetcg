@@ -3,15 +3,23 @@ package com.riftforge.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.riftforge.model.CardInstance;
+import com.riftforge.model.GameMode;
 import com.riftforge.model.LiveGameState;
+import com.riftforge.model.Phase;
+import com.riftforge.model.PlayerState;
 import com.riftforge.model.RevealedHandSnapshot;
 import com.riftforge.model.ZoneName;
+import com.riftforge.rules.LegalAction;
+import com.riftforge.rules.LegalActionsService;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class GameStateProjectionServiceTest {
-  private final GameStateProjectionService projectionService = new GameStateProjectionService();
+  private final GameStateProjectionService projectionService = new GameStateProjectionService(new LegalActionsService());
 
   @Test
   void playerSeesOwnHandCardIds() {
@@ -121,9 +129,103 @@ class GameStateProjectionServiceTest {
     assertThat(view.getRevealedHands()).isEmpty();
   }
 
+  @Test
+  void activePlayerMainProjectionIncludesNormalActions() {
+    LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.ENFORCED);
+
+    LiveGameState view = projectionService.toPublicView(state, "p1");
+
+    assertThat(view.getLegalActions())
+        .contains(LegalAction.PLAY_CARD, LegalAction.MOVE_TO_BATTLEFIELD, LegalAction.REPOSITION_CARD, LegalAction.PASS_PHASE)
+        .doesNotContain(LegalAction.SANDBOX_DEAL_CARD);
+  }
+
+  @Test
+  void nonActivePlayerProjectionDoesNotIncludeNormalMainActions() {
+    LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.ENFORCED);
+
+    LiveGameState view = projectionService.toPublicView(state, "p2");
+
+    assertThat(view.getLegalActions())
+        .doesNotContain(LegalAction.PLAY_CARD, LegalAction.MOVE_TO_BATTLEFIELD, LegalAction.REPOSITION_CARD, LegalAction.PASS_PHASE);
+  }
+
+  @Test
+  void spectatorProjectionHasNoLegalActions() {
+    LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.ENFORCED);
+
+    LiveGameState view = projectionService.toPublicView(state, null);
+
+    assertThat(view.getLegalActions()).isEmpty();
+  }
+
+  @Test
+  void activeShowdownProjectionOnlyIncludesResolveForAttacker() {
+    LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.ENFORCED);
+    state.setActiveShowdown(new LiveGameState.ShowdownState("p1", List.of("attacker"), Map.of()));
+
+    LiveGameState view = projectionService.toPublicView(state, "p1");
+
+    assertThat(view.getLegalActions())
+        .containsExactly(LegalAction.RESOLVE_SHOWDOWN);
+  }
+
+  @Test
+  void activeShowdownDefenderGetsNoActions() {
+    LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.ENFORCED);
+    state.setActiveShowdown(new LiveGameState.ShowdownState("p1", List.of("attacker"), Map.of()));
+
+    LiveGameState view = projectionService.toPublicView(state, "p2");
+
+    assertThat(view.getLegalActions())
+        .doesNotContain(
+            LegalAction.RESOLVE_SHOWDOWN,
+            LegalAction.PLAY_CARD,
+            LegalAction.MOVE_TO_BATTLEFIELD,
+            LegalAction.REPOSITION_CARD,
+            LegalAction.PASS_PHASE,
+            LegalAction.END_TURN)
+        .isEmpty();
+  }
+
+  @Test
+  void mulliganProjectionIncludesMulliganActionsForRelevantPlayer() {
+    LiveGameState state = stateWithPlayers(Phase.MULLIGAN, "p1", GameMode.ENFORCED);
+
+    LiveGameState view = projectionService.toPublicView(state, "p1");
+
+    assertThat(view.getLegalActions())
+        .containsExactlyInAnyOrder(LegalAction.KEEP_HAND, LegalAction.MULLIGAN);
+  }
+
+  @Test
+  void sandboxProjectionIncludesSandboxActions() {
+    LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.SANDBOX);
+
+    LiveGameState view = projectionService.toPublicView(state, "p1");
+
+    assertThat(view.getLegalActions())
+        .contains(LegalAction.SANDBOX_DEAL_CARD, LegalAction.SANDBOX_ADJUST_SCORE, LegalAction.SANDBOX_MOVE_CARD);
+  }
+
   private LiveGameState state(CardInstance... cards) {
     LiveGameState state = new LiveGameState();
     state.setCards(List.of(cards));
+    return state;
+  }
+
+  private LiveGameState stateWithPlayers(Phase phase, String activePlayerId, GameMode gameMode) {
+    PlayerState p1 = new PlayerState();
+    p1.setUserId("p1");
+    PlayerState p2 = new PlayerState();
+    p2.setUserId("p2");
+    LiveGameState state = new LiveGameState();
+    state.setCurrentPhase(phase);
+    state.setActivePlayerId(activePlayerId);
+    state.setGameMode(gameMode);
+    state.setPlayers(new ArrayList<>(List.of(p1, p2)));
+    state.setCards(new ArrayList<>());
+    state.setMulligansDone(new HashSet<>());
     return state;
   }
 

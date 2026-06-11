@@ -44,7 +44,11 @@ public class RoomController {
 
   record CreateRequest(String playerId, String playerName, boolean withBot, GameMode gameMode) {}
   record JoinRequest(String playerId, String playerName) {}
-  record ReadyRequest(String playerId, String sessionToken, List<String> deckCardIds) {}
+  record ReadyRequest(String playerId, String sessionToken, List<String> deckCardIds, boolean supportedCardsOnly) {
+    ReadyRequest(String playerId, String sessionToken, List<String> deckCardIds) {
+      this(playerId, sessionToken, deckCardIds, false);
+    }
+  }
   record StartRequest(String playerId, String sessionToken) {}
   record BotDeckRequest(String playerId, String sessionToken, List<String> deckCardIds) {}
   record TokenizedRoom(RoomState room, String sessionToken) {}
@@ -72,6 +76,9 @@ public class RoomController {
   public ResponseEntity<?> ready(@PathVariable String code, @RequestBody ReadyRequest req) {
     ResponseEntity<String> authError = validatePlayer(code, req.playerId(), req.sessionToken());
     if (authError != null) return authError;
+    if (req.supportedCardsOnly()) {
+      return ResponseEntity.ok(roomService.ready(code, req.playerId(), req.deckCardIds(), true));
+    }
     return ResponseEntity.ok(roomService.ready(code, req.playerId(), req.deckCardIds()));
   }
 

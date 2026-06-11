@@ -7,6 +7,8 @@ import static com.riftforge.bot.BotConstants.BOT2_NAME;
 import static com.riftforge.bot.BotConstants.ALL_BOT_IDS;
 
 import com.riftforge.model.CardDefinition;
+import com.riftforge.model.CardSupportStatus;
+import com.riftforge.model.CardSupportSummary;
 import com.riftforge.model.DeckFormat;
 import com.riftforge.model.GameMode;
 import com.riftforge.model.LobbyPlayer;
@@ -22,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -30,10 +33,17 @@ public class RoomService {
   private final ConcurrentHashMap<String, RoomState> rooms = new ConcurrentHashMap<>();
   private final SimpMessagingTemplate messaging;
   private final CardDataService cardDataService;
+  private final CardSupportService cardSupportService;
 
   public RoomService(SimpMessagingTemplate messaging, CardDataService cardDataService) {
+    this(messaging, cardDataService, null);
+  }
+
+  @Autowired
+  public RoomService(SimpMessagingTemplate messaging, CardDataService cardDataService, CardSupportService cardSupportService) {
     this.messaging = messaging;
     this.cardDataService = cardDataService;
+    this.cardSupportService = cardSupportService;
   }
 
   public RoomState create(String hostId, String hostName, boolean withBot) {
@@ -80,13 +90,24 @@ public class RoomService {
   }
 
   public RoomState ready(String code, String playerId, List<String> deckCardIds) {
+    return ready(code, playerId, deckCardIds, false);
+  }
+
+  public RoomState ready(String code, String playerId, List<String> deckCardIds, boolean supportedCardsOnly) {
     RoomState room = get(code);
     List<String> submittedDeck = deckCardIds == null ? List.of() : deckCardIds;
     room.getPlayers().stream()
         .filter(p -> p.getId().equals(playerId))
         .findFirst()
         .ifPresent(p -> {
-          if (!p.isReady()) validateDeck(submittedDeck, deckFormatFor(p.getId()));
+          if (!p.isReady()) {
+            DeckValidationResult result = validateDeck(submittedDeck, deckFormatFor(p.getId()), supportedCardsOnly);
+            p.setDeckWarnings(result.warnings());
+            p.setDeckSupport(result.support());
+          } else {
+            p.setDeckWarnings(List.of());
+            p.setDeckSupport(List.of());
+          }
           p.setReady(!p.isReady());
           p.setDeckCardIds(submittedDeck);
         });
@@ -95,6 +116,10 @@ public class RoomService {
   }
 
   private void validateDeck(List<String> cardIds, DeckFormat format) {
+    validateDeck(cardIds, format, false);
+  }
+
+  private DeckValidationResult validateDeck(List<String> cardIds, DeckFormat format, boolean supportedCardsOnly) {
     List<CardDefinition> submittedCards = new ArrayList<>();
     for (String cardId : cardIds) {
       CardDefinition def = resolveCard(cardId);
@@ -150,7 +175,29 @@ public class RoomService {
       int copies = copiesById.merge(card.id(), 1, Integer::sum);
       if (copies > 3) throw new IllegalArgumentException("Cannot include more than 3 copies of " + card.name() + ".");
     }
+
+    List<CardSupportSummary> support = cardSupportService == null ? List.of() : cardSupportService.summarizeDeck(submittedCards);
+    List<String> warnings = support.stream()
+        .filter(summary -> summary.status() == CardSupportStatus.PARTIAL)
+        .map(summary -> summary.name() + " is partially supported.")
+        .toList();
+    if (format == DeckFormat.FULL_CONSTRUCTED && supportedCardsOnly) {
+      List<CardSupportSummary> blocked = support.stream()
+          .filter(summary -> summary.status() == CardSupportStatus.UNSUPPORTED || summary.status() == CardSupportStatus.NOT_AUDITED || summary.status() == CardSupportStatus.BANNED)
+          .toList();
+      if (!blocked.isEmpty()) {
+        String names = blocked.stream()
+            .limit(5)
+            .map(summary -> summary.name() + " (" + summary.status() + ")")
+            .collect(Collectors.joining(", "));
+        if (blocked.size() > 5) names += ", +" + (blocked.size() - 5) + " more";
+        throw new IllegalArgumentException("Deck contains unsupported or not-audited cards: " + names + ".");
+      }
+    }
+    return new DeckValidationResult(support, warnings);
   }
+
+  private record DeckValidationResult(List<CardSupportSummary> support, List<String> warnings) {}
 
   private boolean isType(CardDefinition card, String type) {
     return type.equalsIgnoreCase(card.type());
@@ -216,6 +263,9 @@ public class RoomService {
   }
 
   private List<String> generateBotDeck() {
+    List<String> starterDeck = generateIreliaStarterDeck();
+    if (!starterDeck.isEmpty()) return starterDeck;
+
     Set<String> playable = Set.of("unit", "spell", "gear");
     List<CardDefinition> all = new ArrayList<>(cardDataService.getAll().values());
     List<String> deck = new ArrayList<>();
@@ -236,5 +286,66 @@ public class RoomService {
           deck.add(card.id());
         });
     return deck;
+  }
+
+  private List<String> generateIreliaStarterDeck() {
+    Map<String, CardDefinition> byName = cardDataService.getAll().values().stream()
+        .collect(Collectors.toMap(CardDefinition::name, card -> card, (first, ignored) -> first));
+    List<String> requiredNames = List.of(
+        "Irelia - Blade Dancer",
+        "Irelia - Fervent",
+        "Defy",
+        "Discipline",
+        "Tideturner",
+        "Stellacorn Herder",
+        "Guardian Angel",
+        "Boots of Swiftness",
+        "Defiant Dance",
+        "Scuttle Crab",
+        "Charm",
+        "En Garde",
+        "Gust",
+        "Ride The Wind",
+        "Stacked Deck",
+        "Not So Fast",
+        "Star-Crossed",
+        "Adaptatron",
+        "Calm Rune",
+        "Chaos Rune",
+        "Targon's Peak",
+        "Sunken Temple",
+        "Abandoned Hall");
+    if (requiredNames.stream().anyMatch(name -> !byName.containsKey(name))) return List.of();
+
+    List<String> deck = new ArrayList<>();
+    addCopies(deck, byName, "Irelia - Blade Dancer", 1);
+    addCopies(deck, byName, "Irelia - Fervent", 1);
+    addCopies(deck, byName, "Defy", 3);
+    addCopies(deck, byName, "Discipline", 3);
+    addCopies(deck, byName, "Tideturner", 3);
+    addCopies(deck, byName, "Stellacorn Herder", 3);
+    addCopies(deck, byName, "Guardian Angel", 3);
+    addCopies(deck, byName, "Boots of Swiftness", 3);
+    addCopies(deck, byName, "Defiant Dance", 3);
+    addCopies(deck, byName, "Scuttle Crab", 3);
+    addCopies(deck, byName, "Charm", 2);
+    addCopies(deck, byName, "En Garde", 2);
+    addCopies(deck, byName, "Gust", 2);
+    addCopies(deck, byName, "Ride The Wind", 2);
+    addCopies(deck, byName, "Stacked Deck", 2);
+    addCopies(deck, byName, "Not So Fast", 2);
+    addCopies(deck, byName, "Star-Crossed", 2);
+    addCopies(deck, byName, "Adaptatron", 1);
+    addCopies(deck, byName, "Calm Rune", 6);
+    addCopies(deck, byName, "Chaos Rune", 6);
+    addCopies(deck, byName, "Targon's Peak", 1);
+    addCopies(deck, byName, "Sunken Temple", 1);
+    addCopies(deck, byName, "Abandoned Hall", 1);
+    return deck;
+  }
+
+  private void addCopies(List<String> deck, Map<String, CardDefinition> byName, String name, int quantity) {
+    CardDefinition card = byName.get(name);
+    for (int i = 0; i < quantity; i++) deck.add(card.id());
   }
 }
