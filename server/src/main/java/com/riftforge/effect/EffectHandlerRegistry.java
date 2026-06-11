@@ -1,6 +1,7 @@
 package com.riftforge.effect;
 
 import com.riftforge.engine.keyword.KeywordHandler;
+import com.riftforge.engine.keyword.KeywordText;
 import com.riftforge.model.CardDefinition;
 import java.util.List;
 import java.util.Locale;
@@ -86,9 +87,7 @@ public class EffectHandlerRegistry {
   }
 
   private String keywordName(String keyword) {
-    String normalized = normalize(keyword);
-    int index = normalized.indexOf(' ');
-    return index < 0 ? normalized : normalized.substring(0, index);
+    return KeywordText.name(keyword);
   }
 
   private String normalize(String value) {

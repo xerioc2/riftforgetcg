@@ -4,9 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.riftforge.effect.EffectHandlerRegistry;
+import com.riftforge.engine.keyword.AssaultHandler;
+import com.riftforge.engine.keyword.ShieldHandler;
 import com.riftforge.engine.keyword.TankHandler;
 import com.riftforge.model.CardDefinition;
+import com.riftforge.model.CardInstance;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -35,6 +39,38 @@ class CardDataServiceEffectRegistryTest {
         List.of("DEATHKNELL")));
 
     assertThat(service.isUnsupportedAction("death-card")).isTrue();
+  }
+
+  @Test
+  void valuedAssaultAndShieldKeywordsAreParsedAndSupported() throws Exception {
+    CardDataService service = new CardDataService(
+        new ObjectMapper(),
+        "http://example.invalid",
+        new EffectHandlerRegistry(List.of(new AssaultHandler(), new ShieldHandler())));
+    install(service, new CardDefinition(
+        "combat-card",
+        "Combat Card",
+        "Unit",
+        null,
+        List.of(),
+        0,
+        0,
+        null,
+        null,
+        null,
+        "",
+        2,
+        2,
+        List.of("ASSAULT2")));
+    CardInstance instance = new CardInstance();
+    instance.setCardId("combat-card");
+    instance.setTempKeywords(new ArrayList<>(List.of("SHIELD 1")));
+
+    assertThat(service.hasKeyword(instance, "ASSAULT")).isTrue();
+    assertThat(service.getKeywordValue(instance, "ASSAULT")).isEqualTo(2);
+    assertThat(service.hasKeyword(instance, "SHIELD")).isTrue();
+    assertThat(service.getKeywordValue(instance, "SHIELD")).isEqualTo(1);
+    assertThat(service.isUnsupportedAction("combat-card")).isFalse();
   }
 
   @SuppressWarnings("unchecked")

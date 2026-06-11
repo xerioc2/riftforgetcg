@@ -340,12 +340,16 @@ Current implementation notes:
 - `EffectHandlerRegistry` provides a central support-status lookup for tracked
   keywords and reports missing handlers as explicit unsupported behavior instead
   of silent no-ops.
-- Initial keyword handlers include Tank and Vision, with existing combat/rules
-  code still handling some keyword behavior directly.
-- Several keywords have direct or heuristic handling: ACCELERATE, AMBUSH, ASSAULT, DEFLECT, GANKING, HIDDEN, LEGION, SHIELD, TANK, TEMPORARY, VISION, WEAPONMASTER.
+- Initial keyword handlers include Assault, Shield, Tank, and Vision, with
+  existing combat/rules code still handling some keyword behavior directly.
+- ASSAULT X and SHIELD X are handler-backed and combat-tested as deterministic
+  Might modifiers. Valued keyword parsing accepts both spaced and compact forms
+  such as `ASSAULT 2` and `ASSAULT2`.
+- Several keywords have direct or heuristic handling: ACCELERATE, AMBUSH,
+  DEFLECT, GANKING, HIDDEN, LEGION, TANK, TEMPORARY, VISION, WEAPONMASTER.
 
 Known gaps:
-- The handler registry is a scaffold; most tracked keywords still need
+- The handler registry is a scaffold; several tracked keywords still need
   dedicated handlers before they can be called fully supported.
 - The complete official keyword list, dependent keywords, inactive text, conditional permissions, XP/Hunt/Level, and full action/reaction behavior are incomplete.
 - Some legacy placeholder keywords remain in early hard-coded effects and should be audited against current official names.

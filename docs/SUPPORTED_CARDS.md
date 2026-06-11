@@ -1,6 +1,6 @@
 # RiftForge Supported Cards Matrix
 
-Last audit: 2026-06-10
+Last audit: 2026-06-11
 
 This is a scaffold for tracking card-specific support. "Heuristic" means the engine may support a text pattern, but the individual card has not been scripted and tested as a tournament-accurate implementation.
 
@@ -22,6 +22,8 @@ surfaces Partial cards as warnings, and always rejects Banned constructed cards.
 | origins-005 | Origins | Unknown from local ID | Partial | Hard-coded `onTurnStart` clears summoning sickness from allied base cards while source is at battlefield. | Full trigger timing and current wording. | Indirect only | Needs card-name mapping. |
 | Any Spell with `draw 1` text | Any | Spell | Heuristic partial | Generic rules-text path draws 1 card. | Additional conditions, costs, targets, may choices, chain timing. | Validator/engine indirect | Should become explicit scripted effects for tournament use. |
 | Any Spell/Gear with `:rb_might:` boost text | Any | Spell/Gear | Heuristic partial | Generic rules-text path adds temporary might modifier to a target. | Duration nuances, target restrictions, multi-target, replacement/prevention. | Validator/engine indirect | Depends on target validator heuristics. |
+| ASSAULT X keyword units | Any | Unit | Partial | Handler-backed keyword support; adds X Might while attacking in combat resolution. | Card-specific triggered/static text beyond ASSAULT still needs individual scripts/tests. | `CombatResolverTest`, `EffectHandlerRegistryTest`, `CardDataServiceEffectRegistryTest` | Valued parsing supports `ASSAULT 2` and `ASSAULT2`. |
+| SHIELD X keyword units | Any | Unit | Partial | Handler-backed keyword support; adds X Might while defending in combat resolution. | Card-specific triggered/static text beyond SHIELD still needs individual scripts/tests. | `CombatResolverTest`, `EffectHandlerRegistryTest`, `CardDataServiceEffectRegistryTest` | Valued parsing supports `SHIELD 2` and `SHIELD2`. |
 | Any text with `return a unit` / `return target unit` | Any | Spell | Heuristic partial | Generic rules-text path returns target to hand and trashes attachments. | Ownership, destination, replacement effects, non-unit filtering. | Validator/engine indirect | Needs explicit scripts. |
 | Any text with `ready it` | Any | Spell/Gear | Heuristic partial | Generic rules-text path readies target. | Full target requirements and timing windows. | Validator/engine indirect | Needs explicit scripts. |
 | VISION keyword cards | Any | Any | Partial | Peeks top main-deck card privately and supports keep/recycle choice. | Full Predict rules and multiple-card ordering. | Projection and legal-action indirect | Uses private logs and `VISION_CHOICE`. |
@@ -67,7 +69,7 @@ support-gate result, and rules text, lives in `docs/CARD_RULES_BACKLOG.md`.
 | Abandoned Hall | Irelia Tempo | Battlefield | Partial | Battlefield ability | Needs spell-play trigger and per-controller unit buff target. |
 | Fiora - Grand Duelist | Fiora Vanguard | Legend | Partial | Legend text | Needs Mighty-state detection and optional exhausted rune channel trigger. |
 | Fiora - Worthy | Fiora Vanguard | Champion | Partial | Champion text | Needs Mighty-state detection, Order rune payment, and ready target trigger. |
-| Daring Poro | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs Assault keyword value support confirmation and direct card test. |
+| Daring Poro | Fiora Vanguard | Unit | Partial | ASSAULT value is handler-backed; remaining unit text is not fully scripted. | Needs direct card-specific behavior test before promotion. |
 | Keeper's Verdict | Fiora Vanguard | Spell | Unsupported | Spell: draw/card selection | Needs enemy-unit target plus owner top/bottom deck choice. |
 | Spectral Matron | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs trash-unit selection and free-play cost bypass with power-cost handling. |
 | Stalking Wolf | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs Ambush/reaction timing and additional-cost kill validation. |
@@ -76,7 +78,7 @@ support-gate result, and rules text, lives in `docs/CARD_RULES_BACKLOG.md`.
 | Vanguard Captain | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs Legion condition plus Recruit token creation. |
 | Facebreaker | Fiora Vanguard | Spell | Unsupported | Unsupported/unknown text pattern | Needs Hidden support plus friendly/enemy stun target script. |
 | Vanguard Sergeant | Fiora Vanguard | Unit | Partial | Basic unit with no special text | Candidate for first direct "basic unit supported" promotion after tests. |
-| Laurent Duelist | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs Assault 2 keyword support confirmation and direct card test. |
+| Laurent Duelist | Fiora Vanguard | Unit | Partial | ASSAULT 2 value is handler-backed; remaining unit text is not fully scripted. | Needs direct card-specific behavior test before promotion. |
 | Crowd Favorite | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs XP/Hunt, activated XP spend, and Buff state support. |
 | Riposte | Fiora Vanguard | Spell | Partial | Spell: stat/might modifier | Needs reaction timing, spell target model, counter behavior, and variable might buff. |
 | Dune Drake | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs attack trigger checking ready enemy units at the battlefield. |

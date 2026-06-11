@@ -25,6 +25,15 @@ export type ServerMessage = { type: 'STATE_UPDATE'; state: LiveGameState } | { t
 export type MatchNotification = { roomCode: string; sessionToken?: string };
 export type MessageSource = 'room' | 'user';
 
+function wsEndpoint(params: Record<string, string | undefined>): string {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value && value.trim()) query.set(key, value);
+  });
+  const suffix = query.toString();
+  return `${getGameServerUrl().replace(/^http/, 'ws')}/ws${suffix ? `?${suffix}` : ''}`;
+}
+
 export function createGameClient(
   roomCode: string,
   player: LocalPlayer,
@@ -34,7 +43,9 @@ export function createGameClient(
   onConnectionChange?: (connected: boolean) => void,
   useUserState = true,
 ): Client {
-  const wsUrl = `${getGameServerUrl().replace(/^http/, 'ws')}/ws`;
+  const wsUrl = wsEndpoint(useUserState
+    ? { playerId: player.id, playerName: player.name, roomCode, sessionToken: sessionToken ?? '' }
+    : { playerId: player.id, playerName: player.name, role: 'SPECTATOR' });
   const connectHeaders: Record<string, string> = useUserState
     ? { playerId: player.id, playerName: player.name, roomCode, sessionToken: sessionToken ?? '' }
     : { playerId: player.id, playerName: player.name };
@@ -72,7 +83,9 @@ export function createLobbyClient(
   onRoom: (room: RoomState) => void,
   onPresence?: (presence: PresenceSummary) => void,
 ): Client {
-  const wsUrl = `${getGameServerUrl().replace(/^http/, 'ws')}/ws`;
+  const wsUrl = wsEndpoint(sessionToken
+    ? { playerId: player.id, playerName: player.name, roomCode, sessionToken }
+    : { playerId: player.id, playerName: player.name, role: 'LOBBY' });
   const connectHeaders: Record<string, string> = sessionToken
     ? { playerId: player.id, playerName: player.name, roomCode, sessionToken }
     : { playerId: player.id, playerName: player.name };
@@ -96,7 +109,7 @@ export function createLobbyClient(
 }
 
 export function createMatchmakingClient(player: LocalPlayer, onMatch: (notification: MatchNotification) => void, onConnected?: () => void): Client {
-  const wsUrl = `${getGameServerUrl().replace(/^http/, 'ws')}/ws`;
+  const wsUrl = wsEndpoint({ playerId: player.id, playerName: player.name, role: 'MATCHMAKING' });
   const seenRoomCodes = new Set<string>();
   const handleNotification = (frame: { body: string }) => {
     const notification = JSON.parse(frame.body) as MatchNotification;
@@ -119,7 +132,7 @@ export function createMatchmakingClient(player: LocalPlayer, onMatch: (notificat
 }
 
 export function createPresenceClient(player: LocalPlayer, onPresence: (presence: PresenceSummary) => void, onDisconnect?: () => void): Client {
-  const wsUrl = `${getGameServerUrl().replace(/^http/, 'ws')}/ws`;
+  const wsUrl = wsEndpoint({ playerId: player.id, playerName: player.name, role: 'LOBBY' });
   const client = new Client({
     brokerURL: wsUrl,
     connectHeaders: { playerId: player.id, playerName: player.name, role: 'LOBBY' },

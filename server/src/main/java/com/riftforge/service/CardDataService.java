@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.riftforge.effect.EffectHandlerRegistry;
 import com.riftforge.effect.EffectSupportStatus;
+import com.riftforge.engine.keyword.KeywordText;
 import com.riftforge.model.CardDefinition;
 import com.riftforge.model.CardInstance;
 import jakarta.annotation.PostConstruct;
@@ -16,8 +17,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -201,21 +200,22 @@ public class CardDataService {
 
   public boolean hasKeyword(String cardId, String keyword) {
     CardDefinition card = getCard(cardId);
-    return card.keywords().stream().anyMatch(k -> k.equalsIgnoreCase(keyword));
+    String expected = KeywordText.name(keyword);
+    return card.keywords().stream().anyMatch(k -> KeywordText.name(k).equals(expected));
   }
 
   public boolean hasKeyword(CardInstance instance, String keyword) {
+    String expected = KeywordText.name(keyword);
     return hasKeyword(instance.getCardId(), keyword)
-        || instance.getTempKeywords().stream().anyMatch(k -> k.equalsIgnoreCase(keyword));
+        || instance.getTempKeywords().stream().anyMatch(k -> KeywordText.name(k).equals(expected));
   }
 
   public int getKeywordValue(CardInstance instance, String keyword) {
-    Pattern pattern = Pattern.compile("^" + Pattern.quote(keyword) + "\\s*(\\d+)$", Pattern.CASE_INSENSITIVE);
     List<String> keywords = new ArrayList<>(getCard(instance.getCardId()).keywords());
     keywords.addAll(instance.getTempKeywords());
     for (String value : keywords) {
-      Matcher matcher = pattern.matcher(value.trim());
-      if (matcher.matches()) return Integer.parseInt(matcher.group(1));
+      int parsed = KeywordText.value(value, keyword);
+      if (parsed > 0) return parsed;
     }
     return 0;
   }

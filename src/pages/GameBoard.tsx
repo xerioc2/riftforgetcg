@@ -115,6 +115,8 @@ export function GameBoard() {
   const previewClearTimer = useRef<number | null>(null);
   const hasConnectedRef = useRef(false);
   const handledVisionLogRef = useRef<string | null>(null);
+  const lastUserStateAt = useRef(0);
+  const roomFallbackTimer = useRef<number | null>(null);
 
   const roomCode = code?.toUpperCase() ?? '';
   const cardsById = useMemo(() => new Map(cards.map((card) => [card.id, card])), [cards]);
@@ -246,7 +248,27 @@ export function GameBoard() {
           player,
           getRoomSessionToken(roomCode, player.id),
           (msg, source) => {
-            if (msg.type === 'STATE_UPDATE' && !(source === 'room' && hasMaskedOwnHand(msg.state, player.id))) handleIncomingState(msg.state);
+            if (msg.type === 'STATE_UPDATE') {
+              if (source === 'user') {
+                lastUserStateAt.current = Date.now();
+                if (roomFallbackTimer.current != null) {
+                  window.clearTimeout(roomFallbackTimer.current);
+                  roomFallbackTimer.current = null;
+                }
+                handleIncomingState(msg.state);
+              } else if (!hasMaskedOwnHand(msg.state, player.id)) {
+                handleIncomingState(msg.state);
+              } else if (roomFallbackTimer.current == null) {
+                roomFallbackTimer.current = window.setTimeout(() => {
+                  roomFallbackTimer.current = null;
+                  if (Date.now() - lastUserStateAt.current < 1900) return;
+                  void fetch(playerStateUrl)
+                    .then((r) => (r.ok ? r.json() as Promise<LiveGameState> : Promise.reject(new Error('State refresh failed.'))))
+                    .then(handleIncomingState)
+                    .catch(() => notifyWarning('Unable to refresh state.'));
+                }, 2000);
+              }
+            }
             if (msg.type === 'ERROR') {
               addChat({ id: crypto.randomUUID(), userId: msg.playerId, email: null, text: msg.message, sentAt: new Date().toISOString() });
               notifyError('Action failed', msg.message);
@@ -287,6 +309,10 @@ export function GameBoard() {
     void setup();
     return () => {
       cancelled = true;
+      if (roomFallbackTimer.current != null) {
+        window.clearTimeout(roomFallbackTimer.current);
+        roomFallbackTimer.current = null;
+      }
       void stompClientRef.current?.deactivate();
       stompClientRef.current = null;
     };
