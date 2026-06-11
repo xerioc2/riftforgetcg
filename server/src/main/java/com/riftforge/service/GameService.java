@@ -261,6 +261,13 @@ public class GameService {
           new GameMessage.StateUpdate(projectionService.toPublicView(state, player.getUserId())));
     }
     messaging.convertAndSend("/topic/game/" + roomCode, new GameMessage.StateUpdate(projectionService.toPublicView(state, null)));
+    log.info(
+        "GameService publishing GameStateChangedEvent: room={}, phase={}, activePlayer={}, turnNumber={}, winnerId={}, willPublish=true",
+        roomCode,
+        state.getCurrentPhase(),
+        state.getActivePlayerId(),
+        state.getTurnNumber(),
+        state.getWinnerId());
     eventPublisher.publishEvent(new GameStateChangedEvent(this, roomCode, state));
   }
 
