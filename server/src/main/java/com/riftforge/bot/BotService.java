@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import jakarta.annotation.PostConstruct;
 import org.springframework.context.event.EventListener;
 import org.springframework.context.annotation.Lazy;
 import org.slf4j.Logger;
@@ -40,6 +41,11 @@ public class BotService {
   public BotService(@Lazy GameService gameService, CardDataService cardDataService) {
     this.gameService = gameService;
     this.cardDataService = cardDataService;
+  }
+
+  @PostConstruct
+  void logStartup() {
+    log.info("BotService active; bot ids={}", ALL_BOT_IDS);
   }
 
   @EventListener
@@ -70,7 +76,7 @@ public class BotService {
     }
     boolean alreadyActing = actingRooms.contains(roomCode);
     log.info(
-        "Bot event: rawRoom={}, room={}, phase={}, activePlayer={}, players={}, botIds={}, anyBotInGame={}, actingBotId={}, actingRoomAlready={}",
+        "Bot event received: rawRoom={}, room={}, phase={}, activePlayer={}, players={}, botIds={}, anyBotInGame={}, actingBotId={}, actingRoomsBeforeAdd={}, actingRoomAlready={}",
         event.getRoomCode(),
         roomCode,
         state.getCurrentPhase(),
@@ -79,6 +85,7 @@ public class BotService {
         ALL_BOT_IDS,
         anyBotInGame,
         actingBotId,
+        actingRooms,
         alreadyActing);
     if (!anyBotInGame) return;
     if (actingBotId == null) return;
@@ -94,8 +101,15 @@ public class BotService {
       try {
         Thread.sleep(delay);
         LiveGameState current = gameService.currentState(roomCode);
+        log.info(
+            "Bot async started: room={}, bot={}, currentState={}, phase={}, activePlayer={}",
+            roomCode,
+            botId,
+            current == null ? "null" : "present",
+            current == null ? null : current.getCurrentPhase(),
+            current == null ? null : current.getActivePlayerId());
         if (current == null || current.getWinnerId() != null) return;
-        log.debug(
+        log.info(
             "Bot acting: room={}, bot={}, phase={}, activePlayer={}, activeShowdown={}, gameMode={}",
             roomCode,
             botId,
@@ -227,24 +241,29 @@ public class BotService {
 
   private void processBotMove(String roomCode, LiveGameState state, String botId, MoveRequest move) {
     Phase beforePhase = state == null ? null : state.getCurrentPhase();
-    log.debug(
-        "Bot move: room={}, bot={}, phase={}, activePlayer={}, activeShowdown={}, gameMode={}, move={}",
+    String beforeActivePlayer = state == null ? null : state.getActivePlayerId();
+    log.info(
+        "Bot move before: room={}, bot={}, move={}, phaseBefore={}, activePlayerBefore={}, activeShowdown={}, gameMode={}",
         roomCode,
         botId,
+        move.getClass().getSimpleName(),
         state == null ? null : state.getCurrentPhase(),
         state == null ? null : state.getActivePlayerId(),
         state != null && state.getActiveShowdown() != null,
-        state == null ? null : state.getGameMode(),
-        move.getClass().getSimpleName());
+        state == null ? null : state.getGameMode());
     gameService.processMove(roomCode, move);
     LiveGameState latest = gameService.currentState(roomCode);
-    log.debug(
-        "Bot move result: room={}, bot={}, move={}, latestPhase={}, latestActivePlayer={}, winner={}, activeShowdown={}",
+    boolean phaseChanged = latest != null && beforePhase != latest.getCurrentPhase();
+    boolean activePlayerChanged = latest != null && beforeActivePlayer != null && !beforeActivePlayer.equals(latest.getActivePlayerId());
+    log.info(
+        "Bot move after: room={}, bot={}, move={}, latestPhase={}, latestActivePlayer={}, phaseChanged={}, activePlayerChanged={}, winner={}, activeShowdown={}",
         roomCode,
         botId,
         move.getClass().getSimpleName(),
         latest == null ? null : latest.getCurrentPhase(),
         latest == null ? null : latest.getActivePlayerId(),
+        phaseChanged,
+        activePlayerChanged,
         latest == null ? null : latest.getWinnerId(),
         latest != null && latest.getActiveShowdown() != null);
     if (move instanceof PassPhaseMove

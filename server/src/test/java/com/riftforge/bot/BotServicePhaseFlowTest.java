@@ -37,6 +37,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
@@ -226,6 +227,68 @@ class BotServicePhaseFlowTest {
     waitForNoActingRooms();
   }
 
+  @Test
+  void exactStuckAwakenStateAdvancesBot() throws Exception {
+    String roomCode = "2ERB";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState stuck = gameService.currentState("2erb");
+    stuck.setActivePlayerId(BOT_ID);
+    stuck.setFirstPlayerId("human");
+    stuck.setCurrentPhase(Phase.AWAKEN);
+    stuck.setTurnNumber(2);
+    stuck.setActiveShowdown(null);
+
+    botService.onStateChanged(new GameStateChangedEvent(this, "2erb", stuck));
+
+    LiveGameState latest = waitUntilNotAwakenWithBotActive(gameService, roomCode);
+    latest.setWinnerId("test-complete");
+    assertThat(latest.getCurrentPhase()).isIn(Phase.BEGINNING, Phase.CHANNEL, Phase.DRAW, Phase.MAIN, Phase.END);
+    waitForNoActingRooms();
+  }
+
+  @Test
+  void publishedHumanEndToBotAwakenEventAdvancesBot() throws Exception {
+    ForwardingEventPublisher publisher = new ForwardingEventPublisher();
+    GameService eventedGameService = new GameService(
+        new GameEngine(
+            new RulesValidator(cardDataService),
+            new CombatResolver(cardDataService, new CardEffectRegistry(cardDataService), new CardZoneService(cardDataService)),
+            new CardZoneService(cardDataService),
+            cardDataService,
+            new CardEffectRegistry(cardDataService),
+            8),
+        cardDataService,
+        messaging,
+        publisher,
+        new MatchHistoryService(),
+        new GameStateProjectionService(new LegalActionsService()));
+    BotService eventedBotService = new BotService(eventedGameService, cardDataService);
+    publisher.setBotService(eventedBotService);
+
+    String roomCode = "2ERB";
+    eventedGameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState state = eventedGameService.currentState(roomCode);
+    state.setActivePlayerId("human");
+    state.setFirstPlayerId("human");
+    state.setCurrentPhase(Phase.END);
+    state.setTurnNumber(1);
+
+    eventedGameService.processMove("2erb", new PassPhaseMove("human"));
+
+    assertThat(publisher.sawBotAwakenEvent()).isTrue();
+    LiveGameState latest = waitUntilNotAwakenWithBotActive(eventedGameService, roomCode);
+    latest.setWinnerId("test-complete");
+    assertThat(latest.getCurrentPhase()).isIn(Phase.BEGINNING, Phase.CHANNEL, Phase.DRAW, Phase.MAIN, Phase.END);
+  }
+
   private void add(String id, String type, int cost) {
     cards.put(id, new CardDefinition(id, id, type, null, List.of(), cost, 0, null, null, null, null, 1, 1, List.of()));
   }
@@ -255,5 +318,48 @@ class BotServicePhaseFlowTest {
       Thread.sleep(25);
     }
     assertThat(actingRooms()).isEmpty();
+  }
+
+  private LiveGameState waitUntilNotAwakenWithBotActive(GameService service, String roomCode) throws Exception {
+    long deadline = System.currentTimeMillis() + 5_000;
+    LiveGameState latest = service.currentState(roomCode);
+    while (System.currentTimeMillis() < deadline) {
+      latest = service.currentState(roomCode);
+      if (latest != null
+          && !(latest.getCurrentPhase() == Phase.AWAKEN && BOT_ID.equals(latest.getActivePlayerId()))) {
+        return latest;
+      }
+      Thread.sleep(25);
+    }
+    return latest;
+  }
+
+  private static final class ForwardingEventPublisher implements ApplicationEventPublisher {
+    private BotService botService;
+    private volatile boolean sawBotAwakenEvent;
+
+    void setBotService(BotService botService) {
+      this.botService = botService;
+    }
+
+    boolean sawBotAwakenEvent() {
+      return sawBotAwakenEvent;
+    }
+
+    @Override
+    public void publishEvent(ApplicationEvent event) {
+      publishEvent((Object) event);
+    }
+
+    @Override
+    public void publishEvent(Object event) {
+      if (event instanceof GameStateChangedEvent gameEvent) {
+        if (gameEvent.getState().getCurrentPhase() == Phase.AWAKEN
+            && BOT_ID.equals(gameEvent.getState().getActivePlayerId())) {
+          sawBotAwakenEvent = true;
+        }
+        if (botService != null) botService.onStateChanged(gameEvent);
+      }
+    }
   }
 }
