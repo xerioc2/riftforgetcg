@@ -69,6 +69,18 @@ function autoPlaceInZone(zone: ZoneRect, existingCount: number, cardW = 88, card
   };
 }
 
+function zoneKey(ownerId: string, zoneName: string) {
+  return `${ownerId}:${zoneName.toLowerCase()}`;
+}
+
+function visualZoneFor(instance: CardInstance, zones: ZoneRect[]) {
+  return zones.find((zone) => sameZone(zone.zoneName, instance.zone) && zone.ownerId === instance.ownerId);
+}
+
+function shouldAutoPlacePublicCard(instance: CardInstance) {
+  return (sameZone(instance.zone, 'base') || sameZone(instance.zone, 'battlefield')) && instance.x === 0 && instance.y === 0;
+}
+
 export function GameBoard() {
   const { code } = useParams();
   const navigate = useNavigate();
@@ -590,6 +602,26 @@ export function GameBoard() {
   const canPass = canTakeAction(state, 'PASS_PHASE') || canResolveShowdown;
   const canMulligan = canTakeAction(state, 'MULLIGAN');
   const canKeepHand = canTakeAction(state, 'KEEP_HAND');
+  const boardCardRenderItems = [...state.cards]
+    .filter((instance) => !sameZone(instance.zone, 'hand') && !sameZone(instance.zone, 'deck'))
+    .sort((a, b) => a.zIndex - b.zIndex)
+    .map((instance) => ({ instance, zone: visualZoneFor(instance, zones) }));
+  const zoneCounts = new Map<string, number>();
+  const boardCardDisplayItems = boardCardRenderItems.map(({ instance, zone }) => {
+    const key = zoneKey(instance.ownerId, instance.zone);
+    const zoneIndex = zoneCounts.get(key) ?? 0;
+    zoneCounts.set(key, zoneIndex + 1);
+
+    if ((sameZone(instance.zone, 'champion') || sameZone(instance.zone, 'legend')) && zone) {
+      return { instance, displayInstance: { ...instance, x: zone.x + 48, y: zone.y + 60 } };
+    }
+
+    if (zone && shouldAutoPlacePublicCard(instance)) {
+      return { instance, displayInstance: { ...instance, ...autoPlaceInZone(zone, zoneIndex) } };
+    }
+
+    return { instance, displayInstance: instance };
+  });
 
   return (
     <main className="relative bg-ink text-slate-100" style={{ height: `calc(100vh - ${NAV_HEIGHT}px)` }} ref={containerRef}>
@@ -597,19 +629,6 @@ export function GameBoard() {
       <Stage width={size.width} height={size.height} onMouseDown={(event) => event.target === event.target.getStage() && setSelectedInstanceId(null)}>
         <Layer listening={false}>
           <ZoneOverlay zones={zones} />
-        </Layer>
-        <Layer listening={false}>
-          {pendingSpellInstanceId
-            ? state.cards
-                .filter((card) => {
-                  if (!sameZone(card.zone, 'battlefield')) return false;
-                  const pendingCardDef = cardsById.get(state.cards.find((candidate) => candidate.instanceId === pendingSpellInstanceId)?.cardId ?? '');
-                  const scope = cardTargetScope(pendingCardDef);
-                  return scope === 'friendly' ? card.ownerId === player.id : scope === 'enemy' ? card.ownerId !== player.id : true;
-                })
-                .map((card) => <Rect key={`target-${card.instanceId}`} x={card.x - 44} y={card.y - 60} width={88} height={120} fill="rgba(229,108,79,0.12)" stroke="#e56c4f" shadowColor="#e56c4f" shadowBlur={20} cornerRadius={6} />)
-            : null}
-          {pendingSpellInstanceId ? <Text x={0} y={8} width={size.width} text="Click a highlighted unit to target it  ·  Esc to cancel" align="center" fontSize={13} fontStyle="bold" fill="#e56c4f" /> : null}
         </Layer>
         <Layer>
           {state.players.flatMap((statePlayer) => {
@@ -645,35 +664,43 @@ export function GameBoard() {
           })}
         </Layer>
         <Layer>
-          {[...state.cards]
-            .filter((instance) => !sameZone(instance.zone, 'hand') && !sameZone(instance.zone, 'deck'))
-            .sort((a, b) => a.zIndex - b.zIndex)
-            .map((instance) => {
-              const cardDef = cardsById.get(instance.cardId);
-              if (!cardDef) return null;
-              const specialZone = sameZone(instance.zone, 'champion') || sameZone(instance.zone, 'legend') ? zones.find((zone) => sameZone(zone.zoneName, instance.zone) && zone.ownerId === instance.ownerId) : undefined;
-              const displayInstance = specialZone ? { ...instance, x: specialZone.x + 48, y: specialZone.y + 60 } : instance;
-              return (
-                <CardSprite
-                  key={instance.instanceId}
-                  instance={displayInstance}
-                  cardDef={cardDef}
-                  isOwner={instance.ownerId === player.id}
-                  selected={selectedInstanceId === instance.instanceId}
-                  onDragEnd={moveInstance}
-                  onClick={handleCardClick}
-                  onDoubleClick={(id) => {
-                    if (canTakeAction(state, 'SANDBOX_TAP_CARD')) publishMove({ type: 'TAP_CARD', playerId: player.id, instanceId: id });
-                  }}
-                  onContextMenu={(id) => {
-                    if (canTakeAction(state, 'SANDBOX_FLIP_CARD')) publishMove({ type: 'FLIP_CARD', playerId: player.id, instanceId: id });
-                  }}
-                  animate={pendingAnimations.current.delete(instance.instanceId)}
-                  scale={cardScale}
-                  onHover={handleCardHover}
-                />
-              );
-            })}
+          {boardCardDisplayItems.map(({ instance, displayInstance }) => {
+            const cardDef = cardsById.get(instance.cardId);
+            if (!cardDef) return null;
+            return (
+              <CardSprite
+                key={instance.instanceId}
+                instance={displayInstance}
+                cardDef={cardDef}
+                isOwner={instance.ownerId === player.id}
+                selected={selectedInstanceId === instance.instanceId}
+                onDragEnd={moveInstance}
+                onClick={handleCardClick}
+                onDoubleClick={(id) => {
+                  if (canTakeAction(state, 'SANDBOX_TAP_CARD')) publishMove({ type: 'TAP_CARD', playerId: player.id, instanceId: id });
+                }}
+                onContextMenu={(id) => {
+                  if (canTakeAction(state, 'SANDBOX_FLIP_CARD')) publishMove({ type: 'FLIP_CARD', playerId: player.id, instanceId: id });
+                }}
+                animate={pendingAnimations.current.delete(instance.instanceId)}
+                scale={cardScale}
+                onHover={handleCardHover}
+              />
+            );
+          })}
+        </Layer>
+        <Layer listening={false}>
+          {pendingSpellInstanceId
+            ? boardCardDisplayItems
+                .filter(({ instance }) => {
+                  if (!sameZone(instance.zone, 'battlefield')) return false;
+                  const pendingCardDef = cardsById.get(state.cards.find((candidate) => candidate.instanceId === pendingSpellInstanceId)?.cardId ?? '');
+                  const scope = cardTargetScope(pendingCardDef);
+                  return scope === 'friendly' ? instance.ownerId === player.id : scope === 'enemy' ? instance.ownerId !== player.id : true;
+                })
+                .map(({ instance, displayInstance }) => <Rect key={`target-top-${instance.instanceId}`} x={displayInstance.x - 44} y={displayInstance.y - 60} width={88} height={120} fill="rgba(229,108,79,0.12)" stroke="#e56c4f" shadowColor="#e56c4f" shadowBlur={20} cornerRadius={6} />)
+            : null}
+          {pendingSpellInstanceId ? <Text x={0} y={8} width={size.width} text="Click a highlighted unit to target it - Esc to cancel" align="center" fontSize={13} fontStyle="bold" fill="#e56c4f" /> : null}
         </Layer>
       </Stage>
       {ownRuneZone ? (
