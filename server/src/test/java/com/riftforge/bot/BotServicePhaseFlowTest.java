@@ -3,6 +3,7 @@ package com.riftforge.bot;
 import static com.riftforge.bot.BotConstants.ALL_BOT_IDS;
 import static com.riftforge.bot.BotConstants.BOT_ID;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -10,13 +11,17 @@ import com.riftforge.effect.CardEffectRegistry;
 import com.riftforge.engine.CardZoneService;
 import com.riftforge.engine.CombatResolver;
 import com.riftforge.engine.GameEngine;
+import com.riftforge.engine.IllegalMoveException;
 import com.riftforge.engine.RulesValidator;
 import com.riftforge.model.CardDefinition;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.LobbyPlayer;
 import com.riftforge.model.Phase;
 import com.riftforge.model.RoomState;
+import com.riftforge.model.ZoneName;
+import com.riftforge.rules.LegalAction;
 import com.riftforge.model.move.PassPhaseMove;
+import com.riftforge.model.move.PlayCardMove;
 import com.riftforge.rules.LegalActionsService;
 import com.riftforge.service.CardDataService;
 import com.riftforge.service.GameService;
@@ -29,6 +34,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,7 +68,7 @@ class BotServicePhaseFlowTest {
     GameEngine engine = new GameEngine(rulesValidator, combatResolver, cardZoneService, cardDataService, effects, 8);
     gameService = new GameService(engine, cardDataService, messaging, eventPublisher, new MatchHistoryService(), new GameStateProjectionService(new LegalActionsService()));
     roomService = new RoomService(messaging, cardDataService);
-    botService = new BotService(gameService, cardDataService);
+    botService = new BotService(gameService, cardDataService, new LegalActionsService());
     when(cardDataService.getAll()).thenReturn(cards);
     when(cardDataService.getCard(anyString())).thenAnswer(invocation -> cards.get(invocation.getArgument(0)));
     add("legend", "Legend", 0);
@@ -289,7 +295,7 @@ class BotServicePhaseFlowTest {
         publisher,
         new MatchHistoryService(),
         new GameStateProjectionService(new LegalActionsService()));
-    BotService eventedBotService = new BotService(eventedGameService, cardDataService);
+    BotService eventedBotService = new BotService(eventedGameService, cardDataService, new LegalActionsService());
     publisher.setBotService(eventedBotService);
 
     String roomCode = "2ERB";
@@ -310,6 +316,231 @@ class BotServicePhaseFlowTest {
     LiveGameState latest = waitUntilNotAwakenWithBotActive(eventedGameService, roomCode);
     latest.setWinnerId("test-complete");
     assertThat(latest.getCurrentPhase()).isIn(Phase.BEGINNING, Phase.CHANNEL, Phase.DRAW, Phase.MAIN, Phase.END);
+  }
+
+  @Test
+  void botDoesNotPassAwakenWhenPassPhaseIsNotLegal() throws Exception {
+    BotService gatedBot = new BotService(
+        gameService,
+        cardDataService,
+        new FixedLegalActionsService((state, playerId) -> Set.of()));
+    String roomCode = "NOPE";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setActivePlayerId(BOT_ID);
+    state.setCurrentPhase(Phase.AWAKEN);
+
+    gatedBot.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+    Thread.sleep(900);
+
+    assertThat(gameService.currentState(roomCode).getCurrentPhase()).isEqualTo(Phase.AWAKEN);
+  }
+
+  @Test
+  void botPassesAwakenOnlyWhenPassPhaseIsLegal() throws Exception {
+    BotService gatedBot = new BotService(
+        gameService,
+        cardDataService,
+        new FixedLegalActionsService((state, playerId) -> Set.of(LegalAction.PASS_PHASE)));
+    String roomCode = "PASS";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setActivePlayerId(BOT_ID);
+    state.setCurrentPhase(Phase.AWAKEN);
+
+    gatedBot.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+    LiveGameState latest = waitUntilNotAwakenWithBotActive(gameService, roomCode);
+    latest.setWinnerId("test-complete");
+
+    assertThat(latest.getCurrentPhase()).isEqualTo(Phase.BEGINNING);
+  }
+
+  @Test
+  void botDoesNotPlayCardDuringAwakenEvenIfPlayCardIsAdvertised() throws Exception {
+    BotService gatedBot = new BotService(
+        gameService,
+        cardDataService,
+        new FixedLegalActionsService((state, playerId) -> Set.of(LegalAction.PLAY_CARD)));
+    String roomCode = "NOWP";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setActivePlayerId(BOT_ID);
+    state.setCurrentPhase(Phase.AWAKEN);
+    long handBefore = state.getCards().stream()
+        .filter(card -> BOT_ID.equals(card.getOwnerId()) && card.getZone() == ZoneName.HAND)
+        .count();
+
+    gatedBot.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+    Thread.sleep(900);
+
+    LiveGameState latest = gameService.currentState(roomCode);
+    long handAfter = latest.getCards().stream()
+        .filter(card -> BOT_ID.equals(card.getOwnerId()) && card.getZone() == ZoneName.HAND)
+        .count();
+    assertThat(latest.getCurrentPhase()).isEqualTo(Phase.AWAKEN);
+    assertThat(handAfter).isEqualTo(handBefore);
+  }
+
+  @Test
+  void rulesValidatorStillRejectsManualPlayCardOutsideMain() {
+    String roomCode = "RULE";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setActivePlayerId(BOT_ID);
+    state.setCurrentPhase(Phase.AWAKEN);
+    String handCardId = state.getCards().stream()
+        .filter(card -> BOT_ID.equals(card.getOwnerId()) && card.getZone() == ZoneName.HAND)
+        .findFirst()
+        .orElseThrow()
+        .getInstanceId();
+
+    assertThatThrownBy(() -> new RulesValidator(cardDataService).validate(
+        state,
+        new PlayCardMove(BOT_ID, handCardId, ZoneName.BASE, 0, 0, null)))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("That action can only be taken during MAIN.");
+  }
+
+  @Test
+  void botDoesNotMoveToBattlefieldWhenActionIsNotLegal() throws Exception {
+    BotService gatedBot = new BotService(
+        gameService,
+        cardDataService,
+        new FixedLegalActionsService((state, playerId) -> Set.of(LegalAction.PASS_PHASE)));
+    String roomCode = "NOMV";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setActivePlayerId(BOT_ID);
+    state.setCurrentPhase(Phase.MAIN);
+    state.getCards().stream()
+        .filter(card -> BOT_ID.equals(card.getOwnerId()) && card.getZone() == ZoneName.CHAMPION)
+        .forEach(card -> card.setTapped(false));
+
+    gatedBot.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+    Thread.sleep(900);
+
+    assertThat(gameService.currentState(roomCode).getCards())
+        .filteredOn(card -> BOT_ID.equals(card.getOwnerId()))
+        .noneMatch(card -> card.getZone() == ZoneName.BATTLEFIELD);
+  }
+
+  @Test
+  void botCanMoveToBattlefieldWhenActionIsLegal() throws Exception {
+    BotService gatedBot = new BotService(
+        gameService,
+        cardDataService,
+        new FixedLegalActionsService((state, playerId) -> Set.of(LegalAction.MOVE_TO_BATTLEFIELD, LegalAction.PASS_PHASE)));
+    String roomCode = "MOVE";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setActivePlayerId(BOT_ID);
+    state.setCurrentPhase(Phase.MAIN);
+    state.getCards().stream()
+        .filter(card -> BOT_ID.equals(card.getOwnerId()) && card.getZone() == ZoneName.CHAMPION)
+        .forEach(card -> card.setTapped(false));
+
+    gatedBot.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+    long deadline = System.currentTimeMillis() + 2_000;
+    while (System.currentTimeMillis() < deadline
+        && gameService.currentState(roomCode).getCards().stream()
+            .noneMatch(card -> BOT_ID.equals(card.getOwnerId()) && card.getZone() == ZoneName.BATTLEFIELD)) {
+      Thread.sleep(25);
+    }
+
+    gameService.currentState(roomCode).setWinnerId("test-complete");
+    assertThat(gameService.currentState(roomCode).getCards())
+        .filteredOn(card -> BOT_ID.equals(card.getOwnerId()))
+        .anyMatch(card -> card.getZone() == ZoneName.BATTLEFIELD);
+  }
+
+  @Test
+  void botDoesNotPlayCardInMainWhenPlayCardIsNotLegal() throws Exception {
+    BotService gatedBot = new BotService(
+        gameService,
+        cardDataService,
+        new FixedLegalActionsService((state, playerId) -> Set.of(LegalAction.PASS_PHASE, LegalAction.TAP_RUNE)));
+    String roomCode = "NOPL";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setActivePlayerId(BOT_ID);
+    state.setCurrentPhase(Phase.MAIN);
+    long handBefore = state.getCards().stream()
+        .filter(card -> BOT_ID.equals(card.getOwnerId()) && card.getZone() == ZoneName.HAND)
+        .count();
+
+    gatedBot.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+    Thread.sleep(900);
+
+    long handAfter = gameService.currentState(roomCode).getCards().stream()
+        .filter(card -> BOT_ID.equals(card.getOwnerId()) && card.getZone() == ZoneName.HAND)
+        .count();
+    assertThat(handAfter).isEqualTo(handBefore);
+  }
+
+  @Test
+  void botCanPlayCardInMainWhenPlayCardIsLegal() throws Exception {
+    BotService gatedBot = new BotService(
+        gameService,
+        cardDataService,
+        new FixedLegalActionsService((state, playerId) -> Set.of(LegalAction.PLAY_CARD, LegalAction.PASS_PHASE)));
+    String roomCode = "PLAY";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setActivePlayerId(BOT_ID);
+    state.setCurrentPhase(Phase.MAIN);
+    state.getPlayers().stream()
+        .filter(player -> BOT_ID.equals(player.getUserId()))
+        .findFirst()
+        .orElseThrow()
+        .setAvailableEnergy(400);
+    long handBefore = state.getCards().stream()
+        .filter(card -> BOT_ID.equals(card.getOwnerId()) && card.getZone() == ZoneName.HAND)
+        .count();
+
+    gatedBot.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+    long deadline = System.currentTimeMillis() + 2_000;
+    long handAfter = handBefore;
+    while (System.currentTimeMillis() < deadline && handAfter == handBefore) {
+      Thread.sleep(25);
+      handAfter = gameService.currentState(roomCode).getCards().stream()
+          .filter(card -> BOT_ID.equals(card.getOwnerId()) && card.getZone() == ZoneName.HAND)
+          .count();
+    }
+
+    gameService.currentState(roomCode).setWinnerId("test-complete");
+    assertThat(handAfter).isLessThan(handBefore);
   }
 
   private void add(String id, String type, int cost) {
@@ -383,6 +614,19 @@ class BotServicePhaseFlowTest {
         }
         if (botService != null) botService.onStateChanged(gameEvent);
       }
+    }
+  }
+
+  private static final class FixedLegalActionsService extends LegalActionsService {
+    private final BiFunction<LiveGameState, String, Set<LegalAction>> delegate;
+
+    private FixedLegalActionsService(BiFunction<LiveGameState, String, Set<LegalAction>> delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    public Set<LegalAction> legalActionsFor(LiveGameState state, String playerId) {
+      return delegate.apply(state, playerId);
     }
   }
 }

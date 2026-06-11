@@ -16,6 +16,8 @@ import com.riftforge.model.move.MulliganMove;
 import com.riftforge.model.move.MoveRequest;
 import com.riftforge.model.move.ResolveShowdownMove;
 import com.riftforge.model.move.TapRuneMove;
+import com.riftforge.rules.LegalAction;
+import com.riftforge.rules.LegalActionsService;
 import com.riftforge.service.CardDataService;
 import com.riftforge.service.GameService;
 import java.util.Comparator;
@@ -24,6 +26,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import jakarta.annotation.PostConstruct;
 import org.springframework.context.event.EventListener;
 import org.springframework.context.annotation.Lazy;
@@ -38,10 +41,12 @@ public class BotService {
   private final Set<String> actingRooms = ConcurrentHashMap.newKeySet();
   private final GameService gameService;
   private final CardDataService cardDataService;
+  private final LegalActionsService legalActionsService;
 
-  public BotService(@Lazy GameService gameService, CardDataService cardDataService) {
+  public BotService(@Lazy GameService gameService, CardDataService cardDataService, LegalActionsService legalActionsService) {
     this.gameService = gameService;
     this.cardDataService = cardDataService;
+    this.legalActionsService = legalActionsService;
   }
 
   @PostConstruct
@@ -56,7 +61,7 @@ public class BotService {
       String roomCode = normalizeRoomCode(state.getRoomCode());
       String actingBotId = actingBotId(state);
       if (actingBotId == null || actingRooms.contains(roomCode)) continue;
-      log.info(
+      log.debug(
           "Bot sweep found pending bot action: room={}, phase={}, activePlayer={}, actingBotId={}",
           roomCode,
           state.getCurrentPhase(),
@@ -83,7 +88,7 @@ public class BotService {
 
     String actingBotId = actingBotId(state);
     boolean alreadyActing = actingRooms.contains(roomCode);
-    log.info(
+    log.debug(
         "Bot event received: rawRoom={}, room={}, phase={}, activePlayer={}, players={}, botIds={}, anyBotInGame={}, actingBotId={}, actingRoomsBeforeAdd={}, actingRoomAlready={}",
         event.getRoomCode(),
         roomCode,
@@ -98,18 +103,19 @@ public class BotService {
     if (!anyBotInGame) return;
     if (actingBotId == null) return;
     boolean addedActingRoom = actingRooms.add(roomCode);
-    log.info("Bot acting-room guard: room={}, added={}, activeRooms={}", roomCode, addedActingRoom, actingRooms);
+    log.debug("Bot acting-room guard: room={}, added={}, activeRooms={}", roomCode, addedActingRoom, actingRooms);
     if (!addedActingRoom) return;
 
     boolean isBotVsBot = state.getPlayers().stream()
         .allMatch(p -> isBotId(p.getUserId()));
     long delay = isBotVsBot ? 350L : 700L;
     final String botId = actingBotId;
+    AtomicBoolean acted = new AtomicBoolean(false);
     CompletableFuture.runAsync(() -> {
       try {
         Thread.sleep(delay);
         LiveGameState current = gameService.currentState(roomCode);
-        log.info(
+        log.debug(
             "Bot async started: room={}, bot={}, currentState={}, phase={}, activePlayer={}",
             roomCode,
             botId,
@@ -117,7 +123,7 @@ public class BotService {
             current == null ? null : current.getCurrentPhase(),
             current == null ? null : current.getActivePlayerId());
         if (current == null || current.getWinnerId() != null) return;
-        log.info(
+        log.debug(
             "Bot acting: room={}, bot={}, phase={}, activePlayer={}, activeShowdown={}, gameMode={}",
             roomCode,
             botId,
@@ -125,7 +131,7 @@ public class BotService {
             current.getActivePlayerId(),
             current.getActiveShowdown() != null,
             current.getGameMode());
-        doActiveTurn(roomCode, current, botId);
+        acted.set(doActiveTurn(roomCode, current, botId));
       } catch (Exception e) {
         // A bot failure must never interrupt the game server.
         LiveGameState current = gameService.currentState(roomCode);
@@ -141,82 +147,107 @@ public class BotService {
       } finally {
         actingRooms.remove(roomCode);
         LiveGameState latest = gameService.currentState(roomCode);
-        if (latest != null) onStateChanged(new GameStateChangedEvent(this, roomCode, latest));
+        if (acted.get() && latest != null) onStateChanged(new GameStateChangedEvent(this, roomCode, latest));
       }
     });
   }
 
-  private void doActiveTurn(String roomCode, LiveGameState state, String botId) {
+  private boolean doActiveTurn(String roomCode, LiveGameState state, String botId) {
+    Set<LegalAction> legalActions = legalActions(state, botId);
+    log.debug(
+        "Bot legal actions: room={}, bot={}, phase={}, activePlayer={}, activeShowdown={}, actions={}",
+        roomCode,
+        botId,
+        state.getCurrentPhase(),
+        state.getActivePlayerId(),
+        state.getActiveShowdown() != null,
+        legalActions);
+    if (legalActions.isEmpty()) {
+      logNoLegalAction(roomCode, state, botId, legalActions);
+      return false;
+    }
     if (state.getActiveShowdown() != null) {
-      processBotMove(roomCode, state, botId, new ResolveShowdownMove(botId));
-      return;
+      if (legalActions.contains(LegalAction.RESOLVE_SHOWDOWN)) {
+        return processBotMove(roomCode, state, botId, new ResolveShowdownMove(botId));
+      } else {
+        log.debug("Bot waiting during showdown: room={}, bot={}, legalActions={}", roomCode, botId, legalActions);
+      }
+      return false;
     }
-    switch (state.getCurrentPhase()) {
-      case MULLIGAN -> doMulligan(roomCode, state, botId);
-      case AWAKEN, BEGINNING, CHANNEL, DRAW, END -> processBotMove(roomCode, state, botId, new PassPhaseMove(botId));
+    return switch (state.getCurrentPhase()) {
+      case MULLIGAN -> {
+        if (legalActions.contains(LegalAction.MULLIGAN) || legalActions.contains(LegalAction.KEEP_HAND)) {
+          yield doMulligan(roomCode, state, botId);
+        } else {
+          log.warn("Bot cannot mulligan because no mulligan action is legal: room={}, bot={}, legalActions={}", roomCode, botId, legalActions);
+          yield false;
+        }
+      }
+      case AWAKEN, BEGINNING, CHANNEL, DRAW, END -> passIfLegal(roomCode, state, botId, legalActions);
       case MAIN -> doMain(roomCode, state, botId);
-    }
+    };
   }
 
-  private void doMulligan(String roomCode, LiveGameState state, String botId) {
-    processBotMove(roomCode, state, botId, new MulliganMove(botId, List.of()));
+  private boolean doMulligan(String roomCode, LiveGameState state, String botId) {
+    return processBotMove(roomCode, state, botId, new MulliganMove(botId, List.of()));
   }
 
-  private void doMain(String roomCode, LiveGameState state, String botId) {
-    List<CardInstance> readyChampions = state.getCards().stream()
-        .filter(c -> botId.equals(c.getOwnerId()) && c.getZone() == ZoneName.CHAMPION && !c.isTapped())
-        .toList();
-    for (CardInstance champion : readyChampions) {
-      int battlefieldCount = (int) state.getCards().stream()
-          .filter(c -> botId.equals(c.getOwnerId()) && c.getZone() == ZoneName.BATTLEFIELD)
-          .count();
-      processBotMove(roomCode, state, botId, new MoveToBattlefieldMove(botId, champion.getInstanceId()));
-      sleepBriefly(200);
-      state = gameService.currentState(roomCode);
-      if (state != null && state.getActiveShowdown() != null) {
-        processBotMove(roomCode, state, botId, new ResolveShowdownMove(botId));
+  private boolean doMain(String roomCode, LiveGameState state, String botId) {
+    boolean acted = false;
+    if (legalActions(state, botId).contains(LegalAction.MOVE_TO_BATTLEFIELD)) {
+      List<CardInstance> readyChampions = state.getCards().stream()
+          .filter(c -> botId.equals(c.getOwnerId()) && c.getZone() == ZoneName.CHAMPION && !c.isTapped())
+          .toList();
+      for (CardInstance champion : readyChampions) {
+        Set<LegalAction> actions = legalActions(state, botId);
+        if (!actions.contains(LegalAction.MOVE_TO_BATTLEFIELD)) break;
+        acted |= processBotMove(roomCode, state, botId, new MoveToBattlefieldMove(botId, champion.getInstanceId()));
         sleepBriefly(200);
         state = gameService.currentState(roomCode);
+        state = resolveShowdownIfLegal(roomCode, state, botId);
+        if (state == null) return acted;
       }
-    }
-    if (state == null) return;
 
-    List<CardInstance> readyBaseCards = state.getCards().stream()
-        .filter(c -> botId.equals(c.getOwnerId()) && c.getZone() == ZoneName.BASE && !c.isTapped())
-        .toList();
-    for (CardInstance card : readyBaseCards) {
-      int battlefieldCount = (int) state.getCards().stream()
-          .filter(c -> botId.equals(c.getOwnerId()) && c.getZone() == ZoneName.BATTLEFIELD)
-          .count();
-      processBotMove(roomCode, state, botId, new MoveToBattlefieldMove(botId, card.getInstanceId()));
-      sleepBriefly(200);
-      state = gameService.currentState(roomCode);
-      if (state != null && state.getActiveShowdown() != null) {
-        processBotMove(roomCode, state, botId, new ResolveShowdownMove(botId));
+      List<CardInstance> readyBaseCards = state.getCards().stream()
+          .filter(c -> botId.equals(c.getOwnerId()) && c.getZone() == ZoneName.BASE && !c.isTapped())
+          .toList();
+      for (CardInstance card : readyBaseCards) {
+        Set<LegalAction> actions = legalActions(state, botId);
+        if (!actions.contains(LegalAction.MOVE_TO_BATTLEFIELD)) break;
+        acted |= processBotMove(roomCode, state, botId, new MoveToBattlefieldMove(botId, card.getInstanceId()));
         sleepBriefly(200);
         state = gameService.currentState(roomCode);
+        state = resolveShowdownIfLegal(roomCode, state, botId);
+        if (state == null) return acted;
       }
     }
-    if (state == null) return;
+    if (state == null) return acted;
 
-    List<RuneState> untappedRunes = state.getRunes().stream()
-        .filter(r -> botId.equals(r.getOwnerId()) && !r.isTapped())
-        .toList();
-    for (RuneState rune : untappedRunes) {
-      processBotMove(roomCode, state, botId, new TapRuneMove(botId, rune.getInstanceId()));
-      sleepBriefly(200);
-      state = gameService.currentState(roomCode);
-      if (state == null) return;
+    if (legalActions(state, botId).contains(LegalAction.TAP_RUNE)) {
+      List<RuneState> untappedRunes = state.getRunes().stream()
+          .filter(r -> botId.equals(r.getOwnerId()) && !r.isTapped())
+          .toList();
+      for (RuneState rune : untappedRunes) {
+        Set<LegalAction> actions = legalActions(state, botId);
+        if (!actions.contains(LegalAction.TAP_RUNE)) break;
+        acted |= processBotMove(roomCode, state, botId, new TapRuneMove(botId, rune.getInstanceId()));
+        sleepBriefly(200);
+        state = gameService.currentState(roomCode);
+        if (state == null) return acted;
+      }
     }
 
     LiveGameState playableState = gameService.currentState(roomCode);
+    Set<LegalAction> playableActions = legalActions(playableState, botId);
+    if (!playableActions.contains(LegalAction.PLAY_CARD)) {
+      return passIfLegal(roomCode, playableState, botId, playableActions) || acted;
+    }
     boolean anyPlayable = playableState != null && playableState.getCards().stream()
         .anyMatch(c -> botId.equals(c.getOwnerId())
             && c.getZone() == ZoneName.HAND
             && cardDataService.getCard(c.getCardId()).cost() <= botEnergy(playableState, botId));
     if (!anyPlayable) {
-      processBotMove(roomCode, playableState, botId, new PassPhaseMove(botId));
-      return;
+      return passIfLegal(roomCode, playableState, botId, playableActions) || acted;
     }
 
     boolean played = true;
@@ -224,6 +255,7 @@ public class BotService {
       played = false;
       LiveGameState current = gameService.currentState(roomCode);
       if (current == null || current.getWinnerId() != null || current.getCurrentPhase() != Phase.MAIN) break;
+      if (!legalActions(current, botId).contains(LegalAction.PLAY_CARD)) break;
       int energy = botEnergy(current, botId);
       Optional<CardInstance> pick = current.getCards().stream()
           .filter(c -> botId.equals(c.getOwnerId()) && c.getZone() == ZoneName.HAND)
@@ -239,18 +271,48 @@ public class BotService {
         int boardCount = (int) current.getCards().stream()
             .filter(c -> botId.equals(c.getOwnerId()) && (c.getZone() == ZoneName.BASE || c.getZone() == ZoneName.BATTLEFIELD))
             .count();
-        processBotMove(roomCode, current, botId, new PlayCardMove(botId, pick.get().getInstanceId(), ZoneName.BASE, 60 + boardCount * 100, 220, targetInstanceId));
+        acted |= processBotMove(roomCode, current, botId, new PlayCardMove(botId, pick.get().getInstanceId(), ZoneName.BASE, 60 + boardCount * 100, 220, targetInstanceId));
         sleepBriefly(300);
         played = true;
       }
     }
-    processBotMove(roomCode, gameService.currentState(roomCode), botId, new PassPhaseMove(botId));
+    LiveGameState latest = gameService.currentState(roomCode);
+    return passIfLegal(roomCode, latest, botId, legalActions(latest, botId)) || acted;
   }
 
-  private void processBotMove(String roomCode, LiveGameState state, String botId, MoveRequest move) {
+  private LiveGameState resolveShowdownIfLegal(String roomCode, LiveGameState state, String botId) {
+    if (state == null || state.getActiveShowdown() == null) return state;
+    Set<LegalAction> actions = legalActions(state, botId);
+    if (!actions.contains(LegalAction.RESOLVE_SHOWDOWN)) {
+      log.debug("Bot cannot resolve showdown yet: room={}, bot={}, legalActions={}", roomCode, botId, actions);
+      return state;
+    }
+    processBotMove(roomCode, state, botId, new ResolveShowdownMove(botId));
+    sleepBriefly(200);
+    return gameService.currentState(roomCode);
+  }
+
+  private boolean passIfLegal(String roomCode, LiveGameState state, String botId, Set<LegalAction> legalActions) {
+    if (state == null) return false;
+    if (legalActions.contains(LegalAction.PASS_PHASE) || legalActions.contains(LegalAction.END_TURN)) {
+      return processBotMove(roomCode, state, botId, new PassPhaseMove(botId));
+    }
+    log.warn(
+        "Bot cannot pass because PASS_PHASE is not legal: room={}, bot={}, phase={}, activePlayer={}, activeShowdown={}, gameMode={}, legalActions={}",
+        roomCode,
+        botId,
+        state.getCurrentPhase(),
+        state.getActivePlayerId(),
+        state.getActiveShowdown() != null,
+        state.getGameMode(),
+        legalActions);
+    return false;
+  }
+
+  private boolean processBotMove(String roomCode, LiveGameState state, String botId, MoveRequest move) {
     Phase beforePhase = state == null ? null : state.getCurrentPhase();
     String beforeActivePlayer = state == null ? null : state.getActivePlayerId();
-    log.info(
+    log.debug(
         "Bot move before: room={}, bot={}, move={}, phaseBefore={}, activePlayerBefore={}, activeShowdown={}, gameMode={}",
         roomCode,
         botId,
@@ -263,7 +325,7 @@ public class BotService {
     LiveGameState latest = gameService.currentState(roomCode);
     boolean phaseChanged = latest != null && beforePhase != latest.getCurrentPhase();
     boolean activePlayerChanged = latest != null && beforeActivePlayer != null && !beforeActivePlayer.equals(latest.getActivePlayerId());
-    log.info(
+    log.debug(
         "Bot move after: room={}, bot={}, move={}, latestPhase={}, latestActivePlayer={}, phaseChanged={}, activePlayerChanged={}, winner={}, activeShowdown={}",
         roomCode,
         botId,
@@ -286,6 +348,7 @@ public class BotService {
           latest.getCurrentPhase(),
           latest.getActivePlayerId());
     }
+    return true;
   }
 
   private boolean hasValidSpellTarget(LiveGameState state, CardInstance card, String botId) {
@@ -321,6 +384,22 @@ public class BotService {
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     }
+  }
+
+  private Set<LegalAction> legalActions(LiveGameState state, String botId) {
+    return state == null ? Set.of() : legalActionsService.legalActionsFor(state, botId);
+  }
+
+  private void logNoLegalAction(String roomCode, LiveGameState state, String botId, Set<LegalAction> legalActions) {
+    log.warn(
+        "Bot is active but has no legal actions: room={}, bot={}, phase={}, activePlayer={}, activeShowdown={}, gameMode={}, legalActions={}",
+        roomCode,
+        botId,
+        state.getCurrentPhase(),
+        state.getActivePlayerId(),
+        state.getActiveShowdown() != null,
+        state.getGameMode(),
+        legalActions);
   }
 
   private boolean isBotId(String playerId) {
