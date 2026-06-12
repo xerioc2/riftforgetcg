@@ -522,26 +522,31 @@ function ValidationReport({ validation }: { validation: ReturnType<typeof valida
     {
       label: 'Illegal',
       tone: 'bad' as const,
+      note: '',
       items: validation.messages,
     },
     {
       label: 'Banned',
       tone: 'bad' as const,
+      note: 'Not legal in constructed.',
       items: validation.bannedCards.map((card) => card.name),
     },
     {
       label: 'Unsupported',
       tone: 'bad' as const,
+      note: 'Blocked in enforced play.',
       items: validation.unsupportedCards.map(({ card, reason }) => `${card.name}: ${reason}`),
     },
     {
       label: 'Partial',
       tone: 'warn' as const,
+      note: 'Playable for alpha testing, but rules may be incomplete.',
       items: validation.partialCards.map(({ card }) => card.name),
     },
     {
       label: 'Missing data',
       tone: 'bad' as const,
+      note: 'Not available in supported-only mode yet.',
       items: validation.missingCardIds,
     },
   ].filter((section) => section.items.length > 0);
@@ -565,6 +570,7 @@ function ValidationReport({ validation }: { validation: ReturnType<typeof valida
           key={section.label}
         >
           <p className="font-semibold">{section.label}</p>
+          {section.note ? <p className="mt-1 text-slate-400">{section.note}</p> : null}
           <p className="mt-1">{section.items.slice(0, 5).join(' ')}</p>
           {section.items.length > 5 ? <p className="mt-1">+{section.items.length - 5} more</p> : null}
         </div>

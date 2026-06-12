@@ -10,6 +10,7 @@ import com.riftforge.effect.CardEffectRegistry;
 import com.riftforge.model.CardDefinition;
 import com.riftforge.model.CardInstance;
 import com.riftforge.model.LiveGameState;
+import com.riftforge.model.PlayerState;
 import com.riftforge.model.ZoneName;
 import com.riftforge.service.CardDataService;
 import java.util.ArrayList;
@@ -30,10 +31,12 @@ class CombatResolverTest {
   @Mock CardEffectRegistry effects;
   @Mock CardZoneService cardZoneService;
   CombatResolver resolver;
+  DeathTriggerService deathTriggerService;
 
   @BeforeEach
   void setUp() {
-    resolver = new CombatResolver(cardDataService, effects, cardZoneService, new CombatStatsService(cardDataService));
+    deathTriggerService = new DeathTriggerService(cardDataService);
+    resolver = new CombatResolver(cardDataService, effects, cardZoneService, new CombatStatsService(cardDataService), deathTriggerService);
     when(effects.getEffect(anyString())).thenReturn(Optional.empty());
     doAnswer(invocation -> {
       ((CardInstance) invocation.getArgument(0)).setZone(ZoneName.DISCARD);
@@ -56,6 +59,62 @@ class CombatResolverTest {
   }
 
   @Test
+  void daringPoroAssaultChangesCombatDamageOnlyWhileAttacking() {
+    CardInstance daringPoro = card("poro", "daring-poro", "p1");
+    CardInstance defender = card("d", "two-health-defender", "p2");
+    stub(daringPoro, 1, 2, "Daring Poro", List.of("Assault"));
+    stub(defender, 1, 2);
+    when(cardDataService.getKeywordValue(daringPoro, "ASSAULT")).thenReturn(1);
+
+    resolver.resolve(state(daringPoro, defender), "p1");
+
+    assertThat(defender.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(daringPoro.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+  }
+
+  @Test
+  void daringPoroDoesNotGetAssaultBonusWhileDefending() {
+    CardInstance attacker = card("a", "two-might-attacker", "p1");
+    CardInstance daringPoro = card("poro", "daring-poro", "p2");
+    stub(attacker, 2, 2);
+    stub(daringPoro, 1, 2, "Daring Poro", List.of("Assault"));
+    when(cardDataService.getKeywordValue(daringPoro, "SHIELD")).thenReturn(0);
+
+    resolver.resolve(state(attacker, daringPoro), "p1");
+
+    assertThat(attacker.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(daringPoro.getZone()).isEqualTo(ZoneName.DISCARD);
+  }
+
+  @Test
+  void laurentDuelistAssaultTwoChangesCombatDamageOnlyWhileAttacking() {
+    CardInstance duelist = card("duelist", "laurent-duelist", "p1");
+    CardInstance defender = card("d", "four-health-defender", "p2");
+    stub(duelist, 2, 3, "Laurent Duelist", List.of("Assault 2"));
+    stub(defender, 1, 4);
+    when(cardDataService.getKeywordValue(duelist, "ASSAULT")).thenReturn(2);
+
+    resolver.resolve(state(duelist, defender), "p1");
+
+    assertThat(defender.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(duelist.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+  }
+
+  @Test
+  void laurentDuelistDoesNotGetAssaultTwoWhileDefending() {
+    CardInstance attacker = card("a", "three-might-attacker", "p1");
+    CardInstance duelist = card("duelist", "laurent-duelist", "p2");
+    stub(attacker, 3, 3);
+    stub(duelist, 2, 3, "Laurent Duelist", List.of("Assault 2"));
+    when(cardDataService.getKeywordValue(duelist, "SHIELD")).thenReturn(0);
+
+    resolver.resolve(state(attacker, duelist), "p1");
+
+    assertThat(attacker.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(duelist.getZone()).isEqualTo(ZoneName.DISCARD);
+  }
+
+  @Test
   void shieldAddsMightWhileDefending() {
     CardInstance attacker = card("a", "attacker", "p1");
     CardInstance defender = card("d", "shield", "p2");
@@ -66,6 +125,36 @@ class CombatResolverTest {
     resolver.resolve(state(attacker, defender), "p1");
 
     assertThat(attacker.getZone()).isEqualTo(ZoneName.DISCARD);
+  }
+
+  @Test
+  void shieldTwoChangesCombatDamageOnlyWhileDefending() {
+    CardInstance attacker = card("a", "attacker", "p1");
+    CardInstance defender = card("d", "fortified-position-target", "p2");
+    stub(attacker, 4, 4);
+    stub(defender, 2, 4, "Fortified Position Target", List.of());
+    defender.setTempKeywords(new ArrayList<>(List.of("Shield 2")));
+    when(cardDataService.getKeywordValue(defender, "SHIELD")).thenReturn(2);
+
+    resolver.resolve(state(attacker, defender), "p1");
+
+    assertThat(attacker.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(defender.getZone()).isEqualTo(ZoneName.DISCARD);
+  }
+
+  @Test
+  void shieldTwoDoesNotApplyWhileAttacking() {
+    CardInstance attacker = card("a", "fortified-position-target", "p1");
+    CardInstance defender = card("d", "three-health-defender", "p2");
+    stub(attacker, 2, 4, "Fortified Position Target", List.of());
+    stub(defender, 1, 3);
+    attacker.setTempKeywords(new ArrayList<>(List.of("Shield 2")));
+    when(cardDataService.getKeywordValue(attacker, "ASSAULT")).thenReturn(0);
+
+    resolver.resolve(state(attacker, defender), "p1");
+
+    assertThat(defender.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(attacker.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
   }
 
   @Test
@@ -155,13 +244,99 @@ class CombatResolverTest {
     assertThat(gear.getAttachedToInstanceId()).isNull();
   }
 
+  @Test
+  void loyalPoroDeathknellDrawsWhenItDidNotDieAlone() {
+    CardInstance attacker = card("a", "attacker", "p1");
+    CardInstance loyalPoro = card("loyal", "loyal-poro", "p2");
+    CardInstance friend = card("friend", "friend", "p2");
+    stub(attacker, 1, 2);
+    stub(loyalPoro, 0, 1, "Loyal Poro", List.of("DEATHKNELL"));
+    stub(friend, 0, 2);
+    stubCard("drawn", "Drawn Card", "Unit", 1, 1, List.of());
+    when(cardDataService.hasKeyword("loyal-poro", "DEATHKNELL")).thenReturn(true);
+    LiveGameState state = state(attacker, loyalPoro, friend);
+    state.setPlayers(playersWithDeck("drawn"));
+
+    resolver.resolve(state, "p1");
+
+    assertThat(loyalPoro.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(state.getCards()).anySatisfy(card -> {
+      assertThat(card.getOwnerId()).isEqualTo("p2");
+      assertThat(card.getCardId()).isEqualTo("drawn");
+      assertThat(card.getZone()).isEqualTo(ZoneName.HAND);
+    });
+    assertThat(state.getLog().stream().filter(entry -> entry.text().contains("Loyal Poro's Deathknell drew 1."))).hasSize(1);
+  }
+
+  @Test
+  void loyalPoroDeathknellDoesNotDrawWhenItDiesAlone() {
+    CardInstance attacker = card("a", "attacker", "p1");
+    CardInstance loyalPoro = card("loyal", "loyal-poro", "p2");
+    stub(attacker, 1, 2);
+    stub(loyalPoro, 0, 1, "Loyal Poro", List.of("DEATHKNELL"));
+    stubCard("drawn", "Drawn Card", "Unit", 1, 1, List.of());
+    when(cardDataService.hasKeyword("loyal-poro", "DEATHKNELL")).thenReturn(true);
+    LiveGameState state = state(attacker, loyalPoro);
+    state.setPlayers(playersWithDeck("drawn"));
+
+    resolver.resolve(state, "p1");
+
+    assertThat(loyalPoro.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(state.getCards()).noneMatch(card -> card.getCardId().equals("drawn"));
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().contains("Loyal Poro died alone."));
+  }
+
+  @Test
+  void simultaneousDeathknellEventsAreProcessedDeterministicallyAndOnce() {
+    CardInstance attacker = card("zed", "zed-deathknell", "p1");
+    CardInstance defender = card("alpha", "alpha-deathknell", "p2");
+    stub(attacker, 1, 1, "Zed Deathknell", List.of("DEATHKNELL"));
+    stub(defender, 1, 1, "Alpha Deathknell", List.of("DEATHKNELL"));
+    when(cardDataService.hasKeyword("zed-deathknell", "DEATHKNELL")).thenReturn(true);
+    when(cardDataService.hasKeyword("alpha-deathknell", "DEATHKNELL")).thenReturn(true);
+    LiveGameState state = state(attacker, defender);
+
+    resolver.resolve(state, "p1");
+
+    List<String> deathknellLogs = state.getLog().stream()
+        .map(LiveGameState.LogEntry::text)
+        .filter(text -> text.contains("Deathknell is not fully supported"))
+        .toList();
+    assertThat(deathknellLogs)
+        .containsExactly(
+            "Alpha Deathknell's Deathknell is not fully supported yet.",
+            "Zed Deathknell's Deathknell is not fully supported yet.");
+  }
+
+  @Test
+  void recruitTokenCanParticipateInCombat() {
+    CardInstance recruit = card("recruit", TokenFactory.RECRUIT_TOKEN_CARD_ID, "p1");
+    CardInstance defender = card("defender", "defender", "p2");
+    stubCard(TokenFactory.RECRUIT_TOKEN_CARD_ID, "Recruit", "Unit", 1, 1, List.of());
+    stub(defender, 0, 1);
+
+    CombatResolver.CombatResult result = resolver.resolve(state(recruit, defender), "p1");
+
+    assertThat(defender.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(recruit.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(result.defendersEliminated()).isTrue();
+  }
+
   private void stub(CardInstance card, int might) {
     stub(card, might, might);
   }
 
   private void stub(CardInstance card, int might, int health) {
-    when(cardDataService.getCard(card.getCardId())).thenReturn(
-        new CardDefinition(card.getCardId(), card.getCardId(), "Unit", null, List.of(), 0, 0, null, null, null, null, might, health, List.of()));
+    stub(card, might, health, card.getCardId(), List.of());
+  }
+
+  private void stub(CardInstance card, int might, int health, String name, List<String> keywords) {
+    stubCard(card.getCardId(), name, "Unit", might, health, keywords);
+  }
+
+  private void stubCard(String cardId, String name, String type, int might, int health, List<String> keywords) {
+    when(cardDataService.getCard(cardId)).thenReturn(
+        new CardDefinition(cardId, name, type, null, List.of(), 0, 0, null, null, null, null, might, health, keywords));
   }
 
   private CardInstance card(String instanceId, String cardId, String ownerId) {
@@ -179,5 +354,16 @@ class CombatResolverTest {
     state.setCards(new ArrayList<>(List.of(cards)));
     state.setLog(new ArrayList<>());
     return state;
+  }
+
+  private List<PlayerState> playersWithDeck(String... p2Deck) {
+    PlayerState p1 = new PlayerState();
+    p1.setUserId("p1");
+    p1.setName("Player One");
+    PlayerState p2 = new PlayerState();
+    p2.setUserId("p2");
+    p2.setName("Player Two");
+    p2.setDeckPool(new ArrayList<>(List.of(p2Deck)));
+    return new ArrayList<>(List.of(p1, p2));
   }
 }

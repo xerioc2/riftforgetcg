@@ -8,8 +8,10 @@ import com.riftforge.effect.CardEffectRegistry;
 import com.riftforge.engine.CardZoneService;
 import com.riftforge.engine.CombatResolver;
 import com.riftforge.engine.CombatStatsService;
+import com.riftforge.engine.DeathTriggerService;
 import com.riftforge.engine.GameEngine;
 import com.riftforge.engine.RulesValidator;
+import com.riftforge.engine.TokenFactory;
 import com.riftforge.model.CardDefinition;
 import com.riftforge.rules.LegalActionsService;
 import com.riftforge.service.CardDataService;
@@ -53,9 +55,11 @@ public final class GameStackFixture {
     });
     CardEffectRegistry effects = new CardEffectRegistry(cardDataService);
     CardZoneService cardZoneService = new CardZoneService(cardDataService);
-    CombatResolver combatResolver = new CombatResolver(cardDataService, effects, cardZoneService, new CombatStatsService(cardDataService));
+    DeathTriggerService deathTriggerService = new DeathTriggerService(cardDataService);
+    TokenFactory tokenFactory = new TokenFactory(cardDataService);
+    CombatResolver combatResolver = new CombatResolver(cardDataService, effects, cardZoneService, new CombatStatsService(cardDataService), deathTriggerService);
     RulesValidator rulesValidator = new RulesValidator(cardDataService);
-    GameEngine engine = new GameEngine(rulesValidator, combatResolver, cardZoneService, cardDataService, effects, TARGET_SCORE);
+    GameEngine engine = new GameEngine(rulesValidator, combatResolver, cardZoneService, cardDataService, effects, deathTriggerService, tokenFactory, TARGET_SCORE);
     gameService = new GameService(engine, cardDataService, messaging, eventPublisher, new MatchHistoryService(), projectionService);
     roomService = new RoomService(messaging, cardDataService);
   }

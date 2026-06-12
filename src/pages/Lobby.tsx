@@ -242,7 +242,7 @@ export function Lobby() {
                 />
                 <span>
                   Supported-cards-only mode
-                  <span className="block text-slate-500">Blocks unsupported or not-audited cards. Partial cards still show warnings.</span>
+                  <span className="block text-slate-500">Unsupported cards are blocked in enforced play. Not Audited cards are not available here yet. Partial cards still show warnings.</span>
                 </span>
               </label>
               {unsupportedCards.length > 0 ? (
@@ -252,7 +252,7 @@ export function Lobby() {
                     {unsupportedCards.slice(0, 5).map(({ card }) => card.name).join(', ')}
                     {unsupportedCards.length > 5 ? `, +${unsupportedCards.length - 5} more` : ''}
                   </p>
-                  <p className="mt-1 text-slate-400">These are blocked when supported-cards-only mode is enabled.</p>
+                  <p className="mt-1 text-slate-400">Unsupported means blocked in enforced play when supported-cards-only mode is enabled.</p>
                 </div>
               ) : null}
               {partialCards.length > 0 ? (
@@ -262,7 +262,7 @@ export function Lobby() {
                     {partialCards.slice(0, 5).map(({ card }) => card.name).join(', ')}
                     {partialCards.length > 5 ? `, +${partialCards.length - 5} more` : ''}
                   </p>
-                  <p className="mt-1 text-slate-400">Playable in alpha, but these effects may be inaccurate or incomplete.</p>
+                  <p className="mt-1 text-slate-400">Partial means playable for alpha testing, but rules may be incomplete.</p>
                 </div>
               ) : null}
               {me?.deckWarnings && me.deckWarnings.length > 0 ? (

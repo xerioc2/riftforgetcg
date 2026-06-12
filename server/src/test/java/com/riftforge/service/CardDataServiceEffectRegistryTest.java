@@ -102,6 +102,36 @@ class CardDataServiceEffectRegistryTest {
     assertThat(service.getKeywordValue(instance, "SHIELD")).isEqualTo(1);
   }
 
+  @Test
+  void keywordValuesAreCaseInsensitiveWhitespaceTolerantAndMissingKeywordsReturnZero() throws Exception {
+    CardDataService service = new CardDataService(
+        new ObjectMapper(),
+        "http://example.invalid",
+        new EffectHandlerRegistry(List.of(new AssaultHandler(), new ShieldHandler())));
+    install(service, new CardDefinition(
+        "mixed-combat-card",
+        "Mixed Combat Card",
+        "Unit",
+        null,
+        List.of(),
+        0,
+        0,
+        null,
+        null,
+        null,
+        "",
+        2,
+        2,
+        List.of("  assault   2  ")));
+    CardInstance instance = new CardInstance();
+    instance.setCardId("mixed-combat-card");
+    instance.setTempKeywords(new ArrayList<>(List.of("sHiElD2")));
+
+    assertThat(service.getKeywordValue(instance, "ASSAULT")).isEqualTo(2);
+    assertThat(service.getKeywordValue(instance, "shield")).isEqualTo(2);
+    assertThat(service.getKeywordValue(instance, "TANK")).isZero();
+  }
+
   @SuppressWarnings("unchecked")
   private void install(CardDataService service, CardDefinition card) throws Exception {
     Field cards = CardDataService.class.getDeclaredField("cards");

@@ -21,12 +21,14 @@ public class CombatResolver {
   private final CardEffectRegistry effects;
   private final CardZoneService cardZoneService;
   private final CombatStatsService combatStatsService;
+  private final DeathTriggerService deathTriggerService;
 
-  public CombatResolver(CardDataService cardDataService, CardEffectRegistry effects, CardZoneService cardZoneService, CombatStatsService combatStatsService) {
+  public CombatResolver(CardDataService cardDataService, CardEffectRegistry effects, CardZoneService cardZoneService, CombatStatsService combatStatsService, DeathTriggerService deathTriggerService) {
     this.cardDataService = cardDataService;
     this.effects = effects;
     this.cardZoneService = cardZoneService;
     this.combatStatsService = combatStatsService;
+    this.deathTriggerService = deathTriggerService;
   }
 
   public CombatResult resolve(LiveGameState state, String attackingPlayerId) {
@@ -65,6 +67,7 @@ public class CombatResolver {
   }
 
   private void applyDamage(LiveGameState state, Map<String, Integer> damage) {
+    List<CardInstance> destroyed = new java.util.ArrayList<>();
     for (CardInstance card : state.getCards().stream().filter(c -> c.getZone() == ZoneName.BATTLEFIELD).toList()) {
       int assigned = damage.getOrDefault(card.getInstanceId(), 0);
       if (assigned <= 0) continue;
@@ -74,8 +77,13 @@ public class CombatResolver {
     for (CardInstance card : state.getCards().stream().filter(c -> c.getZone() == ZoneName.BATTLEFIELD).toList()) {
       if (damage.getOrDefault(card.getInstanceId(), 0) <= 0) continue;
       if (card.getCurrentHealth() > 0) continue;
-      destroy(state, card);
+      destroyed.add(card);
     }
+    List<DeathEvent> deaths = destroyed.stream()
+        .map(card -> deathTriggerService.capture(card, state, DeathEvent.DeathCause.COMBAT))
+        .toList();
+    destroyed.forEach(card -> destroy(state, card));
+    deathTriggerService.process(state, deaths);
   }
 
   private int assignmentPriority(CardInstance card) {

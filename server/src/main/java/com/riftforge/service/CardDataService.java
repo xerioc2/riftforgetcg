@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.riftforge.effect.EffectHandlerRegistry;
 import com.riftforge.effect.EffectSupportStatus;
 import com.riftforge.engine.keyword.KeywordText;
+import com.riftforge.engine.TokenFactory;
 import com.riftforge.model.CardDefinition;
 import com.riftforge.model.CardInstance;
 import jakarta.annotation.PostConstruct;
@@ -191,6 +192,9 @@ public class CardDataService {
   }
 
   public CardDefinition getCard(String id) {
+    if (TokenFactory.RECRUIT_TOKEN_CARD_ID.equals(id)) {
+      return new CardDefinition(id, "Recruit", "Unit", null, List.of(), 0, 0, "Token", "RiftForge", null, "Token Unit.", 1, 1, List.of());
+    }
     return cards.getOrDefault(id, new CardDefinition(id, "Unknown Card", "Unknown", null, List.of(), 0, 0, null, null, null, "", 1, 1, List.of()));
   }
 
@@ -244,7 +248,7 @@ public class CardDataService {
   public boolean requiresFriendlyTarget(String cardId) {
     CardDefinition def = getCard(cardId);
     String text = def.rulesText() == null ? "" : def.rulesText().toLowerCase();
-    return isEquip(def) || text.contains("friendly unit") || text.contains("unit you control");
+    return isEquip(def) || text.contains("friendly unit") || text.contains("unit you control") || text.contains("ready it");
   }
 
   public boolean requiresEnemyTarget(String cardId) {

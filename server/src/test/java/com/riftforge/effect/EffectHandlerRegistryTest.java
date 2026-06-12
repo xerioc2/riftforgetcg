@@ -3,6 +3,7 @@ package com.riftforge.effect;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.riftforge.engine.keyword.AssaultHandler;
+import com.riftforge.engine.keyword.DeathknellHandler;
 import com.riftforge.engine.keyword.ShieldHandler;
 import com.riftforge.engine.keyword.TankHandler;
 import com.riftforge.engine.keyword.VisionHandler;
@@ -25,10 +26,10 @@ class EffectHandlerRegistryTest {
   void unsupportedTrackedKeywordIsReportedClearly() {
     EffectHandlerRegistry registry = new EffectHandlerRegistry(List.of(new TankHandler()));
 
-    EffectSupportStatus status = registry.keywordSupport("Deathknell");
+    EffectSupportStatus status = registry.keywordSupport("Ganking");
 
     assertThat(status.implemented()).isFalse();
-    assertThat(status.reason()).contains("DEATHKNELL").contains("registered handler");
+    assertThat(status.reason()).contains("GANKING").contains("registered handler");
   }
 
   @Test
@@ -46,6 +47,15 @@ class EffectHandlerRegistryTest {
 
     assertThat(registry.supportStatus(card("assault-card", "Unit", "", List.of("ASSAULT 2"))).implemented()).isTrue();
     assertThat(registry.supportStatus(card("shield-card", "Unit", "", List.of("SHIELD2"))).implemented()).isTrue();
+  }
+
+  @Test
+  void deathknellKeywordCardIsRecognizedByHandler() {
+    EffectHandlerRegistry registry = new EffectHandlerRegistry(List.of(new DeathknellHandler()));
+
+    EffectSupportStatus status = registry.supportStatus(card("loyal-poro", "Unit", "", List.of("Deathknell")));
+
+    assertThat(status.implemented()).isTrue();
   }
 
   @Test

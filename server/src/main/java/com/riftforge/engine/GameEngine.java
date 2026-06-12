@@ -30,14 +30,18 @@ public class GameEngine {
   private final CardZoneService cardZoneService;
   private final CardDataService cardDataService;
   private final CardEffectRegistry effects;
+  private final DeathTriggerService deathTriggerService;
+  private final TokenFactory tokenFactory;
   private final int targetScore;
 
-  public GameEngine(RulesValidator rulesValidator, CombatResolver combatResolver, CardZoneService cardZoneService, CardDataService cardDataService, CardEffectRegistry effects, @Value("${riftforge.target-score}") int targetScore) {
+  public GameEngine(RulesValidator rulesValidator, CombatResolver combatResolver, CardZoneService cardZoneService, CardDataService cardDataService, CardEffectRegistry effects, DeathTriggerService deathTriggerService, TokenFactory tokenFactory, @Value("${riftforge.target-score}") int targetScore) {
     this.rulesValidator = rulesValidator;
     this.combatResolver = combatResolver;
     this.cardZoneService = cardZoneService;
     this.cardDataService = cardDataService;
     this.effects = effects;
+    this.deathTriggerService = deathTriggerService;
+    this.tokenFactory = tokenFactory;
     this.targetScore = targetScore;
   }
 
@@ -125,6 +129,7 @@ public class GameEngine {
     if (move.targetZone() == ZoneName.BASE) card.setTapped(!move.accelerate());
     if (cardDataService.hasKeyword(card, "QUICK-DRAW")) card.setTapped(false);
     applyLegion(state, card, cardPlayedEarlierThisTurn);
+    applyPlayedCardTokenScripts(state, card, cardPlayedEarlierThisTurn);
     state.setCardPlayedThisTurn(true);
     CardInstance target = move.targetInstanceId() == null ? null : state.getCards().stream()
         .filter(candidate -> candidate.getInstanceId().equals(move.targetInstanceId()))
@@ -132,6 +137,9 @@ public class GameEngine {
         .orElse(null);
     target = deflectTarget(card, target, state);
     CardInstance resolvedTarget = target;
+    if (resolvedTarget != null) {
+      log(state, move.playerId(), def.name() + " targeted " + cardDataService.getCard(resolvedTarget.getCardId()).name() + ".");
+    }
     effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onPlay(card, resolvedTarget, state));
     if (move.accelerate()) log(state, move.playerId(), def.name() + " entered ready with Accelerate.");
     if (cardDataService.hasKeyword(card, "VISION")) {
@@ -150,6 +158,7 @@ public class GameEngine {
       card.setY(target.getY() + 34);
       card.setTapped(false);
       applyWeaponmaster(state, target);
+      log(state, move.playerId(), "Equipped " + def.name() + " to " + cardDataService.getCard(target.getCardId()).name() + ".");
     }
     if (cardDataService.hasKeyword(card, "REPEAT")) state.setCardPlayedThisTurn(false);
     log(state, move.playerId(), "Played " + def.name());
@@ -187,7 +196,7 @@ public class GameEngine {
       card.setTapped(true);
       card.setHasSummoningSickness(false);
     }
-    log(state, move.playerId(), "Moved " + cardDataService.getCard(card.getCardId()).name() + " to " + move.targetZone());
+    log(state, move.playerId(), "Moved " + cardDataService.getCard(card.getCardId()).name() + " to " + displayZone(move.targetZone()) + ".");
     return state;
   }
 
@@ -248,6 +257,7 @@ public class GameEngine {
     card.setTapped(!cardDataService.hasKeyword(card, "AMBUSH"));
     card.setHasSummoningSickness(false);
     int gankingBonus = applyGanking(state, card);
+    applyMoveToBattlefieldTokenScripts(state, card);
     effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onAttack(card, state));
     log(state, move.playerId(), "Moved " + def.name() + " to the battlefield.");
     boolean opposed = state.getCards().stream()
@@ -261,7 +271,7 @@ public class GameEngine {
         List.of(card.getInstanceId()),
         gankingBonus > 0 ? new HashMap<>(Map.of(card.getInstanceId(), gankingBonus)) : new HashMap<>(),
         ShowdownStep.ACTION_WINDOW));
-    log(state, move.playerId(), "Showdown started.");
+    log(state, move.playerId(), "Showdown started at the battlefield.");
     return state;
   }
 
@@ -511,6 +521,26 @@ public class GameEngine {
     log(state, card.getOwnerId(), cardDataService.getCard(card.getCardId()).name() + " gains Legion +1 might.");
   }
 
+  private void applyPlayedCardTokenScripts(LiveGameState state, CardInstance card, boolean cardPlayedEarlierThisTurn) {
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    if (isNamed(def, "Vanguard Captain") && cardPlayedEarlierThisTurn && cardDataService.hasKeyword(card, "LEGION")) {
+      tokenFactory.createRecruit(state, card.getOwnerId(), ZoneName.BASE, card.getX() + 28, card.getY() + 28);
+      tokenFactory.createRecruit(state, card.getOwnerId(), ZoneName.BASE, card.getX() + 56, card.getY() + 28);
+      log(state, card.getOwnerId(), "Vanguard Captain's Legion created two Recruit tokens.");
+    }
+  }
+
+  private void applyMoveToBattlefieldTokenScripts(LiveGameState state, CardInstance card) {
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    if (!isNamed(def, "Noxian Drummer")) return;
+    tokenFactory.createRecruit(state, card.getOwnerId(), ZoneName.BATTLEFIELD, card.getX() + 40, card.getY() + 40);
+    log(state, card.getOwnerId(), "Noxian Drummer created a Recruit token.");
+  }
+
+  private boolean isNamed(CardDefinition def, String name) {
+    return def != null && def.name() != null && def.name().trim().equalsIgnoreCase(name);
+  }
+
   private int applyGanking(LiveGameState state, CardInstance card) {
     int value = cardDataService.getKeywordValue(card, "GANKING");
     if (value <= 0) return 0;
@@ -560,6 +590,7 @@ public class GameEngine {
         .toList();
     for (CardInstance card : expired) {
       CardDefinition def = cardDataService.getCard(card.getCardId());
+      DeathEvent death = deathTriggerService.capture(card, state, DeathEvent.DeathCause.CLEANUP);
       state.getCards().stream()
           .filter(attachment -> card.getInstanceId().equals(attachment.getAttachedToInstanceId()))
           .toList()
@@ -569,6 +600,7 @@ public class GameEngine {
           });
       cardZoneService.moveToGraveyard(card);
       effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onDestroy(card, state));
+      deathTriggerService.process(state, List.of(death));
       log(state, card.getOwnerId(), def.name() + " expired (Temporary).");
     }
   }
@@ -584,6 +616,9 @@ public class GameEngine {
               && card.getCurrentHealth() <= 0;
         })
         .toList();
+    List<DeathEvent> deaths = destroyed.stream()
+        .map(card -> deathTriggerService.capture(card, state, DeathEvent.DeathCause.EFFECT))
+        .toList();
     for (CardInstance card : destroyed) {
       state.getCards().stream()
           .filter(attachment -> card.getInstanceId().equals(attachment.getAttachedToInstanceId()))
@@ -594,6 +629,7 @@ public class GameEngine {
       cardZoneService.moveToGraveyard(card);
       effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onDestroy(card, state));
     }
+    deathTriggerService.process(state, deaths);
   }
 
   private void applyRulesTextEffect(CardInstance card, CardInstance target, LiveGameState state, CardDefinition def) {
@@ -608,27 +644,50 @@ public class GameEngine {
     if (target != null) {
       Matcher powerBoost = Pattern.compile("\\+(\\d+)\\s*:rb_might:").matcher(text);
       if (powerBoost.find()) {
-        target.setTemporaryPowerModifier(target.getTemporaryPowerModifier() + Integer.parseInt(powerBoost.group(1)));
+        int boost = Integer.parseInt(powerBoost.group(1));
+        int totalBoost = boost;
         if (text.contains("additional +1") && state.getCards().stream()
             .filter(candidate -> candidate.getOwnerId().equals(target.getOwnerId()) && candidate.getZone() == target.getZone())
             .count() == 1) {
-          target.setTemporaryPowerModifier(target.getTemporaryPowerModifier() + 1);
+          totalBoost += 1;
         }
+        applyTemporaryMight(state, card, def, target, totalBoost);
       }
       if (text.contains("return a unit") || text.contains("return target unit")) {
-        state.getCards().stream()
-            .filter(candidate -> target.getInstanceId().equals(candidate.getAttachedToInstanceId()))
-            .forEach(candidate -> {
-              cardZoneService.moveToGraveyard(candidate);
-              candidate.setAttachedToInstanceId(null);
-            });
-        target.setZone(ZoneName.HAND);
-        target.setTapped(false);
-        target.setHasSummoningSickness(false);
+        returnUnitToOwnerHand(state, card, def, target);
       }
-      if (text.contains("ready it")) target.setTapped(false);
+      if (text.contains("ready it")) {
+        readyUnit(state, card, def, target);
+      }
     }
-    if (text.contains("draw 1")) autoDraw(state, card.getOwnerId());
+    if (text.contains("draw 1")) applyDraw(state, card.getOwnerId(), 1);
+  }
+
+  private void applyDraw(LiveGameState state, String playerId, int count) {
+    for (int i = 0; i < count; i++) autoDraw(state, playerId);
+  }
+
+  private void applyTemporaryMight(LiveGameState state, CardInstance source, CardDefinition sourceDef, CardInstance target, int amount) {
+    target.setTemporaryPowerModifier(target.getTemporaryPowerModifier() + amount);
+    log(state, source.getOwnerId(), sourceDef.name() + " gave " + cardDataService.getCard(target.getCardId()).name() + " +" + amount + " Might this turn.");
+  }
+
+  private void returnUnitToOwnerHand(LiveGameState state, CardInstance source, CardDefinition sourceDef, CardInstance target) {
+    state.getCards().stream()
+        .filter(candidate -> target.getInstanceId().equals(candidate.getAttachedToInstanceId()))
+        .forEach(candidate -> {
+          cardZoneService.moveToGraveyard(candidate);
+          candidate.setAttachedToInstanceId(null);
+        });
+    target.setZone(ZoneName.HAND);
+    target.setTapped(false);
+    target.setHasSummoningSickness(false);
+    log(state, source.getOwnerId(), sourceDef.name() + " returned " + cardDataService.getCard(target.getCardId()).name() + " to hand.");
+  }
+
+  private void readyUnit(LiveGameState state, CardInstance source, CardDefinition sourceDef, CardInstance target) {
+    target.setTapped(false);
+    log(state, source.getOwnerId(), sourceDef.name() + " readied " + cardDataService.getCard(target.getCardId()).name() + ".");
   }
 
   private void autoDraw(LiveGameState state, String playerId) {
@@ -666,6 +725,21 @@ public class GameEngine {
 
   private String normalizeCardType(String type) {
     return type == null ? "" : type.trim().toLowerCase();
+  }
+
+  private String displayZone(ZoneName zone) {
+    return switch (zone) {
+      case BASE -> "Base";
+      case BATTLEFIELD -> "Battlefield";
+      case HAND -> "Hand";
+      case DISCARD -> "Trash";
+      case CHAMPION -> "Champion";
+      case LEGEND -> "Legend";
+      case RUNE -> "Runes";
+      case RUNE_DECK -> "Rune Deck";
+      case DECK -> "Deck";
+      case LIMBO -> "Limbo";
+    };
   }
 
   private CardInstance findCard(LiveGameState state, String id) {

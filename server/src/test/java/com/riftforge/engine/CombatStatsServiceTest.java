@@ -88,6 +88,26 @@ class CombatStatsServiceTest {
   }
 
   @Test
+  void assaultCanMakeUnitMightyOnlyWhileAttacking() throws Exception {
+    install(card("assault-mighty", "Assault Mighty", "Unit", 4, 4, List.of("Assault")));
+    CardInstance attacker = instance("assault-mighty");
+
+    assertThat(combatStatsService.isMighty(attacker, CombatContext.ATTACKING)).isTrue();
+    assertThat(combatStatsService.isMighty(attacker, CombatContext.DEFENDING)).isFalse();
+    assertThat(combatStatsService.isMighty(attacker, CombatContext.IDLE)).isFalse();
+  }
+
+  @Test
+  void shieldCanMakeUnitMightyOnlyWhileDefending() throws Exception {
+    install(card("shield-mighty", "Shield Mighty", "Unit", 4, 4, List.of("Shield")));
+    CardInstance defender = instance("shield-mighty");
+
+    assertThat(combatStatsService.isMighty(defender, CombatContext.DEFENDING)).isTrue();
+    assertThat(combatStatsService.isMighty(defender, CombatContext.ATTACKING)).isFalse();
+    assertThat(combatStatsService.isMighty(defender, CombatContext.IDLE)).isFalse();
+  }
+
+  @Test
   void nonUnitChampionCardsAreNotMighty() throws Exception {
     install(card("sunken-temple", "Sunken Temple", "Battlefield", 5, 0, List.of("Mighty")));
 

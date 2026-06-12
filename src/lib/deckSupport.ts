@@ -11,14 +11,14 @@ export type DeckSupportEntry = {
 };
 
 export function cardSupportStatus(card: RiftCard | undefined): { status: CardSupportStatus; reason: string } {
-  if (!card) return { status: 'NOT_AUDITED', reason: 'Card data is missing.' };
-  if (isBannedInConstructed(card)) return { status: 'BANNED', reason: 'This card is banned in the current Constructed format.' };
+  if (!card) return { status: 'NOT_AUDITED', reason: 'Not available in supported-only mode yet because card data is missing.' };
+  if (isBannedInConstructed(card)) return { status: 'BANNED', reason: 'Not legal in constructed.' };
   const unsupportedReason = unsupportedCardReason(card);
-  if (unsupportedReason) return { status: 'UNSUPPORTED', reason: unsupportedReason };
+  if (unsupportedReason) return { status: 'UNSUPPORTED', reason: `Blocked in enforced play: ${unsupportedReason}` };
   if (SUPPORTED_CARD_NAMES.has(card.name.trim().toUpperCase().replace('’', "'"))) {
     return { status: 'SUPPORTED', reason: 'Implemented and covered by current support policy.' };
   }
-  return { status: 'PARTIAL', reason: 'Playable for alpha testing, but card-specific behavior may be incomplete.' };
+  return { status: 'PARTIAL', reason: 'Playable for alpha testing, but rules may be incomplete.' };
 }
 
 export function deckSupportEntries(deck: Deck | undefined, cardsById: Map<string, RiftCard>): DeckSupportEntry[] {

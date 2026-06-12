@@ -41,8 +41,10 @@ class GameEngineShowdownTest {
   @BeforeEach
   void setUp() {
     RulesValidator rulesValidator = new RulesValidator(cardDataService);
-    CombatResolver combatResolver = new CombatResolver(cardDataService, effects, cardZoneService, new CombatStatsService(cardDataService));
-    engine = new GameEngine(rulesValidator, combatResolver, cardZoneService, cardDataService, effects, 8);
+    DeathTriggerService deathTriggerService = new DeathTriggerService(cardDataService);
+    TokenFactory tokenFactory = new TokenFactory(cardDataService);
+    CombatResolver combatResolver = new CombatResolver(cardDataService, effects, cardZoneService, new CombatStatsService(cardDataService), deathTriggerService);
+    engine = new GameEngine(rulesValidator, combatResolver, cardZoneService, cardDataService, effects, deathTriggerService, tokenFactory, 8);
     when(effects.getEffect(anyString())).thenReturn(Optional.empty());
     when(cardDataService.hasKeyword(any(CardInstance.class), anyString())).thenReturn(false);
     when(cardDataService.getKeywordValue(any(CardInstance.class), anyString())).thenReturn(0);

@@ -163,6 +163,9 @@ Current implementation notes:
 - Spells resolve through the supported effect path and move to discard afterward.
 - Spells cannot move to the battlefield as units.
 - Targeted-spell heuristics require a valid battlefield target.
+- Simple helper-backed effect scripts currently cover draw 1, selected
+  temporary Might boosts, selected unit/champion return-to-hand, and selected
+  friendly unit/champion readying.
 - Unsupported spell shapes are blocked by `CardDataService.isUnsupportedAction`.
 - VISION/Predict-like peeking has a basic private choice flow.
 
@@ -213,7 +216,13 @@ Current implementation notes:
 - Moving to an empty battlefield updates `battlefieldController`.
 
 Known gaps:
-- Multiple battlefields, movement costs, readiness/exhaustion edge cases, Ganking exceptions, and effect-driven movement need a richer location model.
+- Multiple battlefields remain an official-rules gap, but they are
+  intentionally deferred until after the single-battlefield alpha is stable.
+  The full model affects movement, target selection, showdown, control,
+  scoring, bot decisions, and UI layout.
+- Movement costs, readiness/exhaustion edge cases, Ganking exceptions, and
+  effect-driven movement still need more precision in the current simplified
+  battlefield flow.
 
 Test coverage:
 - `GameEngineShowdownTest`
@@ -235,7 +244,9 @@ Current implementation notes:
 - Moving into an opposed battlefield starts `activeShowdown`.
 
 Known gaps:
-- Multiple battlefields and official contested/control cleanup are not fully modeled.
+- Multiple battlefields and official contested/control cleanup are not fully
+  modeled. This is deliberate post-alpha scope; current playtests focus on a
+  readable single-battlefield control flow.
 - Control locking during showdowns/combat and chain items is incomplete.
 
 Test coverage:
@@ -258,8 +269,10 @@ Current implementation notes:
 - Legal-action visibility pauses normal main actions during an active showdown.
 
 Known gaps:
-- Non-combat showdowns, multiple battlefields, interactive action windows,
-  staged combat conversion, and chain/timing permissions are simplified.
+- Non-combat showdowns, interactive action windows, staged combat conversion,
+  and chain/timing permissions are simplified.
+- Multiple battlefield showdowns are deferred until the post-alpha location
+  model.
 
 Test coverage:
 - `GameEngineShowdownTest`
@@ -281,8 +294,8 @@ Current implementation notes:
 
 Known gaps:
 - Player-chosen damage assignment, prevention/replacement, combat designation
-  cleanup, multiple battlefield combat, and many multi-unit edge cases are
-  incomplete.
+  cleanup, and many multi-unit edge cases are incomplete.
+- Multiple battlefield combat is intentionally post-alpha work.
 
 Test coverage:
 - `CombatResolverTest`
@@ -304,7 +317,8 @@ Current implementation notes:
 
 Known gaps:
 - Multiple named battlefields are represented by controller keys, but full
-  official battlefield selection, assignment, and cleanup timing are incomplete.
+  official battlefield selection, assignment, and cleanup timing are
+  intentionally deferred until after the single-battlefield alpha stabilizes.
 
 Test coverage:
 - `GameEngineScoringTest`
@@ -348,22 +362,34 @@ Current implementation notes:
   existing combat/rules code still handling some keyword behavior directly.
 - ASSAULT and SHIELD are handler-backed and combat-tested as deterministic
   situational Might modifiers through `CombatStatsService`. Plain keywords
-  default to +1, and valued keyword parsing accepts both spaced and compact
-  forms such as `ASSAULT 2` and `ASSAULT2`.
+  default to +1, and valued keyword parsing is case-insensitive and accepts
+  both spaced and compact forms such as `ASSAULT 2` and `ASSAULT2`.
 - MIGHTY has a central `CombatStatsService` helper for Unit/Champion cards with
-  effective idle Might 5 or greater, including temporary and permanent Might
-  modifiers. "Becomes Mighty" triggers are not wired yet.
+  effective Might 5 or greater in the requested context, including temporary
+  and permanent Might modifiers plus Assault/Shield while attacking or
+  defending. "Becomes Mighty" triggers are not wired yet.
 - `docs/KEYWORD_BACKLOG.md` tracks supported, partial, unsupported, and
   confirmation-needed keywords. `docs/MISSING_RULES_BACKLOG.md` tracks the
   broader P0-P3 rules backlog.
 - Several keywords have direct or heuristic handling: ACCELERATE, AMBUSH,
-  DEFLECT, GANKING, HIDDEN, LEGION, TANK, TEMPORARY, VISION, WEAPONMASTER.
+  DEATHKNELL, DEFLECT, GANKING, HIDDEN, LEGION, TANK, TEMPORARY, VISION,
+  WEAPONMASTER.
+- DEATHKNELL has basic trigger plumbing through `DeathTriggerService`: real
+  deaths fire after graveyard movement, bounce/return-to-hand does not fire,
+  simultaneous combat deaths are batched deterministically, and Loyal Poro's
+  "didn't die alone" draw is covered.
+- Simple Recruit token creation exists through `TokenFactory` for starter-deck
+  scripts. Noxian Drummer creates one Recruit when moved to battlefield, and
+  Vanguard Captain creates two Recruits when its current simple Legion condition
+  is active.
 
 Known gaps:
 - The handler registry is a scaffold; several tracked keywords still need
   dedicated handlers before they can be called fully supported.
 - The complete official keyword list, dependent keywords, inactive text, conditional permissions, XP/Hunt/Level, and full action/reaction behavior are incomplete.
 - Some legacy placeholder keywords remain in early hard-coded effects and should be audited against current official names.
+- Scuttle Crab's Deathknell reveal/facedown/XP text, general token definitions,
+  official token cleanup, and broad token creation effects remain incomplete.
 
 Test coverage:
 - `RulesValidatorKeywordTest`
@@ -384,15 +410,18 @@ Current implementation notes:
   keywords and unsupported generic spell/gear shapes.
 - `CardSupportService` is the current card-support metadata source for deck
   warnings and supported-only gates.
-- `GameEngine.applyRulesTextEffect` supports a few generic rules-text patterns.
+- `GameEngine.applyRulesTextEffect` routes the safe generic patterns through
+  focused helpers: `applyDraw`, `applyTemporaryMight`,
+  `returnUnitToOwnerHand`, and `readyUnit`.
 - Unsupported spell/gear patterns are rejected instead of silently pretending to work.
 
 Known gaps:
 - Most real cards have no precise scripted effect.
 - The declarative/scripted card registry is still early and not wired for most
   real cards.
-- Supported status should not be promoted until a card has explicit behavior
-  and tests.
+- Supported status should not be promoted until the whole card has explicit
+  behavior and tests; helper-backed simple effects still leave cards Partial
+  when timing, choices, or extra clauses are incomplete.
 - Optional triggers, may choices, targeting decisions, and chain items are incomplete.
 
 Test coverage:
@@ -494,7 +523,8 @@ Priority: P1.
 
 1. Rune payment validation: domain/power costs, recycling, cost modifiers.
 2. Play-card legality edge cases: action/reaction permissions, gear attachment detail, card-specific prompts.
-3. Movement legality edge cases: multiple battlefields, Ganking, effect-driven movement.
+3. Movement legality edge cases: Ganking, effect-driven movement, and current
+   single-battlefield readability. Full multiple battlefields are post-alpha.
 4. Showdown timing edge cases: interactive action windows, combat conversion, open states.
 5. Combat damage assignment edge cases: player assignment, multi-unit combat, prevention/replacement.
 6. Winning point edge cases: official cleanup timing, multiplayer/tie/burnout cases.

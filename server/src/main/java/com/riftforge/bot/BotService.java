@@ -61,7 +61,7 @@ public class BotService {
       String roomCode = normalizeRoomCode(state.getRoomCode());
       String actingBotId = actingBotId(state);
       if (actingBotId == null || actingRooms.contains(roomCode)) continue;
-      log.info(
+      log.debug(
           "Bot sweep found pending bot action: room={}, phase={}, activePlayer={}, actingBotId={}",
           roomCode,
           state.getCurrentPhase(),
@@ -85,7 +85,7 @@ public class BotService {
         .toList();
     boolean anyBotInGame = playerIds.stream().anyMatch(this::isBotId);
 
-    log.info(
+    log.debug(
         "BotService received GameStateChangedEvent: room={}, phase={}, activePlayer={}, turnNumber={}, players={}, anyBotInGame={}",
         roomCode,
         state.getCurrentPhase(),
@@ -96,7 +96,7 @@ public class BotService {
 
     String actingBotId = actingBotId(state);
     boolean alreadyActing = actingRooms.contains(roomCode);
-    log.info(
+    log.debug(
         "BotService bot selection: rawRoom={}, room={}, botIds={}, actingBotId={}, actingRoomsContainsRoom={}, actingRoomsBeforeAdd={}",
         event.getRoomCode(),
         roomCode,
@@ -107,7 +107,7 @@ public class BotService {
     if (!anyBotInGame) return;
     if (actingBotId == null) return;
     boolean addedActingRoom = actingRooms.add(roomCode);
-    log.info("BotService acting-room guard: room={}, actingBotId={}, added={}, activeRooms={}", roomCode, actingBotId, addedActingRoom, actingRooms);
+    log.debug("BotService acting-room guard: room={}, actingBotId={}, added={}, activeRooms={}", roomCode, actingBotId, addedActingRoom, actingRooms);
     if (!addedActingRoom) return;
 
     boolean isBotVsBot = state.getPlayers().stream()
@@ -120,7 +120,7 @@ public class BotService {
         Thread.sleep(delay);
         LiveGameState current = gameService.currentState(roomCode);
         Set<LegalAction> currentLegalActions = current == null ? Set.of() : legalActions(current, botId);
-        log.info(
+        log.debug(
             "Bot async started: room={}, bot={}, currentState={}, phase={}, activePlayer={}, legalActions={}",
             roomCode,
             botId,
@@ -128,7 +128,11 @@ public class BotService {
             current == null ? null : current.getCurrentPhase(),
             current == null ? null : current.getActivePlayerId(),
             currentLegalActions);
-        if (current == null || current.getWinnerId() != null) return;
+        if (current == null) {
+          log.warn("Bot async current state missing: room={}, bot={}", roomCode, botId);
+          return;
+        }
+        if (current.getWinnerId() != null) return;
         log.debug(
             "Bot acting: room={}, bot={}, phase={}, activePlayer={}, activeShowdown={}, gameMode={}",
             roomCode,

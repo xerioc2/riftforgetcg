@@ -7,6 +7,11 @@ not official rules order. It is intentionally conservative. "Supported" means
 implemented and tested in this repository. "Partial" means the common playtest
 path exists, but official edge cases or card-specific scripts are missing.
 
+RiftForge's alpha playtest target intentionally uses a simplified
+single-battlefield flow. Full official multiple-battlefield location support is
+post-alpha work because it touches movement, target selection, showdowns,
+control, scoring, bot decisions, and the board UI all at once.
+
 Sources checked:
 - `docs/RULES_COVERAGE.md`
 - `docs/SUPPORTED_CARDS.md`
@@ -54,9 +59,8 @@ Sources checked:
 
 | Item | Status | Why it matters | Likely files | Suggested first test |
 | --- | --- | --- | --- | --- |
-| Multiple battlefield location model | Partial | Current battlefield logic has controller keys but many paths still behave like a simplified shared battlefield. Official play needs selected battlefields and units at each location. | `LiveGameState`, `CardInstance`, `GameEngine`, `CombatResolver`, board layout | Moving into Battlefield A starts a showdown only with opposing units at Battlefield A, not Battlefield B. |
-| Movement permissions by card/effect | Partial | Generic movement is sandbox-only, but effect-driven movement and location swaps are not card-accurate. | `RulesValidator`, `GameEngine`, effect handlers | Tideturner swaps only with a friendly unit at another location and preserves both legal zones. |
-| Contested battlefield state | Partial | Showdown, control, conquer, and hold depend on exact contested state per battlefield. | `GameEngine`, `LiveGameState`, `CombatResolver` | A battlefield becomes contested when both players have units there and returns to controlled after showdown cleanup. |
+| Movement permissions by card/effect | Partial | Generic movement is sandbox-only, but effect-driven movement and location swaps are not card-accurate even within the single-battlefield alpha model. | `RulesValidator`, `GameEngine`, effect handlers | Tideturner swaps only with a friendly unit at another legal location and preserves both legal zones. |
+| Single-battlefield contested state | Partial | Showdown, control, conquer, and hold need reliable state for the current alpha battlefield before expanding to multiple locations. | `GameEngine`, `LiveGameState`, `CombatResolver` | The alpha battlefield becomes contested when both players have units there and returns to controlled after showdown cleanup. |
 
 ### Showdown and Combat
 
@@ -71,7 +75,6 @@ Sources checked:
 | Item | Status | Why it matters | Likely files | Suggested first test |
 | --- | --- | --- | --- | --- |
 | Official winning check timing | Partial | Conquer final-point restriction exists, but official cleanup/tie/multiplayer win timing is not complete. | `GameEngine`, `GameEngineScoringTest`, match history | Player reaches target from legal Hold point and wins only at the correct check timing. |
-| Multi-battlefield score tracking | Partial | Current scoring must scale to every selected battlefield and avoid duplicate scoring. | `GameEngine`, `LiveGameState`, setup tests | Player scores two different battlefields in one turn and cannot score the same battlefield twice. |
 
 ## P1: Needed for Starter Decks to Feel Correct
 
@@ -86,15 +89,15 @@ Sources checked:
 
 | Item | Status | Why it matters | Likely files | Suggested first test |
 | --- | --- | --- | --- | --- |
-| Recruit token creation | Unsupported | Noxian Drummer and Vanguard Captain both need Recruit tokens. | token definition service, `GameEngine`, `CardDefinition`, projection | Vanguard Captain with Legion active creates two 1 Might Recruit Unit tokens at the correct location. |
-| Token lifecycle and visibility | Not started | Tokens should fight, die, move, and disappear from non-game zones correctly without entering decks. | `CardInstance`, `CardZoneService`, serialization | A Recruit token dies in combat and does not appear in deck/trash counts if official rules require token cleanup. |
+| Recruit token creation | Partial | Noxian Drummer and Vanguard Captain can create simple 1 Might Recruit Unit tokens, but only through narrow starter-deck scripts. | `TokenFactory`, `GameEngine`, `CardDefinition`, projection | A future non-Recruit token card creates the correct token stats without special-casing the card name. |
+| Token lifecycle and visibility | Partial | Recruit tokens can fight and are public cards outside deck pools, but official cleanup/disappear policy outside combat is not complete. | `CardInstance`, `CardZoneService`, serialization | A Recruit token dies in combat and follows the official token cleanup policy for trash/removed zones. |
 
 ### Card-Specific Scripting
 
 | Item | Status | Why it matters | Likely files | Suggested first test |
 | --- | --- | --- | --- | --- |
 | Irelia Tempo spell scripts | Partial/Unsupported | Defy, Defiant Dance, Not So Fast, Star-Crossed, and Stacked Deck are currently blocked or heuristic. | `CardEffectRegistry`, effect handlers, target/choice UI | Defy counters a legal pending spell and rejects illegal pending targets. |
-| Fiora Vanguard unit triggers | Partial | Stalking Wolf, Noxian Drummer, Loyal Poro, Vanguard Captain, Crowd Favorite, and Dune Drake define much of the deck's identity. | `GameEngine`, triggered handlers, token/XP systems | Loyal Poro Deathknell draws only when it did not die alone. |
+| Fiora Vanguard unit triggers | Partial | Noxian Drummer, Loyal Poro, and Vanguard Captain have narrow starter-deck scripts, while Stalking Wolf, Crowd Favorite, and Dune Drake define unsupported/partial deck identity. | `GameEngine`, triggered handlers, token/XP systems | Dune Drake gains Might only when attacking into a ready enemy unit at the same battlefield. |
 | Legend and Champion text | Partial | Starter legends/champions are visible and important but their text is mostly unscripted. | `GameEngine`, activated/triggered handlers, payment UI | Fiora - Worthy readies a unit when a controlled unit becomes Mighty and payment is legal. |
 
 ### Keywords in Starter Decks
@@ -102,7 +105,7 @@ Sources checked:
 | Item | Status | Why it matters | Likely files | Suggested first test |
 | --- | --- | --- | --- | --- |
 | "Becomes Mighty" triggers | Partial | `CombatStatsService` can identify Mighty Unit/Champion cards, but Fiora deck and Sunken Temple still need threshold-crossing trigger timing. | `CombatStatsService`, `GameEngine`, trigger handlers | A unit with 4 Might receiving +1 becomes Mighty exactly once and triggers Fiora. |
-| Deathknell | Unsupported | Scuttle Crab and Loyal Poro rely on death-trigger effects. | `EffectHandlerRegistry`, `CombatResolver`, `GameEngine` | Deathknell fires after combat destruction and can draw/gain XP without leaking hidden info. |
+| Deathknell | Partial | Basic death trigger plumbing exists and Loyal Poro's draw condition is tested. Scuttle Crab still needs reveal/facedown/XP support. | `DeathTriggerService`, `CombatResolver`, `GameEngine`, projection/XP systems | Scuttle Crab Deathknell chooses an opponent, reveals hand safely, allows facedown inspection only as allowed, and grants XP. |
 | Buff | Unsupported as official action/state | Adaptatron and Crowd Favorite need persistent buff markers. | `CardInstance`, `GameEngine`, effect handlers | Buffing an unbuffed unit adds +1 Might; a second Buff does not stack if official rule says one buff. |
 | Hidden/Ambush | Partial | Tideturner, Facebreaker, and Stalking Wolf need these for real timing. | `RulesValidator`, `GameEngine`, chain/timing model | A Hidden card can be played later only in a legal reaction window. |
 
@@ -154,6 +157,14 @@ Sources checked:
 | Replacement/prevention effects | Not started | Prevent, replace, and copy effects require effect-layer timing. | effect registry, combat resolver, chain model | A prevention effect reduces combat damage before destruction is checked. |
 | Unique/copy/linked instructions | Not started | Official Unleashed updates mention systems not currently represented. | card text parser, effect handlers | Copy effect copies only official copyable values and expires at the correct time. |
 | Full battlefield abilities | Partial | Battlefields are selected and counted, but most abilities are unscripted. | battlefield model, effect handlers | Hall of Legends triggers on conquer and readies the legend after legal payment. |
+
+### Post-Alpha Multiple Battlefield Model
+
+| Item | Status | Why it matters | Likely files | Suggested first test |
+| --- | --- | --- | --- | --- |
+| Multiple battlefield location model | Deferred / Post-alpha | Current alpha intentionally treats play as a simplified single-battlefield experience. Official support needs selected battlefield instances and per-location units, targets, showdowns, control, scoring, bot decisions, and UI layout. | `LiveGameState`, `CardInstance`, `GameEngine`, `CombatResolver`, `LegalActionsService`, `BotService`, `GameBoard.tsx` | Moving into Battlefield A starts a showdown only with opposing units at Battlefield A, not Battlefield B. |
+| Multi-battlefield score tracking | Deferred / Post-alpha | Current scoring should remain understandable for alpha; official play later needs per-battlefield scoring without duplicate scoring. | `GameEngine`, `LiveGameState`, setup tests, scoreboard UI | Player scores two different battlefields in one turn and cannot score the same battlefield twice. |
+| Per-battlefield target and movement UI | Deferred / Post-alpha | Target prompts and movement highlights need location awareness before multiple battlefields are readable for playtesters. | target UI, `cardActions.ts`, `GameBoard.tsx`, `RulesValidator` | A targeted effect can choose only units at the named battlefield required by the effect. |
 
 ## Recommended Next Sprints
 

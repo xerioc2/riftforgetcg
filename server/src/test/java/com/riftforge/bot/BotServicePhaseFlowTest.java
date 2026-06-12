@@ -11,9 +11,11 @@ import com.riftforge.effect.CardEffectRegistry;
 import com.riftforge.engine.CardZoneService;
 import com.riftforge.engine.CombatResolver;
 import com.riftforge.engine.CombatStatsService;
+import com.riftforge.engine.DeathTriggerService;
 import com.riftforge.engine.GameEngine;
 import com.riftforge.engine.IllegalMoveException;
 import com.riftforge.engine.RulesValidator;
+import com.riftforge.engine.TokenFactory;
 import com.riftforge.model.CardDefinition;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.LobbyPlayer;
@@ -64,9 +66,11 @@ class BotServicePhaseFlowTest {
   void setUp() {
     CardZoneService cardZoneService = new CardZoneService(cardDataService);
     CardEffectRegistry effects = new CardEffectRegistry(cardDataService);
-    CombatResolver combatResolver = new CombatResolver(cardDataService, effects, cardZoneService, new CombatStatsService(cardDataService));
+    DeathTriggerService deathTriggerService = new DeathTriggerService(cardDataService);
+    TokenFactory tokenFactory = new TokenFactory(cardDataService);
+    CombatResolver combatResolver = new CombatResolver(cardDataService, effects, cardZoneService, new CombatStatsService(cardDataService), deathTriggerService);
     RulesValidator rulesValidator = new RulesValidator(cardDataService);
-    GameEngine engine = new GameEngine(rulesValidator, combatResolver, cardZoneService, cardDataService, effects, 8);
+    GameEngine engine = new GameEngine(rulesValidator, combatResolver, cardZoneService, cardDataService, effects, deathTriggerService, tokenFactory, 8);
     gameService = new GameService(engine, cardDataService, messaging, eventPublisher, new MatchHistoryService(), new GameStateProjectionService(new LegalActionsService()));
     roomService = new RoomService(messaging, cardDataService);
     botService = new BotService(gameService, cardDataService, new LegalActionsService());
@@ -283,17 +287,23 @@ class BotServicePhaseFlowTest {
   @Test
   void publishedHumanEndToBotAwakenEventAdvancesBot() throws Exception {
     ForwardingEventPublisher publisher = new ForwardingEventPublisher();
+    CardEffectRegistry eventedEffects = new CardEffectRegistry(cardDataService);
+    CardZoneService eventedCardZoneService = new CardZoneService(cardDataService);
+    DeathTriggerService eventedDeathTriggerService = new DeathTriggerService(cardDataService);
     GameService eventedGameService = new GameService(
         new GameEngine(
             new RulesValidator(cardDataService),
             new CombatResolver(
                 cardDataService,
-                new CardEffectRegistry(cardDataService),
-                new CardZoneService(cardDataService),
-                new CombatStatsService(cardDataService)),
-            new CardZoneService(cardDataService),
+                eventedEffects,
+                eventedCardZoneService,
+                new CombatStatsService(cardDataService),
+                eventedDeathTriggerService),
+            eventedCardZoneService,
             cardDataService,
-            new CardEffectRegistry(cardDataService),
+            eventedEffects,
+            eventedDeathTriggerService,
+            new TokenFactory(cardDataService),
             8),
         cardDataService,
         messaging,

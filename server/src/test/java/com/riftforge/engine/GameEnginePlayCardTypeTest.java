@@ -14,6 +14,7 @@ import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
 import com.riftforge.model.ZoneName;
 import com.riftforge.model.move.MoveToBattlefieldMove;
+import com.riftforge.model.move.PassPhaseMove;
 import com.riftforge.model.move.PlayCardMove;
 import com.riftforge.model.move.RepositionCardMove;
 import com.riftforge.rules.LegalActionsService;
@@ -41,8 +42,10 @@ class GameEnginePlayCardTypeTest {
   void setUp() {
     RulesValidator rulesValidator = new RulesValidator(cardDataService);
     CardZoneService cardZoneService = new CardZoneService(cardDataService);
-    CombatResolver combatResolver = new CombatResolver(cardDataService, effects, cardZoneService, new CombatStatsService(cardDataService));
-    engine = new GameEngine(rulesValidator, combatResolver, cardZoneService, cardDataService, effects, 8);
+    DeathTriggerService deathTriggerService = new DeathTriggerService(cardDataService);
+    TokenFactory tokenFactory = new TokenFactory(cardDataService);
+    CombatResolver combatResolver = new CombatResolver(cardDataService, effects, cardZoneService, new CombatStatsService(cardDataService), deathTriggerService);
+    engine = new GameEngine(rulesValidator, combatResolver, cardZoneService, cardDataService, effects, deathTriggerService, tokenFactory, 8);
     when(effects.getEffect(anyString())).thenReturn(Optional.empty());
     when(cardDataService.hasKeyword(any(CardInstance.class), anyString())).thenReturn(false);
     when(cardDataService.isUnsupportedAction(anyString())).thenReturn(false);
@@ -110,6 +113,22 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void drawOneDrawsExactlyOneCard() {
+    LiveGameState state = state(card("draw-spell", "p1", ZoneName.HAND));
+    state.getPlayers().getFirst().setDeckPool(new ArrayList<>(List.of("drawn-one", "drawn-two")));
+    stubCard("draw-spell", "Draw Spell", "Spell", 0, 0, 0, "Draw 1.");
+    stubCard("drawn-one", "Drawn One", "Unit", 0, 1, 1, null);
+    stubCard("drawn-two", "Drawn Two", "Unit", 0, 1, 1, null);
+
+    engine.applyMove(state, play("draw-spell", ZoneName.BASE));
+
+    assertThat(state.getCards()).anyMatch(card -> card.getCardId().equals("drawn-one") && card.getZone() == ZoneName.HAND);
+    assertThat(state.getCards()).noneMatch(card -> card.getCardId().equals("drawn-two"));
+    assertThat(state.getPlayers().getFirst().getDeckPool()).containsExactly("drawn-two");
+    assertThat(state.getCards().stream().filter(card -> card.getOwnerId().equals("p1") && card.getZone() == ZoneName.HAND)).hasSize(1);
+  }
+
+  @Test
   void friendlyTargetAcceptedForFriendlyUnitEffect() {
     CardInstance spell = card("buff", "p1", ZoneName.HAND);
     CardInstance friendly = card("friendly", "p1", ZoneName.BATTLEFIELD);
@@ -140,6 +159,76 @@ class GameEnginePlayCardTypeTest {
     engine.applyMove(state, playTarget("bounce", "enemy"));
 
     assertThat(enemy.getZone()).isEqualTo(ZoneName.HAND);
+  }
+
+  @Test
+  void returnEffectUsesSelectedTargetInsteadOfFirstValidTarget() {
+    CardInstance firstEnemy = card("first-enemy", "p2", ZoneName.BATTLEFIELD);
+    CardInstance selectedEnemy = card("selected-enemy", "p2", ZoneName.BATTLEFIELD);
+    LiveGameState state = state(card("bounce", "p1", ZoneName.HAND), firstEnemy, selectedEnemy);
+    stubCard("bounce", "Bounce Spell", "Spell", 0, 0, 0, "Return a unit to its owner's hand.");
+    stubCard("first-enemy", "First Enemy", "Unit", 0, 2, 2, null);
+    stubCard("selected-enemy", "Selected Enemy", "Unit", 0, 2, 2, null);
+    when(cardDataService.requiresBattlefieldTarget("bounce")).thenReturn(true);
+
+    engine.applyMove(state, playTarget("bounce", "selected-enemy"));
+
+    assertThat(firstEnemy.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(selectedEnemy.getZone()).isEqualTo(ZoneName.HAND);
+  }
+
+  @Test
+  void readyEffectUsesSelectedFriendlyTargetInsteadOfFirstValidTarget() {
+    CardInstance firstFriendly = card("first-friendly", "p1", ZoneName.BATTLEFIELD);
+    CardInstance selectedFriendly = card("selected-friendly", "p1", ZoneName.BATTLEFIELD);
+    firstFriendly.setTapped(true);
+    selectedFriendly.setTapped(true);
+    LiveGameState state = state(card("ready-spell", "p1", ZoneName.HAND), firstFriendly, selectedFriendly);
+    stubCard("ready-spell", "Ready Spell", "Spell", 0, 0, 0, "Choose a friendly unit. Ready it.");
+    stubCard("first-friendly", "First Friendly", "Unit", 0, 2, 2, null);
+    stubCard("selected-friendly", "Selected Friendly", "Unit", 0, 2, 2, null);
+    when(cardDataService.requiresBattlefieldTarget("ready-spell")).thenReturn(true);
+    when(cardDataService.requiresFriendlyTarget("ready-spell")).thenReturn(true);
+
+    engine.applyMove(state, playTarget("ready-spell", "selected-friendly"));
+
+    assertThat(firstFriendly.isTapped()).isTrue();
+    assertThat(selectedFriendly.isTapped()).isFalse();
+  }
+
+  @Test
+  void readyEffectRejectsEnemyTarget() {
+    LiveGameState state = state(
+        card("ready-spell", "p1", ZoneName.HAND),
+        card("enemy", "p2", ZoneName.BATTLEFIELD));
+    stubCard("ready-spell", "Ready Spell", "Spell", 0, 0, 0, "Choose a friendly unit. Ready it.");
+    stubCard("enemy", "Enemy Unit", "Unit", 0, 2, 2, null);
+    when(cardDataService.requiresBattlefieldTarget("ready-spell")).thenReturn(true);
+    when(cardDataService.requiresFriendlyTarget("ready-spell")).thenReturn(true);
+
+    assertThatThrownBy(() -> engine.applyMove(state, playTarget("ready-spell", "enemy")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("That card requires a friendly unit.");
+  }
+
+  @Test
+  void deathknellDoesNotFireWhenUnitReturnsToHand() {
+    CardInstance spell = card("bounce", "p1", ZoneName.HAND);
+    CardInstance loyalPoro = card("loyal", "p2", ZoneName.BATTLEFIELD);
+    LiveGameState state = state(spell, loyalPoro);
+    state.getPlayers().get(1).setDeckPool(new ArrayList<>(List.of("drawn")));
+    stubCard("bounce", "Bounce Spell", "Spell", 0, 0, 0, "Return a unit to its owner's hand.");
+    stubCard("loyal", "Loyal Poro", "Unit", 0, 1, 1, "[Deathknell] Draw 1 if I did not die alone.");
+    stubCard("drawn", "Drawn Card", "Unit", 0, 1, 1, null);
+    when(cardDataService.requiresBattlefieldTarget("bounce")).thenReturn(true);
+    when(cardDataService.requiresEnemyTarget("bounce")).thenReturn(true);
+    when(cardDataService.hasKeyword("loyal", "DEATHKNELL")).thenReturn(true);
+
+    engine.applyMove(state, playTarget("bounce", "loyal"));
+
+    assertThat(loyalPoro.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(state.getCards()).noneMatch(card -> card.getCardId().equals("drawn"));
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("Deathknell"));
   }
 
   @Test
@@ -210,6 +299,28 @@ class GameEnginePlayCardTypeTest {
     assertThatThrownBy(() -> engine.applyMove(state, playTarget("multi", "friendly")))
         .isInstanceOf(IllegalMoveException.class)
         .hasMessage("That card's effect is not supported yet.");
+  }
+
+  @Test
+  void counterChainCardRemainsBlocked() {
+    LiveGameState state = state(card("counter", "p1", ZoneName.HAND));
+    stubCard("counter", "Counter Spell", "Spell", 0, 0, 0, "Counter target spell.");
+    when(cardDataService.isUnsupportedAction("counter")).thenReturn(true);
+
+    assertThatThrownBy(() -> engine.applyMove(state, play("counter", ZoneName.BASE)))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("That card's effect is not supported yet.");
+  }
+
+  @Test
+  void reactionCardCannotBePlayedOutsideCurrentLegalActionWindow() {
+    LiveGameState state = state(card("reaction-draw", "p1", ZoneName.HAND));
+    state.setCurrentPhase(Phase.AWAKEN);
+    stubCard("reaction-draw", "Reaction Draw", "Spell", 0, 0, 0, "Reaction: Draw 1.");
+
+    assertThatThrownBy(() -> engine.applyMove(state, play("reaction-draw", ZoneName.BASE)))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("That action can only be taken during MAIN.");
   }
 
   @Test
@@ -398,6 +509,96 @@ class GameEnginePlayCardTypeTest {
     assertThat(state.getCards().getFirst().getZone()).isEqualTo(ZoneName.BATTLEFIELD);
     assertThat(state.getBattlefieldController()).containsEntry("BATTLEFIELD", "p1");
     assertThat(state.getActiveShowdown()).isNull();
+  }
+
+  @Test
+  void noxianDrummerCreatesRecruitWhenMovedToBattlefield() {
+    CardInstance drummer = card("drummer", "p1", ZoneName.BASE);
+    LiveGameState state = state(drummer);
+    state.getPlayers().getFirst().setDeckPool(new ArrayList<>(List.of("deck-card")));
+    stubCard("drummer", "Noxian Drummer", "Unit", 0, 2, 2, "When I move to a battlefield, create a Recruit.");
+    stubCard(TokenFactory.RECRUIT_TOKEN_CARD_ID, "Recruit", "Unit", 0, 1, 1, "Token Unit.");
+
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "drummer"));
+
+    assertThat(state.getCards())
+        .filteredOn(card -> TokenFactory.RECRUIT_TOKEN_CARD_ID.equals(card.getCardId()))
+        .singleElement()
+        .satisfies(token -> {
+          assertThat(token.getOwnerId()).isEqualTo("p1");
+          assertThat(token.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+          assertThat(token.getCurrentHealth()).isEqualTo(1);
+        });
+    assertThat(state.getPlayers().getFirst().getDeckPool()).containsExactly("deck-card");
+  }
+
+  @Test
+  void noxianDrummerDoesNotCreateRecruitWhenRepositioned() {
+    CardInstance drummer = card("drummer", "p1", ZoneName.BASE);
+    LiveGameState state = state(drummer);
+    stubCard("drummer", "Noxian Drummer", "Unit", 0, 2, 2, "When I move to a battlefield, create a Recruit.");
+
+    engine.applyMove(state, new RepositionCardMove("p1", "drummer", 10, 10));
+
+    assertThat(state.getCards()).noneMatch(card -> TokenFactory.RECRUIT_TOKEN_CARD_ID.equals(card.getCardId()));
+  }
+
+  @Test
+  void vanguardCaptainLegionCreatesTwoRecruitsOnlyAfterAnotherCardWasPlayed() {
+    CardInstance first = card("first", "p1", ZoneName.HAND);
+    CardInstance captain = card("captain", "p1", ZoneName.HAND);
+    LiveGameState state = state(first, captain);
+    stubCard("first", "First Unit", "Unit", 0, 1, 1, null);
+    stubCard("captain", "Vanguard Captain", "Unit", 0, 2, 2, "[Legion] Create two Recruits.");
+    stubCard(TokenFactory.RECRUIT_TOKEN_CARD_ID, "Recruit", "Unit", 0, 1, 1, "Token Unit.");
+    when(cardDataService.hasKeyword(any(CardInstance.class), anyString())).thenAnswer(invocation -> {
+      CardInstance card = invocation.getArgument(0);
+      String keyword = invocation.getArgument(1);
+      return "captain".equals(card.getCardId()) && "LEGION".equalsIgnoreCase(keyword);
+    });
+
+    engine.applyMove(state, play("first", ZoneName.BASE));
+    assertThat(state.getCards()).noneMatch(card -> TokenFactory.RECRUIT_TOKEN_CARD_ID.equals(card.getCardId()));
+
+    engine.applyMove(state, play("captain", ZoneName.BASE));
+
+    assertThat(state.getCards())
+        .filteredOn(card -> TokenFactory.RECRUIT_TOKEN_CARD_ID.equals(card.getCardId()))
+        .hasSize(2)
+        .allSatisfy(token -> {
+          assertThat(token.getOwnerId()).isEqualTo("p1");
+          assertThat(token.getZone()).isEqualTo(ZoneName.BASE);
+        });
+  }
+
+  @Test
+  void vanguardCaptainLegionDoesNotTriggerAsFirstCardPlayed() {
+    CardInstance captain = card("captain", "p1", ZoneName.HAND);
+    LiveGameState state = state(captain);
+    stubCard("captain", "Vanguard Captain", "Unit", 0, 2, 2, "[Legion] Create two Recruits.");
+    stubCard(TokenFactory.RECRUIT_TOKEN_CARD_ID, "Recruit", "Unit", 0, 1, 1, "Token Unit.");
+    when(cardDataService.hasKeyword(any(CardInstance.class), anyString())).thenAnswer(invocation -> {
+      CardInstance card = invocation.getArgument(0);
+      String keyword = invocation.getArgument(1);
+      return "captain".equals(card.getCardId()) && "LEGION".equalsIgnoreCase(keyword);
+    });
+
+    engine.applyMove(state, play("captain", ZoneName.BASE));
+
+    assertThat(state.getCards()).noneMatch(card -> TokenFactory.RECRUIT_TOKEN_CARD_ID.equals(card.getCardId()));
+  }
+
+  @Test
+  void playedCardTrackingResetsOnTurnChange() {
+    LiveGameState state = state();
+    state.setCurrentPhase(Phase.END);
+    state.setActivePlayerId("p1");
+    state.setCardPlayedThisTurn(true);
+
+    engine.applyMove(state, new PassPhaseMove("p1"));
+
+    assertThat(state.getActivePlayerId()).isEqualTo("p2");
+    assertThat(state.isCardPlayedThisTurn()).isFalse();
   }
 
   @Test

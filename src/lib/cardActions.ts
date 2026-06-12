@@ -1,16 +1,6 @@
 import type { RiftCard } from '../types';
 
-export type TargetScope = 'friendly' | 'enemy' | 'any';
 export type TargetMode = 'NONE' | 'FRIENDLY_UNIT' | 'ENEMY_UNIT' | 'ANY_BATTLEFIELD_UNIT' | 'FRIENDLY_UNIT_FOR_EQUIP' | 'UNSUPPORTED';
-
-export function cardTargetScope(card: RiftCard | undefined): TargetScope | null {
-  const mode = targetModeForCard(card);
-  if (mode === 'FRIENDLY_UNIT' || mode === 'FRIENDLY_UNIT_FOR_EQUIP') return 'friendly';
-  if (mode === 'ENEMY_UNIT') return 'enemy';
-  if (mode === 'ANY_BATTLEFIELD_UNIT') return 'any';
-  if (mode === 'UNSUPPORTED') return 'any';
-  return null;
-}
 
 export function targetModeForCard(card: RiftCard | undefined): TargetMode {
   if (!card || !['spell', 'gear'].includes(card.type?.toLowerCase())) return 'NONE';
@@ -24,7 +14,7 @@ export function targetModeForCard(card: RiftCard | undefined): TargetMode {
     || text.includes('target ability')) {
     return 'UNSUPPORTED';
   }
-  if (text.includes('friendly unit') || text.includes('unit you control')) return 'FRIENDLY_UNIT';
+  if (text.includes('friendly unit') || text.includes('unit you control') || text.includes('ready it')) return 'FRIENDLY_UNIT';
   if (text.includes('enemy unit') || text.includes('opponent unit')) return 'ENEMY_UNIT';
   const requiresTarget = text.includes('target unit')
     || text.includes('target champion')

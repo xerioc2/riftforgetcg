@@ -63,7 +63,7 @@ export function CardPreview({ card, instance, onInspect }: { card: RiftCard | nu
           ) : null}
           {['Spell', 'Gear'].includes(card.type) ? (
             <p className={`mt-2 text-xs font-semibold ${unsupportedReason ? 'text-ember' : 'text-mint'}`}>
-              {unsupportedReason ?? 'Effect supported in this build'}
+              {unsupportedReason ?? 'No blocked effect detected for alpha play'}
             </p>
           ) : null}
           <div className="mt-3 flex flex-wrap gap-1">
