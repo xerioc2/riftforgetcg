@@ -27,20 +27,45 @@ interface PhaseBarProps {
   onPassPhase: () => void;
   activeShowdown?: boolean;
   showdownStep?: string;
+  guidance?: string;
+  legalActionHint?: string;
+  waitingStatus?: string;
+  connectionStatus?: string;
   bottom?: number;
 }
 
-export function PhaseBar({ currentPhase, isMyTurn, canPass, opponentName, onPassPhase, activeShowdown = false, showdownStep, bottom = 172 }: PhaseBarProps) {
+export function PhaseBar({
+  currentPhase,
+  isMyTurn,
+  canPass,
+  opponentName,
+  onPassPhase,
+  activeShowdown = false,
+  showdownStep,
+  guidance,
+  legalActionHint,
+  waitingStatus,
+  connectionStatus,
+  bottom = 172,
+}: PhaseBarProps) {
   const showdownLabel = showdownStep ? `Showdown: ${SHOWDOWN_STEP_LABELS[showdownStep] ?? showdownStep}` : 'Showdown';
   const currentLabel = activeShowdown && currentPhase === 'MAIN' ? `Main Phase - ${showdownLabel}` : PHASE_LABELS[currentPhase] ?? currentPhase;
   return (
-    <div className="pointer-events-auto absolute left-0 z-20 flex h-12 items-center gap-1 border-t border-line bg-panel/95 px-3" style={{ right: '280px', bottom }}>
-      <div className="flex min-w-0 overflow-x-auto">
-        {PHASES.map((phase) => (
-          <span className={`shrink-0 px-3 py-1 text-xs font-semibold transition-colors ${currentPhase === phase ? 'bg-forge text-ink' : 'text-slate-500'}`} key={phase}>
-            {phase === currentPhase ? currentLabel : PHASE_LABELS[phase] ?? phase}
-          </span>
-        ))}
+    <div className="pointer-events-auto absolute left-0 z-20 flex h-12 items-center gap-3 border-t border-line bg-panel/95 px-3" style={{ right: '280px', bottom }}>
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 overflow-x-auto">
+          {PHASES.map((phase) => (
+            <span className={`shrink-0 px-3 py-1 text-xs font-semibold transition-colors ${currentPhase === phase ? 'bg-forge text-ink' : 'text-slate-500'}`} key={phase}>
+              {phase === currentPhase ? currentLabel : PHASE_LABELS[phase] ?? phase}
+            </span>
+          ))}
+        </div>
+        <div className="mt-0.5 flex min-w-0 items-center gap-2 overflow-hidden text-[11px] leading-4">
+          {guidance ? <span className="truncate text-slate-300">{guidance}</span> : null}
+          {legalActionHint ? <span className="truncate text-forge">{legalActionHint}</span> : null}
+          {waitingStatus ? <span className="truncate text-slate-400">{waitingStatus}</span> : null}
+          {connectionStatus ? <span className="truncate text-slate-500">{connectionStatus}</span> : null}
+        </div>
       </div>
       <div className="ml-auto flex items-center gap-3">
         <span className={`whitespace-nowrap text-xs font-semibold ${isMyTurn ? 'text-forge' : 'text-slate-300'}`}>

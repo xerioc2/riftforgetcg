@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { unsupportedCardReason } from '../lib/cardActions';
-import { KEYWORD_DESCRIPTIONS } from '../lib/cardKeywords';
+import { keywordDescription } from '../lib/cardKeywords';
 import type { CardInstance, RiftCard } from '../types';
 
 export function CardPreview({ card, instance, onInspect }: { card: RiftCard | null; instance?: CardInstance; onInspect?: (card: CardInstance) => void }) {
@@ -79,7 +79,7 @@ export function CardPreview({ card, instance, onInspect }: { card: RiftCard | nu
               {card.keywords.map((keyword) => (
                 <div key={keyword} className="flex items-start gap-2 text-xs">
                   <span className="badge border-forge/40 text-forge">{keyword}</span>
-                  <span className="text-slate-400">{KEYWORD_DESCRIPTIONS[keyword.toUpperCase()] ?? 'Card keyword.'}</span>
+                  <span className="text-slate-400">{keywordDescription(keyword)}</span>
                 </div>
               ))}
             </div>

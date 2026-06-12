@@ -33,7 +33,7 @@ class CombatResolverTest {
 
   @BeforeEach
   void setUp() {
-    resolver = new CombatResolver(cardDataService, effects, cardZoneService);
+    resolver = new CombatResolver(cardDataService, effects, cardZoneService, new CombatStatsService(cardDataService));
     when(effects.getEffect(anyString())).thenReturn(Optional.empty());
     doAnswer(invocation -> {
       ((CardInstance) invocation.getArgument(0)).setZone(ZoneName.DISCARD);

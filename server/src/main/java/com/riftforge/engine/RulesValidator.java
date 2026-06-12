@@ -126,7 +126,10 @@ public class RulesValidator {
     if (energy + selectedEnergy < cost) throw new IllegalMoveException("Insufficient energy.");
     boolean spellOrGear = spell || gear;
     if (spellOrGear && cardDataService.isUnsupportedAction(card.getCardId())) throw new IllegalMoveException("That card's effect is not supported yet.");
-    if (spellOrGear && cardDataService.requiresBattlefieldTarget(card.getCardId())) validateTarget(state, move, card);
+    boolean hasExplicitTarget = move.targetInstanceId() != null && !move.targetInstanceId().isBlank();
+    if (spellOrGear && (cardDataService.requiresBattlefieldTarget(card.getCardId()) || hasExplicitTarget)) {
+      validateTarget(state, move, card);
+    }
   }
 
   private void validatePayment(LiveGameState state, PlayCardMove move, CardDefinition def) {
@@ -193,6 +196,10 @@ public class RulesValidator {
       throw new IllegalMoveException("Cannot target a unit with Hidden while it's at their base.");
     }
     if (target.getZone() != ZoneName.BATTLEFIELD) throw new IllegalMoveException("Target must be on the battlefield.");
+    CardDefinition targetDef = cardDataService.getCard(target.getCardId());
+    if (!isType(targetDef, "Unit") && !isType(targetDef, "Champion")) {
+      throw new IllegalMoveException("Target must be a Unit or Champion.");
+    }
     if (cardDataService.requiresFriendlyTarget(card.getCardId()) && !target.getOwnerId().equals(move.playerId())) {
       throw new IllegalMoveException("That card requires a friendly unit.");
     }

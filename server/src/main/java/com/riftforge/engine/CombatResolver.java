@@ -5,6 +5,7 @@ import com.riftforge.model.CardDefinition;
 import com.riftforge.model.CardInstance;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.ZoneName;
+import com.riftforge.engine.CombatStatsService.CombatContext;
 import com.riftforge.service.CardDataService;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -19,11 +20,13 @@ public class CombatResolver {
   private final CardDataService cardDataService;
   private final CardEffectRegistry effects;
   private final CardZoneService cardZoneService;
+  private final CombatStatsService combatStatsService;
 
-  public CombatResolver(CardDataService cardDataService, CardEffectRegistry effects, CardZoneService cardZoneService) {
+  public CombatResolver(CardDataService cardDataService, CardEffectRegistry effects, CardZoneService cardZoneService, CombatStatsService combatStatsService) {
     this.cardDataService = cardDataService;
     this.effects = effects;
     this.cardZoneService = cardZoneService;
+    this.combatStatsService = combatStatsService;
   }
 
   public CombatResult resolve(LiveGameState state, String attackingPlayerId) {
@@ -47,7 +50,8 @@ public class CombatResolver {
   }
 
   private void assignDamage(List<CardInstance> sources, List<CardInstance> targets, Map<String, Integer> damage, boolean attacking) {
-    int pool = sources.stream().mapToInt(card -> effectiveMight(card, attacking)).sum();
+    CombatContext context = attacking ? CombatContext.ATTACKING : CombatContext.DEFENDING;
+    int pool = sources.stream().mapToInt(card -> combatStatsService.effectiveMight(card, context)).sum();
     List<CardInstance> ordered = targets.stream()
         .sorted(Comparator.comparingInt(this::assignmentPriority))
         .toList();
@@ -78,15 +82,6 @@ public class CombatResolver {
     if (cardDataService.hasKeyword(card, "TANK")) return 0;
     if (cardDataService.hasKeyword(card, "BACKLINE")) return 2;
     return 1;
-  }
-
-  private int effectiveMight(CardInstance card, boolean attacking) {
-    if (cardDataService.hasKeyword(card, "STUN") || cardDataService.hasKeyword(card, "STUNNED")) return 0;
-    CardDefinition def = cardDataService.getCard(card.getCardId());
-    int situational = attacking
-        ? cardDataService.getKeywordValue(card, "ASSAULT")
-        : cardDataService.getKeywordValue(card, "SHIELD");
-    return Math.max(0, def.power() + card.getMightBonus() + card.getTemporaryPowerModifier() + situational);
   }
 
   private int lethalDamage(CardInstance card) {

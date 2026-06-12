@@ -120,10 +120,10 @@ export function Lobby() {
     setDeckError(null);
     const nextMe = nextRoom.players.find((lobbyPlayer) => lobbyPlayer.id === player.id);
     if (nextMe?.deckWarnings && nextMe.deckWarnings.length > 0) {
-      notifyWarning('Deck has partial support', nextMe.deckWarnings.slice(0, 2).join(' '));
+      notifyWarning('Deck has partial support', `Playable alpha warning: ${nextMe.deckWarnings.slice(0, 2).join(' ')}`);
     }
     if (unsupportedCards.length > 0) {
-      notifyWarning('Deck has unsupported effects', `${unsupportedCards.slice(0, 3).map(({ card }) => card.name).join(', ')} may not work fully yet.`);
+      notifyWarning('Deck has unsupported effects', `${unsupportedCards.slice(0, 3).map(({ card }) => card.name).join(', ')} are blocked in supported-cards-only mode.`);
     }
   };
 
@@ -252,6 +252,7 @@ export function Lobby() {
                     {unsupportedCards.slice(0, 5).map(({ card }) => card.name).join(', ')}
                     {unsupportedCards.length > 5 ? `, +${unsupportedCards.length - 5} more` : ''}
                   </p>
+                  <p className="mt-1 text-slate-400">These are blocked when supported-cards-only mode is enabled.</p>
                 </div>
               ) : null}
               {partialCards.length > 0 ? (
@@ -261,6 +262,7 @@ export function Lobby() {
                     {partialCards.slice(0, 5).map(({ card }) => card.name).join(', ')}
                     {partialCards.length > 5 ? `, +${partialCards.length - 5} more` : ''}
                   </p>
+                  <p className="mt-1 text-slate-400">Playable in alpha, but these effects may be inaccurate or incomplete.</p>
                 </div>
               ) : null}
               {me?.deckWarnings && me.deckWarnings.length > 0 ? (

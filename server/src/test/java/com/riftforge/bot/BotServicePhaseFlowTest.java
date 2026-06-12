@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import com.riftforge.effect.CardEffectRegistry;
 import com.riftforge.engine.CardZoneService;
 import com.riftforge.engine.CombatResolver;
+import com.riftforge.engine.CombatStatsService;
 import com.riftforge.engine.GameEngine;
 import com.riftforge.engine.IllegalMoveException;
 import com.riftforge.engine.RulesValidator;
@@ -63,7 +64,7 @@ class BotServicePhaseFlowTest {
   void setUp() {
     CardZoneService cardZoneService = new CardZoneService(cardDataService);
     CardEffectRegistry effects = new CardEffectRegistry(cardDataService);
-    CombatResolver combatResolver = new CombatResolver(cardDataService, effects, cardZoneService);
+    CombatResolver combatResolver = new CombatResolver(cardDataService, effects, cardZoneService, new CombatStatsService(cardDataService));
     RulesValidator rulesValidator = new RulesValidator(cardDataService);
     GameEngine engine = new GameEngine(rulesValidator, combatResolver, cardZoneService, cardDataService, effects, 8);
     gameService = new GameService(engine, cardDataService, messaging, eventPublisher, new MatchHistoryService(), new GameStateProjectionService(new LegalActionsService()));
@@ -285,7 +286,11 @@ class BotServicePhaseFlowTest {
     GameService eventedGameService = new GameService(
         new GameEngine(
             new RulesValidator(cardDataService),
-            new CombatResolver(cardDataService, new CardEffectRegistry(cardDataService), new CardZoneService(cardDataService)),
+            new CombatResolver(
+                cardDataService,
+                new CardEffectRegistry(cardDataService),
+                new CardZoneService(cardDataService),
+                new CombatStatsService(cardDataService)),
             new CardZoneService(cardDataService),
             cardDataService,
             new CardEffectRegistry(cardDataService),

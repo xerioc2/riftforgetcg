@@ -15,7 +15,8 @@ import { computeLayout, type ZoneRect } from '../components/board/BoardLayout';
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
 import { readableHttpError } from '../lib/http';
-import { cardTargetScope, unsupportedCardReason } from '../lib/cardActions';
+import { isLegalTargetForMode, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode } from '../lib/cardActions';
+import { isBotPlayer, legalActionHint, phaseGuidance, waitingStatusText } from '../lib/gameGuidance';
 import { useLocalPlayer } from '../lib/playerContext';
 import { getRoomSessionToken } from '../lib/roomSession';
 import { play, preload } from '../lib/sfx';
@@ -99,13 +100,14 @@ export function GameBoard() {
   const [hoveredCard, setHoveredCard] = useState<RiftCard | null>(null);
   const [hoveredInstance, setHoveredInstance] = useState<CardInstance | undefined>();
   const [inspectCard, setInspectCard] = useState<CardInstance | null>(null);
-  const [pendingSpellInstanceId, setPendingSpellInstanceId] = useState<string | null>(null);
+  const [pendingTargetSelection, setPendingTargetSelection] = useState<{ instanceId: string; mode: TargetMode } | null>(null);
   const [pendingAccelerate, setPendingAccelerate] = useState<{ instanceId: string; card: RiftCard } | null>(null);
   const [pendingVision, setPendingVision] = useState<{ logId: string; cardId: string; cardName: string } | null>(null);
   const [pendingRuneTaps, setPendingRuneTaps] = useState<Set<string>>(new Set());
   const [mulliganDiscardIds, setMulliganDiscardIds] = useState<Set<string>>(new Set());
   const [handHeight, setHandHeight] = useState(230);
   const [wsConnected, setWsConnected] = useState(false);
+  const [waitingTooLong, setWaitingTooLong] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const stompClientRef = useRef<Client | null>(null);
   const prevCards = useRef<Map<string, CardInstance>>(new Map());
@@ -176,7 +178,7 @@ export function GameBoard() {
   useEffect(() => {
     if (state?.currentPhase !== 'MAIN' || state?.activeShowdown) {
       setPendingRuneTaps(new Set());
-      setPendingSpellInstanceId(null);
+      setPendingTargetSelection(null);
     }
   }, [state?.activeShowdown, state?.currentPhase]);
 
@@ -187,8 +189,17 @@ export function GameBoard() {
   }, [handInstanceKey, hasMulliganed, state?.currentPhase]);
 
   useEffect(() => {
+    const activePlayer = state?.players.find((statePlayer) => statePlayer.userId === state.activePlayerId);
+    const botIsActing = Boolean(state && state.activePlayerId !== player.id && isBotPlayer(state.activePlayerId, activePlayer?.name));
+    setWaitingTooLong(false);
+    if (!botIsActing) return;
+    const timer = window.setTimeout(() => setWaitingTooLong(true), 4500);
+    return () => window.clearTimeout(timer);
+  }, [player.id, state?.activePlayerId, state?.activeShowdown?.step, state?.currentPhase, state?.players]);
+
+  useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setPendingSpellInstanceId(null);
+      if (event.key === 'Escape') setPendingTargetSelection(null);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -265,7 +276,7 @@ export function GameBoard() {
                   void fetch(playerStateUrl)
                     .then((r) => (r.ok ? r.json() as Promise<LiveGameState> : Promise.reject(new Error('State refresh failed.'))))
                     .then(handleIncomingState)
-                    .catch(() => notifyWarning('Unable to refresh state.'));
+                    .catch(() => notifyWarning('Player update missing', 'Unable to refresh your private state. Reconnecting may fix it.'));
                 }, 2000);
               }
             }
@@ -281,7 +292,7 @@ export function GameBoard() {
               void fetch(playerStateUrl)
                 .then((r) => (r.ok ? r.json() as Promise<LiveGameState> : Promise.reject(new Error('State refresh failed.'))))
                 .then(handleIncomingState)
-                .catch(() => notifyWarning('Reconnected, but state refresh failed.'));
+                .catch(() => notifyWarning('Reconnected', 'Private state refresh failed; waiting for the next server update.'));
             }
             if (connected) {
               if (hasConnectedRef.current) notifySuccess('Reconnected');
@@ -398,7 +409,7 @@ export function GameBoard() {
     return { paymentRuneIds: [...selectedRunes], premiumRuneIds };
   };
 
-  const playCardToBase = (instanceId: string, cardDef: RiftCard | undefined, accelerate = false) => {
+  const playCardToBase = (instanceId: string, cardDef: RiftCard | undefined, accelerate = false, targetInstanceId?: string) => {
     const payment = selectPaymentRunesForCard(cardDef, accelerate ? 1 : 0);
     if (!payment) return;
     const isRune = cardDef?.type?.toLowerCase() === 'rune';
@@ -407,17 +418,23 @@ export function GameBoard() {
       const runeCount = state?.runes?.filter((rune) => rune.ownerId === player.id).length ?? 0;
       const runeX = runeZone ? runeZone.x + 20 + runeCount * Math.max(30, (runeZone.width - 40) / 10) : size.width / 2;
       const runeY = runeZone ? runeZone.y + runeZone.height / 2 : size.height / 2;
-      publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'RUNE', x: runeX, y: runeY, accelerate, ...payment });
+      publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'RUNE', x: runeX, y: runeY, targetInstanceId, accelerate, ...payment });
       return;
     }
     const base = zones.find((zone) => zone.zoneName === 'base' && zone.ownerId === player.id);
     const baseCount = state?.cards.filter((card) => card.ownerId === player.id && sameZone(card.zone, 'base')).length ?? 0;
     const position = base ? autoPlaceInZone(base, baseCount) : { x: size.width / 2, y: size.height / 2 };
-    publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'BASE', ...position, accelerate, ...payment });
+    publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'BASE', ...position, targetInstanceId, accelerate, ...payment });
   };
 
   const playFromHand = (instanceId: string) => {
-    if (!canTakeAction(state, 'PLAY_CARD')) return;
+    if (!canTakeAction(state, 'PLAY_CARD')) {
+      notifyWarning(
+        'Action unavailable',
+        isMyTurn ? 'You can only play cards during Main or supported action windows.' : 'Waiting for the active player or a supported reaction window.',
+      );
+      return;
+    }
     const cardDef = cardsById.get(state?.cards.find((c) => c.instanceId === instanceId)?.cardId ?? '');
     const type = cardDef?.type?.toLowerCase();
     if (type === 'legend' || type === 'champion' || type === 'battlefield') {
@@ -435,8 +452,13 @@ export function GameBoard() {
       notifyWarning('Unsupported card effect', unsupportedReason);
       return;
     }
-    if (cardTargetScope(cardDef)) {
-      setPendingSpellInstanceId(instanceId);
+    const targetMode = targetModeForCard(cardDef);
+    if (targetMode === 'UNSUPPORTED') {
+      notifyWarning('Unsupported targeting', 'That card needs a targeting flow that is not supported yet.');
+      return;
+    }
+    if (targetMode !== 'NONE') {
+      setPendingTargetSelection({ instanceId, mode: targetMode });
       return;
     }
     const canAccelerate = cardDef?.type?.toLowerCase() === 'unit' && hasKeyword(cardDef, 'ACCELERATE') && spendableEnergy >= (cardDef.cost ?? 0) + 1;
@@ -448,7 +470,10 @@ export function GameBoard() {
   };
 
   const discardFromHand = (instanceId: string) => {
-    if (!canTakeAction(state, 'SANDBOX_MOVE_CARD')) return;
+    if (!canTakeAction(state, 'SANDBOX_MOVE_CARD')) {
+      notifyWarning('Sandbox only', 'Free-form hand discard is only available in Sandbox games.');
+      return;
+    }
     publishMove({ type: 'MOVE_CARD', playerId: player.id, instanceId, targetZone: 'DISCARD', x: size.width - 76, y: size.height - 170 });
   };
 
@@ -456,7 +481,11 @@ export function GameBoard() {
     const instance = state?.cards.find((card) => card.instanceId === instanceId);
     if (!instance) return;
     const zone = pointZone(x, y, zones, instance.zone);
-    if ((sameZone(instance.zone, 'base') || sameZone(instance.zone, 'champion')) && sameZone(zone, 'battlefield') && instance.ownerId === player.id && canTakeAction(state, 'MOVE_TO_BATTLEFIELD')) {
+    if ((sameZone(instance.zone, 'base') || sameZone(instance.zone, 'champion')) && sameZone(zone, 'battlefield') && instance.ownerId === player.id) {
+      if (!canTakeAction(state, 'MOVE_TO_BATTLEFIELD')) {
+        notifyWarning('Action unavailable', 'Units can move to a battlefield only when the server marks that action legal.');
+        return;
+      }
       const cardDef = cardsById.get(instance.cardId);
       const type = cardDef?.type?.toLowerCase();
       if (type !== 'unit' && type !== 'champion') {
@@ -473,38 +502,33 @@ export function GameBoard() {
       publishMove({ type: 'REPOSITION_CARD', playerId: player.id, instanceId, x: snappedX, y: snappedY });
       return;
     }
-    if (!canTakeAction(state, 'SANDBOX_MOVE_CARD')) return;
+    if (!canTakeAction(state, 'SANDBOX_MOVE_CARD')) {
+      notifyWarning('Sandbox only', 'Free-form card movement is only available in Sandbox games.');
+      return;
+    }
     publishMove({ type: 'MOVE_CARD', playerId: player.id, instanceId, targetZone: zone.toUpperCase().replace(/-/g, '_'), x: snappedX, y: snappedY });
   };
 
   const handleCardClick = (instanceId: string) => {
     const instance = state?.cards.find((card) => card.instanceId === instanceId);
     if (!instance) return;
-    const isOwnBattlefieldCard = instance.ownerId === player.id && sameZone(instance.zone, 'battlefield');
-    const isEnemyBattlefieldCard = instance.ownerId !== player.id && sameZone(instance.zone, 'battlefield');
-    const pendingCard = cardsById.get(state?.cards.find((card) => card.instanceId === pendingSpellInstanceId)?.cardId ?? '');
-    const targetScope = cardTargetScope(pendingCard);
-    const isValidPendingTarget = targetScope === 'friendly' ? isOwnBattlefieldCard : targetScope === 'enemy' ? isEnemyBattlefieldCard : isOwnBattlefieldCard || isEnemyBattlefieldCard;
-    if (pendingSpellInstanceId && isValidPendingTarget) {
-      const spellInstance = state?.cards.find((card) => card.instanceId === pendingSpellInstanceId);
+    const targetCard = cardsById.get(instance.cardId);
+    const isValidPendingTarget = pendingTargetSelection
+      ? isLegalTargetForMode(instance, targetCard, pendingTargetSelection.mode, player.id)
+      : false;
+    if (pendingTargetSelection && !isValidPendingTarget) {
+      notifyWarning('Invalid target', `${targetPromptForMode(pendingTargetSelection.mode)} Press Esc or right-click to cancel.`);
+      return;
+    }
+    if (pendingTargetSelection && isValidPendingTarget) {
+      const spellInstance = state?.cards.find((card) => card.instanceId === pendingTargetSelection.instanceId);
       if (!spellInstance) {
-        setPendingSpellInstanceId(null);
+        setPendingTargetSelection(null);
         return;
       }
       const spellDef = cardsById.get(spellInstance.cardId);
-      const payment = selectPaymentRunesForCard(spellDef);
-      if (!payment) return;
-      publishMove({
-        type: 'PLAY_CARD',
-        playerId: player.id,
-        instanceId: pendingSpellInstanceId,
-        targetZone: 'BASE',
-        x: 0,
-        y: 0,
-        targetInstanceId: instanceId,
-        ...payment,
-      });
-      setPendingSpellInstanceId(null);
+      playCardToBase(pendingTargetSelection.instanceId, spellDef, false, instanceId);
+      setPendingTargetSelection(null);
       return;
     }
 
@@ -514,7 +538,10 @@ export function GameBoard() {
   const handleRuneTap = (runeInstanceId: string) => {
     const rune = state?.runes?.find((candidate) => candidate.instanceId === runeInstanceId);
     if (!rune || rune.ownerId !== player.id || rune.tapped) return;
-    if (!canTakeAction(state, 'TAP_RUNE')) return;
+    if (!canTakeAction(state, 'TAP_RUNE')) {
+      notifyWarning('Action unavailable', 'Runes can be tapped only during supported payment or channel windows.');
+      return;
+    }
     setPendingRuneTaps((previous) => {
       const next = new Set(previous);
       if (next.has(runeInstanceId)) next.delete(runeInstanceId);
@@ -528,13 +555,22 @@ export function GameBoard() {
       publishMove({ type: 'RESOLVE_SHOWDOWN', playerId: player.id });
       return;
     }
-    if (!canTakeAction(state, 'PASS_PHASE')) return;
+    if (!canTakeAction(state, 'PASS_PHASE')) {
+      notifyWarning('Action unavailable', isMyTurn ? 'The server has no pass action available right now.' : `Waiting for ${opponentName}.`);
+      return;
+    }
     publishMove({ type: 'PASS_PHASE', playerId: player.id });
   };
 
   const submitMulligan = (discardInstanceIds: string[]) => {
-    if (discardInstanceIds.length === 0 && !canTakeAction(state, 'KEEP_HAND')) return;
-    if (discardInstanceIds.length > 0 && !canTakeAction(state, 'MULLIGAN')) return;
+    if (discardInstanceIds.length === 0 && !canTakeAction(state, 'KEEP_HAND')) {
+      notifyWarning('Action unavailable', 'Keeping your hand is not available yet.');
+      return;
+    }
+    if (discardInstanceIds.length > 0 && !canTakeAction(state, 'MULLIGAN')) {
+      notifyWarning('Action unavailable', 'Mulligan is not available yet.');
+      return;
+    }
     publishMove({ type: 'MULLIGAN', playerId: player.id, discardInstanceIds });
   };
 
@@ -584,7 +620,10 @@ export function GameBoard() {
 
   const opponent = state.players.find((statePlayer) => statePlayer.userId !== player.id);
   const me = state.players.find((statePlayer) => statePlayer.userId === player.id);
+  const activePlayer = state.players.find((statePlayer) => statePlayer.userId === state.activePlayerId);
   const opponentName = opponent?.name?.trim() || opponent?.userId || 'Opponent';
+  const activePlayerName = activePlayer?.userId === player.id ? 'you' : activePlayer?.name?.trim() || activePlayer?.userId || opponentName;
+  const activePlayerIsBot = isBotPlayer(activePlayer?.userId, activePlayer?.name);
   const opponentHand = state.cards.filter((card) => card.ownerId === opponent?.userId && sameZone(card.zone, 'hand')).length;
   const visibleCardsFor = (ownerId: string | undefined, zone: string) =>
     state.cards
@@ -628,6 +667,10 @@ export function GameBoard() {
   const canPass = canTakeAction(state, 'PASS_PHASE') || canResolveShowdown;
   const canMulligan = canTakeAction(state, 'MULLIGAN');
   const canKeepHand = canTakeAction(state, 'KEEP_HAND');
+  const guidanceText = phaseGuidance(state.currentPhase, showdownActive, state.activeShowdown?.step);
+  const actionHintText = legalActionHint(state.legalActions, { isPlayer: Boolean(me), isMyTurn, activePlayerName, activePlayerIsBot });
+  const waitingText = waitingStatusText({ isMyTurn, activePlayerName, activePlayerIsBot, waitingLong: waitingTooLong });
+  const connectionText = wsConnected ? 'Connected.' : 'Reconnecting to player-specific updates...';
   const boardCardRenderItems = [...state.cards]
     .filter((instance) => !sameZone(instance.zone, 'hand') && !sameZone(instance.zone, 'deck'))
     .sort((a, b) => a.zIndex - b.zIndex)
@@ -652,7 +695,15 @@ export function GameBoard() {
   return (
     <main className="relative bg-ink text-slate-100" style={{ height: `calc(100vh - ${NAV_HEIGHT}px)` }} ref={containerRef}>
       {inspectCard ? <CardInspectModal card={inspectCard} cardDef={cardsById.get(inspectCard.cardId)} onClose={() => setInspectCard(null)} /> : null}
-      <Stage width={size.width} height={size.height} onMouseDown={(event) => event.target === event.target.getStage() && setSelectedInstanceId(null)}>
+      <Stage
+        width={size.width}
+        height={size.height}
+        onMouseDown={(event) => event.target === event.target.getStage() && setSelectedInstanceId(null)}
+        onContextMenu={(event) => {
+          event.evt.preventDefault();
+          if (pendingTargetSelection) setPendingTargetSelection(null);
+        }}
+      >
         <Layer listening={false}>
           <ZoneOverlay zones={zones} />
         </Layer>
@@ -684,6 +735,7 @@ export function GameBoard() {
                 onTap={handleRuneTap}
                 onDiscard={(id) => {
                   if (canTakeAction(state, 'DISCARD_RUNE')) publishMove({ type: 'DISCARD_RUNE', playerId: player.id, runeInstanceId: id });
+                  else notifyWarning('Action unavailable', 'Discarding a rune is only legal during supported payment windows.');
                 }}
               />
             );
@@ -704,9 +756,15 @@ export function GameBoard() {
                 onClick={handleCardClick}
                 onDoubleClick={(id) => {
                   if (canTakeAction(state, 'SANDBOX_TAP_CARD')) publishMove({ type: 'TAP_CARD', playerId: player.id, instanceId: id });
+                  else notifyWarning('Sandbox only', 'Manual tap is only available in Sandbox games.');
                 }}
                 onContextMenu={(id) => {
+                  if (pendingTargetSelection) {
+                    setPendingTargetSelection(null);
+                    return;
+                  }
                   if (canTakeAction(state, 'SANDBOX_FLIP_CARD')) publishMove({ type: 'FLIP_CARD', playerId: player.id, instanceId: id });
+                  else notifyWarning('Sandbox only', 'Manual flip is only available in Sandbox games.');
                 }}
                 animate={pendingAnimations.current.delete(instance.instanceId)}
                 scale={cardScale}
@@ -716,22 +774,20 @@ export function GameBoard() {
           })}
         </Layer>
         <Layer listening={false}>
-          {pendingSpellInstanceId
+          {pendingTargetSelection
             ? boardCardDisplayItems
                 .filter(({ instance }) => {
-                  if (!sameZone(instance.zone, 'battlefield')) return false;
-                  const pendingCardDef = cardsById.get(state.cards.find((candidate) => candidate.instanceId === pendingSpellInstanceId)?.cardId ?? '');
-                  const scope = cardTargetScope(pendingCardDef);
-                  return scope === 'friendly' ? instance.ownerId === player.id : scope === 'enemy' ? instance.ownerId !== player.id : true;
+                  const cardDef = cardsById.get(instance.cardId);
+                  return isLegalTargetForMode(instance, cardDef, pendingTargetSelection.mode, player.id);
                 })
                 .map(({ instance, displayInstance }) => <Rect key={`target-top-${instance.instanceId}`} x={displayInstance.x - 44} y={displayInstance.y - 60} width={88} height={120} fill="rgba(229,108,79,0.12)" stroke="#e56c4f" shadowColor="#e56c4f" shadowBlur={20} cornerRadius={6} />)
             : null}
-          {pendingSpellInstanceId ? <Text x={0} y={8} width={size.width} text="Click a highlighted unit to target it - Esc to cancel" align="center" fontSize={13} fontStyle="bold" fill="#e56c4f" /> : null}
+          {pendingTargetSelection ? <Text x={0} y={8} width={size.width} text={`${targetPromptForMode(pendingTargetSelection.mode)} Esc/right-click to cancel.`} align="center" fontSize={13} fontStyle="bold" fill="#e56c4f" /> : null}
         </Layer>
       </Stage>
       {ownRuneZone ? (
         <div className="pointer-events-none absolute flex items-center gap-2" style={{ left: ownRuneZone.x + 8, top: ownRuneZone.y + 4, maxWidth: ownRuneZone.width - 16 }}>
-          <span className="truncate text-xs text-slate-500">Left-click: tap (1 energy) · Right-click: discard (2 energy, permanent)</span>
+          <span className="truncate text-xs text-slate-500">Left-click: tap (1 energy) - Right-click: discard (2 energy, permanent)</span>
           {canUndoRunes ? (
             <button className="btn-secondary pointer-events-auto min-h-6 shrink-0 px-2 py-0.5 text-xs" onClick={() => publishMove({ type: 'UNDO_RUNES', playerId: player.id })}>
               Undo
@@ -781,7 +837,20 @@ export function GameBoard() {
           onLeave={() => navigate('/')}
         />
       ) : null}
-      <PhaseBar currentPhase={state.currentPhase ?? 'MAIN'} isMyTurn={isMyTurn} canPass={canPass} opponentName={opponentName} onPassPhase={handlePassPhase} activeShowdown={showdownActive} showdownStep={state.activeShowdown?.step} bottom={handHeight} />
+      <PhaseBar
+        currentPhase={state.currentPhase ?? 'MAIN'}
+        isMyTurn={isMyTurn}
+        canPass={canPass}
+        opponentName={opponentName}
+        onPassPhase={handlePassPhase}
+        activeShowdown={showdownActive}
+        showdownStep={state.activeShowdown?.step}
+        guidance={guidanceText}
+        legalActionHint={actionHintText}
+        waitingStatus={waitingText}
+        connectionStatus={connectionText}
+        bottom={handHeight}
+      />
       {canPlayReactions && hasSpellReaction ? (
         <div className="pointer-events-none absolute left-0 z-20 flex justify-center text-xs font-medium text-forge" style={{ right: `${SIDEBAR_WIDTH}px`, bottom: handHeight + PHASE_BAR_HEIGHT + 6 }}>
           Opponent&apos;s turn - you may play spells as reactions
@@ -898,8 +967,8 @@ export function GameBoard() {
             </section>
           ) : hand.length === 0 ? (
             <section className="border border-line bg-panel px-10 py-8 text-center shadow-glow">
-              <h2 className="text-xl font-semibold text-forge">No cards dealt</h2>
-              <p className="mt-2 text-sm text-slate-400">Your deck may be empty. Add cards in the Deck Builder and start a new game.</p>
+              <h2 className="text-xl font-semibold text-forge">Waiting for cards...</h2>
+              <p className="mt-2 text-sm text-slate-400">The server is preparing your opening hand. If this persists, copy debug info and restart the room.</p>
               <button type="button" className="btn-secondary mt-4" onClick={() => navigate('/')}>Back to Home</button>
             </section>
           ) : (
@@ -960,8 +1029,8 @@ export function GameBoard() {
       ) : null}
       {!wsConnected && !loading && !error ? (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-40 flex items-center justify-center gap-2 bg-ember/90 px-4 py-2 text-sm font-medium text-white">
-          <span className="animate-pulse">●</span>
-          Connection lost — reconnecting…
+          <span className="animate-pulse">!</span>
+          Connection lost - reconnecting to player-specific updates...
         </div>
       ) : null}
       {state.winnerId ? (

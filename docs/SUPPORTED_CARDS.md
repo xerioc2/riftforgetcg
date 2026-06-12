@@ -22,8 +22,11 @@ surfaces Partial cards as warnings, and always rejects Banned constructed cards.
 | origins-005 | Origins | Unknown from local ID | Partial | Hard-coded `onTurnStart` clears summoning sickness from allied base cards while source is at battlefield. | Full trigger timing and current wording. | Indirect only | Needs card-name mapping. |
 | Any Spell with `draw 1` text | Any | Spell | Heuristic partial | Generic rules-text path draws 1 card. | Additional conditions, costs, targets, may choices, chain timing. | Validator/engine indirect | Should become explicit scripted effects for tournament use. |
 | Any Spell/Gear with `:rb_might:` boost text | Any | Spell/Gear | Heuristic partial | Generic rules-text path adds temporary might modifier to a target. | Duration nuances, target restrictions, multi-target, replacement/prevention. | Validator/engine indirect | Depends on target validator heuristics. |
-| ASSAULT X keyword units | Any | Unit | Partial | Handler-backed keyword support; adds X Might while attacking in combat resolution. | Card-specific triggered/static text beyond ASSAULT still needs individual scripts/tests. | `CombatResolverTest`, `EffectHandlerRegistryTest`, `CardDataServiceEffectRegistryTest` | Valued parsing supports `ASSAULT 2` and `ASSAULT2`. |
-| SHIELD X keyword units | Any | Unit | Partial | Handler-backed keyword support; adds X Might while defending in combat resolution. | Card-specific triggered/static text beyond SHIELD still needs individual scripts/tests. | `CombatResolverTest`, `EffectHandlerRegistryTest`, `CardDataServiceEffectRegistryTest` | Valued parsing supports `SHIELD 2` and `SHIELD2`. |
+| ASSAULT keyword units | Any | Unit | Partial | Handler-backed keyword support; adds +1 Might while attacking in combat resolution. | Card-specific triggered/static text beyond ASSAULT still needs individual scripts/tests. | `CombatStatsServiceTest`, `CombatResolverTest`, `EffectHandlerRegistryTest`, `CardDataServiceEffectRegistryTest` | Plain `Assault` defaults to +1. |
+| ASSAULT X keyword units | Any | Unit | Partial | Handler-backed keyword support; adds X Might while attacking in combat resolution. | Card-specific triggered/static text beyond ASSAULT still needs individual scripts/tests. | `CombatStatsServiceTest`, `CombatResolverTest`, `EffectHandlerRegistryTest`, `CardDataServiceEffectRegistryTest` | Valued parsing supports `ASSAULT 2` and `ASSAULT2`. |
+| SHIELD keyword units | Any | Unit | Partial | Handler-backed keyword support; adds +1 Might while defending in combat resolution. | Card-specific triggered/static text beyond SHIELD still needs individual scripts/tests. | `CombatStatsServiceTest`, `CombatResolverTest`, `EffectHandlerRegistryTest`, `CardDataServiceEffectRegistryTest` | Plain `Shield` defaults to +1. |
+| SHIELD X keyword units | Any | Unit | Partial | Handler-backed keyword support; adds X Might while defending in combat resolution. | Card-specific triggered/static text beyond SHIELD still needs individual scripts/tests. | `CombatStatsServiceTest`, `CombatResolverTest`, `EffectHandlerRegistryTest`, `CardDataServiceEffectRegistryTest` | Valued parsing supports `SHIELD 2` and `SHIELD2`. |
+| MIGHTY descriptor | Any | Unit/Champion | Partial | Central helper identifies Unit/Champion cards with effective idle Might 5 or greater. | "Becomes Mighty" triggers and source-specific battlefield/legend/champion effects are not wired yet. | `CombatStatsServiceTest` | Effective Might includes base, permanent, and temporary modifiers. |
 | Any text with `return a unit` / `return target unit` | Any | Spell | Heuristic partial | Generic rules-text path returns target to hand and trashes attachments. | Ownership, destination, replacement effects, non-unit filtering. | Validator/engine indirect | Needs explicit scripts. |
 | Any text with `ready it` | Any | Spell/Gear | Heuristic partial | Generic rules-text path readies target. | Full target requirements and timing windows. | Validator/engine indirect | Needs explicit scripts. |
 | VISION keyword cards | Any | Any | Partial | Peeks top main-deck card privately and supports keep/recycle choice. | Full Predict rules and multiple-card ordering. | Projection and legal-action indirect | Uses private logs and `VISION_CHOICE`. |
@@ -69,7 +72,7 @@ support-gate result, and rules text, lives in `docs/CARD_RULES_BACKLOG.md`.
 | Abandoned Hall | Irelia Tempo | Battlefield | Partial | Battlefield ability | Needs spell-play trigger and per-controller unit buff target. |
 | Fiora - Grand Duelist | Fiora Vanguard | Legend | Partial | Legend text | Needs Mighty-state detection and optional exhausted rune channel trigger. |
 | Fiora - Worthy | Fiora Vanguard | Champion | Partial | Champion text | Needs Mighty-state detection, Order rune payment, and ready target trigger. |
-| Daring Poro | Fiora Vanguard | Unit | Partial | ASSAULT value is handler-backed; remaining unit text is not fully scripted. | Needs direct card-specific behavior test before promotion. |
+| Daring Poro | Fiora Vanguard | Unit | Partial | ASSAULT descriptor is directly tested: +1 Might while attacking only. | Needs full card promotion review before Supported status. |
 | Keeper's Verdict | Fiora Vanguard | Spell | Unsupported | Spell: draw/card selection | Needs enemy-unit target plus owner top/bottom deck choice. |
 | Spectral Matron | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs trash-unit selection and free-play cost bypass with power-cost handling. |
 | Stalking Wolf | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs Ambush/reaction timing and additional-cost kill validation. |
@@ -78,7 +81,7 @@ support-gate result, and rules text, lives in `docs/CARD_RULES_BACKLOG.md`.
 | Vanguard Captain | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs Legion condition plus Recruit token creation. |
 | Facebreaker | Fiora Vanguard | Spell | Unsupported | Unsupported/unknown text pattern | Needs Hidden support plus friendly/enemy stun target script. |
 | Vanguard Sergeant | Fiora Vanguard | Unit | Partial | Basic unit with no special text | Candidate for first direct "basic unit supported" promotion after tests. |
-| Laurent Duelist | Fiora Vanguard | Unit | Partial | ASSAULT 2 value is handler-backed; remaining unit text is not fully scripted. | Needs direct card-specific behavior test before promotion. |
+| Laurent Duelist | Fiora Vanguard | Unit | Partial | ASSAULT 2 descriptor is directly tested: +2 Might while attacking only. | Needs full card promotion review before Supported status. |
 | Crowd Favorite | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs XP/Hunt, activated XP spend, and Buff state support. |
 | Riposte | Fiora Vanguard | Spell | Partial | Spell: stat/might modifier | Needs reaction timing, spell target model, counter behavior, and variable might buff. |
 | Dune Drake | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs attack trigger checking ready enemy units at the battlefield. |
@@ -86,7 +89,7 @@ support-gate result, and rules text, lives in `docs/CARD_RULES_BACKLOG.md`.
 | Order Rune | Fiora Vanguard | Rune | Supported | Rune/payment rules | Basic rune setup/actions are covered; deeper payment edge cases remain roadmap work. |
 | Aspirant's Climb | Fiora Vanguard | Battlefield | Partial | Battlefield ability | Needs target-score modification from selected battlefield setup. |
 | Hall of Legends | Fiora Vanguard | Battlefield | Partial | Battlefield ability | Needs conquer optional payment and legend readying trigger. |
-| Fortified Position | Fiora Vanguard | Battlefield | Partial | Battlefield ability | Needs defend trigger, target choice, and Shield 2 combat modifier. |
+| Fortified Position | Fiora Vanguard | Battlefield | Partial | Battlefield ability | Shield 2 combat modifier is supported when granted, but defend trigger timing and target choice are not implemented. |
 
 ## Next Matrix Work
 

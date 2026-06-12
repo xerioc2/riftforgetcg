@@ -40,7 +40,7 @@ class GameEngineScoringTest {
   @BeforeEach
   void setUp() {
     RulesValidator rulesValidator = new RulesValidator(cardDataService);
-    CombatResolver combatResolver = new CombatResolver(cardDataService, effects, cardZoneService);
+    CombatResolver combatResolver = new CombatResolver(cardDataService, effects, cardZoneService, new CombatStatsService(cardDataService));
     engine = new GameEngine(rulesValidator, combatResolver, cardZoneService, cardDataService, effects, 8);
     when(effects.getEffect(anyString())).thenReturn(Optional.empty());
     when(cardDataService.hasKeyword(any(CardInstance.class), anyString())).thenReturn(false);

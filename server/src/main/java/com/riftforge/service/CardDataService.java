@@ -213,9 +213,11 @@ public class CardDataService {
   public int getKeywordValue(CardInstance instance, String keyword) {
     List<String> keywords = new ArrayList<>(getCard(instance.getCardId()).keywords());
     keywords.addAll(instance.getTempKeywords());
+    String expected = KeywordText.name(keyword);
     for (String value : keywords) {
+      if (!KeywordText.name(value).equals(expected)) continue;
       int parsed = KeywordText.value(value, keyword);
-      if (parsed > 0) return parsed;
+      return parsed > 0 ? parsed : 1;
     }
     return 0;
   }

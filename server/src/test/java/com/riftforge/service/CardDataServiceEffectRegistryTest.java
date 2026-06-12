@@ -73,6 +73,35 @@ class CardDataServiceEffectRegistryTest {
     assertThat(service.isUnsupportedAction("combat-card")).isFalse();
   }
 
+  @Test
+  void plainAssaultAndShieldDefaultToOne() throws Exception {
+    CardDataService service = new CardDataService(
+        new ObjectMapper(),
+        "http://example.invalid",
+        new EffectHandlerRegistry(List.of(new AssaultHandler(), new ShieldHandler())));
+    install(service, new CardDefinition(
+        "plain-combat-card",
+        "Plain Combat Card",
+        "Unit",
+        null,
+        List.of(),
+        0,
+        0,
+        null,
+        null,
+        null,
+        "",
+        2,
+        2,
+        List.of("Assault")));
+    CardInstance instance = new CardInstance();
+    instance.setCardId("plain-combat-card");
+    instance.setTempKeywords(new ArrayList<>(List.of("Shield")));
+
+    assertThat(service.getKeywordValue(instance, "ASSAULT")).isEqualTo(1);
+    assertThat(service.getKeywordValue(instance, "SHIELD")).isEqualTo(1);
+  }
+
   @SuppressWarnings("unchecked")
   private void install(CardDataService service, CardDefinition card) throws Exception {
     Field cards = CardDataService.class.getDeclaredField("cards");

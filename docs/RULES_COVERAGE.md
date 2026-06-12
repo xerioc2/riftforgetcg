@@ -342,9 +342,16 @@ Current implementation notes:
   of silent no-ops.
 - Initial keyword handlers include Assault, Shield, Tank, and Vision, with
   existing combat/rules code still handling some keyword behavior directly.
-- ASSAULT X and SHIELD X are handler-backed and combat-tested as deterministic
-  Might modifiers. Valued keyword parsing accepts both spaced and compact forms
-  such as `ASSAULT 2` and `ASSAULT2`.
+- ASSAULT and SHIELD are handler-backed and combat-tested as deterministic
+  situational Might modifiers through `CombatStatsService`. Plain keywords
+  default to +1, and valued keyword parsing accepts both spaced and compact
+  forms such as `ASSAULT 2` and `ASSAULT2`.
+- MIGHTY has a central `CombatStatsService` helper for Unit/Champion cards with
+  effective idle Might 5 or greater, including temporary and permanent Might
+  modifiers. "Becomes Mighty" triggers are not wired yet.
+- `docs/KEYWORD_BACKLOG.md` tracks supported, partial, unsupported, and
+  confirmation-needed keywords. `docs/MISSING_RULES_BACKLOG.md` tracks the
+  broader P0-P3 rules backlog.
 - Several keywords have direct or heuristic handling: ACCELERATE, AMBUSH,
   DEFLECT, GANKING, HIDDEN, LEGION, TANK, TEMPORARY, VISION, WEAPONMASTER.
 

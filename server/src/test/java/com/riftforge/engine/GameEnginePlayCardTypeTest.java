@@ -41,12 +41,18 @@ class GameEnginePlayCardTypeTest {
   void setUp() {
     RulesValidator rulesValidator = new RulesValidator(cardDataService);
     CardZoneService cardZoneService = new CardZoneService(cardDataService);
-    CombatResolver combatResolver = new CombatResolver(cardDataService, effects, cardZoneService);
+    CombatResolver combatResolver = new CombatResolver(cardDataService, effects, cardZoneService, new CombatStatsService(cardDataService));
     engine = new GameEngine(rulesValidator, combatResolver, cardZoneService, cardDataService, effects, 8);
     when(effects.getEffect(anyString())).thenReturn(Optional.empty());
     when(cardDataService.hasKeyword(any(CardInstance.class), anyString())).thenReturn(false);
     when(cardDataService.isUnsupportedAction(anyString())).thenReturn(false);
     when(cardDataService.requiresBattlefieldTarget(anyString())).thenReturn(false);
+    when(cardDataService.requiresFriendlyTarget(anyString())).thenReturn(false);
+    when(cardDataService.requiresEnemyTarget(anyString())).thenReturn(false);
+    when(cardDataService.isEquip(any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      return def != null && "Gear".equalsIgnoreCase(def.type()) && def.rulesText() != null && def.rulesText().toLowerCase().contains("[equip]");
+    });
   }
 
   @Test
@@ -101,6 +107,141 @@ class GameEnginePlayCardTypeTest {
     engine.applyMove(state, play("spell", ZoneName.BASE));
 
     assertThat(state.getCards().getFirst().getZone()).isEqualTo(ZoneName.DISCARD);
+  }
+
+  @Test
+  void friendlyTargetAcceptedForFriendlyUnitEffect() {
+    CardInstance spell = card("buff", "p1", ZoneName.HAND);
+    CardInstance friendly = card("friendly", "p1", ZoneName.BATTLEFIELD);
+    CardInstance enemy = card("enemy", "p2", ZoneName.BATTLEFIELD);
+    LiveGameState state = state(spell, friendly, enemy);
+    stubCard("buff", "Helpful Spell", "Spell", 0, 0, 0, "Give a friendly unit +2 :rb_might: this turn.");
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    stubCard("enemy", "Enemy Unit", "Unit", 0, 2, 2, null);
+    when(cardDataService.requiresBattlefieldTarget("buff")).thenReturn(true);
+    when(cardDataService.requiresFriendlyTarget("buff")).thenReturn(true);
+
+    engine.applyMove(state, playTarget("buff", "friendly"));
+
+    assertThat(friendly.getTemporaryPowerModifier()).isEqualTo(2);
+    assertThat(enemy.getTemporaryPowerModifier()).isZero();
+  }
+
+  @Test
+  void enemyTargetAcceptedForEnemyUnitEffect() {
+    CardInstance spell = card("bounce", "p1", ZoneName.HAND);
+    CardInstance enemy = card("enemy", "p2", ZoneName.BATTLEFIELD);
+    LiveGameState state = state(spell, enemy);
+    stubCard("bounce", "Bounce Spell", "Spell", 0, 0, 0, "Return a unit to its owner's hand.");
+    stubCard("enemy", "Enemy Unit", "Unit", 0, 2, 2, null);
+    when(cardDataService.requiresBattlefieldTarget("bounce")).thenReturn(true);
+    when(cardDataService.requiresEnemyTarget("bounce")).thenReturn(true);
+
+    engine.applyMove(state, playTarget("bounce", "enemy"));
+
+    assertThat(enemy.getZone()).isEqualTo(ZoneName.HAND);
+  }
+
+  @Test
+  void enemyTargetRejectedForFriendlyOnlyEffect() {
+    LiveGameState state = state(
+        card("buff", "p1", ZoneName.HAND),
+        card("enemy", "p2", ZoneName.BATTLEFIELD));
+    stubCard("buff", "Helpful Spell", "Spell", 0, 0, 0, "Give a friendly unit +2 :rb_might: this turn.");
+    stubCard("enemy", "Enemy Unit", "Unit", 0, 2, 2, null);
+    when(cardDataService.requiresBattlefieldTarget("buff")).thenReturn(true);
+    when(cardDataService.requiresFriendlyTarget("buff")).thenReturn(true);
+
+    assertThatThrownBy(() -> engine.applyMove(state, playTarget("buff", "enemy")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("That card requires a friendly unit.");
+  }
+
+  @Test
+  void friendlyTargetRejectedForEnemyOnlyEffect() {
+    LiveGameState state = state(
+        card("bounce", "p1", ZoneName.HAND),
+        card("friendly", "p1", ZoneName.BATTLEFIELD));
+    stubCard("bounce", "Bounce Spell", "Spell", 0, 0, 0, "Return a unit to its owner's hand.");
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    when(cardDataService.requiresBattlefieldTarget("bounce")).thenReturn(true);
+    when(cardDataService.requiresEnemyTarget("bounce")).thenReturn(true);
+
+    assertThatThrownBy(() -> engine.applyMove(state, playTarget("bounce", "friendly")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("That card requires an enemy unit.");
+  }
+
+  @Test
+  void nonUnitTargetRejectedWhenUnitRequired() {
+    LiveGameState state = state(
+        card("buff", "p1", ZoneName.HAND),
+        card("gear", "p1", ZoneName.BATTLEFIELD));
+    stubCard("buff", "Helpful Spell", "Spell", 0, 0, 0, "Give a unit +2 :rb_might: this turn.");
+    stubCard("gear", "Gear", 0);
+    when(cardDataService.requiresBattlefieldTarget("buff")).thenReturn(true);
+
+    assertThatThrownBy(() -> engine.applyMove(state, playTarget("buff", "gear")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Target must be a Unit or Champion.");
+  }
+
+  @Test
+  void hiddenZonesCannotBeTargeted() {
+    LiveGameState state = state(
+        card("buff", "p1", ZoneName.HAND),
+        card("hidden", "p2", ZoneName.HAND));
+    stubCard("buff", "Helpful Spell", "Spell", 0, 0, 0, "Give a unit +2 :rb_might: this turn.");
+    stubCard("hidden", "Hidden Unit", "Unit", 0, 2, 2, null);
+    when(cardDataService.requiresBattlefieldTarget("buff")).thenReturn(true);
+
+    assertThatThrownBy(() -> engine.applyMove(state, playTarget("buff", "hidden")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Target must be on the battlefield.");
+  }
+
+  @Test
+  void unsupportedMultiTargetCardRemainsBlocked() {
+    LiveGameState state = state(card("multi", "p1", ZoneName.HAND), card("friendly", "p1", ZoneName.BATTLEFIELD));
+    stubCard("multi", "Multi Spell", "Spell", 0, 0, 0, "Choose a friendly unit and an enemy unit.");
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    when(cardDataService.isUnsupportedAction("multi")).thenReturn(true);
+
+    assertThatThrownBy(() -> engine.applyMove(state, playTarget("multi", "friendly")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("That card's effect is not supported yet.");
+  }
+
+  @Test
+  void equipTargetMustBeFriendlyUnit() {
+    CardInstance gear = card("equip", "p1", ZoneName.HAND);
+    CardInstance friendly = card("friendly", "p1", ZoneName.BATTLEFIELD);
+    LiveGameState state = state(gear, friendly);
+    stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    when(cardDataService.requiresBattlefieldTarget("equip")).thenReturn(true);
+    when(cardDataService.requiresFriendlyTarget("equip")).thenReturn(true);
+
+    engine.applyMove(state, playTarget("equip", "friendly"));
+
+    assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(gear.getAttachedToInstanceId()).isEqualTo("friendly");
+  }
+
+  @Test
+  void selectedTargetReceivesEffectInsteadOfFirstValidTarget() {
+    CardInstance firstEnemy = card("first-enemy", "p2", ZoneName.BATTLEFIELD);
+    CardInstance selectedEnemy = card("selected-enemy", "p2", ZoneName.BATTLEFIELD);
+    LiveGameState state = state(card("buff", "p1", ZoneName.HAND), firstEnemy, selectedEnemy);
+    stubCard("buff", "Helpful Spell", "Spell", 0, 0, 0, "Give a unit +3 :rb_might: this turn.");
+    stubCard("first-enemy", "First Enemy", "Unit", 0, 2, 2, null);
+    stubCard("selected-enemy", "Selected Enemy", "Unit", 0, 2, 2, null);
+    when(cardDataService.requiresBattlefieldTarget("buff")).thenReturn(true);
+
+    engine.applyMove(state, playTarget("buff", "selected-enemy"));
+
+    assertThat(firstEnemy.getTemporaryPowerModifier()).isZero();
+    assertThat(selectedEnemy.getTemporaryPowerModifier()).isEqualTo(3);
   }
 
   @Test
@@ -264,6 +405,10 @@ class GameEnginePlayCardTypeTest {
 
   private PlayCardMove play(String instanceId, ZoneName targetZone) {
     return new PlayCardMove("p1", instanceId, targetZone, 0, 0, null, false, List.of(), List.of());
+  }
+
+  private PlayCardMove playTarget(String instanceId, String targetInstanceId) {
+    return new PlayCardMove("p1", instanceId, ZoneName.BASE, 0, 0, targetInstanceId, false, List.of(), List.of());
   }
 
   private CardInstance card(String id, String ownerId, ZoneName zone) {

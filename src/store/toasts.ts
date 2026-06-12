@@ -20,6 +20,14 @@ export const useToastStore = create<ToastStore>((set) => ({
   toasts: [],
   pushToast: (toast) =>
     set((state) => {
+      const isDuplicate = state.toasts.some((existing) =>
+        existing.tone === toast.tone && existing.title === toast.title && existing.message === toast.message,
+      );
+      if (isDuplicate) {
+        return {
+          lastError: toast.tone === 'error' || toast.tone === 'warning' ? [toast.title, toast.message].filter(Boolean).join(': ') : state.lastError,
+        };
+      }
       const id = crypto.randomUUID();
       const next = [...state.toasts, { ...toast, id }].slice(-4);
       window.setTimeout(() => useToastStore.getState().dismissToast(id), toast.tone === 'error' ? 8000 : 5000);

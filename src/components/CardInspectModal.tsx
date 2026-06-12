@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { KEYWORD_DESCRIPTIONS } from '../lib/cardKeywords';
+import { keywordDescription } from '../lib/cardKeywords';
 import type { CardInstance, RiftCard } from '../types';
 
 export function CardInspectModal({ card, cardDef, onClose }: { card: CardInstance; cardDef: RiftCard | undefined; onClose: () => void }) {
@@ -45,7 +45,7 @@ export function CardInspectModal({ card, cardDef, onClose }: { card: CardInstanc
             {cardDef.keywords.map((keyword) => (
               <div key={keyword} className="border-l-2 border-forge/50 pl-3">
                 <span className="badge border-forge/40 text-forge">{keyword}</span>
-                <p className="mt-1 text-xs text-slate-400">{KEYWORD_DESCRIPTIONS[keyword.toUpperCase()] ?? 'Card keyword.'}</p>
+                <p className="mt-1 text-xs text-slate-400">{keywordDescription(keyword)}</p>
               </div>
             ))}
           </div>
