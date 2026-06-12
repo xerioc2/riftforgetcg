@@ -15,7 +15,7 @@ import { autoPlaceInZone, computeLayout, runeSlotPositions, type ZoneRect } from
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
 import { readableHttpError } from '../lib/http';
-import { hasUnsupportedAdditionalCost, isActionCard, isAmbushCard, isLegalTargetForMode, isReactionCard, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode } from '../lib/cardActions';
+import { hasUnsupportedAdditionalCost, isActionCard, isAmbushCard, isLegalTargetForMode, isReactionCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode } from '../lib/cardActions';
 import { buildDebugInfo } from '../lib/debugInfo';
 import { isBotPlayer, legalActionHint, phaseGuidance, waitingStatusText } from '../lib/gameGuidance';
 import { useLocalPlayer } from '../lib/playerContext';
@@ -531,6 +531,14 @@ export function GameBoard() {
       return;
     }
     if (targetMode !== 'NONE') {
+      const legalTargets = (state?.cards ?? []).filter((instance) => {
+        const targetDef = cardsById.get(instance.cardId);
+        return isLegalTargetForMode(instance, targetDef, targetMode, player.id);
+      });
+      if (legalTargets.length === 0) {
+        notifyWarning('No legal targets', noLegalTargetsMessage(targetMode));
+        return;
+      }
       setPendingTargetSelection({ instanceId, mode: targetMode });
       return;
     }

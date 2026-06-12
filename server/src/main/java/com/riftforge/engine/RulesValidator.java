@@ -228,6 +228,23 @@ public class RulesValidator {
   private void validateTarget(LiveGameState state, PlayCardMove move, CardInstance card) {
     if (move.targetInstanceId() == null || move.targetInstanceId().isBlank()) throw new IllegalMoveException("This card requires a target.");
     CardInstance target = findCard(state, move.targetInstanceId());
+    CardDefinition playedDef = cardDataService.getCard(card.getCardId());
+    if (cardDataService.isEquip(playedDef)) {
+      if (target.getZone() != ZoneName.BASE && target.getZone() != ZoneName.BATTLEFIELD) {
+        throw new IllegalMoveException("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
+      }
+      if (target.isFaceDown()) {
+        throw new IllegalMoveException("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
+      }
+      CardDefinition targetDef = cardDataService.getCard(target.getCardId());
+      if (!isType(targetDef, "Unit") && !isType(targetDef, "Champion")) {
+        throw new IllegalMoveException("Target must be a Unit or Champion.");
+      }
+      if (!target.getOwnerId().equals(move.playerId())) {
+        throw new IllegalMoveException("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
+      }
+      return;
+    }
     if (target.getZone() == ZoneName.BASE
         && cardDataService.hasKeyword(target, "HIDDEN")
         && !target.getOwnerId().equals(move.playerId())) {
@@ -237,10 +254,6 @@ public class RulesValidator {
     CardDefinition targetDef = cardDataService.getCard(target.getCardId());
     if (!isType(targetDef, "Unit") && !isType(targetDef, "Champion")) {
       throw new IllegalMoveException("Target must be a Unit or Champion.");
-    }
-    CardDefinition playedDef = cardDataService.getCard(card.getCardId());
-    if (cardDataService.isEquip(playedDef) && !target.getOwnerId().equals(move.playerId())) {
-      throw new IllegalMoveException("That card requires a friendly unit.");
     }
     if (cardDataService.requiresFriendlyTarget(card.getCardId()) && !target.getOwnerId().equals(move.playerId())) {
       throw new IllegalMoveException("That card requires a friendly unit.");

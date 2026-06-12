@@ -654,6 +654,20 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void equipCanAttachFriendlyUnitAtBase() {
+    CardInstance gear = card("equip", "p1", ZoneName.HAND);
+    CardInstance friendly = card("friendly", "p1", ZoneName.BASE);
+    LiveGameState state = state(gear, friendly);
+    stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+
+    engine.applyMove(state, playTarget("equip", "friendly"));
+
+    assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(gear.getAttachedToInstanceId()).isEqualTo("friendly");
+  }
+
+  @Test
   void equipRequiresATarget() {
     LiveGameState state = state(card("equip", "p1", ZoneName.HAND));
     stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
@@ -674,7 +688,7 @@ class GameEnginePlayCardTypeTest {
 
     assertThatThrownBy(() -> engine.applyMove(state, playTarget("equip", "enemy")))
         .isInstanceOf(IllegalMoveException.class)
-        .hasMessage("That card requires a friendly unit.");
+        .hasMessage("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
   }
 
   @Test
@@ -688,10 +702,23 @@ class GameEnginePlayCardTypeTest {
 
     assertThatThrownBy(() -> engine.applyMove(state, playTarget("equip", "hidden")))
         .isInstanceOf(IllegalMoveException.class)
-        .hasMessage("Target must be on the battlefield.");
+        .hasMessage("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
     assertThatThrownBy(() -> engine.applyMove(state, playTarget("equip", "trashed")))
         .isInstanceOf(IllegalMoveException.class)
-        .hasMessage("Target must be on the battlefield.");
+        .hasMessage("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
+  }
+
+  @Test
+  void equipCannotAttachChampionZoneIdentityCard() {
+    LiveGameState state = state(
+        card("equip", "p1", ZoneName.HAND),
+        card("champion", "p1", ZoneName.CHAMPION));
+    stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    stubCard("champion", "Friendly Champion", "Champion", 0, 3, 4, null);
+
+    assertThatThrownBy(() -> engine.applyMove(state, playTarget("equip", "champion")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
   }
 
   @Test

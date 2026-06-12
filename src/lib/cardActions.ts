@@ -59,7 +59,7 @@ export function targetPromptForMode(mode: TargetMode) {
     case 'ANY_BATTLEFIELD_UNIT':
       return 'Choose a unit at a battlefield.';
     case 'FRIENDLY_UNIT_FOR_EQUIP':
-      return 'Choose a friendly unit or champion to equip.';
+      return 'Choose a friendly Unit or Champion in Base or at the battlefield.';
     case 'UNSUPPORTED':
       return 'This targeting pattern is not supported yet.';
     case 'NONE':
@@ -68,12 +68,35 @@ export function targetPromptForMode(mode: TargetMode) {
   }
 }
 
-export function isLegalTargetForMode(card: { ownerId: string; zone: string } | undefined, cardDef: RiftCard | undefined, mode: TargetMode, playerId: string) {
+export function noLegalTargetsMessage(mode: TargetMode) {
+  switch (mode) {
+    case 'FRIENDLY_UNIT_FOR_EQUIP':
+      return 'No legal equip targets. You need a friendly Unit or Champion in Base or at the battlefield.';
+    case 'FRIENDLY_UNIT':
+      return 'No legal friendly targets.';
+    case 'ENEMY_UNIT':
+      return 'No legal enemy targets.';
+    case 'ANY_BATTLEFIELD_UNIT':
+      return 'No legal battlefield targets.';
+    case 'UNSUPPORTED':
+      return 'That targeting pattern is not supported yet.';
+    case 'NONE':
+    default:
+      return 'No legal targets.';
+  }
+}
+
+export function isLegalTargetForMode(card: { ownerId: string; zone: string; faceDown?: boolean } | undefined, cardDef: RiftCard | undefined, mode: TargetMode, playerId: string) {
   if (!card || !cardDef) return false;
   const type = cardDef.type?.toLowerCase();
   const isUnitLike = type === 'unit' || type === 'champion';
-  if (!isUnitLike || card.zone.toLowerCase() !== 'battlefield') return false;
-  if (mode === 'FRIENDLY_UNIT' || mode === 'FRIENDLY_UNIT_FOR_EQUIP') return card.ownerId === playerId;
+  if (!isUnitLike || card.faceDown) return false;
+  const zone = card.zone.toLowerCase();
+  if (mode === 'FRIENDLY_UNIT_FOR_EQUIP') {
+    return card.ownerId === playerId && (zone === 'base' || zone === 'battlefield');
+  }
+  if (zone !== 'battlefield') return false;
+  if (mode === 'FRIENDLY_UNIT') return card.ownerId === playerId;
   if (mode === 'ENEMY_UNIT') return card.ownerId !== playerId;
   if (mode === 'ANY_BATTLEFIELD_UNIT') return true;
   return false;

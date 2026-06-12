@@ -192,8 +192,10 @@ Priority: P0.
 Status: Partial
 
 Current implementation notes:
-- Basic `[Equip]` gear requires a friendly battlefield Unit/Champion target,
-  can attach to that target, and can apply some keyword hooks.
+- Basic `[Equip]` gear requires a friendly Unit/Champion target in Base or at
+  the battlefield, can attach to that target, and can apply some keyword hooks.
+- Champion-zone identity cards are not legal equip targets until they move into
+  Base or the battlefield.
 - Gear can be played to base when supported.
 - Gear cannot move to the battlefield or fight as a unit.
 - Non-equip gear is treated as unsupported.
