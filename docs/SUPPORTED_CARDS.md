@@ -53,7 +53,7 @@ support-gate result, and rules text, lives in `docs/CARD_RULES_BACKLOG.md`.
 | Irelia - Fervent | Irelia Tempo | Champion | Partial | Champion text | Needs Deflect targeting tax and choose/ready might trigger. |
 | Defy | Irelia Tempo | Spell | Unsupported | Unsupported/unknown text pattern | Blocked by `isUnsupportedAction`; needs reaction stack/counter-spell timing. |
 | Discipline | Irelia Tempo | Spell | Partial | Spell: draw/card selection | Draw 1 and selected +2 Might use helper-backed scripts; Reaction timing remains incomplete. |
-| Tideturner | Irelia Tempo | Unit | Partial | Unit with triggered ability | Needs Hidden support and play trigger that swaps locations with a friendly unit. |
+| Tideturner | Irelia Tempo | Unit | Partial | Unit with triggered ability | Hidden foundation is implemented: it can be hidden from hand and masked from opponents. Later hidden play timing and its play trigger that swaps locations remain incomplete. |
 | Stellacorn Herder | Irelia Tempo | Unit | Partial | Unit with triggered ability | Needs move trigger that draws 1. |
 | Guardian Angel | Irelia Tempo | Gear | Partial | Gear/equipment | Basic Equip validation/attachment is covered: friendly battlefield Unit/Champion target only, cannot fight, and follows host death or return-to-hand cleanup. Card-specific text/payment edge cases remain incomplete. |
 | Boots of Swiftness | Irelia Tempo | Gear | Partial | Gear/equipment | Basic Equip validation/attachment is covered: friendly battlefield Unit/Champion target only, cannot fight, and follows host death or return-to-hand cleanup. Card-specific text/payment edge cases remain incomplete. |
@@ -62,7 +62,7 @@ support-gate result, and rules text, lives in `docs/CARD_RULES_BACKLOG.md`.
 | Charm | Irelia Tempo | Spell | Unsupported | Unsupported/unknown text pattern | Blocked by unsupported move effect; needs enemy-unit movement target rules. |
 | En Garde | Irelia Tempo | Spell | Partial | Spell: stat/might modifier | Selected friendly +Might and lone-location bonus are helper-backed; Reaction timing remains incomplete. |
 | Gust | Irelia Tempo | Spell | Partial | Spell: bounce/return | Selected unit return is helper-backed; Reaction timing and 3-or-less-Might target filter remain incomplete. |
-| Ride The Wind | Irelia Tempo | Spell | Partial | Spell: ready/exhaust | Selected friendly ready is helper-backed; movement choice and Action/showdown timing remain incomplete. |
+| Ride The Wind | Irelia Tempo | Spell | Partial | Spell: ready/exhaust | Selected friendly ready is helper-backed and can be played by showdown participants in the simplified Action window; movement choice and full Action timing remain incomplete. |
 | Stacked Deck | Irelia Tempo | Spell | Unsupported | Spell: draw/card selection | Needs look-at-top-3 choice UI and recycle ordering. |
 | Not So Fast | Irelia Tempo | Spell | Unsupported | Unsupported/unknown text pattern | Blocked by counter/reaction timing; needs spell/ability stack target model. |
 | Star-Crossed | Irelia Tempo | Spell | Unsupported | Spell: bounce/return | Blocked by multi-target text; needs friendly/enemy paired return script. |
@@ -77,11 +77,11 @@ support-gate result, and rules text, lives in `docs/CARD_RULES_BACKLOG.md`.
 | Daring Poro | Fiora Vanguard | Unit | Partial | ASSAULT descriptor is directly tested: +1 Might while attacking only, with combat damage/destruction coverage. | Needs full card promotion review before Supported status. |
 | Keeper's Verdict | Fiora Vanguard | Spell | Unsupported | Spell: draw/card selection | Needs enemy-unit target plus owner top/bottom deck choice. |
 | Spectral Matron | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs trash-unit selection and free-play cost bypass with power-cost handling. |
-| Stalking Wolf | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs Ambush/reaction timing and additional-cost kill validation. |
+| Stalking Wolf | Fiora Vanguard | Unit | Partial | Ambush foundation exists for clean Ambush units, but this card is blocked in enforced play because its additional kill cost is not implemented. | Needs additional-cost kill validation and Ambush-as-Reaction timing. |
 | Noxian Drummer | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Move-to-battlefield creates a 1 Might Recruit token; broader token system and multiple-battlefield precision remain incomplete. |
 | Loyal Poro | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Deathknell draw trigger is implemented for "did not die alone"; broader Deathknell optional/timing edge cases remain incomplete. |
 | Vanguard Captain | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Simple Legion condition creates two Recruit tokens after another card was played this turn; dependent keyword edge cases remain incomplete. |
-| Facebreaker | Fiora Vanguard | Spell | Unsupported | Unsupported/unknown text pattern | Needs Hidden support plus friendly/enemy stun target script. |
+| Facebreaker | Fiora Vanguard | Spell | Unsupported | Unsupported/unknown text pattern | Hidden foundation exists, but Facebreaker still needs later hidden play timing plus friendly/enemy Stun target scripting. |
 | Vanguard Sergeant | Fiora Vanguard | Unit | Partial | Basic unit with no special text | Candidate for first direct "basic unit supported" promotion after tests. |
 | Laurent Duelist | Fiora Vanguard | Unit | Partial | ASSAULT 2 descriptor is directly tested: +2 Might while attacking only, with combat damage/destruction coverage. | Needs full card promotion review before Supported status. |
 | Crowd Favorite | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs XP/Hunt, activated XP spend, and Buff state support. |

@@ -56,9 +56,11 @@ public class GameStateProjectionService {
 
   private CardInstance copyCardForViewer(CardInstance card, String viewerPlayerId) {
     CardInstance copy = new CardInstance(card);
-    if (card.getZone() == ZoneName.HAND && !Objects.equals(card.getOwnerId(), viewerPlayerId)) {
+    if ((card.getZone() == ZoneName.HAND || card.getZone() == ZoneName.HIDDEN)
+        && !Objects.equals(card.getOwnerId(), viewerPlayerId)) {
       copy.setCardId(HIDDEN_CARD_ID);
       copy.setCurrentHealth(0);
+      copy.setFaceDown(true);
     }
     return copy;
   }

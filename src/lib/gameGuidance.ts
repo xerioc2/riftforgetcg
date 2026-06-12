@@ -12,7 +12,7 @@ const PHASE_GUIDANCE: Record<string, string> = {
 
 const SHOWDOWN_GUIDANCE: Record<string, string> = {
   STAGED: 'Showdown in progress. Resolve showdown to continue.',
-  ACTION_WINDOW: 'Showdown action window. Supported reactions are limited in alpha.',
+  ACTION_WINDOW: 'Showdown action window. Participants may play supported Action cards. The attacker may resolve the showdown.',
   ASSIGN_DAMAGE: 'Showdown damage assignment is resolving.',
   RESOLVE_DAMAGE: 'Showdown damage is resolving.',
   CLEANUP: 'Showdown cleanup is resolving.',
@@ -39,10 +39,13 @@ export function legalActionHint(
     return options.activePlayerIsBot ? 'RiftBot is thinking...' : `Waiting for ${options.activePlayerName ?? 'opponent'}.`;
   }
   if (actions.has('KEEP_HAND') || actions.has('MULLIGAN')) return 'You can keep or mulligan.';
+  if (actions.has('RESOLVE_SHOWDOWN') && actions.has('PLAY_CARD')) return 'You may play supported Action cards or resolve the showdown.';
   if (actions.has('RESOLVE_SHOWDOWN')) return 'You can resolve this showdown.';
+  if (actions.has('PLAY_CARD') && actions.size === 1) return 'You may play supported Action cards.';
 
   const parts: string[] = [];
   if (actions.has('PLAY_CARD')) parts.push('play cards');
+  if (actions.has('HIDE_CARD')) parts.push('hide Hidden cards');
   if (actions.has('TAP_RUNE') || actions.has('DISCARD_RUNE') || actions.has('UNDO_RUNES')) parts.push('use runes');
   if (actions.has('MOVE_TO_BATTLEFIELD')) parts.push('move units');
   if (actions.has('VISION_CHOICE')) parts.push('choose Vision');

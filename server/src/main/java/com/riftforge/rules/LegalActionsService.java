@@ -3,12 +3,26 @@ package com.riftforge.rules;
 import com.riftforge.model.GameMode;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.Phase;
+import com.riftforge.model.ZoneName;
+import com.riftforge.service.CardDataService;
 import java.util.EnumSet;
 import java.util.Set;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class LegalActionsService {
+  private final CardDataService cardDataService;
+
+  public LegalActionsService() {
+    this(null);
+  }
+
+  @Autowired
+  public LegalActionsService(CardDataService cardDataService) {
+    this.cardDataService = cardDataService;
+  }
+
   public Set<LegalAction> legalActionsFor(LiveGameState state, String playerId) {
     return legalActions(state, playerId);
   }
@@ -33,6 +47,7 @@ public class LegalActionsService {
       if (playerId.equals(state.getActiveShowdown().attackingPlayerId())) {
         actions.add(LegalAction.RESOLVE_SHOWDOWN);
       }
+      if (isShowdownParticipant(state, playerId) && hasSupportedActionCardInHand(state, playerId)) actions.add(LegalAction.PLAY_CARD);
       return actions;
     }
 
@@ -51,6 +66,7 @@ public class LegalActionsService {
       actions.add(LegalAction.DISCARD_RUNE);
       actions.add(LegalAction.UNDO_RUNES);
       actions.add(LegalAction.VISION_CHOICE);
+      if (hasHideableCardInHand(state, playerId) && hasReadyRune(state, playerId)) actions.add(LegalAction.HIDE_CARD);
       return actions;
     }
 
@@ -70,5 +86,36 @@ public class LegalActionsService {
     actions.add(LegalAction.SANDBOX_TAP_CARD);
     actions.add(LegalAction.SANDBOX_FLIP_CARD);
     actions.add(LegalAction.SANDBOX_MOVE_CARD);
+  }
+
+  private boolean hasSupportedActionCardInHand(LiveGameState state, String playerId) {
+    if (cardDataService == null) return false;
+    return state.getCards().stream()
+        .filter(card -> playerId.equals(card.getOwnerId()) && card.getZone() == ZoneName.HAND)
+        .map(card -> cardDataService.getCard(card.getCardId()))
+        .anyMatch(def -> def != null
+            && cardDataService.isActionCard(def)
+            && !cardDataService.isReactionCard(def)
+            && !cardDataService.isUnsupportedAction(def.id()));
+  }
+
+  private boolean isShowdownParticipant(LiveGameState state, String playerId) {
+    if (state.getActiveShowdown() == null) return false;
+    if (playerId.equals(state.getActiveShowdown().attackingPlayerId())) return true;
+    return state.getCards().stream()
+        .anyMatch(card -> playerId.equals(card.getOwnerId()) && card.getZone() == ZoneName.BATTLEFIELD);
+  }
+
+  private boolean hasHideableCardInHand(LiveGameState state, String playerId) {
+    if (cardDataService == null) return false;
+    return state.getCards().stream()
+        .filter(card -> playerId.equals(card.getOwnerId()) && card.getZone() == ZoneName.HAND)
+        .map(card -> cardDataService.getCard(card.getCardId()))
+        .anyMatch(cardDataService::isHiddenCard);
+  }
+
+  private boolean hasReadyRune(LiveGameState state, String playerId) {
+    return state.getRunes().stream()
+        .anyMatch(rune -> playerId.equals(rune.getOwnerId()) && !rune.isTapped());
   }
 }

@@ -21,6 +21,7 @@ public class EffectHandlerRegistry {
       "DEATHKNELL",
       "VISION",
       "HIDDEN",
+      "AMBUSH",
       "STUN",
       "STUNNED",
       "TEMPORARY");

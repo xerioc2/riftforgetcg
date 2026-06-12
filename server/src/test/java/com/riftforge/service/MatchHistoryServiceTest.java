@@ -2,6 +2,7 @@ package com.riftforge.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.riftforge.model.CompletedMatchSnapshot;
 import com.riftforge.model.MatchRecord;
 import java.util.List;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 class MatchHistoryServiceTest {
   private final MatchHistoryService service = new MatchHistoryService();
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Test
   void recordsCompletedMatchWinnerAndPublicScores() {
@@ -38,5 +40,29 @@ class MatchHistoryServiceTest {
         true));
 
     assertThat(service.getAll()).isEmpty();
+  }
+
+  @Test
+  void publicHistorySerializationContainsOnlySummaryData() throws Exception {
+    service.record(new CompletedMatchSnapshot(
+        7,
+        "p1",
+        List.of(
+            new MatchRecord.PlayerSummary("p1", "Player One", 8),
+            new MatchRecord.PlayerSummary("p2", "Player Two", 5)),
+        false));
+
+    String json = objectMapper.writeValueAsString(service.getAll());
+
+    assertThat(json).contains("Player One", "Player Two", "winnerId", "turnCount");
+    assertThat(json).doesNotContain(
+        "deckPool",
+        "runeDeckPool",
+        "selectedBattlefields",
+        "sessionToken",
+        "private-hand-card",
+        "private-deck-card",
+        "VISION_PEEK",
+        "VISION_RESOLVED");
   }
 }

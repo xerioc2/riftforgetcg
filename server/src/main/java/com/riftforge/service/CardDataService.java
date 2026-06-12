@@ -262,6 +262,38 @@ public class CardDataService {
         && def.rulesText().toLowerCase().contains("[equip]");
   }
 
+  public boolean isActionCard(CardDefinition def) {
+    return hasBracketedTiming(def, "action");
+  }
+
+  public boolean isReactionCard(CardDefinition def) {
+    return hasBracketedTiming(def, "reaction");
+  }
+
+  public boolean isHiddenCard(CardDefinition def) {
+    if (def == null) return false;
+    boolean keyword = def.keywords() != null
+        && def.keywords().stream().anyMatch(value -> KeywordText.name(value).equals("HIDDEN"));
+    return keyword || hasBracketedTiming(def, "hidden");
+  }
+
+  public boolean isAmbushCard(CardDefinition def) {
+    if (def == null) return false;
+    boolean keyword = def.keywords() != null
+        && def.keywords().stream().anyMatch(value -> KeywordText.name(value).equals("AMBUSH"));
+    return keyword || hasBracketedTiming(def, "ambush");
+  }
+
+  public boolean hasUnsupportedAdditionalCost(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    return def.rulesText().toLowerCase().contains("additional cost");
+  }
+
+  private boolean hasBracketedTiming(CardDefinition def, String timingWord) {
+    if (def == null || def.rulesText() == null) return false;
+    return def.rulesText().toLowerCase().contains("[" + timingWord.toLowerCase() + "]");
+  }
+
   public boolean isUnsupportedAction(String cardId) {
     CardDefinition def = getCard(cardId);
     if (effectHandlerRegistry != null) {

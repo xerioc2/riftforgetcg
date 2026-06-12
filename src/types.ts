@@ -82,6 +82,7 @@ export type LegalAction =
   | 'DISCARD_RUNE'
   | 'UNDO_RUNES'
   | 'VISION_CHOICE'
+  | 'HIDE_CARD'
   | 'SANDBOX_DEAL_CARD'
   | 'SANDBOX_ADJUST_SCORE'
   | 'SANDBOX_TAP_CARD'
@@ -124,7 +125,7 @@ export type RoomState = {
   gameMode?: GameMode;
 };
 
-export type ZoneName = 'hand' | 'battlefield' | 'base' | 'rune' | 'rune-deck' | 'champion' | 'legend' | 'discard' | 'deck' | 'limbo';
+export type ZoneName = 'hand' | 'battlefield' | 'base' | 'rune' | 'rune-deck' | 'champion' | 'legend' | 'discard' | 'deck' | 'limbo' | 'hidden';
 
 export type CardInstance = {
   instanceId: string;

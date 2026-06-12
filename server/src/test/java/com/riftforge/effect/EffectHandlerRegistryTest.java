@@ -3,7 +3,9 @@ package com.riftforge.effect;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.riftforge.engine.keyword.AssaultHandler;
+import com.riftforge.engine.keyword.AmbushHandler;
 import com.riftforge.engine.keyword.DeathknellHandler;
+import com.riftforge.engine.keyword.HiddenHandler;
 import com.riftforge.engine.keyword.ShieldHandler;
 import com.riftforge.engine.keyword.TankHandler;
 import com.riftforge.engine.keyword.VisionHandler;
@@ -54,6 +56,24 @@ class EffectHandlerRegistryTest {
     EffectHandlerRegistry registry = new EffectHandlerRegistry(List.of(new DeathknellHandler()));
 
     EffectSupportStatus status = registry.supportStatus(card("loyal-poro", "Unit", "", List.of("Deathknell")));
+
+    assertThat(status.implemented()).isTrue();
+  }
+
+  @Test
+  void hiddenKeywordCardIsRecognizedByHandler() {
+    EffectHandlerRegistry registry = new EffectHandlerRegistry(List.of(new HiddenHandler()));
+
+    EffectSupportStatus status = registry.supportStatus(card("tideturner", "Unit", "[Hidden] Hide now.", List.of("Hidden")));
+
+    assertThat(status.implemented()).isTrue();
+  }
+
+  @Test
+  void ambushKeywordCardIsRecognizedByHandler() {
+    EffectHandlerRegistry registry = new EffectHandlerRegistry(List.of(new AmbushHandler()));
+
+    EffectSupportStatus status = registry.supportStatus(card("stalking-wolf", "Unit", "[Ambush] Play me to a battlefield.", List.of("Ambush")));
 
     assertThat(status.implemented()).isTrue();
   }

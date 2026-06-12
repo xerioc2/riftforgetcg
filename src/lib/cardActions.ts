@@ -29,6 +29,27 @@ export function targetModeForCard(card: RiftCard | undefined): TargetMode {
   return requiresTarget ? 'ANY_BATTLEFIELD_UNIT' : 'NONE';
 }
 
+export function isActionCard(card: RiftCard | undefined) {
+  return bracketedTiming(card, 'action');
+}
+
+export function isReactionCard(card: RiftCard | undefined) {
+  return bracketedTiming(card, 'reaction');
+}
+
+export function isAmbushCard(card: RiftCard | undefined) {
+  return bracketedTiming(card, 'ambush')
+    || (card?.keywords ?? []).some((keyword) => keyword.toUpperCase().startsWith('AMBUSH'));
+}
+
+export function hasUnsupportedAdditionalCost(card: RiftCard | undefined) {
+  return (card?.rulesText ?? '').toLowerCase().includes('additional cost');
+}
+
+function bracketedTiming(card: RiftCard | undefined, timingWord: string) {
+  return (card?.rulesText ?? '').toLowerCase().includes(`[${timingWord.toLowerCase()}]`);
+}
+
 export function targetPromptForMode(mode: TargetMode) {
   switch (mode) {
     case 'FRIENDLY_UNIT':
@@ -62,6 +83,7 @@ export function unsupportedCardReason(card: RiftCard | undefined): string | null
   if (!card) return null;
   const type = card.type?.toLowerCase();
   const text = (card.rulesText ?? '').toLowerCase();
+  if (hasUnsupportedAdditionalCost(card)) return 'Additional-cost cards are not supported yet.';
   if (type === 'gear') return text.includes('[equip]') ? null : 'That gear ability is not supported yet.';
   if (type !== 'spell') return null;
   const supported = text.includes(':rb_might:') || text.includes('return a unit') || text.includes('ready it') || text.includes('draw 1');

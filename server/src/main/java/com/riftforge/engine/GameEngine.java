@@ -64,6 +64,7 @@ public class GameEngine {
       case AdjustScoreMove m -> applyAdjustScore(state, m);
       case VisionChoiceMove m -> applyVisionChoice(state, m);
       case DismissRevealedMove m -> applyDismissRevealed(state, m);
+      case HideCardMove m -> applyHideCard(state, m);
     };
     next.setUpdatedAt(Instant.now().toString());
     checkWinCondition(next);
@@ -108,6 +109,7 @@ public class GameEngine {
     CardInstance card = findCard(state, move.instanceId());
     CardDefinition def = cardDataService.getCard(card.getCardId());
     String cardTypeLower = normalizeCardType(def.type());
+    boolean playedDuringShowdown = state.getActiveShowdown() != null;
     boolean cardPlayedEarlierThisTurn = state.isCardPlayedThisTurn();
     int paidCost = def.cost() + (move.accelerate() ? 1 : 0);
     applyPayment(state, move, paidCost);
@@ -127,6 +129,10 @@ public class GameEngine {
     card.setCurrentHealth(def.health());
     card.setHasSummoningSickness(!move.accelerate());
     if (move.targetZone() == ZoneName.BASE) card.setTapped(!move.accelerate());
+    if (move.targetZone() == ZoneName.BATTLEFIELD && cardDataService.isAmbushCard(def)) {
+      card.setTapped(false);
+      card.setHasSummoningSickness(false);
+    }
     if (cardDataService.hasKeyword(card, "QUICK-DRAW")) card.setTapped(false);
     applyLegion(state, card, cardPlayedEarlierThisTurn);
     applyPlayedCardTokenScripts(state, card, cardPlayedEarlierThisTurn);
@@ -154,8 +160,12 @@ public class GameEngine {
     } else if (cardDataService.isEquip(def) && target != null) {
       attachGear(state, card, def, target, move.playerId());
     }
+    boolean ambushedToBattlefield = move.targetZone() == ZoneName.BATTLEFIELD && card.getZone() == ZoneName.BATTLEFIELD && cardDataService.isAmbushCard(def);
+    if (ambushedToBattlefield) startAmbushBattlefield(state, card, def, move.playerId());
     if (cardDataService.hasKeyword(card, "REPEAT")) state.setCardPlayedThisTurn(false);
-    log(state, move.playerId(), "Played " + def.name());
+    if (!ambushedToBattlefield) {
+      log(state, move.playerId(), playedDuringShowdown ? "Played " + def.name() + " during the showdown." : "Played " + def.name());
+    }
     return state;
   }
 
@@ -221,6 +231,21 @@ public class GameEngine {
     return state;
   }
 
+  private LiveGameState applyHideCard(LiveGameState state, HideCardMove move) {
+    CardInstance card = findCard(state, move.instanceId());
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    RuneState rune = findRune(state, move.paymentRuneId());
+    rune.setTapped(true);
+    card.setZone(ZoneName.HIDDEN);
+    card.setFaceDown(true);
+    card.setTapped(false);
+    card.setX(0);
+    card.setY(0);
+    card.setAttachedToInstanceId(null);
+    log(state, move.playerId(), "Hid " + def.name() + ".");
+    return state;
+  }
+
   private LiveGameState applyMulligan(LiveGameState state, MulliganMove move) {
     PlayerState player = state.getPlayers().stream()
         .filter(candidate -> candidate.getUserId().equals(move.playerId()))
@@ -267,6 +292,22 @@ public class GameEngine {
         ShowdownStep.ACTION_WINDOW));
     log(state, move.playerId(), "Showdown started at the battlefield.");
     return state;
+  }
+
+  private void startAmbushBattlefield(LiveGameState state, CardInstance card, CardDefinition def, String playerId) {
+    log(state, playerId, "Ambushed " + def.name() + " to the battlefield.");
+    boolean opposed = state.getCards().stream()
+        .anyMatch(candidate -> candidate.getZone() == ZoneName.BATTLEFIELD && !playerId.equals(candidate.getOwnerId()));
+    if (!opposed) {
+      state.getBattlefieldController().put("BATTLEFIELD", playerId);
+      return;
+    }
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        playerId,
+        List.of(card.getInstanceId()),
+        new HashMap<>(),
+        ShowdownStep.ACTION_WINDOW));
+    log(state, playerId, "Showdown started at the battlefield.");
   }
 
   private LiveGameState applyResolveShowdown(LiveGameState state, ResolveShowdownMove move) {
@@ -728,6 +769,7 @@ public class GameEngine {
       case RUNE_DECK -> "Rune Deck";
       case DECK -> "Deck";
       case LIMBO -> "Limbo";
+      case HIDDEN -> "Hidden";
     };
   }
 

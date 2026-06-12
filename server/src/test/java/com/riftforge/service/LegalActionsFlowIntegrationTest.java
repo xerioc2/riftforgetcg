@@ -2,6 +2,7 @@ package com.riftforge.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.riftforge.model.CardInstance;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.Phase;
 import com.riftforge.model.ZoneName;
@@ -101,6 +102,20 @@ class LegalActionsFlowIntegrationTest {
     assertThat(fx.gameService.currentStateFor(ROOM, null).getLegalActions()).isEmpty();
   }
 
+  @Test
+  void fixtureLegalActionsUseRealSupportedActionDetection() {
+    completeMulligans();
+    advanceToMain(active);
+    LiveGameState state = fx.gameService.currentState(ROOM);
+    fx.addCard("action-draw", "Action Draw", "Spell", "[Action] Draw 1.", List.of());
+    state.getCards().add(card("action-instance", "action-draw", idle, ZoneName.HAND));
+    state.getCards().add(card("idle-battlefield", "unit-0", idle, ZoneName.BATTLEFIELD));
+    state.setActiveShowdown(new LiveGameState.ShowdownState(active, List.of(championOf(active)), Map.of()));
+
+    assertThat(legalActionsFor(idle)).containsExactly(LegalAction.PLAY_CARD);
+    assertThat(fx.gameService.currentStateFor(ROOM, null).getLegalActions()).isEmpty();
+  }
+
   private Set<LegalAction> legalActionsFor(String playerId) {
     return fx.gameService.currentStateFor(ROOM, playerId).getLegalActions();
   }
@@ -131,5 +146,15 @@ class LegalActionsFlowIntegrationTest {
         .findFirst()
         .orElseThrow()
         .getInstanceId();
+  }
+
+  private CardInstance card(String instanceId, String cardId, String ownerId, ZoneName zone) {
+    CardInstance card = new CardInstance();
+    card.setInstanceId(instanceId);
+    card.setCardId(cardId);
+    card.setOwnerId(ownerId);
+    card.setZone(zone);
+    card.setCurrentHealth(1);
+    return card;
   }
 }

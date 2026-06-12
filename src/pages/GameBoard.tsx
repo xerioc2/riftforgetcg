@@ -15,7 +15,8 @@ import { computeLayout, type ZoneRect } from '../components/board/BoardLayout';
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
 import { readableHttpError } from '../lib/http';
-import { isLegalTargetForMode, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode } from '../lib/cardActions';
+import { hasUnsupportedAdditionalCost, isActionCard, isAmbushCard, isLegalTargetForMode, isReactionCard, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode } from '../lib/cardActions';
+import { buildDebugInfo } from '../lib/debugInfo';
 import { isBotPlayer, legalActionHint, phaseGuidance, waitingStatusText } from '../lib/gameGuidance';
 import { useLocalPlayer } from '../lib/playerContext';
 import { getRoomSessionToken } from '../lib/roomSession';
@@ -43,6 +44,10 @@ function sameZone(zone: string, expected: ZoneName | string) {
 
 function hasKeyword(card: RiftCard | undefined, keyword: string) {
   return card?.keywords?.some((value) => value.toUpperCase().startsWith(keyword.toUpperCase())) ?? false;
+}
+
+function hasHidden(card: RiftCard | undefined) {
+  return hasKeyword(card, 'HIDDEN') || (card?.rulesText ?? '').toLowerCase().includes('[hidden]');
 }
 
 function sharesDomain(card: RiftCard | undefined, rune: RiftCard | undefined) {
@@ -427,16 +432,87 @@ export function GameBoard() {
     publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'BASE', ...position, targetInstanceId, accelerate, ...payment });
   };
 
+  const playCardWithAmbush = (instanceId: string) => {
+    const instance = state?.cards.find((card) => card.instanceId === instanceId);
+    const cardDef = instance ? cardsById.get(instance.cardId) : undefined;
+    if (!instance || !cardDef) return;
+    if (!canTakeAction(state, 'PLAY_CARD')) {
+      notifyWarning('Ambush unavailable', 'Ambush can only be used during currently supported play windows.');
+      return;
+    }
+    if (showdownActive || !isMyTurn) {
+      notifyWarning('Ambush reaction timing unavailable', 'Ambush-as-Reaction timing is not implemented yet.');
+      return;
+    }
+    if (!isAmbushCard(cardDef) || cardDef.type?.toLowerCase() !== 'unit') {
+      notifyWarning('Ambush unavailable', 'Only units with Ambush can be played this way.');
+      return;
+    }
+    if (hasUnsupportedAdditionalCost(cardDef)) {
+      notifyWarning('Additional cost unsupported', 'That Ambush card has an additional cost RiftForge cannot pay yet.');
+      return;
+    }
+    const hasFriendlyBattlefieldUnit = state?.cards.some((card) => {
+      const def = cardsById.get(card.cardId);
+      const type = def?.type?.toLowerCase();
+      return card.ownerId === player.id && sameZone(card.zone, 'battlefield') && (type === 'unit' || type === 'champion');
+    });
+    if (!hasFriendlyBattlefieldUnit) {
+      notifyWarning('Ambush unavailable', 'Ambush requires a friendly unit at that battlefield.');
+      return;
+    }
+    const payment = selectPaymentRunesForCard(cardDef);
+    if (!payment) return;
+    const battlefield = zones.find((zone) => zone.zoneName === 'battlefield' && zone.ownerId === player.id);
+    const battlefieldCount = state?.cards.filter((card) => card.ownerId === player.id && sameZone(card.zone, 'battlefield')).length ?? 0;
+    const position = battlefield ? autoPlaceInZone(battlefield, battlefieldCount) : { x: size.width / 2, y: size.height / 2 };
+    publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'BATTLEFIELD', ...position, ...payment });
+  };
+
+  const hideFromHand = (instanceId: string) => {
+    const instance = state?.cards.find((card) => card.instanceId === instanceId);
+    const cardDef = instance ? cardsById.get(instance.cardId) : undefined;
+    if (!instance || !cardDef) return;
+    if (!canTakeAction(state, 'HIDE_CARD')) {
+      notifyWarning('Hidden unavailable', 'Hidden can only be used during your Main Phase with a ready rune.');
+      return;
+    }
+    if (!hasHidden(cardDef)) {
+      notifyWarning('Hidden unavailable', 'Only cards with Hidden can be hidden.');
+      return;
+    }
+    const paymentRune = (state?.runes ?? []).find((rune) => rune.ownerId === player.id && !rune.tapped);
+    if (!paymentRune) {
+      notifyWarning('Hidden unavailable', 'You need a ready rune to hide that card.');
+      return;
+    }
+    publishMove({ type: 'HIDE_CARD', playerId: player.id, instanceId, paymentRuneId: paymentRune.instanceId });
+  };
+
   const playFromHand = (instanceId: string) => {
+    const cardDef = cardsById.get(state?.cards.find((c) => c.instanceId === instanceId)?.cardId ?? '');
+    const type = cardDef?.type?.toLowerCase();
+    if (showdownActive) {
+      if (isReactionCard(cardDef)) {
+        notifyWarning('Reaction timing unavailable', 'Reaction timing is not implemented yet.');
+        return;
+      }
+      if (!isActionCard(cardDef)) {
+        notifyWarning('Action unavailable', 'Only supported Action cards can be played during this showdown window.');
+        return;
+      }
+      if (!canTakeAction(state, 'PLAY_CARD')) {
+        notifyWarning('Action unavailable', 'Only showdown participants can play Action cards here.');
+        return;
+      }
+    }
     if (!canTakeAction(state, 'PLAY_CARD')) {
       notifyWarning(
         'Action unavailable',
-        isMyTurn ? 'You can only play cards during Main or supported action windows.' : 'Waiting for the active player or a supported reaction window.',
+        isMyTurn ? 'You can only play cards during Main or supported action windows.' : 'Waiting for the active player or a supported action window.',
       );
       return;
     }
-    const cardDef = cardsById.get(state?.cards.find((c) => c.instanceId === instanceId)?.cardId ?? '');
-    const type = cardDef?.type?.toLowerCase();
     if (type === 'legend' || type === 'champion' || type === 'battlefield') {
       const message = type === 'legend'
         ? 'Legends are identity cards and are not played from hand.'
@@ -586,21 +662,13 @@ export function GameBoard() {
   };
 
   const copyDebugInfo = async () => {
-    const payload = {
-      app: 'RiftForge',
+    const payload = buildDebugInfo({
       roomCode,
-      phase: state?.currentPhase ?? 'unknown',
-      activePlayerId: state?.activePlayerId ?? 'unknown',
-      playerId: player.id,
-      playerName: player.name,
-      opponentIds: state?.players.filter((statePlayer) => statePlayer.userId !== player.id).map((statePlayer) => statePlayer.userId) ?? [],
-      turnNumber: state?.turnNumber ?? null,
-      gameMode: state?.gameMode ?? null,
-      activeShowdown: Boolean(state?.activeShowdown),
-      lastError: lastError ?? null,
+      state,
+      player,
+      lastError,
       serverUrl: getGameServerUrl(),
-      generatedAt: new Date().toISOString(),
-    };
+    });
     await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
     notifySuccess('Debug info copied', 'Paste it into your bug report with screenshots or reproduction steps.');
   };
@@ -642,6 +710,8 @@ export function GameBoard() {
   const myDeckCount = me?.deckCount ?? 0;
   const opponentDiscardCards = visibleCardsFor(opponent?.userId, 'discard');
   const myDiscardCards = visibleCardsFor(player.id, 'discard');
+  const myHiddenCards = visibleCardsFor(player.id, 'hidden');
+  const opponentHiddenCount = state.cards.filter((card) => card.ownerId === opponent?.userId && sameZone(card.zone, 'hidden')).length;
   const opponentRevealedSnapshot = state.revealedHands?.find((snapshot) => snapshot.revealedToPlayerId === player.id && snapshot.revealedOwnerId === opponent?.userId);
   const myRevealedSnapshot = state.revealedHands?.find((snapshot) => snapshot.revealedToPlayerId === player.id && snapshot.revealedOwnerId === player.id);
   const dismissRevealed = (instanceId: string) => publishMove({ type: 'DISMISS_REVEALED', playerId: player.id, instanceId });
@@ -659,7 +729,7 @@ export function GameBoard() {
   const canPlayCards = canTakeAction(state, 'PLAY_CARD');
   const canMoveToBattlefield = canTakeAction(state, 'MOVE_TO_BATTLEFIELD');
   const canResolveShowdown = canTakeAction(state, 'RESOLVE_SHOWDOWN');
-  const canPlayReactions = canPlayCards && !isMyTurn;
+  const canPlayReactions = false;
   const hasSpellReaction = hand.some((instance) => cardsById.get(instance.cardId)?.type?.toLowerCase() === 'spell');
   const ownRuneZone = zones.find((zone) => zone.zoneName === 'rune' && zone.ownerId === player.id);
   const hasTappedOwnRune = (state.runes ?? []).some((rune) => rune.ownerId === player.id && rune.tapped);
@@ -667,12 +737,19 @@ export function GameBoard() {
   const canPass = canTakeAction(state, 'PASS_PHASE') || canResolveShowdown;
   const canMulligan = canTakeAction(state, 'MULLIGAN');
   const canKeepHand = canTakeAction(state, 'KEEP_HAND');
+  const canHideCards = canTakeAction(state, 'HIDE_CARD');
+  const hasFriendlyBattlefieldUnit = state.cards.some((card) => {
+    const def = cardsById.get(card.cardId);
+    const type = def?.type?.toLowerCase();
+    return card.ownerId === player.id && sameZone(card.zone, 'battlefield') && (type === 'unit' || type === 'champion');
+  });
+  const canAmbushCards = canPlayCards && isMyTurn && !showdownActive && hasFriendlyBattlefieldUnit;
   const guidanceText = phaseGuidance(state.currentPhase, showdownActive, state.activeShowdown?.step);
   const actionHintText = legalActionHint(state.legalActions, { isPlayer: Boolean(me), isMyTurn, activePlayerName, activePlayerIsBot });
   const waitingText = waitingStatusText({ isMyTurn, activePlayerName, activePlayerIsBot, waitingLong: waitingTooLong });
   const connectionText = wsConnected ? 'Connected.' : 'Reconnecting to player-specific updates...';
   const boardCardRenderItems = [...state.cards]
-    .filter((instance) => !sameZone(instance.zone, 'hand') && !sameZone(instance.zone, 'deck'))
+    .filter((instance) => !sameZone(instance.zone, 'hand') && !sameZone(instance.zone, 'deck') && !sameZone(instance.zone, 'hidden'))
     .sort((a, b) => a.zIndex - b.zIndex)
     .map((instance) => ({ instance, zone: visualZoneFor(instance, zones) }));
   const zoneCounts = new Map<string, number>();
@@ -853,9 +930,35 @@ export function GameBoard() {
       />
       {canPlayReactions && hasSpellReaction ? (
         <div className="pointer-events-none absolute left-0 z-20 flex justify-center text-xs font-medium text-forge" style={{ right: `${SIDEBAR_WIDTH}px`, bottom: handHeight + PHASE_BAR_HEIGHT + 6 }}>
-          Opponent&apos;s turn - you may play spells as reactions
+          Supported Action window available
         </div>
       ) : null}
+
+      <div className="pointer-events-auto absolute right-[296px] top-3 z-20 flex max-w-[260px] flex-col gap-2 text-xs">
+        {opponentHiddenCount > 0 ? (
+          <div className="border border-line bg-panel/90 px-3 py-2 text-slate-300">
+            {opponentName} has {opponentHiddenCount} hidden card{opponentHiddenCount === 1 ? '' : 's'}.
+          </div>
+        ) : null}
+        {myHiddenCards.length > 0 ? (
+          <div className="border border-forge/50 bg-panel/95 px-3 py-2">
+            <p className="font-semibold text-forge">Hidden cards</p>
+            <div className="mt-1 flex flex-wrap gap-1">
+              {myHiddenCards.map(({ instanceId, card }) => (
+                <button
+                  key={instanceId}
+                  className="border border-line bg-ink px-2 py-1 text-left text-slate-200 hover:border-forge"
+                  onClick={() => notifyWarning('Hidden timing unavailable', 'Playing hidden cards later is not implemented yet.')}
+                  onMouseEnter={() => handleCardHover(card)}
+                  onMouseLeave={() => handleCardHover(null)}
+                >
+                  {card.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
       <GameSidebar log={state.log} chat={chat} onSend={sendChat} />
       <div
         className="pointer-events-auto absolute left-0 z-30 flex h-2 cursor-ns-resize items-center justify-center bg-line/50 hover:bg-forge/40"
@@ -883,11 +986,15 @@ export function GameBoard() {
           instances={hand}
           cards={cardsById}
           onPlay={playFromHand}
+          onAmbush={playCardWithAmbush}
+          onHide={hideFromHand}
           onDiscard={discardFromHand}
           cardScale={cardScale}
           onHover={handleCardHover}
           effectiveEnergy={spendableEnergy}
-          canPlayCards={canPlayCards && isMyTurn}
+          canPlayCards={canPlayCards}
+          canAmbushCards={canAmbushCards}
+          canHideCards={canHideCards}
           canPlayReactions={canPlayReactions}
           embedded
           maxHeight={handHeight}

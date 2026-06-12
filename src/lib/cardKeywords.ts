@@ -1,5 +1,5 @@
 export const KEYWORD_DESCRIPTIONS: Record<string, string> = {
-  ACTION: 'Timing/action word for optional effects. Rules support incomplete until action windows are fully modeled.',
+  ACTION: 'Timing/action word. Active-player Main Phase and participant showdown Action play are partially supported; full timing is incomplete.',
   REACTION: 'Timing/action word for responding to events. Rules support incomplete until reaction windows are fully modeled.',
   ASSAULT: 'Gets +X Might while attacking. Combat bonus support is implemented; card-specific text may still be partial.',
   SHIELD: 'Gets +X Might while defending. Combat bonus support is implemented; card-specific text may still be partial.',
@@ -11,9 +11,9 @@ export const KEYWORD_DESCRIPTIONS: Record<string, string> = {
   ACCELERATE: 'You may pay 1 additional energy for its Accelerate effect.',
   LEGION: 'Applies if another Main Deck card was played earlier this turn. Simple bonuses/token effects are partial.',
   MIGHTY: 'A descriptor for a unit with 5 or more effective Might. Threshold checks are supported; triggers that care about becoming Mighty may still be partial.',
-  AMBUSH: 'Can attack directly from Base and enters the battlefield ready. Rules support incomplete.',
+  AMBUSH: 'Partial: may be played directly to a battlefield during supported windows if you already have a friendly unit there. Reaction timing and additional costs are incomplete.',
   'QUICK-DRAW': 'Enters Base ready and can move to the battlefield the turn it is played.',
-  HIDDEN: "Cannot be targeted by an opponent's spells or abilities while at Base. Rules support incomplete.",
+  HIDDEN: 'Can be hidden from hand into a private hidden area by paying a ready rune. Later hidden play/reaction timing is not implemented yet.',
   GANKING: 'Gets +X Might for combat when entering against an opponent with higher Might. Partial combat support.',
   REPEAT: 'Allows you to play one additional card this turn.',
   EQUIP: 'Attachment/action word for Gear. Basic friendly-unit attachment is supported; full timing and edge cases remain incomplete.',

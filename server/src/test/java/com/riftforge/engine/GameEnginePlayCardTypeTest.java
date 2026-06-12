@@ -12,16 +12,20 @@ import com.riftforge.model.CardInstance;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
+import com.riftforge.model.RuneState;
 import com.riftforge.model.ZoneName;
+import com.riftforge.model.move.HideCardMove;
 import com.riftforge.model.move.MoveToBattlefieldMove;
 import com.riftforge.model.move.PassPhaseMove;
 import com.riftforge.model.move.PlayCardMove;
 import com.riftforge.model.move.RepositionCardMove;
+import com.riftforge.model.move.ResolveShowdownMove;
 import com.riftforge.rules.LegalActionsService;
 import com.riftforge.service.CardDataService;
 import com.riftforge.service.GameStateProjectionService;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,6 +52,30 @@ class GameEnginePlayCardTypeTest {
     engine = new GameEngine(rulesValidator, combatResolver, cardZoneService, cardDataService, effects, deathTriggerService, tokenFactory, 8);
     when(effects.getEffect(anyString())).thenReturn(Optional.empty());
     when(cardDataService.hasKeyword(any(CardInstance.class), anyString())).thenReturn(false);
+    when(cardDataService.isActionCard(any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      return def != null && def.rulesText() != null && def.rulesText().toLowerCase().contains("[action]");
+    });
+    when(cardDataService.isReactionCard(any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      return def != null && def.rulesText() != null && def.rulesText().toLowerCase().contains("[reaction]");
+    });
+    when(cardDataService.isHiddenCard(any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      return def != null && (
+          def.rulesText() != null && def.rulesText().toLowerCase().contains("[hidden]")
+          || def.keywords().stream().anyMatch(keyword -> keyword.equalsIgnoreCase("HIDDEN")));
+    });
+    when(cardDataService.isAmbushCard(any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      return def != null && (
+          def.rulesText() != null && def.rulesText().toLowerCase().contains("[ambush]")
+          || def.keywords().stream().anyMatch(keyword -> keyword.equalsIgnoreCase("AMBUSH")));
+    });
+    when(cardDataService.hasUnsupportedAdditionalCost(any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      return def != null && def.rulesText() != null && def.rulesText().toLowerCase().contains("additional cost");
+    });
     when(cardDataService.isUnsupportedAction(anyString())).thenReturn(false);
     when(cardDataService.requiresBattlefieldTarget(anyString())).thenReturn(false);
     when(cardDataService.requiresFriendlyTarget(anyString())).thenReturn(false);
@@ -100,6 +128,72 @@ class GameEnginePlayCardTypeTest {
     assertThatThrownBy(() -> engine.applyMove(state, play("unit", ZoneName.BATTLEFIELD)))
         .isInstanceOf(IllegalMoveException.class)
         .hasMessage("Non-rune cards must be played to base.");
+  }
+
+  @Test
+  void ambushUnitCanBePlayedToBattlefieldWhenFriendlyUnitIsPresent() {
+    LiveGameState state = state(card("ambusher", "p1", ZoneName.HAND), card("friendly", "p1", ZoneName.BATTLEFIELD));
+    stubCard("ambusher", "Ambush Recruit", "Unit", 0, 2, 2, "[Ambush] You may play me to a battlefield.", List.of("AMBUSH"));
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 1, 1, null);
+
+    engine.applyMove(state, play("ambusher", ZoneName.BATTLEFIELD));
+
+    CardInstance ambusher = find(state, "ambusher");
+    assertThat(ambusher.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(ambusher.isTapped()).isFalse();
+    assertThat(ambusher.isHasSummoningSickness()).isFalse();
+    assertThat(state.getBattlefieldController()).containsEntry("BATTLEFIELD", "p1");
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Ambushed Ambush Recruit to the battlefield."));
+  }
+
+  @Test
+  void ambushUnitCannotBePlayedToBattlefieldWithoutFriendlyUnit() {
+    LiveGameState state = state(card("ambusher", "p1", ZoneName.HAND));
+    stubCard("ambusher", "Ambush Recruit", "Unit", 0, 2, 2, "[Ambush] You may play me to a battlefield.", List.of("AMBUSH"));
+
+    assertThatThrownBy(() -> engine.applyMove(state, play("ambusher", ZoneName.BATTLEFIELD)))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Ambush requires a friendly unit at that battlefield.");
+  }
+
+  @Test
+  void ambushPlayStartsShowdownIfOpponentHasBattlefieldUnit() {
+    LiveGameState state = state(
+        card("ambusher", "p1", ZoneName.HAND),
+        card("friendly", "p1", ZoneName.BATTLEFIELD),
+        card("enemy", "p2", ZoneName.BATTLEFIELD));
+    stubCard("ambusher", "Ambush Recruit", "Unit", 0, 2, 2, "[Ambush] You may play me to a battlefield.", List.of("AMBUSH"));
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 1, 1, null);
+    stubCard("enemy", "Enemy Unit", "Unit", 0, 1, 1, null);
+
+    engine.applyMove(state, play("ambusher", ZoneName.BATTLEFIELD));
+
+    assertThat(state.getActiveShowdown()).isNotNull();
+    assertThat(state.getActiveShowdown().attackingPlayerId()).isEqualTo("p1");
+    assertThat(state.getActiveShowdown().attackerInstanceIds()).containsExactly("ambusher");
+  }
+
+  @Test
+  void ambushDoesNotWorkOutsideSupportedTimingWindow() {
+    LiveGameState state = state(card("ambusher", "p1", ZoneName.HAND), card("friendly", "p1", ZoneName.BATTLEFIELD));
+    state.setCurrentPhase(Phase.DRAW);
+    stubCard("ambusher", "Ambush Recruit", "Unit", 0, 2, 2, "[Ambush] You may play me to a battlefield.", List.of("AMBUSH"));
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 1, 1, null);
+
+    assertThatThrownBy(() -> engine.applyMove(state, play("ambusher", ZoneName.BATTLEFIELD)))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Ambush reaction timing is not implemented yet.");
+  }
+
+  @Test
+  void ambushCardWithUnsupportedAdditionalCostIsBlocked() {
+    LiveGameState state = state(card("stalking-wolf", "p1", ZoneName.HAND), card("friendly", "p1", ZoneName.BATTLEFIELD));
+    stubCard("stalking-wolf", "Stalking Wolf", "Unit", 0, 2, 2, "[Ambush] As an additional cost to play me, kill a Poro you control.", List.of("AMBUSH"));
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 1, 1, null);
+
+    assertThatThrownBy(() -> engine.applyMove(state, play("stalking-wolf", ZoneName.BATTLEFIELD)))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("That card's additional cost is not supported yet.");
   }
 
   @Test
@@ -290,6 +384,95 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void hiddenCardCanBeHiddenFromHandByTappingRune() {
+    CardInstance tideturner = card("tideturner", "p1", ZoneName.HAND);
+    LiveGameState state = state(tideturner);
+    state.setRunes(new ArrayList<>(List.of(rune("rune-1", "p1", false))));
+    stubCard("tideturner", "Tideturner", "Unit", 3, 2, 2, "[Hidden] Hide now for a rune to react with later.");
+
+    engine.applyMove(state, new HideCardMove("p1", "tideturner", "rune-1"));
+
+    assertThat(tideturner.getZone()).isEqualTo(ZoneName.HIDDEN);
+    assertThat(tideturner.isFaceDown()).isTrue();
+    assertThat(tideturner.isTapped()).isFalse();
+    assertThat(state.getRunes().getFirst().isTapped()).isTrue();
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Hid Tideturner."));
+  }
+
+  @Test
+  void onlyHiddenCardsCanBeHidden() {
+    LiveGameState state = state(card("unit", "p1", ZoneName.HAND));
+    state.setRunes(new ArrayList<>(List.of(rune("rune-1", "p1", false))));
+    stubCard("unit", "Normal Unit", "Unit", 1, 1, 1, null);
+
+    assertThatThrownBy(() -> engine.applyMove(state, new HideCardMove("p1", "unit", "rune-1")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Only cards with Hidden can be hidden.");
+  }
+
+  @Test
+  void cannotHideOpponentCard() {
+    LiveGameState state = state(card("tideturner", "p2", ZoneName.HAND));
+    state.setRunes(new ArrayList<>(List.of(rune("rune-1", "p1", false))));
+    stubCard("tideturner", "Tideturner", "Unit", 3, 2, 2, "[Hidden] Hide now.");
+
+    assertThatThrownBy(() -> engine.applyMove(state, new HideCardMove("p1", "tideturner", "rune-1")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("You do not own that card.");
+  }
+
+  @Test
+  void cannotHideCardOutsideHand() {
+    LiveGameState state = state(card("tideturner", "p1", ZoneName.BASE));
+    state.setRunes(new ArrayList<>(List.of(rune("rune-1", "p1", false))));
+    stubCard("tideturner", "Tideturner", "Unit", 3, 2, 2, "[Hidden] Hide now.");
+
+    assertThatThrownBy(() -> engine.applyMove(state, new HideCardMove("p1", "tideturner", "rune-1")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Only cards in hand can be hidden.");
+  }
+
+  @Test
+  void hiddenCardRequiresReadyOwnRune() {
+    LiveGameState state = state(card("tideturner", "p1", ZoneName.HAND));
+    state.setRunes(new ArrayList<>(List.of(rune("enemy-rune", "p2", false), rune("tapped-rune", "p1", true))));
+    stubCard("tideturner", "Tideturner", "Unit", 3, 2, 2, "[Hidden] Hide now.");
+
+    assertThatThrownBy(() -> engine.applyMove(state, new HideCardMove("p1", "tideturner", "enemy-rune")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("You cannot pay with an opponent's rune.");
+    assertThatThrownBy(() -> engine.applyMove(state, new HideCardMove("p1", "tideturner", "tapped-rune")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Payment rune is already tapped.");
+  }
+
+  @Test
+  void hiddenCardCannotMoveToBattlefieldThroughNormalMovement() {
+    LiveGameState state = state(card("tideturner", "p1", ZoneName.HIDDEN));
+    stubCard("tideturner", "Tideturner", "Unit", 3, 2, 2, "[Hidden] Hide now.");
+
+    assertThatThrownBy(() -> engine.applyMove(state, new MoveToBattlefieldMove("p1", "tideturner")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Only units from your base can move to the battlefield.");
+  }
+
+  @Test
+  void hiddenCardCannotFightOrTriggerDeathknellWhenHidden() {
+    CardInstance hidden = card("loyal", "p1", ZoneName.HIDDEN);
+    CardInstance enemy = card("enemy", "p2", ZoneName.BATTLEFIELD);
+    LiveGameState state = state(hidden, enemy);
+    state.setActiveShowdown(new LiveGameState.ShowdownState("p1", List.of("loyal"), Map.of()));
+    stubCard("loyal", "Loyal Poro", "Unit", 0, 1, 1, "[Hidden] [Deathknell] Draw 1.");
+    stubCard("enemy", "Enemy Unit", "Unit", 0, 1, 1, null);
+    when(cardDataService.hasKeyword("loyal", "DEATHKNELL")).thenReturn(true);
+
+    engine.applyMove(state, new ResolveShowdownMove("p1"));
+
+    assertThat(hidden.getZone()).isEqualTo(ZoneName.HIDDEN);
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("Deathknell"));
+  }
+
+  @Test
   void unsupportedMultiTargetCardRemainsBlocked() {
     LiveGameState state = state(card("multi", "p1", ZoneName.HAND), card("friendly", "p1", ZoneName.BATTLEFIELD));
     stubCard("multi", "Multi Spell", "Spell", 0, 0, 0, "Choose a friendly unit and an enemy unit.");
@@ -321,6 +504,99 @@ class GameEnginePlayCardTypeTest {
     assertThatThrownBy(() -> engine.applyMove(state, play("reaction-draw", ZoneName.BASE)))
         .isInstanceOf(IllegalMoveException.class)
         .hasMessage("That action can only be taken during MAIN.");
+  }
+
+  @Test
+  void actionCardCanBePlayedDuringShowdownAndDoesNotResolveIt() {
+    CardInstance action = card("ride", "p1", ZoneName.HAND);
+    CardInstance friendly = card("friendly", "p1", ZoneName.BATTLEFIELD);
+    friendly.setTapped(true);
+    LiveGameState state = state(action, friendly);
+    state.setActiveShowdown(new LiveGameState.ShowdownState("p1", List.of("attacker"), Map.of()));
+    stubCard("ride", "Ride The Wind", "Spell", 0, 0, 0, "[Action] Choose a friendly unit. Ready it.");
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    when(cardDataService.requiresBattlefieldTarget("ride")).thenReturn(true);
+    when(cardDataService.requiresFriendlyTarget("ride")).thenReturn(true);
+
+    engine.applyMove(state, playTarget("ride", "friendly"));
+
+    assertThat(friendly.isTapped()).isFalse();
+    assertThat(action.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(state.getActiveShowdown()).isNotNull();
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Played Ride The Wind during the showdown."));
+  }
+
+  @Test
+  void defenderActionCardCanBePlayedDuringShowdownAndDoesNotResolveIt() {
+    CardInstance action = card("ride", "p2", ZoneName.HAND);
+    CardInstance defender = card("defender", "p2", ZoneName.BATTLEFIELD);
+    defender.setTapped(true);
+    LiveGameState state = state(action, defender, card("attacker", "p1", ZoneName.BATTLEFIELD));
+    state.setActiveShowdown(new LiveGameState.ShowdownState("p1", List.of("attacker"), Map.of()));
+    stubCard("ride", "Ride The Wind", "Spell", 0, 0, 0, "[Action] Choose a friendly unit. Ready it.");
+    stubCard("defender", "Defender Unit", "Unit", 0, 2, 2, null);
+    stubCard("attacker", "Attacker Unit", "Unit", 0, 2, 2, null);
+    when(cardDataService.requiresBattlefieldTarget("ride")).thenReturn(true);
+    when(cardDataService.requiresFriendlyTarget("ride")).thenReturn(true);
+
+    engine.applyMove(state, playTarget("p2", "ride", "defender"));
+
+    assertThat(defender.isTapped()).isFalse();
+    assertThat(action.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(state.getActiveShowdown()).isNotNull();
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Played Ride The Wind during the showdown."));
+  }
+
+  @Test
+  void nonParticipantCannotPlayActionDuringShowdown() {
+    CardInstance action = card("ride", "p3", ZoneName.HAND);
+    LiveGameState state = state(action, card("attacker", "p1", ZoneName.BATTLEFIELD), card("defender", "p2", ZoneName.BATTLEFIELD));
+    PlayerState p3 = new PlayerState();
+    p3.setUserId("p3");
+    p3.setName("Player Three");
+    state.getPlayers().add(p3);
+    state.setActiveShowdown(new LiveGameState.ShowdownState("p1", List.of("attacker"), Map.of()));
+    stubCard("ride", "Ride The Wind", "Spell", 0, 0, 0, "[Action] Choose a friendly unit. Ready it.");
+    stubCard("attacker", "Attacker Unit", "Unit", 0, 2, 2, null);
+    stubCard("defender", "Defender Unit", "Unit", 0, 2, 2, null);
+
+    assertThatThrownBy(() -> engine.applyMove(state, play("p3", "ride", ZoneName.BASE)))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Only showdown participants can play Action cards here.");
+  }
+
+  @Test
+  void nonActionCardCannotBePlayedDuringShowdown() {
+    LiveGameState state = state(card("spell", "p1", ZoneName.HAND));
+    state.setActiveShowdown(new LiveGameState.ShowdownState("p1", List.of("attacker"), Map.of()));
+    stubCard("spell", "Main Spell", "Spell", 0, 0, 0, "Draw 1.");
+
+    assertThatThrownBy(() -> engine.applyMove(state, play("spell", ZoneName.BASE)))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Only supported Action cards can be played during this showdown window.");
+  }
+
+  @Test
+  void reactionCardCannotBePlayedDuringShowdown() {
+    LiveGameState state = state(card("reaction", "p1", ZoneName.HAND));
+    state.setActiveShowdown(new LiveGameState.ShowdownState("p1", List.of("attacker"), Map.of()));
+    stubCard("reaction", "Reaction Spell", "Spell", 0, 0, 0, "[Reaction] Draw 1.");
+
+    assertThatThrownBy(() -> engine.applyMove(state, play("reaction", ZoneName.BASE)))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Reaction timing is not implemented yet.");
+  }
+
+  @Test
+  void unsupportedActionCardCannotBePlayedDuringShowdown() {
+    LiveGameState state = state(card("stacked", "p1", ZoneName.HAND));
+    state.setActiveShowdown(new LiveGameState.ShowdownState("p1", List.of("attacker"), Map.of()));
+    stubCard("stacked", "Stacked Deck", "Spell", 0, 0, 0, "[Action] Look at the top 3 cards of your Main Deck.");
+    when(cardDataService.isUnsupportedAction("stacked")).thenReturn(true);
+
+    assertThatThrownBy(() -> engine.applyMove(state, play("stacked", ZoneName.BASE)))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("That card's effect is not supported yet.");
   }
 
   @Test
@@ -745,8 +1021,16 @@ class GameEnginePlayCardTypeTest {
     return new PlayCardMove("p1", instanceId, targetZone, 0, 0, null, false, List.of(), List.of());
   }
 
+  private PlayCardMove play(String playerId, String instanceId, ZoneName targetZone) {
+    return new PlayCardMove(playerId, instanceId, targetZone, 0, 0, null, false, List.of(), List.of());
+  }
+
   private PlayCardMove playTarget(String instanceId, String targetInstanceId) {
     return new PlayCardMove("p1", instanceId, ZoneName.BASE, 0, 0, targetInstanceId, false, List.of(), List.of());
+  }
+
+  private PlayCardMove playTarget(String playerId, String instanceId, String targetInstanceId) {
+    return new PlayCardMove(playerId, instanceId, ZoneName.BASE, 0, 0, targetInstanceId, false, List.of(), List.of());
   }
 
   private CardInstance card(String id, String ownerId, ZoneName zone) {
@@ -760,12 +1044,34 @@ class GameEnginePlayCardTypeTest {
     return card;
   }
 
+  private CardInstance find(LiveGameState state, String instanceId) {
+    return state.getCards().stream()
+        .filter(card -> card.getInstanceId().equals(instanceId))
+        .findFirst()
+        .orElseThrow();
+  }
+
+  private RuneState rune(String id, String ownerId, boolean tapped) {
+    RuneState rune = new RuneState();
+    rune.setInstanceId(id);
+    rune.setCardId(id);
+    rune.setOwnerId(ownerId);
+    rune.setTapped(tapped);
+    rune.setNormalEnergy(1);
+    rune.setPremiumEnergy(2);
+    return rune;
+  }
+
   private void stubCard(String id, String type, int cost) {
     stubCard(id, id, type, cost, 1, 1, null);
   }
 
   private void stubCard(String id, String name, String type, int cost, int power, int health, String rulesText) {
+    stubCard(id, name, type, cost, power, health, rulesText, List.of());
+  }
+
+  private void stubCard(String id, String name, String type, int cost, int power, int health, String rulesText, List<String> keywords) {
     when(cardDataService.getCard(id)).thenReturn(
-        new CardDefinition(id, name, type, null, List.of(), cost, 0, null, null, null, rulesText, power, health, List.of()));
+        new CardDefinition(id, name, type, null, List.of(), cost, 0, null, null, null, rulesText, power, health, keywords));
   }
 }

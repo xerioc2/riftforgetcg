@@ -14,6 +14,8 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Play or attempt a targeted effect and confirm target prompts/errors are visible.
 - Equip Gear to a valid friendly Unit/Champion and confirm the log says what was equipped.
 - Move a Unit to the battlefield.
+- If you have a clean Ambush Unit and already control a battlefield unit, use the Ambush button and confirm it enters the battlefield ready.
+- If a showdown starts and you have a supported `[Action]` card, try it during the showdown window.
 - Resolve a showdown if one starts.
 - If Deathknell/token cards appear, confirm the log and board state update clearly.
 - Check your hand remains visible to you and opponent hands remain masked.
@@ -34,6 +36,8 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Play Equip Gear when available and confirm it attaches to a friendly Unit/Champion.
 - Pass through the turn and confirm the phase guidance updates.
 - Move a Unit to the battlefield.
+- If an Ambush card appears, confirm it either shows a clear Ambush option with a friendly battlefield unit or explains why Ambush/additional cost is unavailable.
+- If a showdown starts and you have a supported `[Action]` card, confirm the UI says you may play it or resolve the showdown.
 - Resolve a showdown if one starts.
 - Confirm attached Gear goes to Trash if its host leaves play in a supported path.
 - Confirm the game log shows readable entries for play, move, target, showdown, scoring, and unsupported-effect messages.
@@ -43,7 +47,11 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Open a second player or spectator view when practical.
 - Confirm your own hand card names are visible only to you.
 - Confirm opponent hand cards are masked in player/spectator views.
+- If you draw a `[Hidden]` card, hide it with a ready rune; confirm you see its name in your hidden area and the opponent/spectator sees only a hidden-card count.
 - Confirm Vision/private reveal log entries are not visible to the wrong viewer.
+- Confirm the spectator/public room view has no action buttons or `legalActions`.
+- Confirm opponent Hidden cards cannot be selected as targets unless a future reveal effect explicitly grants permission.
+- After a match ends, confirm History shows public winner/score summary only, not hand/deck/log contents.
 
 ## Support Messaging
 

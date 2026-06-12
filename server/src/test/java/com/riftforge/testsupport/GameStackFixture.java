@@ -1,9 +1,8 @@
 package com.riftforge.testsupport;
 
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.riftforge.effect.CardEffectRegistry;
 import com.riftforge.engine.CardZoneService;
 import com.riftforge.engine.CombatResolver;
@@ -21,6 +20,7 @@ import com.riftforge.service.MatchHistoryService;
 import com.riftforge.service.RoomService;
 import com.riftforge.service.RoomTokenService;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,22 +37,16 @@ public final class GameStackFixture {
   public static final int TARGET_SCORE = 8;
 
   public final Map<String, CardDefinition> cards = new HashMap<>();
-  public final CardDataService cardDataService = mock(CardDataService.class);
+  public final CardDataService cardDataService = new FixtureCardDataService(cards);
   public final SimpMessagingTemplate messaging = mock(SimpMessagingTemplate.class);
   public final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
   public final RoomTokenService roomTokenService = new RoomTokenService();
-  public final GameStateProjectionService projectionService = new GameStateProjectionService(new LegalActionsService());
+  public final LegalActionsService legalActionsService = new LegalActionsService(cardDataService);
+  public final GameStateProjectionService projectionService = new GameStateProjectionService(legalActionsService);
   public final RoomService roomService;
   public final GameService gameService;
 
   public GameStackFixture() {
-    when(cardDataService.getAll()).thenReturn(cards);
-    when(cardDataService.getCard(anyString())).thenAnswer(invocation -> {
-      String id = invocation.getArgument(0);
-      CardDefinition def = cards.get(id);
-      return def != null ? def
-          : new CardDefinition(id, "Unknown Card", "Unknown", null, List.of(), 0, 0, null, null, null, "", 1, 1, List.of());
-    });
     CardEffectRegistry effects = new CardEffectRegistry(cardDataService);
     CardZoneService cardZoneService = new CardZoneService(cardDataService);
     DeathTriggerService deathTriggerService = new DeathTriggerService(cardDataService);
@@ -66,6 +60,10 @@ public final class GameStackFixture {
 
   public void addCard(String id, String name, String type) {
     cards.put(id, new CardDefinition(id, name, type, null, List.of(), 0, 0, null, null, null, "", 1, 1, List.of()));
+  }
+
+  public void addCard(String id, String name, String type, String rulesText, List<String> keywords) {
+    cards.put(id, new CardDefinition(id, name, type, null, List.of(), 0, 0, null, null, null, rulesText, 1, 1, keywords));
   }
 
   /**
@@ -92,5 +90,26 @@ public final class GameStackFixture {
       deck.add("battlefield-" + i);
     }
     return deck;
+  }
+
+  private static final class FixtureCardDataService extends CardDataService {
+    private final Map<String, CardDefinition> cards;
+
+    private FixtureCardDataService(Map<String, CardDefinition> cards) {
+      super(new ObjectMapper(), "http://example.invalid");
+      this.cards = cards;
+    }
+
+    @Override
+    public CardDefinition getCard(String id) {
+      CardDefinition def = cards.get(id);
+      return def != null ? def
+          : new CardDefinition(id, "Unknown Card", "Unknown", null, List.of(), 0, 0, null, null, null, "", 1, 1, List.of());
+    }
+
+    @Override
+    public Map<String, CardDefinition> getAll() {
+      return Collections.unmodifiableMap(cards);
+    }
   }
 }

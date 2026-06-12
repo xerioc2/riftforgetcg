@@ -10,5 +10,6 @@ public enum ZoneName {
   LEGEND,
   DISCARD,
   DECK,
-  LIMBO
+  LIMBO,
+  HIDDEN
 }

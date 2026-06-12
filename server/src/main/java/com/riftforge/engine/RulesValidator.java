@@ -40,24 +40,19 @@ public class RulesValidator {
       validateSandboxOnly(state, move);
       return;
     }
-    if (state.getActiveShowdown() != null && !(move instanceof ResolveShowdownMove)) {
+    if (state.getActiveShowdown() != null) {
+      if (move instanceof ResolveShowdownMove resolve) { validateResolveShowdown(state, resolve); return; }
+      if (move instanceof PlayCardMove play) { validatePlayCard(state, play); return; }
       throw new IllegalMoveException("Resolve the active showdown first.");
     }
     if (!move.playerId().equals(state.getActivePlayerId())) {
-      if (move instanceof PlayCardMove play && state.getCurrentPhase() == Phase.MAIN) {
-        CardInstance card = findCard(state, play.instanceId());
-        CardDefinition def = cardDataService.getCard(card.getCardId());
-        if ("Spell".equalsIgnoreCase(def.type())) {
-          validatePlayCard(state, play);
-          return;
-        }
-      }
       throw new IllegalMoveException("Not your turn.");
     }
     if (move instanceof VisionChoiceMove vision) { validateVisionChoice(state, vision); return; }
     if (move instanceof ResolveShowdownMove resolve) { validateResolveShowdown(state, resolve); return; }
     if (move instanceof PassPhaseMove) return;
     if (move instanceof UndoRunesMove undo) { validateUndoRunes(state, undo); return; }
+    if (move instanceof HideCardMove hide) { validateHideCard(state, hide); return; }
     if (move instanceof PlayCardMove play) { validatePlayCard(state, play); return; }
     if (move instanceof MoveToBattlefieldMove deploy) { validateMoveToBattlefield(state, deploy); return; }
     if (move instanceof RepositionCardMove reposition) { validateRepositionCard(state, reposition); return; }
@@ -95,22 +90,25 @@ public class RulesValidator {
   }
 
   private void validatePlayCard(LiveGameState state, PlayCardMove move) {
-    requireMain(state);
     CardInstance card = findCard(state, move.instanceId());
     if (!move.playerId().equals(card.getOwnerId()) || card.getZone() != ZoneName.HAND) {
       throw new IllegalMoveException("Card is not in your hand.");
     }
     CardDefinition def = cardDataService.getCard(card.getCardId());
+    validatePlayTiming(state, move, def);
     boolean rune = isType(def, "Rune");
     boolean unit = isType(def, "Unit");
     boolean spell = isType(def, "Spell");
     boolean gear = isType(def, "Gear");
+    boolean ambushToBattlefield = move.targetZone() == ZoneName.BATTLEFIELD;
     if (isType(def, "Legend")) throw new IllegalMoveException("Legend cards cannot be played from hand.");
     if (isType(def, "Champion")) throw new IllegalMoveException("Champion cards cannot be played from hand.");
     if (isType(def, "Battlefield")) throw new IllegalMoveException("Battlefield cards cannot be played from hand.");
+    if (cardDataService.hasUnsupportedAdditionalCost(def)) throw new IllegalMoveException("That card's additional cost is not supported yet.");
     if (rune && move.targetZone() != ZoneName.RUNE) throw new IllegalMoveException("Rune cards must be placed in the rune zone.");
     if (!rune && move.targetZone() == ZoneName.RUNE) throw new IllegalMoveException("Only Rune cards can be placed in the rune zone.");
-    if ((unit || spell || gear) && move.targetZone() != ZoneName.BASE) throw new IllegalMoveException("Non-rune cards must be played to base.");
+    if (ambushToBattlefield) validateAmbushBattlefieldPlay(state, move, def, unit);
+    else if ((unit || spell || gear) && move.targetZone() != ZoneName.BASE) throw new IllegalMoveException("Non-rune cards must be played to base.");
     if (!rune && !unit && !spell && !gear) throw new IllegalMoveException("That card type cannot be played from hand.");
     if (move.accelerate() && (!"Unit".equalsIgnoreCase(def.type()) || !cardDataService.hasKeyword(card, "ACCELERATE"))) {
       throw new IllegalMoveException("That card does not have ACCELERATE.");
@@ -130,6 +128,37 @@ public class RulesValidator {
     if (spellOrGear && (cardDataService.requiresBattlefieldTarget(card.getCardId()) || hasExplicitTarget)) {
       validateTarget(state, move, card);
     }
+  }
+
+  private void validatePlayTiming(LiveGameState state, PlayCardMove move, CardDefinition def) {
+    if (state.getCurrentPhase() != Phase.MAIN && move.targetZone() == ZoneName.BATTLEFIELD && cardDataService.isAmbushCard(def)) {
+      throw new IllegalMoveException("Ambush reaction timing is not implemented yet.");
+    }
+    requireMain(state);
+    if (state.getActiveShowdown() == null) {
+      if (!move.playerId().equals(state.getActivePlayerId())) throw new IllegalMoveException("Not your turn.");
+      return;
+    }
+    if (!isShowdownParticipant(state, move.playerId())) {
+      throw new IllegalMoveException("Only showdown participants can play Action cards here.");
+    }
+    if (cardDataService.isReactionCard(def)) {
+      throw new IllegalMoveException("Reaction timing is not implemented yet.");
+    }
+    if (!cardDataService.isActionCard(def)) {
+      throw new IllegalMoveException("Only supported Action cards can be played during this showdown window.");
+    }
+  }
+
+  private void validateAmbushBattlefieldPlay(LiveGameState state, PlayCardMove move, CardDefinition def, boolean unit) {
+    if (!unit) throw new IllegalMoveException("Only Ambush units can be played directly to the battlefield.");
+    if (!cardDataService.isAmbushCard(def)) throw new IllegalMoveException("Non-rune cards must be played to base.");
+    boolean hasFriendlyBattlefieldUnit = state.getCards().stream()
+        .filter(card -> move.playerId().equals(card.getOwnerId()))
+        .filter(card -> card.getZone() == ZoneName.BATTLEFIELD)
+        .map(card -> cardDataService.getCard(card.getCardId()))
+        .anyMatch(card -> isType(card, "Unit") || isType(card, "Champion"));
+    if (!hasFriendlyBattlefieldUnit) throw new IllegalMoveException("Ambush requires a friendly unit at that battlefield.");
   }
 
   private void validatePayment(LiveGameState state, PlayCardMove move, CardDefinition def) {
@@ -152,6 +181,13 @@ public class RulesValidator {
     if (premiumRuneIds.size() > premiumCost) {
       throw new IllegalMoveException("Too many runes selected for premium payment.");
     }
+  }
+
+  private boolean isShowdownParticipant(LiveGameState state, String playerId) {
+    if (state.getActiveShowdown() == null) return false;
+    if (playerId.equals(state.getActiveShowdown().attackingPlayerId())) return true;
+    return state.getCards().stream()
+        .anyMatch(card -> playerId.equals(card.getOwnerId()) && card.getZone() == ZoneName.BATTLEFIELD);
   }
 
   private RuneState validatePaymentRune(LiveGameState state, String playerId, String runeId) {
@@ -230,6 +266,17 @@ public class RulesValidator {
       throw new IllegalMoveException("Only Champions from your champion zone or base can move to the battlefield.");
     }
     if (card.isTapped()) throw new IllegalMoveException("Only ready cards can move to the battlefield.");
+  }
+
+  private void validateHideCard(LiveGameState state, HideCardMove move) {
+    requireMain(state);
+    CardInstance card = findCard(state, move.instanceId());
+    if (!move.playerId().equals(card.getOwnerId())) throw new IllegalMoveException("You do not own that card.");
+    if (card.getZone() != ZoneName.HAND) throw new IllegalMoveException("Only cards in hand can be hidden.");
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    if (!cardDataService.isHiddenCard(def)) throw new IllegalMoveException("Only cards with Hidden can be hidden.");
+    String runeId = requirePaymentRuneId(move.paymentRuneId());
+    validatePaymentRune(state, move.playerId(), runeId);
   }
 
   private void validateRepositionCard(LiveGameState state, RepositionCardMove move) {

@@ -98,13 +98,13 @@ Current implementation notes:
 - Phase passing is server-authoritative.
 - Early phases do not expose normal main actions through `LegalActionsService`.
 - Server-computed legal actions are included in player-specific projected state so the client can hide or disable actions using the same conservative action matrix.
-- Current action windows include mulligan, basic phase pass, active-player Main Phase actions, active showdown resolution, and sandbox actions only in SANDBOX mode.
+- Current action windows include mulligan, basic phase pass, active-player Main Phase actions, a lightweight active-showdown Action window, active showdown resolution, and sandbox actions only in SANDBOX mode.
 
 Known gaps:
 - Official cleanup/HOT FEPR sequencing is not fully modeled.
 - The engine still uses `END` while current official terminology uses Ending/expiration details.
 - Trigger and chain timing is highly simplified.
-- Reaction/action windows and priority/chain timing are not represented in the legal-action projection yet.
+- Full Reaction timing and priority/chain timing are not represented in the legal-action projection yet.
 
 Test coverage:
 - `LegalActionsServiceTest`
@@ -138,13 +138,18 @@ Status: Partial
 
 Current implementation notes:
 - Units can be played from hand to base during MAIN if the player has enough available energy.
-- Units are blocked from direct hand-to-battlefield play.
+- Units are blocked from direct hand-to-battlefield play unless they are using
+  the current alpha Ambush path.
+- Alpha Ambush supports only Main-phase battlefield play for clean Ambush Units
+  when the player already has a friendly Unit/Champion at the battlefield.
+  Additional costs and Ambush-as-Reaction timing are explicitly rejected.
 - Only Units and Champions can move to the battlefield to start a showdown.
 - ACCELERATE is supported with the extra-energy flag.
 - Some keywords modify entry/combat behavior.
 
 Known gaps:
-- Chain permissions, Ambush/Reaction windows, and target-location permissions are incomplete.
+- Chain permissions, Ambush-as-Reaction windows, and full target-location
+  permissions are incomplete.
 - Domain and power-cost validation are partial.
 
 Test coverage:
@@ -170,8 +175,8 @@ Current implementation notes:
 - VISION/Predict-like peeking has a basic private choice flow.
 
 Known gaps:
-- Chain, action/reaction timing, countering spells, multi-target spells, replacement/prevention, and many spell-specific effects are not complete.
-- Non-active spell play is currently very narrow and should not be treated as official Reaction support.
+- Chain timing, Reaction timing, countering spells, multi-target spells, replacement/prevention, and many spell-specific effects are not complete.
+- Active-showdown `[Action]` play is lightweight: showdown participants can play supported Action cards, the attacker can resolve, and no chain/response system exists yet.
 
 Test coverage:
 - Rules validator keyword/target tests.
@@ -267,11 +272,11 @@ Current implementation notes:
   client; contested movement opens at ACTION_WINDOW.
 - Nested showdowns are blocked.
 - Resolving clears `activeShowdown` and returns to normal MAIN actions.
-- Legal-action visibility pauses normal main actions during an active showdown.
+- Legal-action visibility pauses normal main actions during an active showdown, but may expose `PLAY_CARD` for a showdown participant when a supported `[Action]` card is in hand.
 
 Known gaps:
-- Non-combat showdowns, interactive action windows, staged combat conversion,
-  and chain/timing permissions are simplified.
+- Non-combat showdowns, formal priority between participants, staged combat conversion,
+  and chain/reaction timing permissions are simplified.
 - Multiple battlefield showdowns are deferred until the post-alpha location
   model.
 
@@ -375,6 +380,16 @@ Current implementation notes:
 - Several keywords have direct or heuristic handling: ACCELERATE, AMBUSH,
   DEATHKNELL, DEFLECT, GANKING, HIDDEN, LEGION, TANK, TEMPORARY, VISION,
   WEAPONMASTER.
+- HIDDEN has a conservative foundation: `[Hidden]` cards can move from hand to
+  a dedicated hidden zone by tapping a ready own rune; owner projections keep
+  identity visible while opponent/spectator projections mask the card id and
+  facedown state. Hidden cards are excluded from normal targeting, movement,
+  and combat. Later hidden play/reaction timing is not implemented.
+- AMBUSH has a conservative alpha foundation: a clean Ambush Unit can be played
+  directly from hand to the battlefield during supported Main-phase play if its
+  controller already has a friendly Unit/Champion at the battlefield. Reaction
+  timing and additional costs, including Stalking Wolf's kill cost, remain
+  unsupported.
 - DEATHKNELL has basic trigger plumbing through `DeathTriggerService`: real
   deaths fire after graveyard movement, bounce/return-to-hand does not fire,
   simultaneous combat deaths are batched deterministically, and Loyal Poro's
@@ -482,11 +497,11 @@ Current implementation notes:
 - The frontend consumes `state.legalActions` to gate mulligan/keep, pass phase, play card, move to battlefield, rune actions, active showdown resolution, and sandbox-only controls.
 - `RulesValidator` remains the source of enforcement.
 - The service intentionally does not claim support for card-specific or reaction windows that are not implemented.
-- Currently modeled windows: mulligan, basic phase pass, Main Phase active-player actions, active showdown resolution, and SANDBOX-only developer actions.
+- Currently modeled windows: mulligan, basic phase pass, Main Phase active-player actions, participant supported Action play during active showdowns, active showdown resolution, and SANDBOX-only developer actions.
 
 Known gaps:
 - Actions are not card-instance-specific.
-- Reaction/action windows are future work.
+- Full Reaction windows and chain priority are future work.
 - Card-specific legal action prompts are not generated.
 - Target-specific and payment-specific legal action generation is incomplete.
 - Chain/timing permissions and full priority handling are future work.

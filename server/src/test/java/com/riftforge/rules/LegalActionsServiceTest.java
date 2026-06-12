@@ -1,20 +1,31 @@
 package com.riftforge.rules;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
+import com.riftforge.model.CardDefinition;
+import com.riftforge.model.CardInstance;
 import com.riftforge.model.GameMode;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
+import com.riftforge.model.RuneState;
+import com.riftforge.model.ZoneName;
+import com.riftforge.service.CardDataService;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class LegalActionsServiceTest {
   private final LegalActionsService service = new LegalActionsService();
+  @Mock CardDataService cardDataService;
 
   @Test
   void duringMulliganPlayerCanKeepOrMulligan() {
@@ -55,6 +66,34 @@ class LegalActionsServiceTest {
   }
 
   @Test
+  void mainPhaseActivePlayerCanHideHiddenCardWithReadyRune() {
+    LegalActionsService serviceWithCards = new LegalActionsService(cardDataService);
+    LiveGameState state = state(Phase.MAIN, "p1");
+    state.getCards().add(card("tideturner", "p1", ZoneName.HAND));
+    state.setRunes(new ArrayList<>(List.of(rune("rune-1", "p1", false))));
+    CardDefinition hidden = cardDef("tideturner", "Unit", "[Hidden] Hide now.");
+    when(cardDataService.getCard("tideturner")).thenReturn(hidden);
+    when(cardDataService.isHiddenCard(hidden)).thenReturn(true);
+
+    assertThat(serviceWithCards.legalActions(state, "p1"))
+        .contains(LegalAction.HIDE_CARD);
+  }
+
+  @Test
+  void hideCardIsNotExposedWithoutReadyRuneOrHiddenCard() {
+    LegalActionsService serviceWithCards = new LegalActionsService(cardDataService);
+    LiveGameState state = state(Phase.MAIN, "p1");
+    state.getCards().add(card("unit", "p1", ZoneName.HAND));
+    state.setRunes(new ArrayList<>(List.of(rune("rune-1", "p1", true))));
+    CardDefinition unit = cardDef("unit", "Unit", "No Hidden.");
+    when(cardDataService.getCard("unit")).thenReturn(unit);
+    when(cardDataService.isHiddenCard(unit)).thenReturn(false);
+
+    assertThat(serviceWithCards.legalActions(state, "p1"))
+        .doesNotContain(LegalAction.HIDE_CARD);
+  }
+
+  @Test
   void nonActivePlayerCannotUseNormalMainActions() {
     assertThat(service.legalActions(state(Phase.MAIN, "p1"), "p2"))
         .doesNotContain(LegalAction.PLAY_CARD, LegalAction.MOVE_TO_BATTLEFIELD, LegalAction.REPOSITION_CARD, LegalAction.PASS_PHASE);
@@ -66,6 +105,65 @@ class LegalActionsServiceTest {
     state.setActiveShowdown(new LiveGameState.ShowdownState("p1", List.of("attacker"), Map.of()));
 
     assertThat(service.legalActions(state, "p1"))
+        .containsExactly(LegalAction.RESOLVE_SHOWDOWN);
+  }
+
+  @Test
+  void activeShowdownAllowsSupportedActionCardForAttacker() {
+    LegalActionsService serviceWithCards = new LegalActionsService(cardDataService);
+    LiveGameState state = state(Phase.MAIN, "p1");
+    state.setActiveShowdown(new LiveGameState.ShowdownState("p1", List.of("attacker"), Map.of()));
+    state.getCards().add(card("action", "p1", ZoneName.HAND));
+    CardDefinition action = cardDef("action", "Spell", "[Action] Move a friendly unit and ready it.");
+    when(cardDataService.getCard("action")).thenReturn(action);
+    when(cardDataService.isActionCard(action)).thenReturn(true);
+    when(cardDataService.isReactionCard(action)).thenReturn(false);
+    when(cardDataService.isUnsupportedAction("action")).thenReturn(false);
+
+    assertThat(serviceWithCards.legalActions(state, "p1"))
+        .containsExactlyInAnyOrder(LegalAction.RESOLVE_SHOWDOWN, LegalAction.PLAY_CARD);
+  }
+
+  @Test
+  void activeShowdownAllowsSupportedActionCardForDefender() {
+    LegalActionsService serviceWithCards = new LegalActionsService(cardDataService);
+    LiveGameState state = state(Phase.MAIN, "p1");
+    state.setActiveShowdown(new LiveGameState.ShowdownState("p1", List.of("attacker"), Map.of()));
+    state.getCards().add(card("defender-unit", "p2", ZoneName.BATTLEFIELD));
+    state.getCards().add(card("action", "p2", ZoneName.HAND));
+    CardDefinition action = cardDef("action", "Spell", "[Action] Move a friendly unit and ready it.");
+    when(cardDataService.getCard("action")).thenReturn(action);
+    when(cardDataService.isActionCard(action)).thenReturn(true);
+    when(cardDataService.isReactionCard(action)).thenReturn(false);
+    when(cardDataService.isUnsupportedAction("action")).thenReturn(false);
+
+    assertThat(serviceWithCards.legalActions(state, "p2"))
+        .containsExactly(LegalAction.PLAY_CARD);
+  }
+
+  @Test
+  void activeShowdownDoesNotExposePlayCardForNonParticipant() {
+    LegalActionsService serviceWithCards = new LegalActionsService(cardDataService);
+    LiveGameState state = state(Phase.MAIN, "p1");
+    state.setActiveShowdown(new LiveGameState.ShowdownState("p1", List.of("attacker"), Map.of()));
+    state.getCards().add(card("action", "p2", ZoneName.HAND));
+
+    assertThat(serviceWithCards.legalActions(state, "p2")).isEmpty();
+  }
+
+  @Test
+  void activeShowdownDoesNotExposePlayCardForUnsupportedAction() {
+    LegalActionsService serviceWithCards = new LegalActionsService(cardDataService);
+    LiveGameState state = state(Phase.MAIN, "p1");
+    state.setActiveShowdown(new LiveGameState.ShowdownState("p1", List.of("attacker"), Map.of()));
+    state.getCards().add(card("stacked-deck", "p1", ZoneName.HAND));
+    CardDefinition action = cardDef("stacked-deck", "Spell", "[Action] Look at the top 3 cards of your Main Deck.");
+    when(cardDataService.getCard("stacked-deck")).thenReturn(action);
+    when(cardDataService.isActionCard(action)).thenReturn(true);
+    when(cardDataService.isReactionCard(action)).thenReturn(false);
+    when(cardDataService.isUnsupportedAction("stacked-deck")).thenReturn(true);
+
+    assertThat(serviceWithCards.legalActions(state, "p1"))
         .containsExactly(LegalAction.RESOLVE_SHOWDOWN);
   }
 
@@ -117,7 +215,32 @@ class LegalActionsServiceTest {
     state.setActivePlayerId(activePlayerId);
     state.setGameMode(GameMode.ENFORCED);
     state.setPlayers(new ArrayList<>(List.of(p1, p2)));
+    state.setCards(new ArrayList<>());
     state.setMulligansDone(new HashSet<>());
     return state;
+  }
+
+  private CardInstance card(String id, String ownerId, ZoneName zone) {
+    CardInstance card = new CardInstance();
+    card.setInstanceId(id);
+    card.setCardId(id);
+    card.setOwnerId(ownerId);
+    card.setZone(zone);
+    return card;
+  }
+
+  private CardDefinition cardDef(String id, String type, String rulesText) {
+    return new CardDefinition(id, id, type, null, List.of(), 0, 0, null, null, null, rulesText, 0, 0, List.of());
+  }
+
+  private RuneState rune(String id, String ownerId, boolean tapped) {
+    RuneState rune = new RuneState();
+    rune.setInstanceId(id);
+    rune.setCardId(id);
+    rune.setOwnerId(ownerId);
+    rune.setTapped(tapped);
+    rune.setNormalEnergy(1);
+    rune.setPremiumEnergy(2);
+    return rune;
   }
 }

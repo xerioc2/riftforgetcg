@@ -5,11 +5,15 @@ export function HandRack({
   instances,
   cards,
   onPlay,
+  onAmbush,
+  onHide,
   onDiscard,
   cardScale,
   onHover,
   effectiveEnergy,
   canPlayCards,
+  canAmbushCards = false,
+  canHideCards = false,
   canPlayReactions = false,
   embedded = false,
   maxHeight,
@@ -17,11 +21,15 @@ export function HandRack({
   instances: CardInstance[];
   cards: Map<string, RiftCard>;
   onPlay: (instanceId: string) => void;
+  onAmbush?: (instanceId: string) => void;
+  onHide?: (instanceId: string) => void;
   onDiscard: (instanceId: string) => void;
   cardScale: number;
   onHover: (card: RiftCard | null) => void;
   effectiveEnergy: number;
   canPlayCards: boolean;
+  canAmbushCards?: boolean;
+  canHideCards?: boolean;
   canPlayReactions?: boolean;
   embedded?: boolean;
   maxHeight?: number;
@@ -65,9 +73,27 @@ export function HandRack({
   const selectedCanPlayFromHand = selectedType !== 'legend' && selectedType !== 'champion' && selectedType !== 'battlefield';
   const selectedIsReaction = canPlayReactions && selectedCard?.type?.toLowerCase() === 'spell';
   const canPlaySelected = selectedCanPlayFromHand && (canPlayCards || selectedIsReaction);
+  const selectedHasHidden = (selectedCard?.rulesText ?? '').toLowerCase().includes('[hidden]')
+    || (selectedCard?.keywords ?? []).some((keyword) => keyword.toUpperCase().startsWith('HIDDEN'));
+  const selectedHasAmbush = selectedCard?.type?.toLowerCase() === 'unit' && (
+    (selectedCard?.rulesText ?? '').toLowerCase().includes('[ambush]')
+    || (selectedCard?.keywords ?? []).some((keyword) => keyword.toUpperCase().startsWith('AMBUSH'))
+  );
+  const canHideSelected = Boolean(onHide && canHideCards && selectedHasHidden);
+  const canAmbushSelected = Boolean(onAmbush && canAmbushCards && selectedHasAmbush);
   const playSelected = () => {
     if (!selectedInstance || !canPlaySelected || !canAffordSelected) return;
     onPlay(selectedInstance.instanceId);
+    setSelected(null);
+  };
+  const hideSelected = () => {
+    if (!selectedInstance || !canHideSelected) return;
+    onHide?.(selectedInstance.instanceId);
+    setSelected(null);
+  };
+  const ambushSelected = () => {
+    if (!selectedInstance || !canAmbushSelected) return;
+    onAmbush?.(selectedInstance.instanceId);
     setSelected(null);
   };
 
@@ -100,6 +126,21 @@ export function HandRack({
           <button className="btn-primary min-h-7 px-3 py-1 text-xs" disabled={!canPlaySelected || !canAffordSelected} onClick={playSelected}>
             {selectedIsReaction ? 'Respond' : 'Play'}
           </button>
+          {selectedHasHidden ? (
+            <button className="btn-secondary min-h-7 px-3 py-1 text-xs" disabled={!canHideSelected} onClick={hideSelected}>
+              Hide
+            </button>
+          ) : null}
+          {selectedHasAmbush ? (
+            <button
+              className="btn-secondary min-h-7 px-3 py-1 text-xs"
+              disabled={!canAmbushSelected}
+              onClick={ambushSelected}
+              title={canAmbushSelected ? 'Play directly to the battlefield with Ambush.' : 'Ambush needs a friendly unit at the battlefield and a legal play window.'}
+            >
+              Ambush
+            </button>
+          ) : null}
           <button className="btn-secondary min-h-7 px-3 py-1 text-xs" onClick={() => setSelected(null)}>
             Cancel
           </button>

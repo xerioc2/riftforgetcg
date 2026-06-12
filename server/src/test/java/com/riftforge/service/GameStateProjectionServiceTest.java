@@ -2,6 +2,7 @@ package com.riftforge.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.riftforge.model.CardInstance;
 import com.riftforge.model.GameMode;
 import com.riftforge.model.LiveGameState;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.Test;
 
 class GameStateProjectionServiceTest {
   private final GameStateProjectionService projectionService = new GameStateProjectionService(new LegalActionsService());
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Test
   void playerSeesOwnHandCardIds() {
@@ -64,6 +66,107 @@ class GameStateProjectionServiceTest {
     LiveGameState view = projectionService.toPublicView(state, "p1");
 
     assertThat(view.getCards()).extracting(CardInstance::getCardId).containsExactly("visible-card");
+  }
+
+  @Test
+  void ownerSeesOwnHiddenCardIdentity() {
+    LiveGameState state = state(card("own-hidden", "p1", "tideturner", ZoneName.HIDDEN));
+
+    LiveGameState view = projectionService.toPublicView(state, "p1");
+
+    CardInstance hidden = view.getCards().getFirst();
+    assertThat(hidden.getCardId()).isEqualTo("tideturner");
+    assertThat(hidden.getZone()).isEqualTo(ZoneName.HIDDEN);
+    assertThat(hidden.getCurrentHealth()).isEqualTo(3);
+  }
+
+  @Test
+  void opponentDoesNotSeeHiddenCardIdentity() {
+    LiveGameState state = state(card("opp-hidden", "p2", "tideturner", ZoneName.HIDDEN));
+
+    LiveGameState view = projectionService.toPublicView(state, "p1");
+
+    CardInstance hidden = view.getCards().getFirst();
+    assertThat(hidden.getCardId()).isEqualTo(GameStateProjectionService.HIDDEN_CARD_ID);
+    assertThat(hidden.getZone()).isEqualTo(ZoneName.HIDDEN);
+    assertThat(hidden.isFaceDown()).isTrue();
+    assertThat(hidden.getCurrentHealth()).isZero();
+    assertThat(state.getCards().getFirst().getCardId()).isEqualTo("tideturner");
+  }
+
+  @Test
+  void spectatorDoesNotSeeHiddenCardIdentities() {
+    LiveGameState state = state(
+        card("p1-hidden", "p1", "tideturner", ZoneName.HIDDEN),
+        card("p2-hidden", "p2", "facebreaker", ZoneName.HIDDEN));
+
+    LiveGameState view = projectionService.toPublicView(state, null);
+
+    assertThat(view.getCards())
+        .extracting(CardInstance::getCardId)
+        .containsExactly(GameStateProjectionService.HIDDEN_CARD_ID, GameStateProjectionService.HIDDEN_CARD_ID);
+    assertThat(view.getCards()).allSatisfy(card -> {
+      assertThat(card.isFaceDown()).isTrue();
+      assertThat(card.getCurrentHealth()).isZero();
+    });
+  }
+
+  @Test
+  void serializedSpectatorProjectionContainsNoPrivateCardOrDeckIds() throws Exception {
+    LiveGameState state = state(
+        handCard("p1-hand", "p1", "p1-private-hand-card"),
+        handCard("p2-hand", "p2", "p2-private-hand-card"),
+        card("p1-hidden", "p1", "p1-private-hidden-card", ZoneName.HIDDEN),
+        card("p2-hidden", "p2", "p2-private-hidden-card", ZoneName.HIDDEN),
+        card("public-unit", "p2", "public-battlefield-unit", ZoneName.BATTLEFIELD),
+        card("public-gear", "p2", "public-attached-gear", ZoneName.BASE));
+    PlayerState p1 = player("p1");
+    p1.setDeckPool(List.of("p1-private-deck-card"));
+    p1.setRuneDeckPool(List.of("p1-private-rune-card"));
+    p1.setSelectedBattlefields(List.of("p1-private-battlefield"));
+    PlayerState p2 = player("p2");
+    p2.setDeckPool(List.of("p2-private-deck-card"));
+    state.setPlayers(List.of(p1, p2));
+    state.setLog(List.of(
+        log("p1-vision", "p1", "VISION_PEEK|p1-private-top-card|Secret Top"),
+        log("p2-vision", "p2", "VISION_RESOLVED|Kept p2-private-top-card on top."),
+        log("public", "p2", "Played public-battlefield-unit.")));
+
+    String json = objectMapper.writeValueAsString(projectionService.toPublicView(state, null));
+
+    assertThat(json).contains("public-battlefield-unit", "public-attached-gear", "\"deckCount\"");
+    assertThat(json).doesNotContain(
+        "p1-private-hand-card",
+        "p2-private-hand-card",
+        "p1-private-hidden-card",
+        "p2-private-hidden-card",
+        "p1-private-deck-card",
+        "p2-private-deck-card",
+        "p1-private-rune-card",
+        "p1-private-battlefield",
+        "p1-private-top-card",
+        "p2-private-top-card",
+        "deckPool",
+        "runeDeckPool",
+        "selectedBattlefields");
+  }
+
+  @Test
+  void serializedPlayerProjectionShowsOwnPrivateCardsButNotOpponentPrivateCards() throws Exception {
+    LiveGameState state = state(
+        handCard("p1-hand", "p1", "p1-private-hand-card"),
+        handCard("p2-hand", "p2", "p2-private-hand-card"),
+        card("p1-hidden", "p1", "p1-private-hidden-card", ZoneName.HIDDEN),
+        card("p2-hidden", "p2", "p2-private-hidden-card", ZoneName.HIDDEN));
+    state.setPlayers(List.of(player("p1"), player("p2")));
+    state.setLog(List.of(
+        log("p1-vision", "p1", "VISION_PEEK|p1-private-top-card|Secret Top"),
+        log("p2-vision", "p2", "VISION_PEEK|p2-private-top-card|Opponent Top")));
+
+    String json = objectMapper.writeValueAsString(projectionService.toPublicView(state, "p1"));
+
+    assertThat(json).contains("p1-private-hand-card", "p1-private-hidden-card", "p1-private-top-card");
+    assertThat(json).doesNotContain("p2-private-hand-card", "p2-private-hidden-card", "p2-private-top-card");
   }
 
   @Test
@@ -215,10 +318,8 @@ class GameStateProjectionServiceTest {
   }
 
   private LiveGameState stateWithPlayers(Phase phase, String activePlayerId, GameMode gameMode) {
-    PlayerState p1 = new PlayerState();
-    p1.setUserId("p1");
-    PlayerState p2 = new PlayerState();
-    p2.setUserId("p2");
+    PlayerState p1 = player("p1");
+    PlayerState p2 = player("p2");
     LiveGameState state = new LiveGameState();
     state.setCurrentPhase(phase);
     state.setActivePlayerId(activePlayerId);
@@ -227,6 +328,12 @@ class GameStateProjectionServiceTest {
     state.setCards(new ArrayList<>());
     state.setMulligansDone(new HashSet<>());
     return state;
+  }
+
+  private PlayerState player(String playerId) {
+    PlayerState player = new PlayerState();
+    player.setUserId(playerId);
+    return player;
   }
 
   private CardInstance handCard(String instanceId, String ownerId, String cardId) {

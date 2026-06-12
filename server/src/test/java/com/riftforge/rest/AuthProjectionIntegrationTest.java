@@ -60,6 +60,22 @@ class AuthProjectionIntegrationTest {
   }
 
   @Test
+  void playerIdWithoutTokenIsRejected() {
+    ResponseEntity<?> response = controller.state("ROOM", "host", null);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    assertThat(response.getBody()).isEqualTo("Player state requires both playerId and sessionToken.");
+  }
+
+  @Test
+  void tokenWithoutPlayerIdIsRejected() {
+    ResponseEntity<?> response = controller.state("ROOM", null, hostToken);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    assertThat(response.getBody()).isEqualTo("Player state requires both playerId and sessionToken.");
+  }
+
+  @Test
   void playerTokenCannotFetchAnotherPlayersProjection() {
     ResponseEntity<?> response = controller.state("ROOM", "guest", hostToken);
 
@@ -79,6 +95,21 @@ class AuthProjectionIntegrationTest {
     assertThat(view.getLegalActions()).isEmpty();
     assertThat(handCardIds(view, "host")).containsOnly(GameStateProjectionService.HIDDEN_CARD_ID);
     assertThat(handCardIds(view, "guest")).containsOnly(GameStateProjectionService.HIDDEN_CARD_ID);
+  }
+
+  @Test
+  void restProjectionMasksHiddenZoneByViewer() {
+    LiveGameState state = fx.gameService.currentState("ROOM");
+    state.getCards().add(card("host-hidden", "host-private-hidden-card", "host", ZoneName.HIDDEN));
+    state.getCards().add(card("guest-hidden", "guest-private-hidden-card", "guest", ZoneName.HIDDEN));
+
+    LiveGameState hostView = stateBody(controller.state("ROOM", "host", hostToken));
+    assertThat(cardIds(hostView, ZoneName.HIDDEN, "host")).containsExactly("host-private-hidden-card");
+    assertThat(cardIds(hostView, ZoneName.HIDDEN, "guest")).containsOnly(GameStateProjectionService.HIDDEN_CARD_ID);
+
+    LiveGameState spectatorView = stateBody(controller.state("ROOM", null, null));
+    assertThat(cardIds(spectatorView, ZoneName.HIDDEN, "host")).containsOnly(GameStateProjectionService.HIDDEN_CARD_ID);
+    assertThat(cardIds(spectatorView, ZoneName.HIDDEN, "guest")).containsOnly(GameStateProjectionService.HIDDEN_CARD_ID);
   }
 
   @Test
@@ -109,5 +140,22 @@ class AuthProjectionIntegrationTest {
         .filter(card -> ownerId.equals(card.getOwnerId()) && card.getZone() == ZoneName.HAND)
         .map(CardInstance::getCardId)
         .toList();
+  }
+
+  private List<String> cardIds(LiveGameState view, ZoneName zone, String ownerId) {
+    return view.getCards().stream()
+        .filter(card -> ownerId.equals(card.getOwnerId()) && card.getZone() == zone)
+        .map(CardInstance::getCardId)
+        .toList();
+  }
+
+  private CardInstance card(String instanceId, String cardId, String ownerId, ZoneName zone) {
+    CardInstance card = new CardInstance();
+    card.setInstanceId(instanceId);
+    card.setCardId(cardId);
+    card.setOwnerId(ownerId);
+    card.setZone(zone);
+    card.setCurrentHealth(3);
+    return card;
   }
 }

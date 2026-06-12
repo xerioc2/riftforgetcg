@@ -35,7 +35,7 @@ Sources checked:
 
 | Item | Status | Why it matters | Likely files | Suggested first test |
 | --- | --- | --- | --- | --- |
-| Full action/reaction window model | Unsupported | Starter decks contain many `[Action]` and `[Reaction]` spells. Without chain/timing windows, counterspells, Ambush, Hidden, and reaction tricks cannot be rules-correct. | `GameEngine`, `RulesValidator`, `LegalActionsService`, `MoveRequest`, `GameBoard.tsx`, `stompGame.ts` | A Reaction spell is legal only while a chain item/window exists and is rejected in ordinary Main without a legal window. |
+| Full action/reaction window model | Partial | Starter decks contain many `[Action]` and `[Reaction]` spells. The alpha supports active-player Main actions, participant supported Action cards during active showdowns, foundational Hidden, and a narrow Main-phase Ambush battlefield-play path, but counterspells, Ambush-as-Reaction, later Hidden play, formal priority, and reaction tricks cannot be rules-correct without chain/timing windows. | `GameEngine`, `RulesValidator`, `LegalActionsService`, `MoveRequest`, `GameBoard.tsx`, `stompGame.ts` | A Reaction spell is legal only while a chain item/window exists and is rejected in ordinary Main without a legal window. |
 | Chain / pending spell or ability objects | Not started | Cards such as Defy, Not So Fast, and Riposte need a spell or ability object to target before it resolves. Current spells apply immediately. | `LiveGameState`, `GameEngine`, `RulesValidator`, new chain model/tests | Playing Defy can counter a pending spell and cannot be played when no pending spell exists. |
 | Card-specific legal actions | Partial | `legalActions` are high-level and phase-based, not card/target/payment-specific. The UI can still offer a card that the server rejects. | `LegalActionsService`, `GameStateProjectionService`, frontend action controls | Projection for a hand card includes playable/unplayable reason based on current phase and available targets. |
 
@@ -45,7 +45,7 @@ Sources checked:
 | --- | --- | --- | --- | --- |
 | Domain/power payment validation | Partial | Constructed decks use domain runes and many card costs include more than generic energy. Current payment is not complete enough for competitive play. | `RulesValidator`, `GameEngine`, `CardDataService`, `MoveRequest`, payment UI | A card requiring Order power cannot be played using only Body runes. |
 | Atomic selected-rune payment | Partial | Tapping/discarding runes separately is playable, but true card payment should validate and consume selected runes atomically with `PLAY_CARD`. | `PlayCardMove`, `RulesValidator`, `GameEngine`, `GameBoard.tsx` | Failed play leaves all selected runes unchanged; successful play exhausts/recycles exactly selected runes. |
-| Cost modifiers and alternate/additional costs | Unsupported | Ambush, Hidden, Spectral Matron, counterspells, and equipment all need extra/alternate cost support. | `RulesValidator`, `GameEngine`, card effect handlers | Stalking Wolf requires its additional kill cost and rejects if no legal sacrifice exists. |
+| Cost modifiers and alternate/additional costs | Partial | Hidden now uses a narrow "tap one ready own rune" foundation cost, and Ambush cards with unsupported additional costs are explicitly blocked. Later Hidden play, Spectral Matron, counterspells, equipment, and Stalking Wolf's sacrifice cost still need full extra/alternate cost support. | `RulesValidator`, `GameEngine`, card effect handlers | Stalking Wolf requires its additional kill cost and rejects if no legal sacrifice exists. |
 
 ### Targeting and Choice Prompts
 
@@ -66,7 +66,7 @@ Sources checked:
 
 | Item | Status | Why it matters | Likely files | Suggested first test |
 | --- | --- | --- | --- | --- |
-| Interactive showdown action windows | Partial | `activeShowdown` exists, but official action/reaction opportunities during showdowns are not fully modeled. | `GameEngine`, `LegalActionsService`, `RulesValidator`, UI | During active showdown, only legal Action/Reaction windows expose the correct moves. |
+| Interactive showdown action windows | Partial | `activeShowdown` exists and showdown participants can play supported `[Action]` cards before the attacker resolves, but official priority/reaction opportunities during showdowns are not fully modeled. | `GameEngine`, `LegalActionsService`, `RulesValidator`, UI | During active showdown, supported Action cards are legal for participants while non-Action and Reaction cards are rejected. |
 | Player-chosen damage assignment | Unsupported | Current combat damage is deterministic. Tank/lethal rules need player assignment for official precision. | `CombatResolver`, `MoveRequest`, `GameBoard.tsx` | Attacker assigns lethal to Tank first, then chooses remaining damage among legal defenders. |
 | Combat cleanup and modifiers | Partial | Temporary Might, Stun, damage, and battlefield cleanup need exact timing for many cards. | `CombatResolver`, `GameEngine`, `CardZoneService` | A temporary combat modifier expires after combat, while permanent Buff remains. |
 
@@ -107,7 +107,7 @@ Sources checked:
 | "Becomes Mighty" triggers | Partial | `CombatStatsService` can identify Mighty Unit/Champion cards, but Fiora deck and Sunken Temple still need threshold-crossing trigger timing. | `CombatStatsService`, `GameEngine`, trigger handlers | A unit with 4 Might receiving +1 becomes Mighty exactly once and triggers Fiora. |
 | Deathknell | Partial | Basic death trigger plumbing exists and Loyal Poro's draw condition is tested. Scuttle Crab still needs reveal/facedown/XP support. | `DeathTriggerService`, `CombatResolver`, `GameEngine`, projection/XP systems | Scuttle Crab Deathknell chooses an opponent, reveals hand safely, allows facedown inspection only as allowed, and grants XP. |
 | Buff | Unsupported as official action/state | Adaptatron and Crowd Favorite need persistent buff markers. | `CardInstance`, `GameEngine`, effect handlers | Buffing an unbuffed unit adds +1 Might; a second Buff does not stack if official rule says one buff. |
-| Hidden/Ambush | Partial | Tideturner, Facebreaker, and Stalking Wolf need these for real timing. | `RulesValidator`, `GameEngine`, chain/timing model | A Hidden card can be played later only in a legal reaction window. |
+| Hidden/Ambush | Partial | Hidden cards can be moved from hand to a dedicated hidden zone, masked from non-owners, and kept out of targeting/combat/movement. Clean Ambush Units can be played from hand directly to the battlefield in Main when a friendly Unit/Champion is already there. Tideturner, Facebreaker, and Stalking Wolf still need later hidden play, Ambush-as-Reaction, additional-cost handling, and real reaction timing. | `RulesValidator`, `GameEngine`, `GameStateProjectionService`, chain/timing model | A Hidden card can be played later only in a legal reaction window. |
 
 ## P2: Needed for Broader Card Pool
 
@@ -125,14 +125,16 @@ Sources checked:
 | Item | Status | Why it matters | Likely files | Suggested first test |
 | --- | --- | --- | --- | --- |
 | Priority / response order | Not started | Any broad spell pool needs players to respond before spells and abilities resolve. | new chain service, `GameEngine`, websocket prompts | Active player casts a spell, opponent may respond with a legal Reaction before resolution. |
+| Formal participant priority during showdown | Not started | The current alpha window is open/simultaneous for participants and does not model priority passes or response ordering. Official timing may require exact Action/Reaction decisions during showdowns. | `LegalActionsService`, `RulesValidator`, `GameBoard.tsx`, chain/timing service | Participants alternate or pass priority according to official timing, and only the exact legal response actions are exposed. |
 | Countering abilities | Unsupported | Not So Fast counters an enemy spell or ability that chooses a friendly unit or gear. | chain model, target model | Countering an ability removes it from the chain and prevents its effect. |
 
 ### Hidden Information
 
 | Item | Status | Why it matters | Likely files | Suggested first test |
 | --- | --- | --- | --- | --- |
-| Facedown cards and reveal permissions | Partial | Hidden, Deathknell, reveal-hand effects, and private deck choices need exact projections. | `GameStateProjectionService`, `CardInstance`, `GameEngine` | Opponent cannot inspect facedown cards unless an effect grants permission for that turn. |
+| Facedown cards and reveal permissions | Partial | Hidden cards now have owner/opponent/spectator projections, but Deathknell reveal, reveal-hand effects, private deck choices, and effect-granted reveal permissions need exact modeling. | `GameStateProjectionService`, `CardInstance`, `GameEngine` | Opponent cannot inspect facedown cards unless an effect grants permission for that turn. |
 | Revealed-hand duration | Partial | Revealed hands have filtering, but duration/permission by source effect needs more coverage. | `LiveGameState`, projection, effect handlers | Scuttle Crab Deathknell reveals opponent hand only to the controller and only for the intended duration. |
+| Privacy regression coverage | Partial | Projection, REST, shared WebSocket broadcasts, match history, and debug-info surfaces now have focused leak checks. Future private choices, top-deck prompts, and reveal windows need the same tests as they are added. | `GameStateProjectionService`, REST/WebSocket controllers, frontend debug helpers | A new private choice flow can be serialized for every viewer without exposing hidden IDs, deck contents, or private logs. |
 
 ### Tournament Legality
 
