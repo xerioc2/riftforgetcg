@@ -55,8 +55,8 @@ support-gate result, and rules text, lives in `docs/CARD_RULES_BACKLOG.md`.
 | Discipline | Irelia Tempo | Spell | Partial | Spell: draw/card selection | Draw 1 and selected +2 Might use helper-backed scripts; Reaction timing remains incomplete. |
 | Tideturner | Irelia Tempo | Unit | Partial | Unit with triggered ability | Needs Hidden support and play trigger that swaps locations with a friendly unit. |
 | Stellacorn Herder | Irelia Tempo | Unit | Partial | Unit with triggered ability | Needs move trigger that draws 1. |
-| Guardian Angel | Irelia Tempo | Gear | Partial | Gear/equipment | Basic Equip validation/attachment is covered: friendly battlefield Unit/Champion target only, cannot fight, and follows host combat death. Card-specific text/payment edge cases remain incomplete. |
-| Boots of Swiftness | Irelia Tempo | Gear | Partial | Gear/equipment | Basic Equip validation/attachment is covered: friendly battlefield Unit/Champion target only, cannot fight, and follows host combat death. Card-specific text/payment edge cases remain incomplete. |
+| Guardian Angel | Irelia Tempo | Gear | Partial | Gear/equipment | Basic Equip validation/attachment is covered: friendly battlefield Unit/Champion target only, cannot fight, and follows host death or return-to-hand cleanup. Card-specific text/payment edge cases remain incomplete. |
+| Boots of Swiftness | Irelia Tempo | Gear | Partial | Gear/equipment | Basic Equip validation/attachment is covered: friendly battlefield Unit/Champion target only, cannot fight, and follows host death or return-to-hand cleanup. Card-specific text/payment edge cases remain incomplete. |
 | Defiant Dance | Irelia Tempo | Spell | Unsupported | Spell: stat/might modifier | Blocked by multi-target text; needs two-target stat modifier script. |
 | Scuttle Crab | Irelia Tempo | Unit | Partial | Unit with triggered ability | On-play draw 1 and Deathknell trigger plumbing are helper-backed; reveal-hand/facedown access and XP remain unsupported. |
 | Charm | Irelia Tempo | Spell | Unsupported | Unsupported/unknown text pattern | Blocked by unsupported move effect; needs enemy-unit movement target rules. |

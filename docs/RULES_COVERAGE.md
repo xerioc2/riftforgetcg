@@ -190,12 +190,13 @@ Current implementation notes:
 - Gear can be played to base when supported.
 - Gear cannot move to the battlefield or fight as a unit.
 - Non-equip gear is treated as unsupported.
-- Gear attached to a unit destroyed in combat is moved to trash and detached.
+- Gear attached to a unit/champion is moved to trash and detached when its
+  host is destroyed or returned to hand.
 
 Known gaps:
 - Official equipment timing, replacement/reattachment edge cases, payment-domain
-  precision, non-combat detach/bounce cleanup, and many card-specific gear
-  effects are incomplete.
+  precision, voluntary detach rules, and many card-specific gear effects are
+  incomplete.
 
 Test coverage:
 - `GameEnginePlayCardTypeTest`

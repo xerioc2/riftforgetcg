@@ -2,6 +2,7 @@ package com.riftforge.engine;
 
 import com.riftforge.model.CardDefinition;
 import com.riftforge.model.CardInstance;
+import com.riftforge.model.LiveGameState;
 import com.riftforge.model.ZoneName;
 import com.riftforge.service.CardDataService;
 import org.springframework.stereotype.Component;
@@ -26,6 +27,14 @@ public class CardZoneService {
       card.setAttachedToInstanceId(null);
       return;
     }
+    card.setAttachedToInstanceId(null);
     card.setZone(ZoneName.DISCARD);
+  }
+
+  public void moveAttachmentsToGraveyard(LiveGameState state, CardInstance host) {
+    state.getCards().stream()
+        .filter(attachment -> host.getInstanceId().equals(attachment.getAttachedToInstanceId()))
+        .toList()
+        .forEach(this::moveToGraveyard);
   }
 }

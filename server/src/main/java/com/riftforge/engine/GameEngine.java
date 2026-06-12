@@ -152,13 +152,7 @@ public class GameEngine {
     if (cardTypeLower.equals("spell")) {
       cardZoneService.moveToGraveyard(card);
     } else if (cardDataService.isEquip(def) && target != null) {
-      card.setZone(ZoneName.BASE);
-      card.setAttachedToInstanceId(target.getInstanceId());
-      card.setX(target.getX() + 34);
-      card.setY(target.getY() + 34);
-      card.setTapped(false);
-      applyWeaponmaster(state, target);
-      log(state, move.playerId(), "Equipped " + def.name() + " to " + cardDataService.getCard(target.getCardId()).name() + ".");
+      attachGear(state, card, def, target, move.playerId());
     }
     if (cardDataService.hasKeyword(card, "REPEAT")) state.setCardPlayedThisTurn(false);
     log(state, move.playerId(), "Played " + def.name());
@@ -562,6 +556,17 @@ public class GameEngine {
     log(state, target.getOwnerId(), cardDataService.getCard(target.getCardId()).name() + " activates Weaponmaster: +" + value + " Might.");
   }
 
+  private void attachGear(LiveGameState state, CardInstance gear, CardDefinition gearDef, CardInstance target, String playerId) {
+    gear.setZone(ZoneName.BASE);
+    gear.setAttachedToInstanceId(target.getInstanceId());
+    gear.setX(target.getX() + 34);
+    gear.setY(target.getY() + 34);
+    gear.setTapped(false);
+    gear.setHasSummoningSickness(false);
+    applyWeaponmaster(state, target);
+    log(state, playerId, "Equipped " + gearDef.name() + " to " + cardDataService.getCard(target.getCardId()).name() + ".");
+  }
+
   private CardInstance deflectTarget(CardInstance playedCard, CardInstance target, LiveGameState state) {
     if (target == null
         || playedCard.getOwnerId().equals(target.getOwnerId())
@@ -591,13 +596,7 @@ public class GameEngine {
     for (CardInstance card : expired) {
       CardDefinition def = cardDataService.getCard(card.getCardId());
       DeathEvent death = deathTriggerService.capture(card, state, DeathEvent.DeathCause.CLEANUP);
-      state.getCards().stream()
-          .filter(attachment -> card.getInstanceId().equals(attachment.getAttachedToInstanceId()))
-          .toList()
-          .forEach(attachment -> {
-            cardZoneService.moveToGraveyard(attachment);
-            attachment.setAttachedToInstanceId(null);
-          });
+      cardZoneService.moveAttachmentsToGraveyard(state, card);
       cardZoneService.moveToGraveyard(card);
       effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onDestroy(card, state));
       deathTriggerService.process(state, List.of(death));
@@ -620,12 +619,7 @@ public class GameEngine {
         .map(card -> deathTriggerService.capture(card, state, DeathEvent.DeathCause.EFFECT))
         .toList();
     for (CardInstance card : destroyed) {
-      state.getCards().stream()
-          .filter(attachment -> card.getInstanceId().equals(attachment.getAttachedToInstanceId()))
-          .forEach(attachment -> {
-            cardZoneService.moveToGraveyard(attachment);
-            attachment.setAttachedToInstanceId(null);
-          });
+      cardZoneService.moveAttachmentsToGraveyard(state, card);
       cardZoneService.moveToGraveyard(card);
       effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onDestroy(card, state));
     }
@@ -673,12 +667,7 @@ public class GameEngine {
   }
 
   private void returnUnitToOwnerHand(LiveGameState state, CardInstance source, CardDefinition sourceDef, CardInstance target) {
-    state.getCards().stream()
-        .filter(candidate -> target.getInstanceId().equals(candidate.getAttachedToInstanceId()))
-        .forEach(candidate -> {
-          cardZoneService.moveToGraveyard(candidate);
-          candidate.setAttachedToInstanceId(null);
-        });
+    cardZoneService.moveAttachmentsToGraveyard(state, target);
     target.setZone(ZoneName.HAND);
     target.setTapped(false);
     target.setHasSummoningSickness(false);

@@ -42,6 +42,18 @@ class CombatResolverTest {
       ((CardInstance) invocation.getArgument(0)).setZone(ZoneName.DISCARD);
       return null;
     }).when(cardZoneService).moveToGraveyard(any(CardInstance.class));
+    doAnswer(invocation -> {
+      LiveGameState state = invocation.getArgument(0);
+      CardInstance host = invocation.getArgument(1);
+      state.getCards().stream()
+          .filter(attachment -> host.getInstanceId().equals(attachment.getAttachedToInstanceId()))
+          .toList()
+          .forEach(attachment -> {
+            attachment.setZone(ZoneName.DISCARD);
+            attachment.setAttachedToInstanceId(null);
+          });
+      return null;
+    }).when(cardZoneService).moveAttachmentsToGraveyard(any(LiveGameState.class), any(CardInstance.class));
   }
 
   @Test

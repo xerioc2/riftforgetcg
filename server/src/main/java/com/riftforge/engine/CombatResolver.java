@@ -100,13 +100,7 @@ public class CombatResolver {
 
   private void destroy(LiveGameState state, CardInstance card) {
     CardDefinition def = cardDataService.getCard(card.getCardId());
-    state.getCards().stream()
-        .filter(attachment -> card.getInstanceId().equals(attachment.getAttachedToInstanceId()))
-        .toList()
-        .forEach(attachment -> {
-          cardZoneService.moveToGraveyard(attachment);
-          attachment.setAttachedToInstanceId(null);
-        });
+    cardZoneService.moveAttachmentsToGraveyard(state, card);
     cardZoneService.moveToGraveyard(card);
     effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onDestroy(card, state));
     GameEngine.log(state, card.getOwnerId(), def.name() + " was destroyed in combat.");

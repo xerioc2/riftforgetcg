@@ -38,7 +38,7 @@ export function targetPromptForMode(mode: TargetMode) {
     case 'ANY_BATTLEFIELD_UNIT':
       return 'Choose a unit at a battlefield.';
     case 'FRIENDLY_UNIT_FOR_EQUIP':
-      return 'Choose a unit to equip.';
+      return 'Choose a friendly unit or champion to equip.';
     case 'UNSUPPORTED':
       return 'This targeting pattern is not supported yet.';
     case 'NONE':
