@@ -1,13 +1,23 @@
 import { useState } from 'react';
 import { unsupportedCardReason } from '../lib/cardActions';
 import { keywordDescription } from '../lib/cardKeywords';
+import { cardSupportStatus } from '../lib/deckSupport';
 import type { CardInstance, RiftCard } from '../types';
+
+const supportBadgeClass: Record<string, string> = {
+  SUPPORTED: 'border-mint/40 text-mint',
+  PARTIAL: 'border-forge/50 text-forge',
+  UNSUPPORTED: 'border-ember/50 text-ember',
+  BANNED: 'border-ember/50 text-ember',
+  NOT_AUDITED: 'border-slate-500 text-slate-400',
+};
 
 export function CardPreview({ card, instance, onInspect }: { card: RiftCard | null; instance?: CardInstance; onInspect?: (card: CardInstance) => void }) {
   const [position, setPosition] = useState({ x: 12, y: 12 });
 
   if (!card) return null;
   const unsupportedReason = unsupportedCardReason(card);
+  const support = cardSupportStatus(card);
 
   return (
     <aside className="group pointer-events-auto absolute z-40 w-[min(420px,calc(100vw-24px))] border border-forge/50 bg-panel/98 shadow-glow" style={{ left: position.x, bottom: position.y }}>
@@ -55,6 +65,9 @@ export function CardPreview({ card, instance, onInspect }: { card: RiftCard | nu
             {card.cost !== undefined ? <span className="badge text-forge">{card.cost}</span> : null}
           </div>
           <p className="mt-1 text-xs uppercase text-slate-400">{[card.type, card.rarity].filter(Boolean).join(' / ')}</p>
+          <span className={`mt-2 inline-flex border px-2 py-1 text-xs font-semibold uppercase tracking-wide ${supportBadgeClass[support.status]}`} title={support.reason}>
+            {support.status.replace('_', ' ')}
+          </span>
           {card.power != null && card.health != null ? (
             <p className="mt-2 text-xs font-semibold text-slate-300">
               Might {card.power}

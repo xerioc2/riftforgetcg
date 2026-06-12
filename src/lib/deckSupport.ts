@@ -2,7 +2,15 @@ import type { CardSupportStatus, Deck, RiftCard } from '../types';
 import { unsupportedCardReason } from './cardActions';
 import { isBannedInConstructed } from './tournamentLegality';
 
-const SUPPORTED_CARD_NAMES = new Set(['CALM RUNE', 'CHAOS RUNE', 'BODY RUNE', 'ORDER RUNE']);
+const SUPPORTED_CARD_NAMES = new Set([
+  'CALM RUNE',
+  'CHAOS RUNE',
+  'BODY RUNE',
+  'ORDER RUNE',
+  'VANGUARD SERGEANT',
+  'DARING PORO',
+  'LAURENT DUELIST',
+]);
 
 export type DeckSupportEntry = {
   card: RiftCard;

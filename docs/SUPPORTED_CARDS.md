@@ -74,7 +74,7 @@ support-gate result, and rules text, lives in `docs/CARD_RULES_BACKLOG.md`.
 | Abandoned Hall | Irelia Tempo | Battlefield | Partial | Battlefield ability | Needs spell-play trigger and per-controller unit buff target. |
 | Fiora - Grand Duelist | Fiora Vanguard | Legend | Partial | Legend text | Needs Mighty-state detection and optional exhausted rune channel trigger. |
 | Fiora - Worthy | Fiora Vanguard | Champion | Partial | Champion text | Needs Mighty-state detection, Order rune payment, and ready target trigger. |
-| Daring Poro | Fiora Vanguard | Unit | Partial | ASSAULT descriptor is directly tested: +1 Might while attacking only, with combat damage/destruction coverage. | Needs full card promotion review before Supported status. |
+| Daring Poro | Fiora Vanguard | Unit | Supported | Basic Assault unit | Full printed text is the Assault descriptor; +1 Might while attacking only is directly tested with combat damage/destruction coverage. |
 | Keeper's Verdict | Fiora Vanguard | Spell | Unsupported | Spell: draw/card selection | Needs enemy-unit target plus owner top/bottom deck choice. |
 | Spectral Matron | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs trash-unit selection and free-play cost bypass with power-cost handling. |
 | Stalking Wolf | Fiora Vanguard | Unit | Partial | Ambush foundation exists for clean Ambush units, but this card is blocked in enforced play because its additional kill cost is not implemented. | Needs additional-cost kill validation and Ambush-as-Reaction timing. |
@@ -82,8 +82,8 @@ support-gate result, and rules text, lives in `docs/CARD_RULES_BACKLOG.md`.
 | Loyal Poro | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Deathknell draw trigger is implemented for "did not die alone"; broader Deathknell optional/timing edge cases remain incomplete. |
 | Vanguard Captain | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Simple Legion condition creates two Recruit tokens after another card was played this turn; dependent keyword edge cases remain incomplete. |
 | Facebreaker | Fiora Vanguard | Spell | Unsupported | Unsupported/unknown text pattern | Hidden foundation exists, but Facebreaker still needs later hidden play timing plus friendly/enemy Stun target scripting. |
-| Vanguard Sergeant | Fiora Vanguard | Unit | Partial | Basic unit with no special text | Candidate for first direct "basic unit supported" promotion after tests. |
-| Laurent Duelist | Fiora Vanguard | Unit | Partial | ASSAULT 2 descriptor is directly tested: +2 Might while attacking only, with combat damage/destruction coverage. | Needs full card promotion review before Supported status. |
+| Vanguard Sergeant | Fiora Vanguard | Unit | Supported | Basic unit with no special text | No printed text; direct tests cover play to Base, move to battlefield, health, and log behavior. |
+| Laurent Duelist | Fiora Vanguard | Unit | Supported | Basic Assault unit | Full printed text is the Assault 2 descriptor; +2 Might while attacking only is directly tested with combat damage/destruction coverage. |
 | Crowd Favorite | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs XP/Hunt, activated XP spend, and Buff state support. |
 | Riposte | Fiora Vanguard | Spell | Partial | Spell: stat/might modifier | Needs reaction timing, spell target model, counter behavior, and variable might buff. |
 | Dune Drake | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs attack trigger checking ready enemy units at the battlefield. |

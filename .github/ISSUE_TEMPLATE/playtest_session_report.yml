@@ -1,0 +1,70 @@
+name: Playtest session report
+description: Share notes from a complete or partial playtest session.
+title: "[Playtest] "
+labels: ["playtest feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Session reports help us find rough edges even when nothing fully breaks.
+  - type: input
+    id: room_code
+    attributes:
+      label: Room code
+  - type: dropdown
+    id: matchup
+    attributes:
+      label: Matchup
+      options:
+        - Human vs RiftBot
+        - Human vs human
+        - Spectator
+        - Other
+  - type: input
+    id: game_mode
+    attributes:
+      label: Game mode
+      placeholder: "ENFORCED, SANDBOX, unknown"
+  - type: textarea
+    id: players
+    attributes:
+      label: Player names and roles
+  - type: textarea
+    id: deck
+    attributes:
+      label: Decks or starter decks used
+      description: Do not include hidden opponent information.
+  - type: textarea
+    id: tested
+    attributes:
+      label: What did you test?
+      placeholder: "Mulligan, play unit, equip gear, target effect, showdown Action, RiftBot turn, etc."
+    validations:
+      required: true
+  - type: textarea
+    id: findings
+    attributes:
+      label: Notes, bugs, or confusion points
+    validations:
+      required: true
+  - type: input
+    id: final_phase
+    attributes:
+      label: Final phase/showdown state if stopped early
+  - type: input
+    id: card
+    attributes:
+      label: Main card involved, if any
+  - type: textarea
+    id: expected_actual
+    attributes:
+      label: Expected vs actual behavior, if something looked wrong
+  - type: textarea
+    id: debug
+    attributes:
+      label: Copied debug info
+      render: json
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshot or video

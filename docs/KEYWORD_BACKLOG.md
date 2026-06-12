@@ -34,7 +34,7 @@ still live under Partial support in the broader matrix.
 
 | Keyword / word | Current implementation status | Starter deck source cards | Behavior needed | Risk | Priority | Minimum tests before Supported |
 | --- | --- | --- | --- | --- | --- | --- |
-| ASSAULT / ASSAULT X | Partial. `CombatStatsService` adds Assault only while attacking. Plain `Assault` defaults to +1; valued parsing is case-insensitive and accepts compact and spaced numeric forms such as `Assault 2` and `ASSAULT2`. | Daring Poro, Laurent Duelist | Card-specific text beyond the combat descriptor still needs individual scripts/tests. | Low | P1 | Direct real-card combat tests exist for Daring Poro and Laurent Duelist, including no-bonus defending coverage; add integration tests when cards are promoted. |
+| ASSAULT / ASSAULT X | Supported for descriptor-only cards. `CombatStatsService` adds Assault only while attacking. Plain `Assault` defaults to +1; valued parsing is case-insensitive and accepts compact and spaced numeric forms such as `Assault 2` and `ASSAULT2`. | Daring Poro, Laurent Duelist | Cards with additional Assault-related text still need individual scripts/tests. | Low | P1 | Direct real-card combat tests exist for Daring Poro and Laurent Duelist, including no-bonus defending coverage; both descriptor-only starter cards are now marked Supported. |
 | SHIELD / SHIELD X | Partial. `CombatStatsService` adds Shield only while defending. Plain `Shield` defaults to +1; `Shield 2` grants +2 through temporary keyword grants or printed keywords. | Fortified Position grants Shield 2 | Fortified Position's defend trigger, target choice, and battlefield timing are not implemented yet. | Low | P1 | Direct combat tests exist for a Shield 2 temporary grant, including no-bonus attacking coverage; add Fortified Position trigger tests before card promotion. |
 | TANK | Partial. Combat damage assignment prioritizes Tank before non-Tank units. | None in current starter decks | Full damage assignment choice model and multiple-attacker/multiple-defender edge cases. | Medium | P2 | Lethal assignment tests with Tank plus non-Tank, multiple Tanks, insufficient damage, and simultaneous death. |
 | STUN / STUNNED | Partial. Combat resolver treats Stunned cards as dealing 0 combat damage. | Facebreaker mentions Stun | Model Stun as an action word, duration, source targeting, cleanup, and UI feedback. | Medium | P1 | Spell/effect applies Stunned; Stunned card deals 0; Stun expires at correct cleanup; invalid targets rejected. |
@@ -90,7 +90,7 @@ an official wording audit before any support claim.
    - REACTION
    - chain/priority item model
 2. P1 low-risk combat and starter deck keywords:
-   - Add integration tests for cards whose only remaining text is a supported combat descriptor.
+   - Continue promoting only cards whose full printed text is a supported combat descriptor or no-text basic unit.
    - Wire MIGHTY threshold-crossing events and source-specific triggers.
    - Add STUN action application for Facebreaker-style effects.
 3. P1 starter deck triggers:

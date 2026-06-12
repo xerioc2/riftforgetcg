@@ -7,6 +7,37 @@ body:
     attributes:
       value: |
         RiftForge is an unofficial fan project. Please cite the official rule or card text when possible.
+  - type: input
+    id: room_code
+    attributes:
+      label: Room code
+  - type: dropdown
+    id: matchup
+    attributes:
+      label: Matchup
+      options:
+        - Human vs RiftBot
+        - Human vs human
+        - Spectator
+        - Other
+  - type: input
+    id: game_mode
+    attributes:
+      label: Game mode
+      placeholder: "ENFORCED, SANDBOX, unknown"
+  - type: textarea
+    id: players
+    attributes:
+      label: Player names and roles
+  - type: input
+    id: phase
+    attributes:
+      label: Phase or showdown state
+  - type: input
+    id: card
+    attributes:
+      label: Card involved
+      placeholder: "Optional"
   - type: textarea
     id: expected
     attributes:
@@ -38,4 +69,3 @@ body:
     id: evidence
     attributes:
       label: Screenshots, logs, or rule references
-

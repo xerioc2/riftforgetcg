@@ -9,6 +9,33 @@ body:
       label: What happened?
     validations:
       required: true
+  - type: dropdown
+    id: matchup
+    attributes:
+      label: Matchup
+      options:
+        - Human vs RiftBot
+        - Human vs human
+        - Spectator
+        - Other
+  - type: input
+    id: game_mode
+    attributes:
+      label: Game mode
+      placeholder: "ENFORCED, SANDBOX, unknown"
+  - type: textarea
+    id: players
+    attributes:
+      label: Player names and roles
+  - type: input
+    id: phase
+    attributes:
+      label: Phase or showdown state
+  - type: input
+    id: card
+    attributes:
+      label: Card involved
+      placeholder: "Optional"
   - type: textarea
     id: steps
     attributes:
@@ -29,4 +56,4 @@ body:
   - type: textarea
     id: logs
     attributes:
-      label: Console or server logs
+      label: Screenshot, console logs, or server logs

@@ -28,6 +28,8 @@ Current implementation notes:
 - Constructed banlist names are centralized in `TournamentLegality` and rejected during `FULL_CONSTRUCTED` validation.
 - `CardSupportService` assigns conservative support metadata: Supported,
   Partial, Unsupported, Banned, or Not Audited.
+- Current fully supported starter-deck cards are limited to basic runes,
+  Vanguard Sergeant, Daring Poro, and Laurent Duelist.
 - Ready validation can optionally enforce supported-cards-only mode, blocking
   Unsupported or Not Audited cards while surfacing Partial cards as warnings.
 - The deck builder imports and exports tournament-style sections: Legend,
@@ -296,7 +298,9 @@ Current implementation notes:
 - Damage is simultaneous; killed units move to trash after both sides assign
   damage.
 - Survivors heal during combat cleanup.
-- ASSAULT, SHIELD, TANK priority, and STUN have partial support.
+- ASSAULT / ASSAULT X is supported for descriptor-only starter units
+  Daring Poro and Laurent Duelist.
+- SHIELD, TANK priority, and STUN have partial support.
 
 Known gaps:
 - Player-chosen damage assignment, prevention/replacement, combat designation
@@ -426,6 +430,8 @@ Current implementation notes:
   keywords and unsupported generic spell/gear shapes.
 - `CardSupportService` is the current card-support metadata source for deck
   warnings and supported-only gates.
+- Descriptor-only starter Units can be marked Supported only after direct
+  card-specific behavior tests.
 - `GameEngine.applyRulesTextEffect` routes the safe generic patterns through
   focused helpers: `applyDraw`, `applyTemporaryMight`,
   `returnUnitToOwnerHand`, and `readyUnit`.

@@ -1,7 +1,17 @@
 import type { RiftCard } from '../types';
+import { cardSupportStatus } from '../lib/deckSupport';
+
+const supportBadgeClass: Record<string, string> = {
+  SUPPORTED: 'border-mint/40 text-mint',
+  PARTIAL: 'border-forge/50 text-forge',
+  UNSUPPORTED: 'border-ember/50 text-ember',
+  BANNED: 'border-ember/50 text-ember',
+  NOT_AUDITED: 'border-slate-500 text-slate-400',
+};
 
 export function CardModal({ card, onClose }: { card: RiftCard | null; onClose: () => void }) {
   if (!card) return null;
+  const support = cardSupportStatus(card);
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 px-4 py-8" onClick={onClose}>
@@ -15,6 +25,10 @@ export function CardModal({ card, onClose }: { card: RiftCard | null; onClose: (
             {card.cost !== undefined ? <span className="badge text-base">{card.cost}</span> : null}
           </div>
           <p className="mt-2 text-xs uppercase tracking-wide text-slate-400">{[card.type, card.rarity, card.set].filter(Boolean).join(' / ')}</p>
+          <span className={`mt-3 inline-flex border px-2 py-1 text-xs font-semibold uppercase tracking-wide ${supportBadgeClass[support.status]}`} title={support.reason}>
+            {support.status.replace('_', ' ')}
+          </span>
+          <p className="mt-2 text-xs text-slate-400">{support.reason}</p>
           {card.champion ? <p className="mt-4 text-sm text-slate-300">Champion: {card.champion}</p> : null}
           <div className="mt-4 flex flex-wrap gap-2">
             {card.domains.map((domain) => (

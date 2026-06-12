@@ -11,7 +11,7 @@ import { PhaseBar } from '../components/PhaseBar';
 import { PlayerPanel } from '../components/PlayerPanel';
 import { CardSprite } from '../components/board/CardSprite';
 import { RuneSprite } from '../components/board/RuneSprite';
-import { computeLayout, type ZoneRect } from '../components/board/BoardLayout';
+import { autoPlaceInZone, computeLayout, runeSlotPositions, type ZoneRect } from '../components/board/BoardLayout';
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
 import { readableHttpError } from '../lib/http';
@@ -33,6 +33,15 @@ const PHASE_BAR_HEIGHT = 48;
 const DEFAULT_HAND_HEIGHT = 172;
 const CARD_PREVIEW_DELAY_MS = 2000;
 const TOTAL_RUNE_SLOTS = 11;
+const GITHUB_ISSUES_URL = 'https://github.com/xerioc2/riftforgetcg/issues/new/choose';
+const ALPHA_LIMITATIONS = [
+  'Single-battlefield alpha: official multiple-battlefield positioning is deferred.',
+  'Reaction and chain/counterspell timing are not fully implemented.',
+  'Hidden cards can be hidden, but play-from-hidden timing is incomplete.',
+  'Ambush-as-Reaction and additional-cost Ambush cards are incomplete.',
+  'XP, Hunt, Level, Buff, and Predict/top-deck ordering are not implemented yet.',
+  'Some cards are Partial or Unsupported; support badges and ready warnings are the source of truth.',
+];
 
 function pointZone(x: number, y: number, zones: ZoneRect[], fallback: ZoneName): ZoneName {
   return zones.find((zone) => x >= zone.x && x <= zone.x + zone.width && y >= zone.y && y <= zone.y + zone.height)?.zoneName ?? fallback;
@@ -63,16 +72,6 @@ function hasMaskedOwnHand(state: LiveGameState, playerId: string) {
 
 function canTakeAction(state: LiveGameState | null, action: LegalAction) {
   return state?.legalActions?.includes(action) ?? false;
-}
-
-function autoPlaceInZone(zone: ZoneRect, existingCount: number, cardW = 88, cardH = 112): { x: number; y: number } {
-  const cols = Math.max(1, Math.floor((zone.width - 16) / (cardW + 8)));
-  const col = existingCount % cols;
-  const row = Math.floor(existingCount / cols);
-  return {
-    x: zone.x + 12 + col * (cardW + 8) + cardW / 2,
-    y: zone.y + 8 + row * (cardH / 2 + 8) + cardH / 4,
-  };
 }
 
 function zoneKey(ownerId: string, zoneName: string) {
@@ -110,10 +109,11 @@ export function GameBoard() {
   const [pendingVision, setPendingVision] = useState<{ logId: string; cardId: string; cardName: string } | null>(null);
   const [pendingRuneTaps, setPendingRuneTaps] = useState<Set<string>>(new Set());
   const [mulliganDiscardIds, setMulliganDiscardIds] = useState<Set<string>>(new Set());
+  const [showAlphaInfo, setShowAlphaInfo] = useState(false);
   const [handHeight, setHandHeight] = useState(230);
   const [wsConnected, setWsConnected] = useState(false);
   const [waitingTooLong, setWaitingTooLong] = useState(false);
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const boardFrameRef = useRef<HTMLDivElement | null>(null);
   const stompClientRef = useRef<Client | null>(null);
   const prevCards = useRef<Map<string, CardInstance>>(new Map());
   const prevState = useRef<LiveGameState | null>(null);
@@ -137,11 +137,7 @@ export function GameBoard() {
     for (const playerId of playerIds) {
       const zone = zones.find((candidate) => candidate.zoneName === 'rune' && candidate.ownerId === playerId);
       if (!zone) continue;
-      const positions = Array.from({ length: TOTAL_RUNE_SLOTS }, (_, index) => ({
-        x: zone.x + 20 + index * Math.max(30, (zone.width - 40) / 7),
-        y: zone.y + zone.height / 2,
-      }));
-      positionsByOwner.set(playerId, positions);
+      positionsByOwner.set(playerId, runeSlotPositions(zone, TOTAL_RUNE_SLOTS));
     }
     return positionsByOwner;
   }, [playerIds, zones]);
@@ -168,12 +164,12 @@ export function GameBoard() {
   }, []);
 
   useEffect(() => {
-    const element = containerRef.current;
+    const element = boardFrameRef.current;
     if (!element) return;
     const observer = new ResizeObserver(([entry]) => {
       setSize({
-        width: Math.max(320, entry.contentRect.width - SIDEBAR_WIDTH),
-        height: Math.max(480, entry.contentRect.height - PHASE_BAR_HEIGHT - handHeight),
+        width: Math.max(720, entry.contentRect.width),
+        height: Math.max(420, entry.contentRect.height),
       });
     });
     observer.observe(element);
@@ -421,14 +417,15 @@ export function GameBoard() {
     if (isRune) {
       const runeZone = zones.find((zone) => zone.zoneName === 'rune' && zone.ownerId === player.id);
       const runeCount = state?.runes?.filter((rune) => rune.ownerId === player.id).length ?? 0;
-      const runeX = runeZone ? runeZone.x + 20 + runeCount * Math.max(30, (runeZone.width - 40) / 10) : size.width / 2;
-      const runeY = runeZone ? runeZone.y + runeZone.height / 2 : size.height / 2;
+      const runePosition = runeZone ? runeSlotPositions(runeZone, TOTAL_RUNE_SLOTS)[Math.min(runeCount, TOTAL_RUNE_SLOTS - 1)] : undefined;
+      const runeX = runePosition?.x ?? size.width / 2;
+      const runeY = runePosition?.y ?? size.height / 2;
       publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'RUNE', x: runeX, y: runeY, targetInstanceId, accelerate, ...payment });
       return;
     }
     const base = zones.find((zone) => zone.zoneName === 'base' && zone.ownerId === player.id);
     const baseCount = state?.cards.filter((card) => card.ownerId === player.id && sameZone(card.zone, 'base')).length ?? 0;
-    const position = base ? autoPlaceInZone(base, baseCount) : { x: size.width / 2, y: size.height / 2 };
+    const position = base ? autoPlaceInZone(base, baseCount, baseCount + 1) : { x: size.width / 2, y: size.height / 2 };
     publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'BASE', ...position, targetInstanceId, accelerate, ...payment });
   };
 
@@ -465,7 +462,7 @@ export function GameBoard() {
     if (!payment) return;
     const battlefield = zones.find((zone) => zone.zoneName === 'battlefield' && zone.ownerId === player.id);
     const battlefieldCount = state?.cards.filter((card) => card.ownerId === player.id && sameZone(card.zone, 'battlefield')).length ?? 0;
-    const position = battlefield ? autoPlaceInZone(battlefield, battlefieldCount) : { x: size.width / 2, y: size.height / 2 };
+    const position = battlefield ? autoPlaceInZone(battlefield, battlefieldCount, battlefieldCount + 1) : { x: size.width / 2, y: size.height / 2 };
     publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'BATTLEFIELD', ...position, ...payment });
   };
 
@@ -661,16 +658,26 @@ export function GameBoard() {
     if (!response.ok) notifyError('Reset failed', await readableHttpError(response, 'Unable to reset game.'));
   };
 
-  const copyDebugInfo = async () => {
-    const payload = buildDebugInfo({
+  const buildCurrentDebugInfo = () =>
+    buildDebugInfo({
       roomCode,
       state,
       player,
       lastError,
       serverUrl: getGameServerUrl(),
     });
+
+  const copyDebugInfo = async () => {
+    const payload = buildCurrentDebugInfo();
     await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
     notifySuccess('Debug info copied', 'Paste it into your bug report with screenshots or reproduction steps.');
+  };
+
+  const reportIssue = async () => {
+    const payload = buildCurrentDebugInfo();
+    await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+    notifySuccess('Debug info copied', 'Paste it into the GitHub issue form with screenshots and steps.');
+    window.open(GITHUB_ISSUES_URL, '_blank', 'noopener,noreferrer');
   };
 
   if (loading) return <CenteredState>Loading game...</CenteredState>;
@@ -752,116 +759,124 @@ export function GameBoard() {
     .filter((instance) => !sameZone(instance.zone, 'hand') && !sameZone(instance.zone, 'deck') && !sameZone(instance.zone, 'hidden'))
     .sort((a, b) => a.zIndex - b.zIndex)
     .map((instance) => ({ instance, zone: visualZoneFor(instance, zones) }));
+  const zoneTotals = new Map<string, number>();
+  boardCardRenderItems.forEach(({ instance }) => {
+    if (!shouldAutoPlacePublicCard(instance)) return;
+    const key = zoneKey(instance.ownerId, instance.zone);
+    zoneTotals.set(key, (zoneTotals.get(key) ?? 0) + 1);
+  });
   const zoneCounts = new Map<string, number>();
   const boardCardDisplayItems = boardCardRenderItems.map(({ instance, zone }) => {
     const key = zoneKey(instance.ownerId, instance.zone);
-    const zoneIndex = zoneCounts.get(key) ?? 0;
-    zoneCounts.set(key, zoneIndex + 1);
 
     if ((sameZone(instance.zone, 'champion') || sameZone(instance.zone, 'legend')) && zone) {
       return { instance, displayInstance: { ...instance, x: zone.x + 48, y: zone.y + 60 } };
     }
 
     if (zone && shouldAutoPlacePublicCard(instance)) {
-      return { instance, displayInstance: { ...instance, ...autoPlaceInZone(zone, zoneIndex) } };
+      const zoneIndex = zoneCounts.get(key) ?? 0;
+      zoneCounts.set(key, zoneIndex + 1);
+      return { instance, displayInstance: { ...instance, ...autoPlaceInZone(zone, zoneIndex, zoneTotals.get(key) ?? zoneIndex + 1) } };
     }
 
     return { instance, displayInstance: instance };
   });
 
   return (
-    <main className="relative bg-ink text-slate-100" style={{ height: `calc(100vh - ${NAV_HEIGHT}px)` }} ref={containerRef}>
+    <main className="relative overflow-hidden bg-ink text-slate-100" style={{ height: `calc(100vh - ${NAV_HEIGHT}px)` }}>
       {inspectCard ? <CardInspectModal card={inspectCard} cardDef={cardsById.get(inspectCard.cardId)} onClose={() => setInspectCard(null)} /> : null}
-      <Stage
-        width={size.width}
-        height={size.height}
-        onMouseDown={(event) => event.target === event.target.getStage() && setSelectedInstanceId(null)}
-        onContextMenu={(event) => {
-          event.evt.preventDefault();
-          if (pendingTargetSelection) setPendingTargetSelection(null);
-        }}
-      >
-        <Layer listening={false}>
-          <ZoneOverlay zones={zones} />
-        </Layer>
-        <Layer>
-          {state.players.flatMap((statePlayer) => {
-            const ownerRunes = (state.runes ?? []).filter((rune) => rune.ownerId === statePlayer.userId);
-            const remaining = statePlayer.runePoolRemaining ?? 10;
-            const discardedSlots = Math.max(0, TOTAL_RUNE_SLOTS - ownerRunes.length - remaining);
-            const positions = runePositions.get(statePlayer.userId) ?? [];
-            return Array.from({ length: discardedSlots }, (_, index) => {
-              const position = positions[ownerRunes.length + index];
-              return position ? <RegularPolygon key={`discarded-rune-${statePlayer.userId}-${index}`} x={position.x} y={position.y} sides={6} radius={14} rotation={30} stroke="#4b5563" strokeWidth={1.5} opacity={0.25} listening={false} /> : null;
-            });
-          })}
-          {(state.runes ?? []).map((rune) => {
-            const ownerRunes = (state.runes ?? []).filter((candidate) => candidate.ownerId === rune.ownerId);
-            const position = runePositions.get(rune.ownerId)?.[ownerRunes.indexOf(rune)];
-            if (!position) return null;
-            return (
-              <RuneSprite
-                key={rune.instanceId}
-                instanceId={rune.instanceId}
-                tapped={rune.tapped}
-                normalEnergy={rune.normalEnergy}
-                isOwner={rune.ownerId === player.id}
-                pending={pendingRuneTaps.has(rune.instanceId)}
-                x={position.x}
-                y={position.y}
-                onTap={handleRuneTap}
-                onDiscard={(id) => {
-                  if (canTakeAction(state, 'DISCARD_RUNE')) publishMove({ type: 'DISCARD_RUNE', playerId: player.id, runeInstanceId: id });
-                  else notifyWarning('Action unavailable', 'Discarding a rune is only legal during supported payment windows.');
-                }}
-              />
-            );
-          })}
-        </Layer>
-        <Layer>
-          {boardCardDisplayItems.map(({ instance, displayInstance }) => {
-            const cardDef = cardsById.get(instance.cardId);
-            if (!cardDef) return null;
-            return (
-              <CardSprite
-                key={instance.instanceId}
-                instance={displayInstance}
-                cardDef={cardDef}
-                isOwner={instance.ownerId === player.id}
-                selected={selectedInstanceId === instance.instanceId}
-                onDragEnd={moveInstance}
-                onClick={handleCardClick}
-                onDoubleClick={(id) => {
-                  if (canTakeAction(state, 'SANDBOX_TAP_CARD')) publishMove({ type: 'TAP_CARD', playerId: player.id, instanceId: id });
-                  else notifyWarning('Sandbox only', 'Manual tap is only available in Sandbox games.');
-                }}
-                onContextMenu={(id) => {
-                  if (pendingTargetSelection) {
-                    setPendingTargetSelection(null);
-                    return;
-                  }
-                  if (canTakeAction(state, 'SANDBOX_FLIP_CARD')) publishMove({ type: 'FLIP_CARD', playerId: player.id, instanceId: id });
-                  else notifyWarning('Sandbox only', 'Manual flip is only available in Sandbox games.');
-                }}
-                animate={pendingAnimations.current.delete(instance.instanceId)}
-                scale={cardScale}
-                onHover={handleCardHover}
-              />
-            );
-          })}
-        </Layer>
-        <Layer listening={false}>
-          {pendingTargetSelection
-            ? boardCardDisplayItems
-                .filter(({ instance }) => {
-                  const cardDef = cardsById.get(instance.cardId);
-                  return isLegalTargetForMode(instance, cardDef, pendingTargetSelection.mode, player.id);
-                })
-                .map(({ instance, displayInstance }) => <Rect key={`target-top-${instance.instanceId}`} x={displayInstance.x - 44} y={displayInstance.y - 60} width={88} height={120} fill="rgba(229,108,79,0.12)" stroke="#e56c4f" shadowColor="#e56c4f" shadowBlur={20} cornerRadius={6} />)
-            : null}
-          {pendingTargetSelection ? <Text x={0} y={8} width={size.width} text={`${targetPromptForMode(pendingTargetSelection.mode)} Esc/right-click to cancel.`} align="center" fontSize={13} fontStyle="bold" fill="#e56c4f" /> : null}
-        </Layer>
-      </Stage>
+      <div ref={boardFrameRef} className="absolute left-0 top-0 overflow-hidden" style={{ right: `${SIDEBAR_WIDTH}px`, bottom: handHeight + PHASE_BAR_HEIGHT }}>
+        <Stage
+          width={size.width}
+          height={size.height}
+          onMouseDown={(event) => event.target === event.target.getStage() && setSelectedInstanceId(null)}
+          onContextMenu={(event) => {
+            event.evt.preventDefault();
+            if (pendingTargetSelection) setPendingTargetSelection(null);
+          }}
+        >
+          <Layer listening={false}>
+            <ZoneOverlay zones={zones} />
+          </Layer>
+          <Layer>
+            {state.players.flatMap((statePlayer) => {
+              const ownerRunes = (state.runes ?? []).filter((rune) => rune.ownerId === statePlayer.userId);
+              const remaining = statePlayer.runePoolRemaining ?? 10;
+              const discardedSlots = Math.max(0, TOTAL_RUNE_SLOTS - ownerRunes.length - remaining);
+              const positions = runePositions.get(statePlayer.userId) ?? [];
+              return Array.from({ length: discardedSlots }, (_, index) => {
+                const position = positions[ownerRunes.length + index];
+                return position ? <RegularPolygon key={`discarded-rune-${statePlayer.userId}-${index}`} x={position.x} y={position.y} sides={6} radius={14} rotation={30} stroke="#4b5563" strokeWidth={1.5} opacity={0.25} listening={false} /> : null;
+              });
+            })}
+            {(state.runes ?? []).map((rune) => {
+              const ownerRunes = (state.runes ?? []).filter((candidate) => candidate.ownerId === rune.ownerId);
+              const position = runePositions.get(rune.ownerId)?.[ownerRunes.indexOf(rune)];
+              if (!position) return null;
+              return (
+                <RuneSprite
+                  key={rune.instanceId}
+                  instanceId={rune.instanceId}
+                  tapped={rune.tapped}
+                  normalEnergy={rune.normalEnergy}
+                  isOwner={rune.ownerId === player.id}
+                  pending={pendingRuneTaps.has(rune.instanceId)}
+                  x={position.x}
+                  y={position.y}
+                  onTap={handleRuneTap}
+                  onDiscard={(id) => {
+                    if (canTakeAction(state, 'DISCARD_RUNE')) publishMove({ type: 'DISCARD_RUNE', playerId: player.id, runeInstanceId: id });
+                    else notifyWarning('Action unavailable', 'Discarding a rune is only legal during supported payment windows.');
+                  }}
+                />
+              );
+            })}
+          </Layer>
+          <Layer>
+            {boardCardDisplayItems.map(({ instance, displayInstance }) => {
+              const cardDef = cardsById.get(instance.cardId);
+              if (!cardDef) return null;
+              return (
+                <CardSprite
+                  key={instance.instanceId}
+                  instance={displayInstance}
+                  cardDef={cardDef}
+                  isOwner={instance.ownerId === player.id}
+                  selected={selectedInstanceId === instance.instanceId}
+                  onDragEnd={moveInstance}
+                  onClick={handleCardClick}
+                  onDoubleClick={(id) => {
+                    if (canTakeAction(state, 'SANDBOX_TAP_CARD')) publishMove({ type: 'TAP_CARD', playerId: player.id, instanceId: id });
+                    else notifyWarning('Sandbox only', 'Manual tap is only available in Sandbox games.');
+                  }}
+                  onContextMenu={(id) => {
+                    if (pendingTargetSelection) {
+                      setPendingTargetSelection(null);
+                      return;
+                    }
+                    if (canTakeAction(state, 'SANDBOX_FLIP_CARD')) publishMove({ type: 'FLIP_CARD', playerId: player.id, instanceId: id });
+                    else notifyWarning('Sandbox only', 'Manual flip is only available in Sandbox games.');
+                  }}
+                  animate={pendingAnimations.current.delete(instance.instanceId)}
+                  scale={cardScale}
+                  onHover={handleCardHover}
+                />
+              );
+            })}
+          </Layer>
+          <Layer listening={false}>
+            {pendingTargetSelection
+              ? boardCardDisplayItems
+                  .filter(({ instance }) => {
+                    const cardDef = cardsById.get(instance.cardId);
+                    return isLegalTargetForMode(instance, cardDef, pendingTargetSelection.mode, player.id);
+                  })
+                  .map(({ instance, displayInstance }) => <Rect key={`target-top-${instance.instanceId}`} x={displayInstance.x - 44} y={displayInstance.y - 60} width={88} height={120} fill="rgba(229,108,79,0.12)" stroke="#e56c4f" shadowColor="#e56c4f" shadowBlur={20} cornerRadius={6} />)
+              : null}
+            {pendingTargetSelection ? <Text x={0} y={8} width={size.width} text={`${targetPromptForMode(pendingTargetSelection.mode)} Esc/right-click to cancel.`} align="center" fontSize={13} fontStyle="bold" fill="#e56c4f" /> : null}
+          </Layer>
+        </Stage>
+      </div>
       {ownRuneZone ? (
         <div className="pointer-events-none absolute flex items-center gap-2" style={{ left: ownRuneZone.x + 8, top: ownRuneZone.y + 4, maxWidth: ownRuneZone.width - 16 }}>
           <span className="truncate text-xs text-slate-500">Left-click: tap (1 energy) - Right-click: discard (2 energy, permanent)</span>
@@ -1153,9 +1168,42 @@ export function GameBoard() {
           </div>
         </div>
       ) : null}
-      <button className="absolute bottom-3 left-3 z-30 border border-line bg-panel px-3 py-2 text-xs font-semibold text-slate-300 hover:border-forge hover:text-forge" onClick={() => void copyDebugInfo()}>
-        Copy debug info
-      </button>
+      <div className="absolute bottom-3 left-3 z-30 flex flex-wrap gap-2">
+        <button className="border border-line bg-panel px-3 py-2 text-xs font-semibold text-slate-300 hover:border-forge hover:text-forge" onClick={() => void copyDebugInfo()}>
+          Copy debug info
+        </button>
+        <button className="border border-line bg-panel px-3 py-2 text-xs font-semibold text-slate-300 hover:border-forge hover:text-forge" onClick={() => void reportIssue()}>
+          Report issue
+        </button>
+        <button className="border border-forge/50 bg-panel px-3 py-2 text-xs font-semibold text-forge hover:bg-forge hover:text-ink" onClick={() => setShowAlphaInfo(true)}>
+          Alpha limits
+        </button>
+      </div>
+      {showAlphaInfo ? (
+        <div className="fixed inset-0 z-[100] grid place-items-center bg-black/70 p-4" onMouseDown={() => setShowAlphaInfo(false)}>
+          <section className="w-full max-w-lg border border-line bg-panel p-5 shadow-glow" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Public alpha</p>
+                <h2 className="mt-1 text-xl font-semibold text-forge">Known playtest limitations</h2>
+              </div>
+              <button className="icon-btn" aria-label="Close alpha limitations" onClick={() => setShowAlphaInfo(false)}>
+                x
+              </button>
+            </div>
+            <ul className="mt-4 space-y-2 text-sm leading-5 text-slate-300">
+              {ALPHA_LIMITATIONS.map((item) => (
+                <li key={item} className="border-l-2 border-forge/40 pl-3">
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4 text-xs leading-5 text-slate-500">
+              Support badges mean: Partial is playable for alpha testing but may be inaccurate; Unsupported is blocked in enforced play when supported-cards-only mode is enabled; Banned is not constructed legal; Not Audited is not available in supported-only mode yet.
+            </p>
+          </section>
+        </div>
+      ) : null}
     </main>
   );
 }

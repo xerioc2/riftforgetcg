@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { cardSupportStatus } from '../lib/deckSupport';
 import type { CardInstance, RiftCard } from '../types';
+
+const supportBadgeClass: Record<string, string> = {
+  SUPPORTED: 'border-mint/50 bg-mint/15 text-mint',
+  PARTIAL: 'border-forge/50 bg-forge/15 text-forge',
+  UNSUPPORTED: 'border-ember/60 bg-ember/15 text-ember',
+  BANNED: 'border-ember/60 bg-ember/15 text-ember',
+  NOT_AUDITED: 'border-slate-500 bg-slate-950/80 text-slate-400',
+};
 
 export function HandRack({
   instances,
@@ -155,6 +164,7 @@ export function HandRack({
       >
         {instances.map((instance) => {
           const card = cards.get(instance.cardId);
+          const support = cardSupportStatus(card);
           const isHovered = hovered === instance.instanceId;
           const isSelected = selected === instance.instanceId;
           const type = card?.type?.toLowerCase();
@@ -197,6 +207,18 @@ export function HandRack({
               }}
             >
               {isReaction ? <span className="absolute inset-x-0 top-0 z-10 bg-forge/90 py-0.5 text-center text-[10px] font-bold uppercase text-ink">Respond</span> : null}
+              {card ? (
+                <span
+                  className={`absolute right-1 top-1 z-10 rounded-sm border px-1 py-0.5 text-[9px] font-bold uppercase leading-none ${supportBadgeClass[support.status]}`}
+                  title={support.reason}
+                >
+                  {support.status === 'SUPPORTED'
+                    ? 'OK'
+                    : support.status === 'NOT_AUDITED'
+                      ? 'NA'
+                      : support.status.slice(0, 1)}
+                </span>
+              ) : null}
               {card?.imageUrl ? <img className="h-full w-full object-contain" src={card.imageUrl} alt={card.name} /> : <span className="block p-1 text-xs text-slate-300">{card?.name ?? '?'}</span>}
             </button>
           );

@@ -8,18 +8,27 @@ import com.riftforge.model.Phase;
 import com.riftforge.model.RuneState;
 import com.riftforge.model.ZoneName;
 import com.riftforge.model.move.*;
+import com.riftforge.rules.ShowdownParticipantRules;
 import com.riftforge.service.CardDataService;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class RulesValidator {
   private final CardDataService cardDataService;
+  private final ShowdownParticipantRules showdownParticipantRules;
 
   public RulesValidator(CardDataService cardDataService) {
+    this(cardDataService, new ShowdownParticipantRules());
+  }
+
+  @Autowired
+  public RulesValidator(CardDataService cardDataService, ShowdownParticipantRules showdownParticipantRules) {
     this.cardDataService = cardDataService;
+    this.showdownParticipantRules = showdownParticipantRules;
   }
 
   public void validate(LiveGameState state, MoveRequest move) {
@@ -139,7 +148,7 @@ public class RulesValidator {
       if (!move.playerId().equals(state.getActivePlayerId())) throw new IllegalMoveException("Not your turn.");
       return;
     }
-    if (!isShowdownParticipant(state, move.playerId())) {
+    if (!showdownParticipantRules.isShowdownParticipant(state, move.playerId())) {
       throw new IllegalMoveException("Only showdown participants can play Action cards here.");
     }
     if (cardDataService.isReactionCard(def)) {
@@ -181,13 +190,6 @@ public class RulesValidator {
     if (premiumRuneIds.size() > premiumCost) {
       throw new IllegalMoveException("Too many runes selected for premium payment.");
     }
-  }
-
-  private boolean isShowdownParticipant(LiveGameState state, String playerId) {
-    if (state.getActiveShowdown() == null) return false;
-    if (playerId.equals(state.getActiveShowdown().attackingPlayerId())) return true;
-    return state.getCards().stream()
-        .anyMatch(card -> playerId.equals(card.getOwnerId()) && card.getZone() == ZoneName.BATTLEFIELD);
   }
 
   private RuneState validatePaymentRune(LiveGameState state, String playerId, String runeId) {

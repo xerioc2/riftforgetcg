@@ -100,6 +100,27 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void vanguardSergeantBasicStarterUnitCanBePlayedAndMoved() {
+    LiveGameState state = state(card("vanguard-sergeant", "p1", ZoneName.HAND));
+    stubCard("vanguard-sergeant", "Vanguard Sergeant", "Unit", 0, 2, 3, "");
+
+    engine.applyMove(state, play("vanguard-sergeant", ZoneName.BASE));
+    CardInstance sergeant = find(state, "vanguard-sergeant");
+    assertThat(sergeant.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(sergeant.isTapped()).isTrue();
+    assertThat(sergeant.getCurrentHealth()).isEqualTo(3);
+
+    sergeant.setTapped(false);
+    sergeant.setHasSummoningSickness(false);
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "vanguard-sergeant"));
+
+    assertThat(sergeant.getCardId()).isEqualTo("vanguard-sergeant");
+    assertThat(sergeant.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Played Vanguard Sergeant"));
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Moved Vanguard Sergeant to the battlefield."));
+  }
+
+  @Test
   void zeroHealthStarterUnitStaysInBaseWhenPlayed() {
     LiveGameState state = state(card("tideturner", "p1", ZoneName.HAND));
     state.getPlayers().getFirst().setAvailableEnergy(2);

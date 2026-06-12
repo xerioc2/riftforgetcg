@@ -16,7 +16,10 @@ public class CardSupportService {
       "CALM RUNE",
       "CHAOS RUNE",
       "BODY RUNE",
-      "ORDER RUNE");
+      "ORDER RUNE",
+      "VANGUARD SERGEANT",
+      "DARING PORO",
+      "LAURENT DUELIST");
 
   private final CardDataService cardDataService;
 

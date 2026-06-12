@@ -13,14 +13,20 @@ import org.springframework.stereotype.Service;
 @Service
 public class LegalActionsService {
   private final CardDataService cardDataService;
+  private final ShowdownParticipantRules showdownParticipantRules;
 
   public LegalActionsService() {
-    this(null);
+    this(null, new ShowdownParticipantRules());
+  }
+
+  public LegalActionsService(CardDataService cardDataService) {
+    this(cardDataService, new ShowdownParticipantRules());
   }
 
   @Autowired
-  public LegalActionsService(CardDataService cardDataService) {
+  public LegalActionsService(CardDataService cardDataService, ShowdownParticipantRules showdownParticipantRules) {
     this.cardDataService = cardDataService;
+    this.showdownParticipantRules = showdownParticipantRules;
   }
 
   public Set<LegalAction> legalActionsFor(LiveGameState state, String playerId) {
@@ -44,10 +50,10 @@ public class LegalActionsService {
     }
 
     if (state.getActiveShowdown() != null) {
-      if (playerId.equals(state.getActiveShowdown().attackingPlayerId())) {
+      if (showdownParticipantRules.isShowdownAttacker(state, playerId)) {
         actions.add(LegalAction.RESOLVE_SHOWDOWN);
       }
-      if (isShowdownParticipant(state, playerId) && hasSupportedActionCardInHand(state, playerId)) actions.add(LegalAction.PLAY_CARD);
+      if (showdownParticipantRules.isShowdownParticipant(state, playerId) && hasSupportedActionCardInHand(state, playerId)) actions.add(LegalAction.PLAY_CARD);
       return actions;
     }
 
@@ -97,13 +103,6 @@ public class LegalActionsService {
             && cardDataService.isActionCard(def)
             && !cardDataService.isReactionCard(def)
             && !cardDataService.isUnsupportedAction(def.id()));
-  }
-
-  private boolean isShowdownParticipant(LiveGameState state, String playerId) {
-    if (state.getActiveShowdown() == null) return false;
-    if (playerId.equals(state.getActiveShowdown().attackingPlayerId())) return true;
-    return state.getCards().stream()
-        .anyMatch(card -> playerId.equals(card.getOwnerId()) && card.getZone() == ZoneName.BATTLEFIELD);
   }
 
   private boolean hasHideableCardInHand(LiveGameState state, String playerId) {

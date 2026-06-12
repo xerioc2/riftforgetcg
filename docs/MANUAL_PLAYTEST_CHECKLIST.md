@@ -2,6 +2,22 @@
 
 Use this checklist for quick alpha smoke tests before sharing a build or asking another player to try a room.
 
+## What Should I Test?
+
+- Start a human vs RiftBot or human vs human game.
+- Keep your opening hand or mulligan at least one card.
+- Play a Unit and confirm it stays visible in Base.
+- Use a targeted effect and confirm the target prompt and error messages make sense.
+- Equip Gear to a friendly Unit or Champion if you draw one.
+- Hide a card if you draw a `[Hidden]` card.
+- Try Ambush if the UI says it is available.
+- Move a Unit to the battlefield.
+- Play a supported `[Action]` card during a showdown if one appears.
+- Resolve a showdown.
+- Trigger or inspect an unsupported-card message.
+- Check support badges in the deck builder, hand, hover preview, and inspect modal.
+- Use Report issue or Copy debug info if anything looks stuck or confusing.
+
 ## Morning Smoke Test
 
 - Start the Spring server fresh or launch the packaged app from a clean state.
@@ -11,6 +27,9 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Keep the opening hand or mulligan at least one card.
 - Confirm RiftBot updates live after mulligan and during its turn.
 - Play a Unit and confirm it stays in Base.
+- If using Fiora Vanguard, play Vanguard Sergeant and confirm it behaves as a normal Unit with no extra prompt.
+- If Daring Poro or Laurent Duelist attacks, confirm Assault adds Might only while attacking.
+- Inspect those cards in the deck builder and in-game hover/inspect views; their support badge should say Supported.
 - Play or attempt a targeted effect and confirm target prompts/errors are visible.
 - Equip Gear to a valid friendly Unit/Champion and confirm the log says what was equipped.
 - Move a Unit to the battlefield.
@@ -32,6 +51,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Confirm your hand cards are visible to you after mulligan.
 - Confirm RiftBot advances through its turn steps without manual help.
 - Play a Unit from hand and confirm it stays in Base.
+- With Fiora Vanguard, confirm Vanguard Sergeant is treated as Supported and Daring Poro/Laurent Duelist remain readable Assault examples.
 - Play or attempt a targeted effect and confirm target prompts/errors are visible.
 - Play Equip Gear when available and confirm it attaches to a friendly Unit/Champion.
 - Pass through the turn and confirm the phase guidance updates.

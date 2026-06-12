@@ -1,6 +1,15 @@
 import { useEffect } from 'react';
 import { keywordDescription } from '../lib/cardKeywords';
+import { cardSupportStatus } from '../lib/deckSupport';
 import type { CardInstance, RiftCard } from '../types';
+
+const supportBadgeClass: Record<string, string> = {
+  SUPPORTED: 'border-mint/40 text-mint',
+  PARTIAL: 'border-forge/50 text-forge',
+  UNSUPPORTED: 'border-ember/50 text-ember',
+  BANNED: 'border-ember/50 text-ember',
+  NOT_AUDITED: 'border-slate-500 text-slate-400',
+};
 
 export function CardInspectModal({ card, cardDef, onClose }: { card: CardInstance; cardDef: RiftCard | undefined; onClose: () => void }) {
   useEffect(() => {
@@ -14,6 +23,7 @@ export function CardInspectModal({ card, cardDef, onClose }: { card: CardInstanc
   const mightBonus = card.mightBonus ?? 0;
   const baseMight = cardDef?.power ?? 0;
   const maxHealth = cardDef?.health ?? 0;
+  const support = cardSupportStatus(cardDef);
 
   return (
     <div className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-black/70 p-4" onMouseDown={onClose}>
@@ -27,6 +37,7 @@ export function CardInspectModal({ card, cardDef, onClose }: { card: CardInstanc
             <div className="mt-2 flex flex-wrap gap-1">
               {cardDef?.type ? <span className="badge text-forge">{cardDef.type}</span> : null}
               {cardDef?.domains.map((domain) => <span className="badge border-mint/30 text-mint" key={domain}>{domain}</span>)}
+              <span className={`badge ${supportBadgeClass[support.status]}`} title={support.reason}>{support.status.replace('_', ' ')}</span>
             </div>
           </div>
           {cardDef?.cost != null ? <span className="badge text-forge">Cost {cardDef.cost}</span> : null}

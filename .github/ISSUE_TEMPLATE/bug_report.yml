@@ -1,19 +1,17 @@
-name: UI bug
-description: Report layout, interaction, readability, or usability bugs.
-title: "[UI] "
-labels: ["ui bug"]
+name: Bug report
+description: Report a gameplay, app, or playtest blocker.
+title: "[Bug] "
+labels: ["bug"]
 body:
-  - type: textarea
-    id: issue
+  - type: markdown
     attributes:
-      label: What looked or felt wrong?
-    validations:
-      required: true
+      value: |
+        Thanks for testing RiftForge. Please do not paste session tokens or hidden opponent information.
   - type: input
     id: room_code
     attributes:
       label: Room code
-      description: Optional, if this happened during a game.
+      placeholder: "Example: 7Q2M"
   - type: dropdown
     id: matchup
     attributes:
@@ -22,7 +20,6 @@ body:
         - Human vs RiftBot
         - Human vs human
         - Spectator
-        - Not in a game
         - Other
   - type: input
     id: game_mode
@@ -33,31 +30,41 @@ body:
     id: players
     attributes:
       label: Player names and roles
+      description: Example: xerioc = host/local player, RiftBot = opponent.
   - type: input
     id: phase
     attributes:
       label: Phase or showdown state
+      placeholder: "MAIN, AWAKEN, active showdown, etc."
   - type: input
     id: card
     attributes:
       label: Card involved
       placeholder: "Optional"
   - type: textarea
-    id: steps
+    id: expected
     attributes:
-      label: Reproduction steps
+      label: Expected behavior
     validations:
       required: true
-  - type: input
-    id: platform
+  - type: textarea
+    id: actual
     attributes:
-      label: Platform
-      placeholder: "Windows desktop installer, Chrome, Firefox, etc."
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. Start a game...\n2. Keep hand...\n3. Click..."
+    validations:
+      required: true
   - type: textarea
     id: debug
     attributes:
-      label: Debug info
-      description: If this happened in a game, use "Copy debug info" and paste the result here.
+      label: Copied debug info
+      description: Use the in-game Copy debug info or Report issue helper.
       render: json
   - type: textarea
     id: screenshots
