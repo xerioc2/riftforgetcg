@@ -182,13 +182,17 @@ Priority: P0.
 Status: Partial
 
 Current implementation notes:
-- Basic `[Equip]` gear can attach to a target and apply some keyword hooks.
+- Basic `[Equip]` gear requires a friendly battlefield Unit/Champion target,
+  can attach to that target, and can apply some keyword hooks.
 - Gear can be played to base when supported.
 - Gear cannot move to the battlefield or fight as a unit.
 - Non-equip gear is treated as unsupported.
+- Gear attached to a unit destroyed in combat is moved to trash and detached.
 
 Known gaps:
-- Equipment timing, replacement, attachment legality, and many card-specific gear effects are incomplete.
+- Official equipment timing, replacement/reattachment edge cases, payment-domain
+  precision, non-combat detach/bounce cleanup, and many card-specific gear
+  effects are incomplete.
 
 Test coverage:
 - `GameEnginePlayCardTypeTest`

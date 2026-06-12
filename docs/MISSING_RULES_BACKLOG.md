@@ -79,8 +79,8 @@ Sources checked:
 
 | Item | Status | Why it matters | Likely files | Suggested first test |
 | --- | --- | --- | --- | --- |
-| Equip target/payment rules | Partial | Guardian Angel and Boots of Swiftness are starter deck cards, but equipment is currently generic. | `RulesValidator`, `GameEngine`, `CardZoneService`, payment UI | Boots can attach only to a friendly unit after paying Chaos and cannot attach to an opponent unit. |
-| Attachment lifecycle | Partial | Gear must follow host death, bounce, and trash behavior accurately. | `CardZoneService`, `CombatResolver`, `GameEngine` | Destroying a unit moves its attached gear to trash and clears attachment IDs. |
+| Equip target/payment rules | Partial | Guardian Angel and Boots of Swiftness are starter deck cards. Basic friendly battlefield Unit/Champion target validation exists, but official timing and payment precision are still generic. | `RulesValidator`, `GameEngine`, `CardZoneService`, payment UI | Boots requires the correct Chaos power payment and cannot attach outside the official Equip window. |
+| Attachment lifecycle | Partial | Gear follows host combat death, but bounce, detach, replacement, and reattachment edge cases are not fully modeled. | `CardZoneService`, `CombatResolver`, `GameEngine` | Returning a unit to hand moves or trashes attached gear according to the official rule and clears attachment IDs. |
 
 ### Tokens
 

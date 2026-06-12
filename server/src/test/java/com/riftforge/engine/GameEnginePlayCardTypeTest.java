@@ -229,6 +229,71 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void equipRequiresATarget() {
+    LiveGameState state = state(card("equip", "p1", ZoneName.HAND));
+    stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    when(cardDataService.requiresBattlefieldTarget("equip")).thenReturn(true);
+
+    assertThatThrownBy(() -> engine.applyMove(state, play("equip", ZoneName.BASE)))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("This card requires a target.");
+  }
+
+  @Test
+  void equipCannotAttachEnemyUnit() {
+    LiveGameState state = state(
+        card("equip", "p1", ZoneName.HAND),
+        card("enemy", "p2", ZoneName.BATTLEFIELD));
+    stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    stubCard("enemy", "Enemy Unit", "Unit", 0, 2, 2, null);
+
+    assertThatThrownBy(() -> engine.applyMove(state, playTarget("equip", "enemy")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("That card requires a friendly unit.");
+  }
+
+  @Test
+  void equipCannotAttachUnitInHiddenOrDiscardZones() {
+    CardInstance hidden = card("hidden", "p1", ZoneName.HAND);
+    CardInstance trashed = card("trashed", "p1", ZoneName.DISCARD);
+    LiveGameState state = state(card("equip", "p1", ZoneName.HAND), hidden, trashed);
+    stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    stubCard("hidden", "Hidden Unit", "Unit", 0, 2, 2, null);
+    stubCard("trashed", "Trashed Unit", "Unit", 0, 2, 2, null);
+
+    assertThatThrownBy(() -> engine.applyMove(state, playTarget("equip", "hidden")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Target must be on the battlefield.");
+    assertThatThrownBy(() -> engine.applyMove(state, playTarget("equip", "trashed")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Target must be on the battlefield.");
+  }
+
+  @Test
+  void equipCannotAttachNonCombatant() {
+    LiveGameState state = state(
+        card("equip", "p1", ZoneName.HAND),
+        card("battlefield", "p1", ZoneName.BATTLEFIELD));
+    stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    stubCard("battlefield", "Battlefield", "Battlefield", 0, 0, 0, null);
+
+    assertThatThrownBy(() -> engine.applyMove(state, playTarget("equip", "battlefield")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Target must be a Unit or Champion.");
+  }
+
+  @Test
+  void unsupportedNonEquipGearRemainsBlocked() {
+    LiveGameState state = state(card("unsupported-gear", "p1", ZoneName.HAND));
+    stubCard("unsupported-gear", "Unsupported Gear", "Gear", 0, 0, 0, "Action: Do something unsupported.");
+    when(cardDataService.isUnsupportedAction("unsupported-gear")).thenReturn(true);
+
+    assertThatThrownBy(() -> engine.applyMove(state, play("unsupported-gear", ZoneName.BASE)))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("That card's effect is not supported yet.");
+  }
+
+  @Test
   void selectedTargetReceivesEffectInsteadOfFirstValidTarget() {
     CardInstance firstEnemy = card("first-enemy", "p2", ZoneName.BATTLEFIELD);
     CardInstance selectedEnemy = card("selected-enemy", "p2", ZoneName.BATTLEFIELD);

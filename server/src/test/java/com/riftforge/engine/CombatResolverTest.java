@@ -138,6 +138,23 @@ class CombatResolverTest {
     assertThat(defender.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
   }
 
+  @Test
+  void attachedGearMovesToDiscardWhenHostIsDestroyed() {
+    CardInstance attacker = card("a", "attacker", "p1");
+    CardInstance defender = card("d", "defender", "p2");
+    CardInstance gear = card("g", "guardian-angel", "p2");
+    gear.setZone(ZoneName.BASE);
+    gear.setAttachedToInstanceId("d");
+    stub(attacker, 2, 2);
+    stub(defender, 1, 1);
+
+    resolver.resolve(state(attacker, defender, gear), "p1");
+
+    assertThat(defender.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(gear.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(gear.getAttachedToInstanceId()).isNull();
+  }
+
   private void stub(CardInstance card, int might) {
     stub(card, might, might);
   }

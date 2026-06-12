@@ -200,6 +200,10 @@ public class RulesValidator {
     if (!isType(targetDef, "Unit") && !isType(targetDef, "Champion")) {
       throw new IllegalMoveException("Target must be a Unit or Champion.");
     }
+    CardDefinition playedDef = cardDataService.getCard(card.getCardId());
+    if (cardDataService.isEquip(playedDef) && !target.getOwnerId().equals(move.playerId())) {
+      throw new IllegalMoveException("That card requires a friendly unit.");
+    }
     if (cardDataService.requiresFriendlyTarget(card.getCardId()) && !target.getOwnerId().equals(move.playerId())) {
       throw new IllegalMoveException("That card requires a friendly unit.");
     }
