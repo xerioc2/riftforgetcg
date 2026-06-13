@@ -399,6 +399,23 @@ class GameStateProjectionServiceTest {
         .doesNotContain("private-top-a", "Private Top A", "private-top-b", "Private Top B", "private-stacked-deck");
   }
 
+  @Test
+  void botPendingCardChoiceDoesNotLeakToHumanProjection() throws Exception {
+    LiveGameState state = stateWithPlayers(Phase.MAIN, "bot-player-riftbot", GameMode.ENFORCED);
+    state.getPlayers().get(1).setUserId("bot-player-riftbot");
+    state.setPendingChoice(PendingChoice.topDeckPickOne(
+        "choice-1",
+        "bot-player-riftbot",
+        "bot-stacked-deck",
+        "source-instance",
+        List.of(cardDef("bot-private-top-a", "Bot Private Top A"), cardDef("bot-private-top-b", "Bot Private Top B"))));
+
+    String json = objectMapper.writeValueAsString(projectionService.toPublicView(state, "p1"));
+
+    assertThat(json)
+        .doesNotContain("bot-private-top-a", "Bot Private Top A", "bot-private-top-b", "Bot Private Top B", "bot-stacked-deck");
+  }
+
   private LiveGameState state(CardInstance... cards) {
     LiveGameState state = new LiveGameState();
     state.setCards(List.of(cards));

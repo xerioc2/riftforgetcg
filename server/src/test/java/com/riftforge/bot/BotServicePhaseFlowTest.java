@@ -19,6 +19,7 @@ import com.riftforge.engine.TokenFactory;
 import com.riftforge.model.CardDefinition;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.LobbyPlayer;
+import com.riftforge.model.PendingChoice;
 import com.riftforge.model.Phase;
 import com.riftforge.model.RoomState;
 import com.riftforge.model.ZoneName;
@@ -79,6 +80,10 @@ class BotServicePhaseFlowTest {
     add("legend", "Legend", 0);
     add("champion", "Champion", 0);
     for (int i = 0; i < 10; i++) add("unit-" + i, "Unit", 99);
+    add("top-a", "Unit", 0);
+    add("top-b", "Unit", 0);
+    add("top-c", "Unit", 0);
+    add("rest", "Unit", 0);
   }
 
   @Test
@@ -563,6 +568,131 @@ class BotServicePhaseFlowTest {
     assertThat(handAfter).isLessThan(handBefore);
   }
 
+  @Test
+  void botResolvesStackedDeckPendingChoice() throws Exception {
+    String roomCode = "CHC1";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setActivePlayerId(BOT_ID);
+    state.getPlayers().stream()
+        .filter(player -> BOT_ID.equals(player.getUserId()))
+        .findFirst()
+        .orElseThrow()
+        .setDeckPool(new ArrayList<>(List.of("top-a", "top-b", "top-c", "rest")));
+    state.setPendingChoice(PendingChoice.topDeckPickOne(
+        "choice-1",
+        BOT_ID,
+        "stacked-deck",
+        "source-instance",
+        List.of(cards.get("top-a"), cards.get("top-b"), cards.get("top-c"))));
+
+    botService.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+
+    LiveGameState latest = waitUntilNoPendingChoice(gameService, roomCode);
+    latest.setWinnerId("test-complete");
+    assertThat(latest.getPendingChoice()).isNull();
+    assertThat(latest.getCards())
+        .anySatisfy(card -> {
+          assertThat(card.getOwnerId()).isEqualTo(BOT_ID);
+          assertThat(card.getCardId()).isEqualTo("top-a");
+          assertThat(card.getZone()).isEqualTo(ZoneName.HAND);
+        });
+    assertThat(latest.getPlayers().stream()
+        .filter(player -> BOT_ID.equals(player.getUserId()))
+        .findFirst()
+        .orElseThrow()
+        .getDeckPool())
+        .containsExactly("rest", "top-b", "top-c");
+    waitForNoActingRooms();
+  }
+
+  @Test
+  void botResolvesPredictPendingChoice() throws Exception {
+    String roomCode = "PRED";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setActivePlayerId(BOT_ID);
+    state.getPlayers().stream()
+        .filter(player -> BOT_ID.equals(player.getUserId()))
+        .findFirst()
+        .orElseThrow()
+        .setDeckPool(new ArrayList<>(List.of("top-a", "top-b", "top-c", "rest")));
+    state.setPendingChoice(PendingChoice.predictOrder(
+        "choice-1",
+        BOT_ID,
+        "predict-source",
+        "source-instance",
+        List.of(cards.get("top-a"), cards.get("top-b"), cards.get("top-c"))));
+
+    botService.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+
+    LiveGameState latest = waitUntilNoPendingChoice(gameService, roomCode);
+    latest.setWinnerId("test-complete");
+    assertThat(latest.getPendingChoice()).isNull();
+    assertThat(latest.getPlayers().stream()
+        .filter(player -> BOT_ID.equals(player.getUserId()))
+        .findFirst()
+        .orElseThrow()
+        .getDeckPool())
+        .containsExactly("top-c", "top-b", "top-a", "rest");
+    waitForNoActingRooms();
+  }
+
+  @Test
+  void botDoesNotAutoResolveHumanPendingChoice() throws Exception {
+    String roomCode = "HCHC";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setActivePlayerId("human");
+    state.setPendingChoice(PendingChoice.topDeckPickOne(
+        "choice-1",
+        "human",
+        "stacked-deck",
+        "source-instance",
+        List.of(cards.get("top-a"), cards.get("top-b"))));
+
+    botService.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+    Thread.sleep(900);
+
+    assertThat(gameService.currentState(roomCode).getPendingChoice()).isNotNull();
+  }
+
+  @Test
+  void unsupportedBotChoiceDoesNotSpinForever() throws Exception {
+    String roomCode = "UNKN";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setActivePlayerId(BOT_ID);
+    PendingChoice choice = new PendingChoice();
+    choice.setChoiceId("choice-1");
+    choice.setPlayerId(BOT_ID);
+    choice.setType("UNKNOWN_PRIVATE_CHOICE");
+    choice.setPrompt("Unknown choice");
+    state.setPendingChoice(choice);
+
+    botService.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+    Thread.sleep(900);
+
+    assertThat(gameService.currentState(roomCode).getPendingChoice()).isNotNull();
+    waitForNoActingRooms();
+  }
+
   private void add(String id, String type, int cost) {
     cards.put(id, new CardDefinition(id, id, type, null, List.of(), cost, 0, null, null, null, null, 1, 1, List.of()));
   }
@@ -603,6 +733,17 @@ class BotServicePhaseFlowTest {
           && !(latest.getCurrentPhase() == Phase.AWAKEN && BOT_ID.equals(latest.getActivePlayerId()))) {
         return latest;
       }
+      Thread.sleep(25);
+    }
+    return latest;
+  }
+
+  private LiveGameState waitUntilNoPendingChoice(GameService service, String roomCode) throws Exception {
+    long deadline = System.currentTimeMillis() + 5_000;
+    LiveGameState latest = service.currentState(roomCode);
+    while (System.currentTimeMillis() < deadline) {
+      latest = service.currentState(roomCode);
+      if (latest != null && latest.getPendingChoice() == null) return latest;
       Thread.sleep(25);
     }
     return latest;

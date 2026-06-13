@@ -88,6 +88,49 @@ class EffectHandlerRegistryTest {
     assertThat(status.reason()).isEqualTo("That spell effect is not supported yet.");
   }
 
+  @Test
+  void exactStackedDeckEffectIsSupported() {
+    EffectHandlerRegistry registry = new EffectHandlerRegistry(List.of(new TankHandler()));
+
+    EffectSupportStatus status = registry.supportStatus(card(
+        "stacked-deck",
+        "Spell",
+        "Look at the top 3 cards of your Main Deck. Put 1 of them into your hand and recycle the rest.",
+        List.of()));
+
+    assertThat(status.implemented()).isTrue();
+  }
+
+  @Test
+  void incompleteTopDeckEffectIsStillUnsupported() {
+    EffectHandlerRegistry registry = new EffectHandlerRegistry(List.of(new TankHandler()));
+
+    EffectSupportStatus status = registry.supportStatus(card(
+        "top-only",
+        "Spell",
+        "Look at the top 3 cards of your Main Deck.",
+        List.of()));
+
+    assertThat(status.implemented()).isFalse();
+    assertThat(status.reason()).isEqualTo("That spell effect is not supported yet.");
+  }
+
+  @Test
+  void stackedDeckShapeDoesNotOverrideCounterOrMultiTargetBlocks() {
+    EffectHandlerRegistry registry = new EffectHandlerRegistry(List.of(new TankHandler()));
+
+    assertThat(registry.supportStatus(card(
+        "stacked-counter",
+        "Spell",
+        "Look at the top 3 cards of your Main Deck. Put 1 of them into your hand and recycle the rest. Counter a spell.",
+        List.of())).implemented()).isFalse();
+    assertThat(registry.supportStatus(card(
+        "stacked-multi",
+        "Spell",
+        "Look at the top 3 cards of your Main Deck. Put 1 of them into your hand and recycle the rest. Choose a friendly unit and an enemy unit.",
+        List.of())).implemented()).isFalse();
+  }
+
   private CardDefinition card(String id, String type, String rulesText, List<String> keywords) {
     return new CardDefinition(id, id, type, null, List.of(), 0, 0, null, null, null, rulesText, 1, 1, keywords);
   }

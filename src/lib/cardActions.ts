@@ -50,6 +50,14 @@ export function hasUnsupportedAdditionalCost(card: RiftCard | undefined) {
   return (card?.rulesText ?? '').toLowerCase().includes('additional cost');
 }
 
+export function isStackedDeckEffectText(rulesText: string | undefined) {
+  const text = (rulesText ?? '').toLowerCase();
+  return text.includes('look at the top 3')
+    && text.includes('put 1')
+    && text.includes('hand')
+    && text.includes('recycle');
+}
+
 function bracketedTiming(card: RiftCard | undefined, timingWord: string) {
   return (card?.rulesText ?? '').toLowerCase().includes(`[${timingWord.toLowerCase()}]`);
 }
@@ -113,7 +121,11 @@ export function unsupportedCardReason(card: RiftCard | undefined): string | null
   if (hasUnsupportedAdditionalCost(card)) return 'Additional-cost cards are not supported yet.';
   if (type === 'gear') return text.includes('[equip]') ? null : 'That gear ability is not supported yet.';
   if (type !== 'spell') return null;
-  const supported = text.includes(':rb_might:') || text.includes('return a unit') || text.includes('ready it') || text.includes('draw 1');
+  const supported = text.includes(':rb_might:')
+    || text.includes('return a unit')
+    || text.includes('ready it')
+    || text.includes('draw 1')
+    || isStackedDeckEffectText(text);
   if (text.includes('counter a spell') || text.includes('counter an enemy spell')) return 'Counter spells need the future reaction stack.';
   if (text.includes('another unit') || text.includes('a friendly unit and an enemy unit')) return 'Multi-target spells are not supported yet.';
   return supported ? null : 'That spell effect is not supported yet.';

@@ -132,6 +132,56 @@ class CardDataServiceEffectRegistryTest {
     assertThat(service.getKeywordValue(instance, "TANK")).isZero();
   }
 
+  @Test
+  void stackedDeckEffectIsNotUnsupported() throws Exception {
+    CardDataService service = new CardDataService(
+        new ObjectMapper(),
+        "http://example.invalid",
+        new EffectHandlerRegistry(List.of(new TankHandler())));
+    install(service, new CardDefinition(
+        "stacked-deck",
+        "Stacked Deck",
+        "Spell",
+        null,
+        List.of(),
+        0,
+        0,
+        null,
+        null,
+        null,
+        "Look at the top 3 cards of your Main Deck. Put 1 of them into your hand and recycle the rest.",
+        0,
+        0,
+        List.of()));
+
+    assertThat(service.isUnsupportedAction("stacked-deck")).isFalse();
+  }
+
+  @Test
+  void incompleteTopDeckEffectRemainsUnsupported() throws Exception {
+    CardDataService service = new CardDataService(
+        new ObjectMapper(),
+        "http://example.invalid",
+        new EffectHandlerRegistry(List.of(new TankHandler())));
+    install(service, new CardDefinition(
+        "top-only",
+        "Top Only",
+        "Spell",
+        null,
+        List.of(),
+        0,
+        0,
+        null,
+        null,
+        null,
+        "Look at the top 3 cards of your Main Deck.",
+        0,
+        0,
+        List.of()));
+
+    assertThat(service.isUnsupportedAction("top-only")).isTrue();
+  }
+
   @SuppressWarnings("unchecked")
   private void install(CardDataService service, CardDefinition card) throws Exception {
     Field cards = CardDataService.class.getDeclaredField("cards");

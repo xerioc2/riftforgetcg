@@ -150,6 +150,10 @@ class PendingChoiceTest {
         .extracting(PendingChoice.CardChoiceOption::cardId)
         .containsExactly("top-a", "top-b", "top-c");
     assertThat(player(state, "p1").getDeckPool()).containsExactly("top-a", "top-b", "top-c", "rest");
+    assertThat(state.getCards()).anySatisfy(card -> {
+      assertThat(card.getInstanceId()).isEqualTo("stacked");
+      assertThat(card.getZone()).isEqualTo(ZoneName.DISCARD);
+    });
   }
 
   @Test

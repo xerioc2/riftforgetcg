@@ -5,6 +5,7 @@ import static com.riftforge.bot.BotConstants.ALL_BOT_IDS;
 import com.riftforge.model.CardDefinition;
 import com.riftforge.model.CardInstance;
 import com.riftforge.model.LiveGameState;
+import com.riftforge.model.PendingChoice;
 import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
 import com.riftforge.model.RuneState;
@@ -14,6 +15,7 @@ import com.riftforge.model.move.PlayCardMove;
 import com.riftforge.model.move.MoveToBattlefieldMove;
 import com.riftforge.model.move.MulliganMove;
 import com.riftforge.model.move.MoveRequest;
+import com.riftforge.model.move.ResolveChoiceMove;
 import com.riftforge.model.move.ResolveShowdownMove;
 import com.riftforge.model.move.TapRuneMove;
 import com.riftforge.rules.LegalAction;
@@ -179,6 +181,9 @@ public class BotService {
       logNoLegalAction(roomCode, state, botId, legalActions);
       return false;
     }
+    if (state.getPendingChoice() != null) {
+      return resolvePendingChoiceIfPossible(roomCode, state, botId, legalActions);
+    }
     if (state.getActiveShowdown() != null) {
       if (legalActions.contains(LegalAction.RESOLVE_SHOWDOWN)) {
         return processBotMove(roomCode, state, botId, new ResolveShowdownMove(botId));
@@ -203,6 +208,61 @@ public class BotService {
 
   private boolean doMulligan(String roomCode, LiveGameState state, String botId) {
     return processBotMove(roomCode, state, botId, new MulliganMove(botId, List.of()));
+  }
+
+  private boolean resolvePendingChoiceIfPossible(String roomCode, LiveGameState state, String botId, Set<LegalAction> legalActions) {
+    PendingChoice choice = state.getPendingChoice();
+    if (choice == null) return false;
+    if (!botId.equals(choice.getPlayerId())) return false;
+    if (!legalActions.contains(LegalAction.RESOLVE_CHOICE)) {
+      log.warn(
+          "Bot owns pending choice but RESOLVE_CHOICE is not legal: room={}, bot={}, choiceType={}, legalActions={}",
+          roomCode,
+          botId,
+          choice.getType(),
+          legalActions);
+      return false;
+    }
+    return botChoiceMove(botId, choice)
+        .map(move -> processBotMove(roomCode, state, botId, move))
+        .orElseGet(() -> {
+          log.warn("Bot cannot resolve unsupported pending choice: room={}, bot={}, choiceType={}", roomCode, botId, choice.getType());
+          return false;
+        });
+  }
+
+  private Optional<ResolveChoiceMove> botChoiceMove(String botId, PendingChoice choice) {
+    if (PendingChoice.TYPE_TOP_DECK_PICK_ONE.equals(choice.getType())) {
+      return choice.getCardOptions().stream()
+          .findFirst()
+          .map(option -> new ResolveChoiceMove(
+              botId,
+              choice.getChoiceId(),
+              null,
+              option.optionId(),
+              PendingChoice.ACTION_HAND,
+              List.of()));
+    }
+    if (PendingChoice.TYPE_PREDICT_ORDER.equals(choice.getType())) {
+      List<PendingChoice.CardChoiceAssignment> assignments = new java.util.ArrayList<>();
+      for (int i = 0; i < choice.getCardOptions().size(); i++) {
+        assignments.add(new PendingChoice.CardChoiceAssignment(
+            choice.getCardOptions().get(i).optionId(),
+            PendingChoice.ACTION_TOP,
+            i));
+      }
+      return Optional.of(new ResolveChoiceMove(botId, choice.getChoiceId(), null, null, null, assignments));
+    }
+    if (choice.getOptions().stream().anyMatch(option -> PendingChoice.OPTION_DECLINE.equals(option.id()))) {
+      return Optional.of(new ResolveChoiceMove(botId, choice.getChoiceId(), PendingChoice.OPTION_DECLINE));
+    }
+    if (choice.getOptions().stream().anyMatch(option -> PendingChoice.OPTION_NO.equals(option.id()))) {
+      return Optional.of(new ResolveChoiceMove(botId, choice.getChoiceId(), PendingChoice.OPTION_NO));
+    }
+    if (choice.getOptions().stream().anyMatch(option -> PendingChoice.OPTION_YES.equals(option.id()))) {
+      return Optional.of(new ResolveChoiceMove(botId, choice.getChoiceId(), PendingChoice.OPTION_YES));
+    }
+    return Optional.empty();
   }
 
   private boolean doMain(String roomCode, LiveGameState state, String botId) {
@@ -413,6 +473,11 @@ public class BotService {
   private boolean hasRelevantLegalAction(LiveGameState state, String botId) {
     Set<LegalAction> actions = legalActions(state, botId);
     if (actions.isEmpty()) return false;
+    if (state.getPendingChoice() != null) {
+      return botId.equals(state.getPendingChoice().getPlayerId())
+          && actions.contains(LegalAction.RESOLVE_CHOICE)
+          && botChoiceMove(botId, state.getPendingChoice()).isPresent();
+    }
     if (state.getActiveShowdown() != null) return actions.contains(LegalAction.RESOLVE_SHOWDOWN);
     return switch (state.getCurrentPhase()) {
       case MULLIGAN -> actions.contains(LegalAction.MULLIGAN) || actions.contains(LegalAction.KEEP_HAND);
@@ -445,6 +510,9 @@ public class BotService {
   }
 
   private String actingBotId(LiveGameState state) {
+    if (state.getPendingChoice() != null && isBotId(state.getPendingChoice().getPlayerId())) {
+      return state.getPendingChoice().getPlayerId();
+    }
     if (state.getCurrentPhase() == Phase.MULLIGAN) {
       return state.getPlayers().stream()
           .map(PlayerState::getUserId)
