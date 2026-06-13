@@ -7,8 +7,9 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Start a human vs RiftBot or human vs human game.
 - Keep your opening hand or mulligan at least one card.
 - Play a Unit and confirm it stays visible in Base.
+- Confirm your Legend starts in the Legend zone and your chosen Champion starts in the Champion zone.
 - Use a targeted effect and confirm the target prompt and error messages make sense.
-- Equip Gear to a friendly Unit or Champion if you draw one.
+- Play Gear to Base, then equip it to a friendly Unit or Champion if you draw one.
 - Hide a card if you draw a `[Hidden]` card.
 - Try Ambush if the UI says it is available.
 - Move a Unit to the battlefield.
@@ -31,7 +32,9 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - If Daring Poro or Laurent Duelist attacks, confirm Assault adds Might only while attacking.
 - Inspect those cards in the deck builder and in-game hover/inspect views; their support badge should say Supported.
 - Play or attempt a targeted effect and confirm target prompts/errors are visible.
-- Equip Gear to a valid friendly Unit/Champion and confirm the log says what was equipped.
+- Play Gear to Base, equip it to a valid friendly Unit/Champion, and confirm the log says what was equipped.
+- Confirm Gear cannot target the Champion while it is still in the Champion zone; it can target a Champion only after the Champion has moved into Base or the battlefield.
+- If a Champion is destroyed in combat, confirm it returns to the Champion zone and any attached Gear returns to Base.
 - Move a Unit to the battlefield.
 - If you have a clean Ambush Unit and already control a battlefield unit, use the Ambush button and confirm it enters the battlefield ready.
 - If a showdown starts and you have a supported `[Action]` card, try it during the showdown window.
@@ -53,13 +56,14 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Play a Unit from hand and confirm it stays in Base.
 - With Fiora Vanguard, confirm Vanguard Sergeant is treated as Supported and Daring Poro/Laurent Duelist remain readable Assault examples.
 - Play or attempt a targeted effect and confirm target prompts/errors are visible.
-- Play Equip Gear when available and confirm it attaches to a friendly Unit/Champion.
+- Play Equip Gear when available and confirm it enters Base first.
+- Click the Gear in Base, choose a friendly Unit/Champion, and confirm it attaches.
 - Pass through the turn and confirm the phase guidance updates.
 - Move a Unit to the battlefield.
 - If an Ambush card appears, confirm it either shows a clear Ambush option with a friendly battlefield unit or explains why Ambush/additional cost is unavailable.
 - If a showdown starts and you have a supported `[Action]` card, confirm the UI says you may play it or resolve the showdown.
 - Resolve a showdown if one starts.
-- Confirm attached Gear goes to Trash if its host leaves play in a supported path.
+- Confirm attached Gear returns to Base if its host leaves play in a supported path.
 - Confirm the game log shows readable entries for play, move, target, showdown, scoring, and unsupported-effect messages.
 
 ## Hidden Information

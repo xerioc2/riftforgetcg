@@ -15,7 +15,7 @@ import { autoPlaceInZone, computeLayout, runeSlotPositions, type ZoneRect } from
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
 import { readableHttpError } from '../lib/http';
-import { hasUnsupportedAdditionalCost, isActionCard, isAmbushCard, isLegalTargetForMode, isReactionCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode } from '../lib/cardActions';
+import { hasUnsupportedAdditionalCost, isActionCard, isAmbushCard, isEquipCard, isLegalTargetForMode, isReactionCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode } from '../lib/cardActions';
 import { buildDebugInfo } from '../lib/debugInfo';
 import { isBotPlayer, legalActionHint, phaseGuidance, waitingStatusText } from '../lib/gameGuidance';
 import { useLocalPlayer } from '../lib/playerContext';
@@ -410,6 +410,21 @@ export function GameBoard() {
     return { paymentRuneIds: [...selectedRunes], premiumRuneIds };
   };
 
+  const legalTargetsForMode = (mode: TargetMode) =>
+    (state?.cards ?? []).filter((instance) => {
+      const targetDef = cardsById.get(instance.cardId);
+      return isLegalTargetForMode(instance, targetDef, mode, player.id);
+    });
+
+  const beginTargetSelection = (instanceId: string, mode: TargetMode) => {
+    if (legalTargetsForMode(mode).length === 0) {
+      notifyWarning('No legal targets', noLegalTargetsMessage(mode));
+      return false;
+    }
+    setPendingTargetSelection({ instanceId, mode });
+    return true;
+  };
+
   const playCardToBase = (instanceId: string, cardDef: RiftCard | undefined, accelerate = false, targetInstanceId?: string) => {
     const payment = selectPaymentRunesForCard(cardDef, accelerate ? 1 : 0);
     if (!payment) return;
@@ -531,15 +546,7 @@ export function GameBoard() {
       return;
     }
     if (targetMode !== 'NONE') {
-      const legalTargets = (state?.cards ?? []).filter((instance) => {
-        const targetDef = cardsById.get(instance.cardId);
-        return isLegalTargetForMode(instance, targetDef, targetMode, player.id);
-      });
-      if (legalTargets.length === 0) {
-        notifyWarning('No legal targets', noLegalTargetsMessage(targetMode));
-        return;
-      }
-      setPendingTargetSelection({ instanceId, mode: targetMode });
+      beginTargetSelection(instanceId, targetMode);
       return;
     }
     const canAccelerate = cardDef?.type?.toLowerCase() === 'unit' && hasKeyword(cardDef, 'ACCELERATE') && spendableEnergy >= (cardDef.cost ?? 0) + 1;
@@ -561,6 +568,10 @@ export function GameBoard() {
   const moveInstance = (instanceId: string, x: number, y: number) => {
     const instance = state?.cards.find((card) => card.instanceId === instanceId);
     if (!instance) return;
+    if (instance.attachedToInstanceId) {
+      notifyWarning('Attached gear', 'Attached Equipment follows its host and cannot be moved directly.');
+      return;
+    }
     const zone = pointZone(x, y, zones, instance.zone);
     if ((sameZone(instance.zone, 'base') || sameZone(instance.zone, 'champion')) && sameZone(zone, 'battlefield') && instance.ownerId === player.id) {
       if (!canTakeAction(state, 'MOVE_TO_BATTLEFIELD')) {
@@ -608,8 +619,34 @@ export function GameBoard() {
         return;
       }
       const spellDef = cardsById.get(spellInstance.cardId);
+      if (isEquipCard(spellDef) && sameZone(spellInstance.zone, 'base')) {
+        if (!canTakeAction(state, 'EQUIP_GEAR')) {
+          notifyWarning('Equip unavailable', 'Equipment can be attached only when the server marks Equip legal.');
+          return;
+        }
+        publishMove({ type: 'EQUIP_GEAR', playerId: player.id, gearInstanceId: pendingTargetSelection.instanceId, targetInstanceId: instanceId });
+        setPendingTargetSelection(null);
+        return;
+      }
       playCardToBase(pendingTargetSelection.instanceId, spellDef, false, instanceId);
       setPendingTargetSelection(null);
+      return;
+    }
+
+    if (instance.ownerId === player.id && sameZone(instance.zone, 'base') && isEquipCard(targetCard)) {
+      if (instance.attachedToInstanceId) {
+        notifyWarning('Already equipped', 'Attached Equipment cannot be re-equipped until its host leaves play.');
+        return;
+      }
+      if (legalTargetsForMode('FRIENDLY_UNIT_FOR_EQUIP').length === 0) {
+        notifyWarning('No legal targets', noLegalTargetsMessage('FRIENDLY_UNIT_FOR_EQUIP'));
+        return;
+      }
+      if (!canTakeAction(state, 'EQUIP_GEAR')) {
+        notifyWarning('Equip unavailable', 'Equipment can be attached during your Main Phase when a legal target exists.');
+        return;
+      }
+      beginTargetSelection(instanceId, 'FRIENDLY_UNIT_FOR_EQUIP');
       return;
     }
 
@@ -777,6 +814,20 @@ export function GameBoard() {
   const boardCardDisplayItems = boardCardRenderItems.map(({ instance, zone }) => {
     const key = zoneKey(instance.ownerId, instance.zone);
 
+    if (instance.attachedToInstanceId) {
+      const host = state.cards.find((candidate) => candidate.instanceId === instance.attachedToInstanceId);
+      const hostZone = host ? visualZoneFor(host, zones) : undefined;
+      if (host && hostZone) {
+        let hostPosition = { x: host.x, y: host.y };
+        if ((sameZone(host.zone, 'champion') || sameZone(host.zone, 'legend'))) {
+          hostPosition = { x: hostZone.x + 48, y: hostZone.y + 60 };
+        } else if (shouldAutoPlacePublicCard(host)) {
+          hostPosition = autoPlaceInZone(hostZone, 0, 1);
+        }
+        return { instance, displayInstance: { ...instance, x: hostPosition.x + 34, y: hostPosition.y + 34 } };
+      }
+    }
+
     if ((sameZone(instance.zone, 'champion') || sameZone(instance.zone, 'legend')) && zone) {
       return { instance, displayInstance: { ...instance, x: zone.x + 48, y: zone.y + 60 } };
     }
@@ -849,7 +900,7 @@ export function GameBoard() {
                   key={instance.instanceId}
                   instance={displayInstance}
                   cardDef={cardDef}
-                  isOwner={instance.ownerId === player.id}
+                  isOwner={instance.ownerId === player.id && !instance.attachedToInstanceId}
                   selected={selectedInstanceId === instance.instanceId}
                   onDragEnd={moveInstance}
                   onClick={handleCardClick}

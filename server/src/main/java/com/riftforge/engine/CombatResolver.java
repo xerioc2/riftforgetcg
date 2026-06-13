@@ -100,10 +100,20 @@ public class CombatResolver {
 
   private void destroy(LiveGameState state, CardInstance card) {
     CardDefinition def = cardDataService.getCard(card.getCardId());
-    cardZoneService.moveAttachmentsToGraveyard(state, card);
+    List<CardInstance> returnedAttachments = cardZoneService.returnAttachmentsToBase(state, card);
+    if (returnedAttachments != null) {
+      for (CardInstance attachment : returnedAttachments) {
+        GameEngine.log(state, attachment.getOwnerId(), cardName(attachment) + " returned to Base.");
+      }
+    }
     cardZoneService.moveToGraveyard(card);
     effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onDestroy(card, state));
     GameEngine.log(state, card.getOwnerId(), def.name() + " was destroyed in combat.");
+  }
+
+  private String cardName(CardInstance card) {
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    return def == null ? card.getCardId() : def.name();
   }
 
   private void healSurvivors(LiveGameState state) {

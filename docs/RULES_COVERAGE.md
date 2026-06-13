@@ -23,7 +23,8 @@ Reference baseline:
 Status: Partial
 
 Current implementation notes:
-- `RoomService.validateDeck` validates `FULL_CONSTRUCTED` as 1 Legend, exactly 1 Champion, exactly 39 non-special main cards, exactly 12 runes, exactly 3 unique battlefields, and a 3-copy limit for non-special cards.
+- `RoomService.validateDeck` validates `FULL_CONSTRUCTED` as exactly 1 Legend, exactly 1 chosen Champion, exactly 39 non-special main cards, exactly 12 runes, exactly 3 unique battlefields, and a 3-copy limit for exact card IDs excluding only Legend, Rune, and Battlefield cards.
+- The chosen Champion copy is included in exact-card copy counting. Current `FULL_CONSTRUCTED` still allows exactly one Champion-type card total, so other main-deck Champion Units are deferred until identity/tag validation is more reliable.
 - `PLAYTEST_BOT` stays looser so bot games can run with generated test decks.
 - Constructed banlist names are centralized in `TournamentLegality` and rejected during `FULL_CONSTRUCTED` validation.
 - `CardSupportService` assigns conservative support metadata: Supported,
@@ -40,6 +41,7 @@ Current implementation notes:
 Known gaps:
 - Domain identity and signature-card legality are not fully enforced.
 - Sideboards, match deck registration, set legality, and rotation are not implemented.
+- Champion-tag matching to Legend and signature-card restrictions are not fully enforced because the normalized card model does not yet expose reliable structured fields for those rules.
 - Copy limits are by card ID, not normalized card name or all official identity rules.
 - Support metadata is intentionally conservative and still needs card-by-card
   audits for most of the card pool.
@@ -58,6 +60,7 @@ Status: Partial
 Current implementation notes:
 - Submitted decks are partitioned into Legend, Champion, main deck, runes, and battlefields.
 - Legend and Champion start in their correct zones.
+- Champion-zone identity cards are not legal equip targets while they remain in the Champion zone. When destroyed in supported combat/cleanup paths, Champions return to the Champion zone rather than Trash, and attached Gear returns to Base.
 - Opening hand draws from the main deck pool only.
 - Deck/rune counts are projected without exposing hidden deck contents.
 
@@ -192,20 +195,22 @@ Priority: P0.
 Status: Partial
 
 Current implementation notes:
-- Basic `[Equip]` gear requires a friendly Unit/Champion target in Base or at
-  the battlefield, can attach to that target, and can apply some keyword hooks.
+- Basic `[Equip]` gear is played from hand to Base first, then attached with a
+  separate Equip action from Base to a friendly Unit/Champion in Base or at the
+  battlefield.
 - Champion-zone identity cards are not legal equip targets until they move into
   Base or the battlefield.
-- Gear can be played to base when supported.
+- Attached Gear remains in Base with an attachment link and is shown near its
+  host for readability.
 - Gear cannot move to the battlefield or fight as a unit.
 - Non-equip gear is treated as unsupported.
-- Gear attached to a unit/champion is moved to trash and detached when its
-  host is destroyed or returned to hand.
+- Gear attached to a unit/champion returns to Base and detaches when its host is
+  destroyed or returned to hand.
 
 Known gaps:
-- Official equipment timing, replacement/reattachment edge cases, payment-domain
-  precision, voluntary detach rules, and many card-specific gear effects are
-  incomplete.
+- Official equipment timing, Equip payment/domain precision, Quick-Draw,
+  Weaponmaster, replacement/reattachment edge cases, voluntary detach rules, and
+  many card-specific gear effects are incomplete.
 
 Test coverage:
 - `GameEnginePlayCardTypeTest`

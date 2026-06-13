@@ -5,7 +5,7 @@ export type TargetMode = 'NONE' | 'FRIENDLY_UNIT' | 'ENEMY_UNIT' | 'ANY_BATTLEFI
 export function targetModeForCard(card: RiftCard | undefined): TargetMode {
   if (!card || !['spell', 'gear'].includes(card.type?.toLowerCase())) return 'NONE';
   const text = (card.rulesText ?? '').toLowerCase();
-  if (card.type?.toLowerCase() === 'gear') return text.includes('[equip]') ? 'FRIENDLY_UNIT_FOR_EQUIP' : 'UNSUPPORTED';
+  if (card.type?.toLowerCase() === 'gear') return text.includes('[equip]') ? 'NONE' : 'UNSUPPORTED';
   if (text.includes('another unit') || text.includes('a friendly unit and an enemy unit')) return 'UNSUPPORTED';
   if (text.includes('counter a spell')
     || text.includes('counter an enemy spell')
@@ -27,6 +27,10 @@ export function targetModeForCard(card: RiftCard | undefined): TargetMode {
     || text.includes('move a unit')
     || (text.includes('deal') && text.includes('damage to target'));
   return requiresTarget ? 'ANY_BATTLEFIELD_UNIT' : 'NONE';
+}
+
+export function isEquipCard(card: RiftCard | undefined) {
+  return card?.type?.toLowerCase() === 'gear' && (card.rulesText ?? '').toLowerCase().includes('[equip]');
 }
 
 export function isActionCard(card: RiftCard | undefined) {

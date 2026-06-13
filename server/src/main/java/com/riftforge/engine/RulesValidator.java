@@ -62,6 +62,7 @@ public class RulesValidator {
     if (move instanceof PassPhaseMove) return;
     if (move instanceof UndoRunesMove undo) { validateUndoRunes(state, undo); return; }
     if (move instanceof HideCardMove hide) { validateHideCard(state, hide); return; }
+    if (move instanceof EquipGearMove equip) { validateEquipGear(state, equip); return; }
     if (move instanceof PlayCardMove play) { validatePlayCard(state, play); return; }
     if (move instanceof MoveToBattlefieldMove deploy) { validateMoveToBattlefield(state, deploy); return; }
     if (move instanceof RepositionCardMove reposition) { validateRepositionCard(state, reposition); return; }
@@ -134,7 +135,10 @@ public class RulesValidator {
     boolean spellOrGear = spell || gear;
     if (spellOrGear && cardDataService.isUnsupportedAction(card.getCardId())) throw new IllegalMoveException("That card's effect is not supported yet.");
     boolean hasExplicitTarget = move.targetInstanceId() != null && !move.targetInstanceId().isBlank();
-    if (spellOrGear && (cardDataService.requiresBattlefieldTarget(card.getCardId()) || hasExplicitTarget)) {
+    if (gear && hasExplicitTarget) {
+      throw new IllegalMoveException("Play Equipment to Base first, then equip it from Base.");
+    }
+    if (spell && (cardDataService.requiresBattlefieldTarget(card.getCardId()) || hasExplicitTarget)) {
       validateTarget(state, move, card);
     }
   }
@@ -260,6 +264,38 @@ public class RulesValidator {
     }
     if (cardDataService.requiresEnemyTarget(card.getCardId()) && target.getOwnerId().equals(move.playerId())) {
       throw new IllegalMoveException("That card requires an enemy unit.");
+    }
+  }
+
+  private void validateEquipGear(LiveGameState state, EquipGearMove move) {
+    requireMain(state);
+    if (state.getActiveShowdown() != null) throw new IllegalMoveException("Resolve the active showdown first.");
+    CardInstance gear = findCard(state, move.gearInstanceId());
+    if (!move.playerId().equals(gear.getOwnerId())) throw new IllegalMoveException("You do not own that gear.");
+    if (gear.getZone() != ZoneName.BASE) throw new IllegalMoveException("Equipment must be in your Base to equip.");
+    if (gear.getAttachedToInstanceId() != null && !gear.getAttachedToInstanceId().isBlank()) {
+      throw new IllegalMoveException("Attached Equipment cannot be re-equipped.");
+    }
+    CardDefinition gearDef = cardDataService.getCard(gear.getCardId());
+    if (!cardDataService.isEquip(gearDef)) throw new IllegalMoveException("That gear cannot be equipped.");
+    if (move.targetInstanceId() == null || move.targetInstanceId().isBlank()) throw new IllegalMoveException("Equipment requires a target.");
+    CardInstance target = findCard(state, move.targetInstanceId());
+    validateEquipTarget(move.playerId(), target);
+  }
+
+  private void validateEquipTarget(String playerId, CardInstance target) {
+    if (target.getZone() != ZoneName.BASE && target.getZone() != ZoneName.BATTLEFIELD) {
+      throw new IllegalMoveException("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
+    }
+    if (target.isFaceDown()) {
+      throw new IllegalMoveException("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
+    }
+    CardDefinition targetDef = cardDataService.getCard(target.getCardId());
+    if (!isType(targetDef, "Unit") && !isType(targetDef, "Champion")) {
+      throw new IllegalMoveException("Target must be a Unit or Champion.");
+    }
+    if (!target.getOwnerId().equals(playerId)) {
+      throw new IllegalMoveException("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
     }
   }
 

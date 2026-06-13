@@ -39,21 +39,30 @@ class CombatResolverTest {
     resolver = new CombatResolver(cardDataService, effects, cardZoneService, new CombatStatsService(cardDataService), deathTriggerService);
     when(effects.getEffect(anyString())).thenReturn(Optional.empty());
     doAnswer(invocation -> {
-      ((CardInstance) invocation.getArgument(0)).setZone(ZoneName.DISCARD);
+      CardInstance card = invocation.getArgument(0);
+      CardDefinition def = cardDataService.getCard(card.getCardId());
+      if (def != null && "Champion".equalsIgnoreCase(def.type())) {
+        card.setZone(ZoneName.CHAMPION);
+        card.setCurrentHealth(def.health());
+        card.setAttachedToInstanceId(null);
+      } else {
+        card.setZone(ZoneName.DISCARD);
+        card.setAttachedToInstanceId(null);
+      }
       return null;
     }).when(cardZoneService).moveToGraveyard(any(CardInstance.class));
-    doAnswer(invocation -> {
+    when(cardZoneService.returnAttachmentsToBase(any(LiveGameState.class), any(CardInstance.class))).thenAnswer(invocation -> {
       LiveGameState state = invocation.getArgument(0);
       CardInstance host = invocation.getArgument(1);
-      state.getCards().stream()
+      List<CardInstance> attachments = state.getCards().stream()
           .filter(attachment -> host.getInstanceId().equals(attachment.getAttachedToInstanceId()))
-          .toList()
-          .forEach(attachment -> {
-            attachment.setZone(ZoneName.DISCARD);
+          .toList();
+      attachments.forEach(attachment -> {
+            attachment.setZone(ZoneName.BASE);
             attachment.setAttachedToInstanceId(null);
           });
-      return null;
-    }).when(cardZoneService).moveAttachmentsToGraveyard(any(LiveGameState.class), any(CardInstance.class));
+      return attachments;
+    });
   }
 
   @Test
@@ -240,7 +249,7 @@ class CombatResolverTest {
   }
 
   @Test
-  void attachedGearMovesToDiscardWhenHostIsDestroyed() {
+  void attachedGearReturnsToBaseWhenHostIsDestroyed() {
     CardInstance attacker = card("a", "attacker", "p1");
     CardInstance defender = card("d", "defender", "p2");
     CardInstance gear = card("g", "guardian-angel", "p2");
@@ -252,7 +261,27 @@ class CombatResolverTest {
     resolver.resolve(state(attacker, defender, gear), "p1");
 
     assertThat(defender.getZone()).isEqualTo(ZoneName.DISCARD);
-    assertThat(gear.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(gear.getAttachedToInstanceId()).isNull();
+  }
+
+  @Test
+  void championDestroyedInCombatReturnsToChampionZoneAndGearReturnsToBase() {
+    CardInstance attacker = card("a", "attacker", "p1");
+    CardInstance champion = card("c", "friendly-champion", "p2");
+    CardInstance gear = card("g", "guardian-angel", "p2");
+    gear.setZone(ZoneName.BASE);
+    gear.setAttachedToInstanceId("c");
+    stub(attacker, 4, 4);
+    stubCard("friendly-champion", "Friendly Champion", "Champion", 1, 3, List.of());
+    stubCard("guardian-angel", "Guardian Angel", "Gear", 0, 0, List.of("EQUIP"));
+
+    resolver.resolve(state(attacker, champion, gear), "p1");
+
+    assertThat(champion.getZone()).isEqualTo(ZoneName.CHAMPION);
+    assertThat(champion.getCurrentHealth()).isEqualTo(3);
+    assertThat(champion.getAttachedToInstanceId()).isNull();
+    assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
     assertThat(gear.getAttachedToInstanceId()).isNull();
   }
 

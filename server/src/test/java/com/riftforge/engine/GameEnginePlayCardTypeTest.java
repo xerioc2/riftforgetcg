@@ -14,6 +14,7 @@ import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
 import com.riftforge.model.RuneState;
 import com.riftforge.model.ZoneName;
+import com.riftforge.model.move.EquipGearMove;
 import com.riftforge.model.move.HideCardMove;
 import com.riftforge.model.move.MoveToBattlefieldMove;
 import com.riftforge.model.move.PassPhaseMove;
@@ -621,33 +622,40 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
-  void equipTargetMustBeFriendlyUnit() {
+  void equipGearFromHandPlaysToBaseWithoutTarget() {
     CardInstance gear = card("equip", "p1", ZoneName.HAND);
-    CardInstance friendly = card("friendly", "p1", ZoneName.BATTLEFIELD);
-    LiveGameState state = state(gear, friendly);
+    LiveGameState state = state(gear);
     stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
-    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
-    when(cardDataService.requiresBattlefieldTarget("equip")).thenReturn(true);
-    when(cardDataService.requiresFriendlyTarget("equip")).thenReturn(true);
 
-    engine.applyMove(state, playTarget("equip", "friendly"));
+    engine.applyMove(state, play("equip", ZoneName.BASE));
 
     assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
-    assertThat(gear.getAttachedToInstanceId()).isEqualTo("friendly");
-    assertThat(gear.isTapped()).isFalse();
-    assertThat(gear.isHasSummoningSickness()).isFalse();
-    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Equipped Equip Gear to Friendly Unit."));
+    assertThat(gear.getAttachedToInstanceId()).isNull();
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Played Equip Gear to Base."));
+  }
+
+  @Test
+  void gearFromHandCannotAttachImmediately() {
+    LiveGameState state = state(
+        card("equip", "p1", ZoneName.HAND),
+        card("friendly", "p1", ZoneName.BATTLEFIELD));
+    stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+
+    assertThatThrownBy(() -> engine.applyMove(state, playTarget("equip", "friendly")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Play Equipment to Base first, then equip it from Base.");
   }
 
   @Test
   void equipCanAttachFriendlyChampion() {
-    CardInstance gear = card("equip", "p1", ZoneName.HAND);
+    CardInstance gear = card("equip", "p1", ZoneName.BASE);
     CardInstance champion = card("champion", "p1", ZoneName.BATTLEFIELD);
     LiveGameState state = state(gear, champion);
     stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
     stubCard("champion", "Friendly Champion", "Champion", 0, 3, 4, null);
 
-    engine.applyMove(state, playTarget("equip", "champion"));
+    engine.applyMove(state, equip("equip", "champion"));
 
     assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
     assertThat(gear.getAttachedToInstanceId()).isEqualTo("champion");
@@ -655,68 +663,99 @@ class GameEnginePlayCardTypeTest {
 
   @Test
   void equipCanAttachFriendlyUnitAtBase() {
-    CardInstance gear = card("equip", "p1", ZoneName.HAND);
+    CardInstance gear = card("equip", "p1", ZoneName.BASE);
     CardInstance friendly = card("friendly", "p1", ZoneName.BASE);
     LiveGameState state = state(gear, friendly);
     stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
     stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
 
-    engine.applyMove(state, playTarget("equip", "friendly"));
+    engine.applyMove(state, equip("equip", "friendly"));
 
     assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
     assertThat(gear.getAttachedToInstanceId()).isEqualTo("friendly");
   }
 
   @Test
-  void equipRequiresATarget() {
-    LiveGameState state = state(card("equip", "p1", ZoneName.HAND));
+  void equipCanAttachFriendlyUnitAtBattlefield() {
+    CardInstance gear = card("equip", "p1", ZoneName.BASE);
+    CardInstance friendly = card("friendly", "p1", ZoneName.BATTLEFIELD);
+    LiveGameState state = state(gear, friendly);
     stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
-    when(cardDataService.requiresBattlefieldTarget("equip")).thenReturn(true);
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
 
-    assertThatThrownBy(() -> engine.applyMove(state, play("equip", ZoneName.BASE)))
+    engine.applyMove(state, equip("equip", "friendly"));
+
+    assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(gear.getAttachedToInstanceId()).isEqualTo("friendly");
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Equipped Equip Gear to Friendly Unit."));
+  }
+
+  @Test
+  void equipRequiresATarget() {
+    LiveGameState state = state(card("equip", "p1", ZoneName.BASE));
+    stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+
+    assertThatThrownBy(() -> engine.applyMove(state, new EquipGearMove("p1", "equip", "")))
         .isInstanceOf(IllegalMoveException.class)
-        .hasMessage("This card requires a target.");
+        .hasMessage("Equipment requires a target.");
   }
 
   @Test
   void equipCannotAttachEnemyUnit() {
     LiveGameState state = state(
-        card("equip", "p1", ZoneName.HAND),
+        card("equip", "p1", ZoneName.BASE),
         card("enemy", "p2", ZoneName.BATTLEFIELD));
     stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
     stubCard("enemy", "Enemy Unit", "Unit", 0, 2, 2, null);
 
-    assertThatThrownBy(() -> engine.applyMove(state, playTarget("equip", "enemy")))
+    assertThatThrownBy(() -> engine.applyMove(state, equip("equip", "enemy")))
         .isInstanceOf(IllegalMoveException.class)
         .hasMessage("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
   }
 
   @Test
   void equipCannotAttachUnitInHiddenOrDiscardZones() {
-    CardInstance hidden = card("hidden", "p1", ZoneName.HAND);
+    CardInstance hidden = card("hidden", "p1", ZoneName.HIDDEN);
     CardInstance trashed = card("trashed", "p1", ZoneName.DISCARD);
-    LiveGameState state = state(card("equip", "p1", ZoneName.HAND), hidden, trashed);
+    LiveGameState state = state(card("equip", "p1", ZoneName.BASE), hidden, trashed);
     stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
     stubCard("hidden", "Hidden Unit", "Unit", 0, 2, 2, null);
     stubCard("trashed", "Trashed Unit", "Unit", 0, 2, 2, null);
 
-    assertThatThrownBy(() -> engine.applyMove(state, playTarget("equip", "hidden")))
+    assertThatThrownBy(() -> engine.applyMove(state, equip("equip", "hidden")))
         .isInstanceOf(IllegalMoveException.class)
         .hasMessage("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
-    assertThatThrownBy(() -> engine.applyMove(state, playTarget("equip", "trashed")))
+    assertThatThrownBy(() -> engine.applyMove(state, equip("equip", "trashed")))
         .isInstanceOf(IllegalMoveException.class)
         .hasMessage("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
   }
 
   @Test
+  void equipCannotAttachCardInHandOrMissingDeckPoolCard() {
+    CardInstance handUnit = card("hand-unit", "p1", ZoneName.HAND);
+    LiveGameState state = state(card("equip", "p1", ZoneName.BASE), handUnit);
+    state.getPlayers().getFirst().setDeckPool(new ArrayList<>(List.of("deck-unit")));
+    stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    stubCard("hand-unit", "Hand Unit", "Unit", 0, 2, 2, null);
+    stubCard("deck-unit", "Deck Unit", "Unit", 0, 2, 2, null);
+
+    assertThatThrownBy(() -> engine.applyMove(state, equip("equip", "hand-unit")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
+    assertThatThrownBy(() -> engine.applyMove(state, equip("equip", "deck-unit")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Card not found.");
+  }
+
+  @Test
   void equipCannotAttachChampionZoneIdentityCard() {
     LiveGameState state = state(
-        card("equip", "p1", ZoneName.HAND),
+        card("equip", "p1", ZoneName.BASE),
         card("champion", "p1", ZoneName.CHAMPION));
     stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
     stubCard("champion", "Friendly Champion", "Champion", 0, 3, 4, null);
 
-    assertThatThrownBy(() -> engine.applyMove(state, playTarget("equip", "champion")))
+    assertThatThrownBy(() -> engine.applyMove(state, equip("equip", "champion")))
         .isInstanceOf(IllegalMoveException.class)
         .hasMessage("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
   }
@@ -724,12 +763,12 @@ class GameEnginePlayCardTypeTest {
   @Test
   void equipCannotAttachNonCombatant() {
     LiveGameState state = state(
-        card("equip", "p1", ZoneName.HAND),
+        card("equip", "p1", ZoneName.BASE),
         card("battlefield", "p1", ZoneName.BATTLEFIELD));
     stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
     stubCard("battlefield", "Battlefield", "Battlefield", 0, 0, 0, null);
 
-    assertThatThrownBy(() -> engine.applyMove(state, playTarget("equip", "battlefield")))
+    assertThatThrownBy(() -> engine.applyMove(state, equip("equip", "battlefield")))
         .isInstanceOf(IllegalMoveException.class)
         .hasMessage("Target must be a Unit or Champion.");
   }
@@ -742,7 +781,8 @@ class GameEnginePlayCardTypeTest {
     stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
     stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
 
-    engine.applyMove(state, playTarget("equip", "friendly"));
+    engine.applyMove(state, play("equip", ZoneName.BASE));
+    engine.applyMove(state, equip("equip", "friendly"));
 
     assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
     assertThat(gear.getZone()).isNotEqualTo(ZoneName.DISCARD);
@@ -752,7 +792,7 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
-  void attachedGearMovesToTrashWhenHostReturnsToHand() {
+  void attachedGearReturnsToBaseWhenHostReturnsToHand() {
     CardInstance bounce = card("bounce", "p1", ZoneName.HAND);
     CardInstance host = card("host", "p2", ZoneName.BATTLEFIELD);
     CardInstance gear = card("equip", "p2", ZoneName.BASE);
@@ -766,12 +806,13 @@ class GameEnginePlayCardTypeTest {
     engine.applyMove(state, playTarget("bounce", "host"));
 
     assertThat(host.getZone()).isEqualTo(ZoneName.HAND);
-    assertThat(gear.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
     assertThat(gear.getAttachedToInstanceId()).isNull();
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Equip Gear returned to Base."));
   }
 
   @Test
-  void attachedGearMovesToTrashWhenHostIsDestroyedByCleanup() {
+  void attachedGearReturnsToBaseWhenHostIsDestroyedByCleanup() {
     CardInstance spell = card("spell", "p1", ZoneName.HAND);
     CardInstance host = card("host", "p2", ZoneName.BATTLEFIELD);
     host.setCurrentHealth(0);
@@ -785,8 +826,42 @@ class GameEnginePlayCardTypeTest {
     engine.applyMove(state, play("spell", ZoneName.BASE));
 
     assertThat(host.getZone()).isEqualTo(ZoneName.DISCARD);
-    assertThat(gear.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
     assertThat(gear.getAttachedToInstanceId()).isNull();
+  }
+
+  @Test
+  void attachedGearCannotBeReequippedNormally() {
+    CardInstance gear = card("equip", "p1", ZoneName.BASE);
+    gear.setAttachedToInstanceId("host");
+    LiveGameState state = state(
+        gear,
+        card("host", "p1", ZoneName.BASE),
+        card("other", "p1", ZoneName.BASE));
+    stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    stubCard("host", "Host Unit", "Unit", 0, 2, 2, null);
+    stubCard("other", "Other Unit", "Unit", 0, 2, 2, null);
+
+    assertThatThrownBy(() -> engine.applyMove(state, equip("equip", "other")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Attached Equipment cannot be re-equipped.");
+  }
+
+  @Test
+  void equippedHostMovesToBattlefieldAndGearRemainsAttachedAtBase() {
+    CardInstance host = card("host", "p1", ZoneName.BASE);
+    CardInstance gear = card("equip", "p1", ZoneName.BASE);
+    gear.setAttachedToInstanceId("host");
+    LiveGameState state = state(host, gear);
+    stubCard("host", "Host Unit", "Unit", 0, 2, 2, null);
+    stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "host"));
+
+    assertThat(host.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(gear.getAttachedToInstanceId()).isEqualTo("host");
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Moved Host Unit to the battlefield."));
   }
 
   @Test
@@ -1079,6 +1154,10 @@ class GameEnginePlayCardTypeTest {
 
   private PlayCardMove playTarget(String playerId, String instanceId, String targetInstanceId) {
     return new PlayCardMove(playerId, instanceId, ZoneName.BASE, 0, 0, targetInstanceId, false, List.of(), List.of());
+  }
+
+  private EquipGearMove equip(String gearInstanceId, String targetInstanceId) {
+    return new EquipGearMove("p1", gearInstanceId, targetInstanceId);
   }
 
   private CardInstance card(String id, String ownerId, ZoneName zone) {

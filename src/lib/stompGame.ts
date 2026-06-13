@@ -20,7 +20,8 @@ export type MoveRequest =
   | { type: 'ADJUST_SCORE'; playerId: string; targetPlayerId: string; delta: number }
   | { type: 'VISION_CHOICE'; playerId: string; recycle: boolean }
   | { type: 'DISMISS_REVEALED'; playerId: string; instanceId: string }
-  | { type: 'HIDE_CARD'; playerId: string; instanceId: string; paymentRuneId: string };
+  | { type: 'HIDE_CARD'; playerId: string; instanceId: string; paymentRuneId: string }
+  | { type: 'EQUIP_GEAR'; playerId: string; gearInstanceId: string; targetInstanceId: string };
 
 export type ServerMessage = { type: 'STATE_UPDATE'; state: LiveGameState } | { type: 'ERROR'; message: string; playerId: string };
 export type MatchNotification = { roomCode: string; sessionToken?: string };

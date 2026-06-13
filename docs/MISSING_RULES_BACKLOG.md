@@ -82,7 +82,7 @@ Sources checked:
 
 | Item | Status | Why it matters | Likely files | Suggested first test |
 | --- | --- | --- | --- | --- |
-| Equip target/payment rules | Partial | Guardian Angel and Boots of Swiftness are starter deck cards. Basic friendly battlefield Unit/Champion target validation exists, but official timing and payment precision are still generic. | `RulesValidator`, `GameEngine`, `CardZoneService`, payment UI | Boots requires the correct Chaos power payment and cannot attach outside the official Equip window. |
+| Equip target/payment rules | Partial | Guardian Angel and Boots of Swiftness are starter deck cards. Basic play-to-Base/equip-from-Base lifecycle exists, but official timing, payment precision, and replacement edge cases are still generic. | `RulesValidator`, `GameEngine`, `CardZoneService`, payment UI | Boots requires the correct Chaos power payment and cannot attach outside the official Equip window. |
 | Attachment lifecycle | Partial | Gear now follows host death and return-to-hand cleanup deterministically, but voluntary detach, replacement, and reattachment edge cases are not fully modeled. | `CardZoneService`, `CombatResolver`, `GameEngine` | Reattaching a second gear handles the official replacement rule and clears stale attachment IDs. |
 
 ### Tokens
@@ -141,6 +141,7 @@ Sources checked:
 | Item | Status | Why it matters | Likely files | Suggested first test |
 | --- | --- | --- | --- | --- |
 | Set legality and rotation | Not started | Public playtests and tournaments need format validation beyond the current banlist. | `TournamentLegality`, `RoomService`, card metadata | A card outside the selected format is rejected from FULL_CONSTRUCTED. |
+| Champion identity and signature legality | Partial | Constructed validation now requires exactly one Legend and exactly one chosen Champion, and exact-card copy counting includes the chosen Champion. Champion-tag matching to the Legend, main-deck Champion Unit identity, and Signature-card restrictions still need reliable structured Riftcodex fields or a curated metadata layer. | `CardDataService`, `RoomService`, deck builder validation, card metadata overrides | Irelia - Blade Dancer accepts only an Irelia chosen Champion, rejects a Signature card as the chosen Champion, and still allows legal non-chosen Champion Units only when identity rules allow them. |
 | Sideboards and match procedure | Not started | Imported decklists include sideboards, but they are skipped today. | deck model, `RoomService`, deck import/export | Importing a sideboard stores it separately and does not shuffle it into game setup. |
 
 ## P3: Polish / Tournament / Multiplayer / Edge Cases

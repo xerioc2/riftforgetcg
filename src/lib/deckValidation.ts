@@ -13,6 +13,9 @@ export function validateDeck(deck: Deck, cardsById: Map<string, RiftCard>): Deck
     .map((entry) => ({ ...entry, card: cardsById.get(entry.cardId) }))
     .filter((entry): entry is typeof entry & { card: RiftCard } => Boolean(entry.card));
   const missingCardIds = deck.cards.filter((entry) => !cardsById.has(entry.cardId)).map((entry) => entry.cardId);
+  const selectedChampion = deck.championCardId ? cardsById.get(deck.championCardId) : undefined;
+  const selectedChampionIsSeparate = selectedChampion?.type === 'Champion'
+    && !entries.some((entry) => entry.cardId === deck.championCardId);
   const supportEntries = deckSupportEntries(deck, cardsById);
   const bannedCards = entries.map(({ card }) => card).filter(isBannedInConstructed);
   const unsupportedCards = supportEntries
@@ -24,7 +27,8 @@ export function validateDeck(deck: Deck, cardsById: Map<string, RiftCard>): Deck
   const mainDeckCards = entries
     .filter(({ card }) => card.type !== 'Rune' && card.type !== 'Battlefield' && card.type !== 'Legend' && card.type !== 'Champion')
     .reduce((sum, card) => sum + card.quantity, 0);
-  const championCards = entries.filter(({ card }) => card.type === 'Champion').reduce((sum, card) => sum + card.quantity, 0);
+  const championCards = entries.filter(({ card }) => card.type === 'Champion').reduce((sum, card) => sum + card.quantity, 0)
+    + (selectedChampionIsSeparate ? 1 : 0);
   const totalCards = mainDeckCards + championCards;
   const runeCards = entries.filter(({ card }) => card.type === 'Rune').reduce((sum, card) => sum + card.quantity, 0);
   const battlefieldEntries = entries.filter(({ card }) => card.type === 'Battlefield');
@@ -42,11 +46,29 @@ export function validateDeck(deck: Deck, cardsById: Map<string, RiftCard>): Deck
   }
   for (const card of bannedCards) messages.push(`${card.name} is banned in Constructed.`);
 
+  const quantitiesById = new Map<string, { card: RiftCard; quantity: number }>();
   for (const entry of entries) {
-    const { card } = entry;
-    if (entry.quantity > MAX_COPIES && card.type !== 'Rune') {
+    const current = quantitiesById.get(entry.cardId);
+    quantitiesById.set(entry.cardId, {
+      card: entry.card,
+      quantity: (current?.quantity ?? 0) + entry.quantity,
+    });
+  }
+  if (selectedChampionIsSeparate && selectedChampion && deck.championCardId) {
+    const current = quantitiesById.get(deck.championCardId);
+    quantitiesById.set(deck.championCardId, {
+      card: selectedChampion,
+      quantity: (current?.quantity ?? 0) + 1,
+    });
+  }
+  for (const { card, quantity } of quantitiesById.values()) {
+    if (quantity > MAX_COPIES && card.type !== 'Rune') {
       messages.push(`${card.name} exceeds ${MAX_COPIES} copies.`);
     }
+  }
+
+  for (const entry of entries) {
+    const { card } = entry;
     const relevantDomains = card.domains.filter((domain) => domain !== 'COLORLESS');
     const offDomain = relevantDomains.some((domain) => domains.length > 0 && !domains.includes(domain));
     if (offDomain && card.type !== 'Legend' && card.type !== 'Battlefield') {
@@ -58,7 +80,7 @@ export function validateDeck(deck: Deck, cardsById: Map<string, RiftCard>): Deck
     valid: messages.length === 0,
     messages,
     legend,
-    champion: entries.find(({ card }) => card.type === 'Champion')?.card,
+    champion: entries.find(({ card }) => card.type === 'Champion')?.card ?? (selectedChampion?.type === 'Champion' ? selectedChampion : undefined),
     domains,
     totalCards,
     mainDeckCards,

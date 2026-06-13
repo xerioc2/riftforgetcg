@@ -367,12 +367,14 @@ public class BotService {
   private boolean hasValidSpellTarget(LiveGameState state, CardInstance card, String botId) {
     CardDefinition def = cardDataService.getCard(card.getCardId());
     if (cardDataService.isUnsupportedAction(def.id())) return false;
+    if (cardDataService.isEquip(def)) return true;
     if (!cardDataService.requiresBattlefieldTarget(def.id())) return true;
     return targetForCard(state, def, botId).isPresent();
   }
 
   private Optional<CardInstance> targetForCard(LiveGameState state, CardDefinition def, String botId) {
     if (!cardDataService.requiresBattlefieldTarget(def.id())) return Optional.empty();
+    if (cardDataService.isEquip(def)) return Optional.empty();
     String text = def.rulesText() == null ? "" : def.rulesText().toLowerCase();
     boolean preferFriendly = cardDataService.requiresFriendlyTarget(def.id())
         || text.contains("give a unit")

@@ -83,6 +83,7 @@ export type LegalAction =
   | 'UNDO_RUNES'
   | 'VISION_CHOICE'
   | 'HIDE_CARD'
+  | 'EQUIP_GEAR'
   | 'SANDBOX_DEAL_CARD'
   | 'SANDBOX_ADJUST_SCORE'
   | 'SANDBOX_TAP_CARD'

@@ -63,11 +63,12 @@ Use this checklist before public alpha builds, release notes, or larger mechanic
 
 ## Equip
 
-- Basic `[Equip]` Gear requires a friendly battlefield Unit/Champion target.
+- Basic `[Equip]` Gear plays from hand to Base first.
+- Gear in Base can equip to a friendly Unit/Champion in Base or at the battlefield.
 - Non-Equip Gear remains unsupported in enforced play.
-- Equipped Gear stays attached instead of going to Trash immediately.
+- Equipped Gear stays in Base with an attachment link instead of going to Trash immediately.
 - Gear cannot move to battlefield or fight as a unit.
-- Attached Gear cleans up deterministically when the host dies or returns to hand.
+- Attached Gear returns to Base when the host dies or returns to hand.
 - Guardian Angel and Boots of Swiftness remain Partial until timing/payment/card text are fully modeled.
 
 ## UI And Log Readability

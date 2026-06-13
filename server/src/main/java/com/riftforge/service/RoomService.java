@@ -130,9 +130,13 @@ public class RoomService {
       submittedCards.add(def);
     }
 
-    boolean hasLegend = submittedCards.stream()
-        .anyMatch(card -> "Legend".equalsIgnoreCase(card.type()));
-    if (!hasLegend) throw new IllegalArgumentException("Deck must include a Legend card.");
+    long legendCount = submittedCards.stream()
+        .filter(card -> isType(card, "Legend"))
+        .count();
+    if (legendCount == 0) throw new IllegalArgumentException("Deck must include a Legend card.");
+    if (format == DeckFormat.FULL_CONSTRUCTED && legendCount != 1) {
+      throw new IllegalArgumentException("Deck must include exactly 1 Legend card.");
+    }
 
     long championCount = submittedCards.stream()
         .filter(card -> isType(card, "Champion"))
@@ -171,7 +175,7 @@ public class RoomService {
 
     Map<String, Integer> copiesById = new HashMap<>();
     for (CardDefinition card : submittedCards) {
-      if (isType(card, "Champion") || isType(card, "Legend") || isType(card, "Rune") || isType(card, "Battlefield")) continue;
+      if (isType(card, "Legend") || isType(card, "Rune") || isType(card, "Battlefield")) continue;
       int copies = copiesById.merge(card.id(), 1, Integer::sum);
       if (copies > 3) throw new IllegalArgumentException("Cannot include more than 3 copies of " + card.name() + ".");
     }

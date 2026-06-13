@@ -65,6 +65,7 @@ public class GameEngine {
       case VisionChoiceMove m -> applyVisionChoice(state, m);
       case DismissRevealedMove m -> applyDismissRevealed(state, m);
       case HideCardMove m -> applyHideCard(state, m);
+      case EquipGearMove m -> applyEquipGear(state, m);
     };
     next.setUpdatedAt(Instant.now().toString());
     checkWinCondition(next);
@@ -127,13 +128,13 @@ public class GameEngine {
     card.setX(move.x());
     card.setY(move.y());
     card.setCurrentHealth(def.health());
+    card.setAttachedToInstanceId(null);
     card.setHasSummoningSickness(!move.accelerate());
     if (move.targetZone() == ZoneName.BASE) card.setTapped(!move.accelerate());
     if (move.targetZone() == ZoneName.BATTLEFIELD && cardDataService.isAmbushCard(def)) {
       card.setTapped(false);
       card.setHasSummoningSickness(false);
     }
-    if (cardDataService.hasKeyword(card, "QUICK-DRAW")) card.setTapped(false);
     applyLegion(state, card, cardPlayedEarlierThisTurn);
     applyPlayedCardTokenScripts(state, card, cardPlayedEarlierThisTurn);
     state.setCardPlayedThisTurn(true);
@@ -157,15 +158,24 @@ public class GameEngine {
     moveDestroyedBoardCards(state);
     if (cardTypeLower.equals("spell")) {
       cardZoneService.moveToGraveyard(card);
-    } else if (cardDataService.isEquip(def) && target != null) {
-      attachGear(state, card, def, target, move.playerId());
     }
     boolean ambushedToBattlefield = move.targetZone() == ZoneName.BATTLEFIELD && card.getZone() == ZoneName.BATTLEFIELD && cardDataService.isAmbushCard(def);
     if (ambushedToBattlefield) startAmbushBattlefield(state, card, def, move.playerId());
     if (cardDataService.hasKeyword(card, "REPEAT")) state.setCardPlayedThisTurn(false);
     if (!ambushedToBattlefield) {
-      log(state, move.playerId(), playedDuringShowdown ? "Played " + def.name() + " during the showdown." : "Played " + def.name());
+      String message = cardDataService.isEquip(def)
+          ? "Played " + def.name() + " to Base."
+          : playedDuringShowdown ? "Played " + def.name() + " during the showdown." : "Played " + def.name();
+      log(state, move.playerId(), message);
     }
+    return state;
+  }
+
+  private LiveGameState applyEquipGear(LiveGameState state, EquipGearMove move) {
+    CardInstance gear = findCard(state, move.gearInstanceId());
+    CardDefinition gearDef = cardDataService.getCard(gear.getCardId());
+    CardInstance target = findCard(state, move.targetInstanceId());
+    attachGear(state, gear, gearDef, target, move.playerId());
     return state;
   }
 
@@ -273,6 +283,8 @@ public class GameEngine {
     CardInstance card = findCard(state, move.instanceId());
     CardDefinition def = cardDataService.getCard(card.getCardId());
     card.setZone(ZoneName.BATTLEFIELD);
+    card.setX(0);
+    card.setY(0);
     card.setTapped(!cardDataService.hasKeyword(card, "AMBUSH"));
     card.setHasSummoningSickness(false);
     int gankingBonus = applyGanking(state, card);
@@ -590,13 +602,6 @@ public class GameEngine {
     return value;
   }
 
-  private void applyWeaponmaster(LiveGameState state, CardInstance target) {
-    int value = cardDataService.getKeywordValue(target, "WEAPONMASTER");
-    if (value <= 0) return;
-    target.setMightBonus(target.getMightBonus() + value);
-    log(state, target.getOwnerId(), cardDataService.getCard(target.getCardId()).name() + " activates Weaponmaster: +" + value + " Might.");
-  }
-
   private void attachGear(LiveGameState state, CardInstance gear, CardDefinition gearDef, CardInstance target, String playerId) {
     gear.setZone(ZoneName.BASE);
     gear.setAttachedToInstanceId(target.getInstanceId());
@@ -604,7 +609,6 @@ public class GameEngine {
     gear.setY(target.getY() + 34);
     gear.setTapped(false);
     gear.setHasSummoningSickness(false);
-    applyWeaponmaster(state, target);
     log(state, playerId, "Equipped " + gearDef.name() + " to " + cardDataService.getCard(target.getCardId()).name() + ".");
   }
 
@@ -637,7 +641,7 @@ public class GameEngine {
     for (CardInstance card : expired) {
       CardDefinition def = cardDataService.getCard(card.getCardId());
       DeathEvent death = deathTriggerService.capture(card, state, DeathEvent.DeathCause.CLEANUP);
-      cardZoneService.moveAttachmentsToGraveyard(state, card);
+      returnAttachmentsToBase(state, card);
       cardZoneService.moveToGraveyard(card);
       effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onDestroy(card, state));
       deathTriggerService.process(state, List.of(death));
@@ -660,7 +664,7 @@ public class GameEngine {
         .map(card -> deathTriggerService.capture(card, state, DeathEvent.DeathCause.EFFECT))
         .toList();
     for (CardInstance card : destroyed) {
-      cardZoneService.moveAttachmentsToGraveyard(state, card);
+      returnAttachmentsToBase(state, card);
       cardZoneService.moveToGraveyard(card);
       effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onDestroy(card, state));
     }
@@ -708,7 +712,7 @@ public class GameEngine {
   }
 
   private void returnUnitToOwnerHand(LiveGameState state, CardInstance source, CardDefinition sourceDef, CardInstance target) {
-    cardZoneService.moveAttachmentsToGraveyard(state, target);
+    returnAttachmentsToBase(state, target);
     target.setZone(ZoneName.HAND);
     target.setTapped(false);
     target.setHasSummoningSickness(false);
@@ -718,6 +722,19 @@ public class GameEngine {
   private void readyUnit(LiveGameState state, CardInstance source, CardDefinition sourceDef, CardInstance target) {
     target.setTapped(false);
     log(state, source.getOwnerId(), sourceDef.name() + " readied " + cardDataService.getCard(target.getCardId()).name() + ".");
+  }
+
+  private void returnAttachmentsToBase(LiveGameState state, CardInstance host) {
+    List<CardInstance> returned = cardZoneService.returnAttachmentsToBase(state, host);
+    if (returned == null) return;
+    for (CardInstance attachment : returned) {
+      log(state, attachment.getOwnerId(), cardName(attachment) + " returned to Base.");
+    }
+  }
+
+  private String cardName(CardInstance card) {
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    return def == null ? card.getCardId() : def.name();
   }
 
   private void autoDraw(LiveGameState state, String playerId) {

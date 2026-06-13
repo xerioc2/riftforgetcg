@@ -91,6 +91,22 @@ class RoomServiceDeckValidationTest {
   }
 
   @Test
+  void fullConstructedDeckWithTwoLegendsIsRejected() {
+    add("legend-1", "Legend");
+    add("legend-2", "Legend");
+    add("champion", "Champion");
+    List<String> deck = new ArrayList<>(List.of("legend-1", "legend-2", "champion"));
+    addMainDeckCards(deck, 39);
+    addRunes(deck, 12);
+    addBattlefields(deck, 3);
+    RoomState room = roomService.create("p1", "Player One", false);
+
+    assertThatThrownBy(() -> roomService.ready(room.getCode(), "p1", deck))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Deck must include exactly 1 Legend card.");
+  }
+
+  @Test
   void unknownCardIdIsRejected() {
     add("legend", "Legend");
     add("champion", "Champion");
@@ -260,6 +276,19 @@ class RoomServiceDeckValidationTest {
     RoomState room = roomService.create("p1", "Player One", true);
 
     assertThatNoException().isThrownBy(() -> roomService.setBotDeck(room.getCode(), botDeck));
+  }
+
+  @Test
+  void championCopiesCountTowardCopyLimit() {
+    add("legend", "Legend");
+    add("champion", "Champion", "Test Champion");
+    List<String> botDeck = new ArrayList<>(List.of("legend", "champion", "champion", "champion", "champion"));
+    addMainDeckCards(botDeck, 20);
+    RoomState room = roomService.create("p1", "Player One", true);
+
+    assertThatThrownBy(() -> roomService.setBotDeck(room.getCode(), botDeck))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Cannot include more than 3 copies of Test Champion.");
   }
 
   @Test

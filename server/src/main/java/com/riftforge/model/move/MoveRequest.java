@@ -21,8 +21,9 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
   @JsonSubTypes.Type(value = AdjustScoreMove.class, name = "ADJUST_SCORE"),
   @JsonSubTypes.Type(value = VisionChoiceMove.class, name = "VISION_CHOICE"),
   @JsonSubTypes.Type(value = DismissRevealedMove.class, name = "DISMISS_REVEALED"),
-  @JsonSubTypes.Type(value = HideCardMove.class, name = "HIDE_CARD")
+  @JsonSubTypes.Type(value = HideCardMove.class, name = "HIDE_CARD"),
+  @JsonSubTypes.Type(value = EquipGearMove.class, name = "EQUIP_GEAR")
 })
-public sealed interface MoveRequest permits DealCardMove, TapCardMove, FlipCardMove, PlayCardMove, MoveCardMove, RepositionCardMove, TapRuneMove, DiscardRuneMove, MoveToBattlefieldMove, MulliganMove, UndoRunesMove, PassPhaseMove, ResolveShowdownMove, AdjustScoreMove, VisionChoiceMove, DismissRevealedMove, HideCardMove {
+public sealed interface MoveRequest permits DealCardMove, TapCardMove, FlipCardMove, PlayCardMove, MoveCardMove, RepositionCardMove, TapRuneMove, DiscardRuneMove, MoveToBattlefieldMove, MulliganMove, UndoRunesMove, PassPhaseMove, ResolveShowdownMove, AdjustScoreMove, VisionChoiceMove, DismissRevealedMove, HideCardMove, EquipGearMove {
   String playerId();
 }

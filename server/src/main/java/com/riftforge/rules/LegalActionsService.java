@@ -1,5 +1,7 @@
 package com.riftforge.rules;
 
+import com.riftforge.model.CardDefinition;
+import com.riftforge.model.CardInstance;
 import com.riftforge.model.GameMode;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.Phase;
@@ -73,6 +75,7 @@ public class LegalActionsService {
       actions.add(LegalAction.UNDO_RUNES);
       actions.add(LegalAction.VISION_CHOICE);
       if (hasHideableCardInHand(state, playerId) && hasReadyRune(state, playerId)) actions.add(LegalAction.HIDE_CARD);
+      if (hasEquippableGearAtBase(state, playerId) && hasLegalEquipTarget(state, playerId)) actions.add(LegalAction.EQUIP_GEAR);
       return actions;
     }
 
@@ -116,5 +119,28 @@ public class LegalActionsService {
   private boolean hasReadyRune(LiveGameState state, String playerId) {
     return state.getRunes().stream()
         .anyMatch(rune -> playerId.equals(rune.getOwnerId()) && !rune.isTapped());
+  }
+
+  private boolean hasEquippableGearAtBase(LiveGameState state, String playerId) {
+    if (cardDataService == null) return false;
+    return state.getCards().stream()
+        .filter(card -> playerId.equals(card.getOwnerId()))
+        .filter(card -> card.getZone() == ZoneName.BASE)
+        .filter(card -> card.getAttachedToInstanceId() == null || card.getAttachedToInstanceId().isBlank())
+        .map(card -> cardDataService.getCard(card.getCardId()))
+        .anyMatch(cardDataService::isEquip);
+  }
+
+  private boolean hasLegalEquipTarget(LiveGameState state, String playerId) {
+    if (cardDataService == null) return false;
+    return state.getCards().stream().anyMatch(card -> isLegalEquipTarget(card, playerId));
+  }
+
+  private boolean isLegalEquipTarget(CardInstance card, String playerId) {
+    if (!playerId.equals(card.getOwnerId())) return false;
+    if (card.getZone() != ZoneName.BASE && card.getZone() != ZoneName.BATTLEFIELD) return false;
+    if (card.isFaceDown()) return false;
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    return def != null && ("Unit".equalsIgnoreCase(def.type()) || "Champion".equalsIgnoreCase(def.type()));
   }
 }

@@ -69,6 +69,22 @@ class GameStateProjectionServiceTest {
   }
 
   @Test
+  void attachedPublicGearIsVisibleToOwnerOpponentAndSpectator() {
+    CardInstance host = card("host", "p1", "host-unit", ZoneName.BATTLEFIELD);
+    CardInstance gear = card("gear", "p1", "equip-gear", ZoneName.BASE);
+    gear.setAttachedToInstanceId("host");
+    LiveGameState state = state(host, gear);
+
+    LiveGameState ownerView = projectionService.toPublicView(state, "p1");
+    LiveGameState opponentView = projectionService.toPublicView(state, "p2");
+    LiveGameState spectatorView = projectionService.toPublicView(state, null);
+
+    assertAttachedGearIsPublic(ownerView);
+    assertAttachedGearIsPublic(opponentView);
+    assertAttachedGearIsPublic(spectatorView);
+  }
+
+  @Test
   void ownerSeesOwnHiddenCardIdentity() {
     LiveGameState state = state(card("own-hidden", "p1", "tideturner", ZoneName.HIDDEN));
 
@@ -360,5 +376,14 @@ class GameStateProjectionServiceTest {
     snapshot.setRevealedOwnerId(ownerId);
     snapshot.setInstanceIds(List.of(instanceIds));
     return snapshot;
+  }
+
+  private void assertAttachedGearIsPublic(LiveGameState view) {
+    assertThat(view.getCards()).anySatisfy(card -> {
+      assertThat(card.getInstanceId()).isEqualTo("gear");
+      assertThat(card.getCardId()).isEqualTo("equip-gear");
+      assertThat(card.getZone()).isEqualTo(ZoneName.BASE);
+      assertThat(card.getAttachedToInstanceId()).isEqualTo("host");
+    });
   }
 }
