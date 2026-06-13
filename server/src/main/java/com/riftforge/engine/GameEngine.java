@@ -283,10 +283,25 @@ public class GameEngine {
   private LiveGameState applyMoveToBattlefield(LiveGameState state, MoveToBattlefieldMove move) {
     CardInstance card = findCard(state, move.instanceId());
     CardDefinition def = cardDataService.getCard(card.getCardId());
+    ZoneName sourceZone = card.getZone();
     boolean playedFromChampionZone = card.getZone() == ZoneName.CHAMPION;
     if (playedFromChampionZone) {
       PlayerState player = player(state, move.playerId());
-      player.setAvailableEnergy(Math.max(0, player.getAvailableEnergy() - Math.max(0, def.cost())));
+      int selectedEnergy = 0;
+      for (String runeId : move.paymentRuneIds()) {
+        RuneState rune = findRune(state, runeId);
+        rune.setTapped(true);
+        selectedEnergy += rune.getNormalEnergy();
+      }
+      for (String runeId : move.premiumRuneIds()) {
+        RuneState rune = findRune(state, runeId);
+        state.getRunes().remove(rune);
+        if (rune.getCardId() != null && !rune.getCardId().isBlank()) {
+          player.getRuneDeckPool().add(rune.getCardId());
+          player.setRunePoolRemaining(player.getRuneDeckPool().size());
+        }
+      }
+      player.setAvailableEnergy(Math.max(0, player.getAvailableEnergy() + selectedEnergy - Math.max(0, def.cost())));
     }
     card.setZone(ZoneName.BATTLEFIELD);
     card.setX(0);
@@ -294,6 +309,7 @@ public class GameEngine {
     card.setTapped(!cardDataService.hasKeyword(card, "AMBUSH"));
     card.setHasSummoningSickness(false);
     int gankingBonus = applyGanking(state, card);
+    applyMovementScripts(state, card, sourceZone, ZoneName.BATTLEFIELD);
     applyMoveToBattlefieldTokenScripts(state, card);
     effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onAttack(card, state));
     log(state, move.playerId(), playedFromChampionZone
@@ -626,13 +642,15 @@ public class GameEngine {
   }
 
   private void returnBattlefieldCardsToBase(LiveGameState state, String playerId) {
-    state.getCards().stream()
+    List<CardInstance> returned = state.getCards().stream()
         .filter(card -> card.getZone() == ZoneName.BATTLEFIELD && playerId.equals(card.getOwnerId()))
-        .forEach(card -> {
-          card.setZone(ZoneName.BASE);
-          card.setX(0);
-          card.setY(0);
-        });
+        .toList();
+    returned.forEach(card -> {
+      card.setZone(ZoneName.BASE);
+      card.setX(0);
+      card.setY(0);
+      applyMovementScripts(state, card, ZoneName.BATTLEFIELD, ZoneName.BASE);
+    });
   }
 
   private void healBoardCards(LiveGameState state) {
@@ -678,6 +696,14 @@ public class GameEngine {
     if (!isNamed(def, "Noxian Drummer")) return;
     tokenFactory.createRecruit(state, card.getOwnerId(), ZoneName.BATTLEFIELD, card.getX() + 40, card.getY() + 40);
     log(state, card.getOwnerId(), "Noxian Drummer created a Recruit token.");
+  }
+
+  private void applyMovementScripts(LiveGameState state, CardInstance card, ZoneName sourceZone, ZoneName targetZone) {
+    if (sourceZone == targetZone) return;
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    if (!isNamed(def, "Stellacorn Herder")) return;
+    applyDraw(state, card.getOwnerId(), 1);
+    log(state, card.getOwnerId(), "Stellacorn Herder drew 1 after moving.");
   }
 
   private boolean isNamed(CardDefinition def, String name) {

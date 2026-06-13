@@ -457,6 +457,35 @@ export function GameBoard() {
     publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'BASE', ...position, targetInstanceId, accelerate, ...payment });
   };
 
+  const deployChampionFromZone = (instanceId: string) => {
+    const instance = state?.cards.find((card) => card.instanceId === instanceId);
+    const cardDef = instance ? cardsById.get(instance.cardId) : undefined;
+    if (!state || !instance || !cardDef) return;
+    if (instance.ownerId !== player.id || !sameZone(instance.zone, 'champion') || cardDef.type?.toLowerCase() !== 'champion') {
+      notifyWarning('Champion unavailable', 'Only your chosen Champion can be deployed from the Champion zone.');
+      return;
+    }
+    if (state.activeShowdown || state.currentPhase !== 'MAIN' || state.activePlayerId !== player.id) {
+      notifyWarning('Champion unavailable', 'You can deploy your Champion during Main Phase.');
+      return;
+    }
+    if (!canTakeAction(state, 'MOVE_TO_BATTLEFIELD')) {
+      notifyWarning('Champion unavailable', 'The server has no Champion deploy action available right now.');
+      return;
+    }
+    const availableEnergy = state.players.find((statePlayer) => statePlayer.userId === player.id)?.availableEnergy ?? 0;
+    const readyRuneEnergy = (state.runes ?? [])
+      .filter((rune) => rune.ownerId === player.id && !rune.tapped)
+      .reduce((total, rune) => total + rune.normalEnergy, 0);
+    if (availableEnergy + readyRuneEnergy < (cardDef.cost ?? 0)) {
+      notifyWarning('Not enough energy', `${cardDef.name} needs ${cardDef.cost ?? 0} energy to deploy.`);
+      return;
+    }
+    const payment = selectPaymentRunesForCard(cardDef);
+    if (!payment) return;
+    publishMove({ type: 'MOVE_TO_BATTLEFIELD', playerId: player.id, instanceId, ...payment });
+  };
+
   const playCardWithAmbush = (instanceId: string) => {
     const instance = state?.cards.find((card) => card.instanceId === instanceId);
     const cardDef = instance ? cardsById.get(instance.cardId) : undefined;
@@ -610,8 +639,8 @@ export function GameBoard() {
         window.setTimeout(fetchProjectedState, 100);
         return;
       }
-      if (sameZone(instance.zone, 'champion') && (state.players.find((candidate) => candidate.userId === player.id)?.availableEnergy ?? 0) < (cardDef?.cost ?? 0)) {
-        notifyWarning('Not enough energy', `${cardDef?.name ?? 'Your Champion'} needs ${cardDef?.cost ?? 0} available energy to play.`);
+      if (sameZone(instance.zone, 'champion')) {
+        deployChampionFromZone(instanceId);
         window.setTimeout(fetchProjectedState, 100);
         return;
       }
@@ -682,6 +711,9 @@ export function GameBoard() {
       return;
     }
 
+    if (instance.ownerId === player.id && sameZone(instance.zone, 'legend')) {
+      notifyWarning('Legend unavailable', 'Legends cannot be moved to the battlefield in this alpha model.');
+    }
     setSelectedInstanceId(instanceId);
   };
 
@@ -829,6 +861,18 @@ export function GameBoard() {
     return card.ownerId === player.id && sameZone(card.zone, 'battlefield') && (type === 'unit' || type === 'champion');
   });
   const canAmbushCards = canPlayCards && isMyTurn && !showdownActive && hasFriendlyBattlefieldUnit;
+  const selectedInstance = selectedInstanceId ? state.cards.find((card) => card.instanceId === selectedInstanceId) : undefined;
+  const selectedCardDef = selectedInstance ? cardsById.get(selectedInstance.cardId) : undefined;
+  const selectedChampionDeployable = Boolean(
+    selectedInstance
+      && selectedInstance.ownerId === player.id
+      && sameZone(selectedInstance.zone, 'champion')
+      && selectedCardDef?.type?.toLowerCase() === 'champion'
+      && canMoveToBattlefield
+      && isMyTurn
+      && !showdownActive
+      && spendableEnergy >= (selectedCardDef.cost ?? 0),
+  );
   const guidanceText = phaseGuidance(state.currentPhase, showdownActive, state.activeShowdown?.step);
   const actionHintText = legalActionHint(state.legalActions, { isPlayer: Boolean(me), isMyTurn, activePlayerName, activePlayerIsBot });
   const waitingText = waitingStatusText({ isMyTurn, activePlayerName, activePlayerIsBot, waitingLong: waitingTooLong });
@@ -882,7 +926,7 @@ export function GameBoard() {
         && isMyTurn
         && !showdownActive
         && !instance.tapped
-        && (me?.availableEnergy ?? 0) >= (cardDef.cost ?? 0);
+        && spendableEnergy >= (cardDef.cost ?? 0);
     }
     if (sameZone(instance.zone, 'base') || sameZone(instance.zone, 'battlefield')) {
       return canMoveToBattlefield || canTakeAction(state, 'REPOSITION_CARD') || canTakeAction(state, 'SANDBOX_MOVE_CARD');
@@ -965,7 +1009,13 @@ export function GameBoard() {
                   onDragEnd={moveInstance}
                   onClick={handleCardClick}
                   onDoubleClick={(id) => {
-                    if (canTakeAction(state, 'SANDBOX_TAP_CARD')) publishMove({ type: 'TAP_CARD', playerId: player.id, instanceId: id });
+                    const source = state.cards.find((card) => card.instanceId === id);
+                    const sourceDef = source ? cardsById.get(source.cardId) : undefined;
+                    if (source?.ownerId === player.id && sameZone(source.zone, 'champion') && sourceDef?.type?.toLowerCase() === 'champion') {
+                      deployChampionFromZone(id);
+                    } else if (source?.ownerId === player.id && sameZone(source?.zone ?? '', 'legend')) {
+                      notifyWarning('Legend unavailable', 'Legends cannot be moved to the battlefield in this alpha model.');
+                    } else if (canTakeAction(state, 'SANDBOX_TAP_CARD')) publishMove({ type: 'TAP_CARD', playerId: player.id, instanceId: id });
                     else notifyWarning('Sandbox only', 'Manual tap is only available in Sandbox games.');
                   }}
                   onContextMenu={(id) => {
@@ -1065,6 +1115,17 @@ export function GameBoard() {
       {canPlayReactions && hasSpellReaction ? (
         <div className="pointer-events-none absolute left-0 z-20 flex justify-center text-xs font-medium text-forge" style={{ right: `${SIDEBAR_WIDTH}px`, bottom: handHeight + PHASE_BAR_HEIGHT + 6 }}>
           Supported Action window available
+        </div>
+      ) : null}
+
+      {selectedChampionDeployable && selectedInstance && selectedCardDef ? (
+        <div className="pointer-events-auto absolute left-1/2 top-3 z-30 w-72 -translate-x-1/2 border border-forge/60 bg-[#05080d] p-3 text-sm text-slate-100 shadow-[0_14px_44px_rgba(0,0,0,0.7)]">
+          <p className="text-xs uppercase text-slate-500">Champion zone</p>
+          <p className="mt-1 font-semibold text-forge">{selectedCardDef.name}</p>
+          <p className="mt-1 text-xs text-slate-400">Deploy from the Champion zone for {selectedCardDef.cost ?? 0} energy.</p>
+          <button className="btn-primary mt-3 w-full" onClick={() => deployChampionFromZone(selectedInstance.instanceId)}>
+            Deploy Champion
+          </button>
         </div>
       ) : null}
 

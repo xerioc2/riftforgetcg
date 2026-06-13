@@ -375,10 +375,45 @@ public class RulesValidator {
     if (champion && card.getZone() != ZoneName.CHAMPION && card.getZone() != ZoneName.BASE) {
       throw new IllegalMoveException("Only Champions from your champion zone or base can move to the battlefield.");
     }
-    if (champion && card.getZone() == ZoneName.CHAMPION && playerEnergy(state, move.playerId()) < Math.max(0, def.cost())) {
+    if (card.getZone() != ZoneName.CHAMPION
+        && (!move.paymentRuneIds().isEmpty() || !move.premiumRuneIds().isEmpty())) {
+      throw new IllegalMoveException("Payment runes can only be selected when playing your Champion.");
+    }
+    if (champion && card.getZone() == ZoneName.CHAMPION) {
+      validateMoveToBattlefieldPayment(state, move, def);
+    }
+    if (champion && card.getZone() == ZoneName.CHAMPION && playerEnergy(state, move.playerId()) + selectedPaymentEnergy(state, move.paymentRuneIds()) < Math.max(0, def.cost())) {
       throw new IllegalMoveException("Not enough energy to play " + def.name() + ".");
     }
     if (card.isTapped()) throw new IllegalMoveException("Only ready cards can move to the battlefield.");
+  }
+
+  private void validateMoveToBattlefieldPayment(LiveGameState state, MoveToBattlefieldMove move, CardDefinition def) {
+    Set<String> allRuneIds = new HashSet<>();
+    for (String runeId : move.paymentRuneIds()) {
+      validatePaymentRune(state, move.playerId(), requirePaymentRuneId(runeId));
+      if (!allRuneIds.add(runeId)) throw new IllegalMoveException("Payment cannot use the same rune twice.");
+    }
+    for (String runeId : move.premiumRuneIds()) {
+      RuneState rune = validatePaymentRune(state, move.playerId(), requirePaymentRuneId(runeId));
+      if (!allRuneIds.add(runeId)) throw new IllegalMoveException("Payment cannot use the same rune twice.");
+      if (!runeMatchesCardDomain(rune, def)) throw new IllegalMoveException("Premium payment uses the wrong rune domain.");
+    }
+    int premiumCost = Math.max(0, def.premiumCost());
+    if (move.premiumRuneIds().size() < premiumCost) {
+      throw new IllegalMoveException("Insufficient premium payment.");
+    }
+    if (move.premiumRuneIds().size() > premiumCost) {
+      throw new IllegalMoveException("Too many runes selected for premium payment.");
+    }
+  }
+
+  private int selectedPaymentEnergy(LiveGameState state, List<String> paymentRuneIds) {
+    return paymentRuneIds.stream()
+        .map(this::requirePaymentRuneId)
+        .map(id -> findRune(state, id))
+        .mapToInt(RuneState::getNormalEnergy)
+        .sum();
   }
 
   private void validateHideCard(LiveGameState state, HideCardMove move) {

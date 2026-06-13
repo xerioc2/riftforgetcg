@@ -27,6 +27,8 @@ class CardSupportServiceTest {
         .isEqualTo(CardSupportStatus.SUPPORTED);
     assertThat(service.statusFor(card("vanguard-captain", "Vanguard Captain", "Unit", "[Legion] When you play me, play two Recruit unit tokens here.")))
         .isEqualTo(CardSupportStatus.SUPPORTED);
+    assertThat(service.statusFor(card("stellacorn-herder", "Stellacorn Herder", "Unit", "When I move, draw 1.")))
+        .isEqualTo(CardSupportStatus.SUPPORTED);
   }
 
   @Test
@@ -41,6 +43,16 @@ class CardSupportServiceTest {
     when(cardDataService.isUnsupportedAction("not-so-fast")).thenReturn(true);
 
     assertThat(service.statusFor(spell)).isEqualTo(CardSupportStatus.UNSUPPORTED);
+  }
+
+  @Test
+  void ireliaPartialCardsExposeSpecificReasons() {
+    assertThat(service.summarize(card("tideturner", "Tideturner", "Unit", "[Hidden]")).reason())
+        .contains("Hidden foundation").contains("location swap");
+    assertThat(service.summarize(card("adaptatron", "Adaptatron", "Unit", "When I conquer, you may kill a gear. If you do, buff me.")).reason())
+        .contains("conquer trigger").contains("Buff state");
+    assertThat(service.summarize(card("gust", "Gust", "Spell", "[Reaction] Return a unit at a battlefield with 3 Might or less.")).reason())
+        .contains("Reaction timing").contains("3-or-less-Might");
   }
 
   private CardDefinition card(String id, String name, String type, String rulesText) {

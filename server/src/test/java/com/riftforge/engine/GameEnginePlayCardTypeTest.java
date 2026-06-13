@@ -988,6 +988,22 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void championFromChampionZoneCanBePaidWithSelectedRunes() {
+    LiveGameState state = state(card("champion", "p1", ZoneName.CHAMPION));
+    state.setRunes(new ArrayList<>(List.of(
+        rune("rune-1", "p1", false),
+        rune("rune-2", "p1", false))));
+    stubCard("champion", "Irelia - Fervent", "Champion", 2, 4, 5, "");
+
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "champion", List.of("rune-1", "rune-2"), List.of()));
+
+    CardInstance champion = find(state, "champion");
+    assertThat(champion.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(state.getRunes()).allMatch(RuneState::isTapped);
+    assertThat(state.getPlayers().getFirst().getAvailableEnergy()).isZero();
+  }
+
+  @Test
   void championFromChampionZoneCannotBePlayedOutsideMain() {
     LiveGameState state = state(card("champion", "p1", ZoneName.CHAMPION));
     state.setCurrentPhase(Phase.DRAW);
@@ -1078,6 +1094,37 @@ class GameEnginePlayCardTypeTest {
     engine.applyMove(state, new RepositionCardMove("p1", "drummer", 10, 10));
 
     assertThat(state.getCards()).noneMatch(card -> TokenFactory.RECRUIT_TOKEN_CARD_ID.equals(card.getCardId()));
+  }
+
+  @Test
+  void stellacornHerderDrawsOneWhenMovedToBattlefield() {
+    CardInstance herder = card("herder", "p1", ZoneName.BASE);
+    LiveGameState state = state(herder);
+    state.getPlayers().getFirst().setDeckPool(new ArrayList<>(List.of("drawn-one", "drawn-two")));
+    stubCard("herder", "Stellacorn Herder", "Unit", 0, 2, 2, "When I move, draw 1.");
+    stubCard("drawn-one", "Drawn One", "Unit", 0, 1, 1, null);
+    stubCard("drawn-two", "Drawn Two", "Unit", 0, 1, 1, null);
+
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "herder"));
+
+    assertThat(state.getCards()).anyMatch(card -> card.getCardId().equals("drawn-one") && card.getZone() == ZoneName.HAND);
+    assertThat(state.getCards()).noneMatch(card -> card.getCardId().equals("drawn-two"));
+    assertThat(state.getPlayers().getFirst().getDeckPool()).containsExactly("drawn-two");
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Stellacorn Herder drew 1 after moving."));
+  }
+
+  @Test
+  void stellacornHerderDoesNotDrawWhenRepositioned() {
+    CardInstance herder = card("herder", "p1", ZoneName.BASE);
+    LiveGameState state = state(herder);
+    state.getPlayers().getFirst().setDeckPool(new ArrayList<>(List.of("drawn-one")));
+    stubCard("herder", "Stellacorn Herder", "Unit", 0, 2, 2, "When I move, draw 1.");
+    stubCard("drawn-one", "Drawn One", "Unit", 0, 1, 1, null);
+
+    engine.applyMove(state, new RepositionCardMove("p1", "herder", 10, 10));
+
+    assertThat(state.getCards()).noneMatch(card -> card.getCardId().equals("drawn-one"));
+    assertThat(state.getPlayers().getFirst().getDeckPool()).containsExactly("drawn-one");
   }
 
   @Test

@@ -30,7 +30,8 @@ Current implementation notes:
 - `CardSupportService` assigns conservative support metadata: Supported,
   Partial, Unsupported, Banned, or Not Audited.
 - Current fully supported starter-deck cards are limited to basic runes,
-  Vanguard Sergeant, Daring Poro, and Laurent Duelist.
+  Vanguard Sergeant, Daring Poro, Laurent Duelist, Noxian Drummer,
+  Loyal Poro, Vanguard Captain, and Stellacorn Herder.
 - Ready validation can optionally enforce supported-cards-only mode, blocking
   Unsupported or Not Audited cards while surfacing Partial cards as warnings.
 - The deck builder imports and exports tournament-style sections: Legend,
@@ -414,6 +415,9 @@ Current implementation notes:
   scripts. Noxian Drummer's move-to-battlefield trigger and Vanguard Captain's
   Legion token trigger are card-specific Supported in the single-battlefield
   alpha.
+- Stellacorn Herder's full printed movement trigger is card-specific
+  Supported in the single-battlefield alpha: Base/battlefield movement draws 1,
+  and same-zone repositioning does not trigger it.
 
 Known gaps:
 - The handler registry is a scaffold; several tracked keywords still need

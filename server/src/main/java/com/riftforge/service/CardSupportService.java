@@ -7,6 +7,7 @@ import com.riftforge.rules.TournamentLegality;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +23,19 @@ public class CardSupportService {
       "LAURENT DUELIST",
       "NOXIAN DRUMMER",
       "LOYAL PORO",
-      "VANGUARD CAPTAIN");
+      "VANGUARD CAPTAIN",
+      "STELLACORN HERDER");
+
+  private static final Map<String, String> PARTIAL_REASONS = Map.ofEntries(
+      Map.entry("IRELIA - FERVENT", "Partial: Deflect targeting tax is heuristic, and the choose/ready +1 Might trigger is not implemented yet."),
+      Map.entry("DISCIPLINE", "Partial: draw 1 and selected +2 Might are helper-backed, but Reaction timing is missing."),
+      Map.entry("TIDETURNER", "Partial: Hidden foundation exists, but later hidden play timing and the on-play location swap are not implemented yet."),
+      Map.entry("GUARDIAN ANGEL", "Partial: basic Equip lifecycle exists, but exact Calm power payment and official Equip timing remain incomplete."),
+      Map.entry("BOOTS OF SWIFTNESS", "Partial: basic Equip lifecycle exists, but exact Chaos power payment and official Equip timing remain incomplete."),
+      Map.entry("ABANDONED HALL", "Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely."),
+      Map.entry("ADAPTATRON", "Partial: conquer trigger, optional gear kill, and official Buff state are not implemented yet."),
+      Map.entry("EN GARDE", "Partial: selected friendly +Might is helper-backed, but Reaction timing remains incomplete."),
+      Map.entry("GUST", "Partial: selected return-to-hand is helper-backed, but Reaction timing and the 3-or-less-Might target filter remain incomplete."));
 
   private final CardDataService cardDataService;
 
@@ -64,7 +77,7 @@ public class CardSupportService {
   private String reasonFor(CardDefinition card, CardSupportStatus status) {
     return switch (status) {
       case SUPPORTED -> "Implemented and covered by current support policy.";
-      case PARTIAL -> "Playable for alpha testing, but card-specific behavior may be incomplete.";
+      case PARTIAL -> PARTIAL_REASONS.getOrDefault(normalize(card.name()), "Playable for alpha testing, but card-specific behavior may be incomplete.");
       case UNSUPPORTED -> "This card's effect is not supported in enforced play yet.";
       case BANNED -> "This card is banned in the current Constructed format.";
       case NOT_AUDITED -> "This card has not been audited for RiftForge support.";

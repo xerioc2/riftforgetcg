@@ -13,6 +13,19 @@ const SUPPORTED_CARD_NAMES = new Set([
   'NOXIAN DRUMMER',
   'LOYAL PORO',
   'VANGUARD CAPTAIN',
+  'STELLACORN HERDER',
+]);
+
+const PARTIAL_REASONS = new Map<string, string>([
+  ['IRELIA - FERVENT', 'Partial: Deflect targeting tax is heuristic, and the choose/ready +1 Might trigger is not implemented yet.'],
+  ['DISCIPLINE', 'Partial: draw 1 and selected +2 Might are helper-backed, but Reaction timing is missing.'],
+  ['TIDETURNER', 'Partial: Hidden foundation exists, but later hidden play timing and the on-play location swap are not implemented yet.'],
+  ['GUARDIAN ANGEL', 'Partial: basic Equip lifecycle exists, but exact Calm power payment and official Equip timing remain incomplete.'],
+  ['BOOTS OF SWIFTNESS', 'Partial: basic Equip lifecycle exists, but exact Chaos power payment and official Equip timing remain incomplete.'],
+  ['ABANDONED HALL', 'Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.'],
+  ['ADAPTATRON', 'Partial: conquer trigger, optional gear kill, and official Buff state are not implemented yet.'],
+  ['EN GARDE', 'Partial: selected friendly +Might is helper-backed, but Reaction timing remains incomplete.'],
+  ['GUST', 'Partial: selected return-to-hand is helper-backed, but Reaction timing and the 3-or-less-Might target filter remain incomplete.'],
 ]);
 
 export type DeckSupportEntry = {
@@ -26,10 +39,11 @@ export function cardSupportStatus(card: RiftCard | undefined): { status: CardSup
   if (isBannedInConstructed(card)) return { status: 'BANNED', reason: 'Not legal in constructed.' };
   const unsupportedReason = unsupportedCardReason(card);
   if (unsupportedReason) return { status: 'UNSUPPORTED', reason: `Blocked in enforced play: ${unsupportedReason}` };
-  if (SUPPORTED_CARD_NAMES.has(card.name.trim().toUpperCase().replace('’', "'"))) {
+  const normalizedName = normalizeCardName(card.name);
+  if (SUPPORTED_CARD_NAMES.has(normalizedName)) {
     return { status: 'SUPPORTED', reason: 'Implemented and covered by current support policy.' };
   }
-  return { status: 'PARTIAL', reason: 'Playable for alpha testing, but rules may be incomplete.' };
+  return { status: 'PARTIAL', reason: PARTIAL_REASONS.get(normalizedName) ?? 'Playable for alpha testing, but rules may be incomplete.' };
 }
 
 export function deckSupportEntries(deck: Deck | undefined, cardsById: Map<string, RiftCard>): DeckSupportEntry[] {
@@ -50,4 +64,8 @@ export function unsupportedDeckEntries(deck: Deck | undefined, cardsById: Map<st
   return deckSupportEntries(deck, cardsById)
     .filter((entry) => entry.status === 'UNSUPPORTED' || entry.status === 'NOT_AUDITED')
     .map(({ card, reason }) => ({ card, reason }));
+}
+
+function normalizeCardName(name: string) {
+  return name.trim().toUpperCase().replace('’', "'");
 }

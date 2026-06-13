@@ -10,7 +10,7 @@ export type MoveRequest =
   | { type: 'PLAY_CARD'; playerId: string; instanceId: string; targetZone: string; x: number; y: number; targetInstanceId?: string; accelerate?: boolean; paymentRuneIds?: string[]; premiumRuneIds?: string[] }
   | { type: 'MOVE_CARD'; playerId: string; instanceId: string; targetZone: string; x: number; y: number }
   | { type: 'REPOSITION_CARD'; playerId: string; instanceId: string; x: number; y: number }
-  | { type: 'MOVE_TO_BATTLEFIELD'; playerId: string; instanceId: string }
+  | { type: 'MOVE_TO_BATTLEFIELD'; playerId: string; instanceId: string; paymentRuneIds?: string[]; premiumRuneIds?: string[] }
   | { type: 'TAP_RUNE'; playerId: string; runeInstanceId: string }
   | { type: 'DISCARD_RUNE'; playerId: string; runeInstanceId: string }
   | { type: 'MULLIGAN'; playerId: string; discardInstanceIds: string[] }
