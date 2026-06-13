@@ -831,6 +831,27 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void attachedGearReturnsToBaseWhenChampionHostReturnsToChampionZoneByCleanup() {
+    CardInstance spell = card("spell", "p1", ZoneName.HAND);
+    CardInstance champion = card("champion", "p2", ZoneName.BATTLEFIELD);
+    champion.setCurrentHealth(0);
+    CardInstance gear = card("equip", "p2", ZoneName.BASE);
+    gear.setAttachedToInstanceId("champion");
+    LiveGameState state = state(spell, champion, gear);
+    stubCard("spell", "Simple Spell", "Spell", 0, 0, 0, "Draw 1.");
+    stubCard("champion", "Equipped Champion", "Champion", 0, 3, 4, null);
+    stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+
+    engine.applyMove(state, play("spell", ZoneName.BASE));
+
+    assertThat(champion.getZone()).isEqualTo(ZoneName.CHAMPION);
+    assertThat(champion.isHasSummoningSickness()).isTrue();
+    assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(gear.getAttachedToInstanceId()).isNull();
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Equip Gear returned to Base."));
+  }
+
+  @Test
   void attachedGearCannotBeReequippedNormally() {
     CardInstance gear = card("equip", "p1", ZoneName.BASE);
     gear.setAttachedToInstanceId("host");

@@ -210,8 +210,9 @@ Current implementation notes:
   host for readability.
 - Gear cannot move to the battlefield or fight as a unit.
 - Non-equip gear is treated as unsupported.
-- Gear attached to a unit/champion returns to Base and detaches when its host is
-  destroyed or returned to hand.
+- Gear attached to a unit/champion returns to Base and detaches when its host
+  leaves public play, including death, return-to-hand effects, or a Champion
+  returning to the Champion zone.
 
 Known gaps:
 - Official equipment timing, Equip payment/domain precision, Quick-Draw,

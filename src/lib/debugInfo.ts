@@ -2,6 +2,8 @@ import type { LiveGameState } from '../types';
 
 export type DebugInfoPayload = {
   app: 'RiftForge';
+  appVersion: string;
+  buildTag: string;
   roomCode: string;
   phase: string;
   activePlayerId: string;
@@ -22,6 +24,8 @@ type BuildDebugInfoInput = {
   player: { id: string; name: string };
   lastError?: string | null;
   serverUrl: string;
+  appVersion: string;
+  buildTag: string;
   generatedAt?: string;
 };
 
@@ -31,10 +35,14 @@ export function buildDebugInfo({
   player,
   lastError,
   serverUrl,
+  appVersion,
+  buildTag,
   generatedAt = new Date().toISOString(),
 }: BuildDebugInfoInput): DebugInfoPayload {
   return {
     app: 'RiftForge',
+    appVersion,
+    buildTag,
     roomCode,
     phase: state?.currentPhase ?? 'unknown',
     activePlayerId: state?.activePlayerId ?? 'unknown',

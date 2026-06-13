@@ -8,6 +8,12 @@ body:
       value: |
         Thanks for testing RiftForge. Please do not paste session tokens or hidden opponent information.
   - type: input
+    id: build_version
+    attributes:
+      label: Build/release version
+      description: Use the value from Alpha limits or copied debug info if available.
+      placeholder: "Example: 0.1.0-alpha (v0.1.0-alpha.4)"
+  - type: input
     id: room_code
     attributes:
       label: Room code
@@ -26,6 +32,14 @@ body:
     attributes:
       label: Game mode
       placeholder: "ENFORCED, SANDBOX, unknown"
+  - type: dropdown
+    id: supported_cards_only
+    attributes:
+      label: Supported-cards-only mode
+      options:
+        - "No"
+        - "Yes"
+        - "Not sure"
   - type: textarea
     id: players
     attributes:

@@ -4,6 +4,12 @@ title: "[Card] "
 labels: ["card behavior bug"]
 body:
   - type: input
+    id: build_version
+    attributes:
+      label: Build/release version
+      description: Use the value from Alpha limits or copied debug info if available.
+      placeholder: "Example: 0.1.0-alpha (v0.1.0-alpha.4)"
+  - type: input
     id: card
     attributes:
       label: Card name
@@ -28,6 +34,14 @@ body:
     attributes:
       label: Game mode
       placeholder: "ENFORCED, SANDBOX, unknown"
+  - type: dropdown
+    id: supported_cards_only
+    attributes:
+      label: Supported-cards-only mode
+      options:
+        - "No"
+        - "Yes"
+        - "Not sure"
   - type: textarea
     id: players
     attributes:
@@ -46,6 +60,13 @@ body:
     id: actual
     attributes:
       label: Actual RiftForge behavior
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. Start a game...\n2. Draw/play the card...\n3. Choose..."
     validations:
       required: true
   - type: textarea

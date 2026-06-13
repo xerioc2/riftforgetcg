@@ -4,6 +4,9 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 
 ## What Should I Test?
 
+- Install or launch the latest alpha build from GitHub Releases, or start the local dev server if testing from source.
+- Create a room or join one with a room code.
+- Select a deck in the lobby, review support warnings, then Ready and Start.
 - Start a human vs RiftBot or human vs human game.
 - Keep your opening hand or mulligan at least one card.
 - Play a Unit and confirm it stays visible in Base.
@@ -21,7 +24,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Resolve a showdown.
 - Trigger or inspect an unsupported-card message.
 - Check support badges in the deck builder, hand, hover preview, and inspect modal.
-- Use Report issue or Copy debug info if anything looks stuck or confusing.
+- Use Report issue or Copy debug info if anything looks stuck or confusing. Include the build version from Alpha limits or copied debug info.
 
 ## Morning Smoke Test
 
@@ -50,7 +53,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Check your hand remains visible to you and opponent hands remain masked.
 - Trigger one invalid action and confirm the visible error is understandable.
 - Use Copy debug info if stuck and confirm it omits hidden hand/deck contents.
-- When filing a GitHub issue, include room code, phase, active player, last error, expected behavior, actual behavior, and screenshots/logs if useful.
+- When filing a GitHub issue, include build version, room code, phase, active player, last error, expected behavior, actual behavior, whether supported-cards-only was enabled, and screenshots/logs if useful.
 
 ## Human vs RiftBot
 

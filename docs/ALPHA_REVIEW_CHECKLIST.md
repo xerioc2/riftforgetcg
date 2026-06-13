@@ -68,8 +68,9 @@ Use this checklist before public alpha builds, release notes, or larger mechanic
 - Non-Equip Gear remains unsupported in enforced play.
 - Equipped Gear stays in Base with an attachment link instead of going to Trash immediately.
 - Gear cannot move to battlefield or fight as a unit.
-- Attached Gear returns to Base when the host dies or returns to hand.
+- Attached Gear returns to Base when the host dies, returns to hand, or a Champion host returns to the Champion zone.
 - Guardian Angel and Boots of Swiftness remain Partial until timing/payment/card text are fully modeled.
+- Quick-Draw and Weaponmaster remain deferred for post-alpha equipment work.
 
 ## UI And Log Readability
 
@@ -77,7 +78,7 @@ Use this checklist before public alpha builds, release notes, or larger mechanic
 - Available action hints come from server-projected legal actions.
 - Invalid moves show visible, friendly errors.
 - Game log entries identify plays, targets, equips, movement, showdowns, scoring, unsupported effects, and bot activity clearly enough for bug reports.
-- Copy debug info includes only room/phase/player/opponent IDs, turn, mode, showdown flag, last error, server URL, and timestamp.
+- Copy debug info includes only app version/build tag, room/phase/player/opponent IDs, turn, mode, showdown flag, last error, server URL, and timestamp.
 - Copy debug info excludes card lists, hand contents, Hidden contents, deck/rune deck contents, Vision peek data, logs, and session tokens.
 
 ## Support Messaging

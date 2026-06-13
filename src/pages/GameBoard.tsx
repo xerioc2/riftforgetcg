@@ -16,6 +16,7 @@ import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
 import { readableHttpError } from '../lib/http';
 import { hasUnsupportedAdditionalCost, isActionCard, isAmbushCard, isEquipCard, isLegalTargetForMode, isReactionCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode } from '../lib/cardActions';
+import { appBuildLabel, APP_VERSION, BUILD_TAG } from '../lib/appMetadata';
 import { buildDebugInfo } from '../lib/debugInfo';
 import { isBotPlayer, legalActionHint, phaseGuidance, waitingStatusText } from '../lib/gameGuidance';
 import { useLocalPlayer } from '../lib/playerContext';
@@ -39,7 +40,8 @@ const ALPHA_LIMITATIONS = [
   'Reaction and chain/counterspell timing are not fully implemented.',
   'Hidden cards can be hidden, but play-from-hidden timing is incomplete.',
   'Ambush-as-Reaction and additional-cost Ambush cards are incomplete.',
-  'XP, Hunt, Level, Buff, and Predict/top-deck ordering are not implemented yet.',
+  'Quick-Draw, Weaponmaster, XP, Hunt, Level, and Buff are deferred.',
+  'Predict/top-deck ordering is partial and not rules-complete yet.',
   'Some cards are Partial or Unsupported; support badges and ready warnings are the source of truth.',
 ];
 
@@ -774,18 +776,20 @@ export function GameBoard() {
       player,
       lastError,
       serverUrl: getGameServerUrl(),
+      appVersion: APP_VERSION,
+      buildTag: BUILD_TAG,
     });
 
   const copyDebugInfo = async () => {
     const payload = buildCurrentDebugInfo();
     await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
-    notifySuccess('Debug info copied', 'Paste it into your bug report with screenshots or reproduction steps.');
+    notifySuccess('Debug info copied', 'It is safe to paste publicly. Add screenshots or reproduction steps if you have them.');
   };
 
   const reportIssue = async () => {
     const payload = buildCurrentDebugInfo();
     await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
-    notifySuccess('Debug info copied', 'Paste it into the GitHub issue form with screenshots and steps.');
+    notifySuccess('Debug info copied', 'It is safe to paste publicly. Paste it into the GitHub issue form with screenshots and steps.');
     window.open(GITHUB_ISSUES_URL, '_blank', 'noopener,noreferrer');
   };
 
@@ -1493,6 +1497,7 @@ export function GameBoard() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Public alpha</p>
                 <h2 className="mt-1 text-xl font-semibold text-forge">Known playtest limitations</h2>
+                <p className="mt-1 text-xs text-slate-500">Build {appBuildLabel()}</p>
               </div>
               <button className="icon-btn" aria-label="Close alpha limitations" onClick={() => setShowAlphaInfo(false)}>
                 x
