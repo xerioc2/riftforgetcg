@@ -447,6 +447,11 @@ class BotServicePhaseFlowTest {
     LiveGameState state = gameService.currentState(roomCode);
     state.setActivePlayerId(BOT_ID);
     state.setCurrentPhase(Phase.MAIN);
+    state.getPlayers().stream()
+        .filter(player -> BOT_ID.equals(player.getUserId()))
+        .findFirst()
+        .orElseThrow()
+        .setAvailableEnergy(99);
     state.getCards().stream()
         .filter(card -> BOT_ID.equals(card.getOwnerId()) && card.getZone() == ZoneName.CHAMPION)
         .forEach(card -> card.setTapped(false));

@@ -208,8 +208,13 @@ public class BotService {
   private boolean doMain(String roomCode, LiveGameState state, String botId) {
     boolean acted = false;
     if (legalActions(state, botId).contains(LegalAction.MOVE_TO_BATTLEFIELD)) {
+      int availableEnergy = botEnergy(state, botId);
       List<CardInstance> readyChampions = state.getCards().stream()
           .filter(c -> botId.equals(c.getOwnerId()) && c.getZone() == ZoneName.CHAMPION && !c.isTapped())
+          .filter(c -> {
+            CardDefinition def = cardDataService.getCard(c.getCardId());
+            return def != null && def.cost() <= availableEnergy;
+          })
           .toList();
       for (CardInstance champion : readyChampions) {
         Set<LegalAction> actions = legalActions(state, botId);

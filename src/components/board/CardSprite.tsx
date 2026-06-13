@@ -106,7 +106,12 @@ export function CardSprite({
       rotation={instance.tapped ? 90 : 0}
       visible={!isDiscarded}
       draggable={isOwner}
-      onDragEnd={(event) => onDragEnd(instance.instanceId, event.target.x(), event.target.y())}
+      onDragEnd={(event) => {
+        const attemptedX = event.target.x();
+        const attemptedY = event.target.y();
+        onDragEnd(instance.instanceId, attemptedX, attemptedY);
+        event.target.position({ x: instance.x, y: instance.y });
+      }}
       onClick={() => onClick(instance.instanceId)}
       onTap={() => onClick(instance.instanceId)}
       onMouseEnter={() => onHover?.(instance.faceDown ? null : cardDef, instance.faceDown ? undefined : instance)}

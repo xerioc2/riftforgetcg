@@ -25,7 +25,7 @@ import { createGameClient, joinGame, sendMove } from '../lib/stompGame';
 import { useCardStore } from '../store/cards';
 import { useGameStore } from '../store/game';
 import { notifyError, notifySuccess, notifyWarning, useToastStore } from '../store/toasts';
-import type { CardInstance, LegalAction, LiveGameState, RevealedHandSnapshot, RiftCard, ZoneName } from '../types';
+import type { CardInstance, LegalAction, LiveGameState, PendingCardChoiceAssignment, RevealedHandSnapshot, RiftCard, ZoneName } from '../types';
 
 const NAV_HEIGHT = 73;
 const SIDEBAR_WIDTH = 280;
@@ -107,6 +107,9 @@ export function GameBoard() {
   const [pendingTargetSelection, setPendingTargetSelection] = useState<{ instanceId: string; mode: TargetMode } | null>(null);
   const [pendingAccelerate, setPendingAccelerate] = useState<{ instanceId: string; card: RiftCard } | null>(null);
   const [pendingVision, setPendingVision] = useState<{ logId: string; cardId: string; cardName: string } | null>(null);
+  const [choiceSubmitting, setChoiceSubmitting] = useState(false);
+  const [selectedChoiceCardOptionId, setSelectedChoiceCardOptionId] = useState<string | null>(null);
+  const [choiceAssignments, setChoiceAssignments] = useState<PendingCardChoiceAssignment[]>([]);
   const [pendingRuneTaps, setPendingRuneTaps] = useState<Set<string>>(new Set());
   const [mulliganDiscardIds, setMulliganDiscardIds] = useState<Set<string>>(new Set());
   const [showAlphaInfo, setShowAlphaInfo] = useState(false);
@@ -188,6 +191,12 @@ export function GameBoard() {
       setMulliganDiscardIds(new Set());
     }
   }, [handInstanceKey, hasMulliganed, state?.currentPhase]);
+
+  useEffect(() => {
+    setChoiceSubmitting(false);
+    setSelectedChoiceCardOptionId(null);
+    setChoiceAssignments([]);
+  }, [state?.pendingChoice?.choiceId]);
 
   useEffect(() => {
     const activePlayer = state?.players.find((statePlayer) => statePlayer.userId === state.activePlayerId);
@@ -353,6 +362,10 @@ export function GameBoard() {
     sendMove(stompClientRef.current, roomCode, move);
     window.setTimeout(fetchProjectedState, 300);
   };
+
+  useEffect(() => {
+    if (!state?.pendingChoice) setChoiceSubmitting(false);
+  }, [state?.pendingChoice]);
 
   const handleCardHover = (card: RiftCard | null, instance?: CardInstance) => {
     if (previewShowTimer.current != null) window.clearTimeout(previewShowTimer.current);
@@ -566,22 +579,40 @@ export function GameBoard() {
   };
 
   const moveInstance = (instanceId: string, x: number, y: number) => {
-    const instance = state?.cards.find((card) => card.instanceId === instanceId);
+    if (!state) return;
+    const instance = state.cards.find((card) => card.instanceId === instanceId);
     if (!instance) return;
     if (instance.attachedToInstanceId) {
       notifyWarning('Attached gear', 'Attached Equipment follows its host and cannot be moved directly.');
       return;
     }
     const zone = pointZone(x, y, zones, instance.zone);
+    if (sameZone(instance.zone, 'legend') && sameZone(zone, 'battlefield') && instance.ownerId === player.id) {
+      notifyWarning('Legend unavailable', 'Legends cannot be moved to the battlefield in this alpha model.');
+      window.setTimeout(fetchProjectedState, 100);
+      return;
+    }
     if ((sameZone(instance.zone, 'base') || sameZone(instance.zone, 'champion')) && sameZone(zone, 'battlefield') && instance.ownerId === player.id) {
       if (!canTakeAction(state, 'MOVE_TO_BATTLEFIELD')) {
-        notifyWarning('Action unavailable', 'Units can move to a battlefield only when the server marks that action legal.');
+        notifyWarning(
+          'Action unavailable',
+          sameZone(instance.zone, 'champion')
+            ? 'You can only play your Champion during a legal play window.'
+            : 'Units can move to a battlefield only when the server marks that action legal.',
+        );
+        window.setTimeout(fetchProjectedState, 100);
         return;
       }
       const cardDef = cardsById.get(instance.cardId);
       const type = cardDef?.type?.toLowerCase();
       if (type !== 'unit' && type !== 'champion') {
         notifyWarning('Cannot start showdown', 'Only Units and Champions can move to the battlefield.');
+        window.setTimeout(fetchProjectedState, 100);
+        return;
+      }
+      if (sameZone(instance.zone, 'champion') && (state.players.find((candidate) => candidate.userId === player.id)?.availableEnergy ?? 0) < (cardDef?.cost ?? 0)) {
+        notifyWarning('Not enough energy', `${cardDef?.name ?? 'Your Champion'} needs ${cardDef?.cost ?? 0} available energy to play.`);
+        window.setTimeout(fetchProjectedState, 100);
         return;
       }
       publishMove({ type: 'MOVE_TO_BATTLEFIELD', playerId: player.id, instanceId });
@@ -596,6 +627,7 @@ export function GameBoard() {
     }
     if (!canTakeAction(state, 'SANDBOX_MOVE_CARD')) {
       notifyWarning('Sandbox only', 'Free-form card movement is only available in Sandbox games.');
+      window.setTimeout(fetchProjectedState, 100);
       return;
     }
     publishMove({ type: 'MOVE_CARD', playerId: player.id, instanceId, targetZone: zone.toUpperCase().replace(/-/g, '_'), x: snappedX, y: snappedY });
@@ -779,6 +811,7 @@ export function GameBoard() {
   const isMyTurn = state.activePlayerId === player.id;
   const showdownActive = Boolean(state.activeShowdown);
   const canPlayCards = canTakeAction(state, 'PLAY_CARD');
+  const canResolveChoice = canTakeAction(state, 'RESOLVE_CHOICE');
   const canMoveToBattlefield = canTakeAction(state, 'MOVE_TO_BATTLEFIELD');
   const canResolveShowdown = canTakeAction(state, 'RESOLVE_SHOWDOWN');
   const canPlayReactions = false;
@@ -840,6 +873,33 @@ export function GameBoard() {
 
     return { instance, displayInstance: instance };
   });
+  const canDragBoardCard = (instance: CardInstance, cardDef: RiftCard) => {
+    if (instance.ownerId !== player.id || instance.attachedToInstanceId) return false;
+    if (sameZone(instance.zone, 'legend')) return false;
+    if (sameZone(instance.zone, 'champion')) {
+      return cardDef.type?.toLowerCase() === 'champion'
+        && canMoveToBattlefield
+        && isMyTurn
+        && !showdownActive
+        && !instance.tapped
+        && (me?.availableEnergy ?? 0) >= (cardDef.cost ?? 0);
+    }
+    if (sameZone(instance.zone, 'base') || sameZone(instance.zone, 'battlefield')) {
+      return canMoveToBattlefield || canTakeAction(state, 'REPOSITION_CARD') || canTakeAction(state, 'SANDBOX_MOVE_CARD');
+    }
+    return canTakeAction(state, 'SANDBOX_MOVE_CARD');
+  };
+  const pendingChoice = state.pendingChoice;
+  const pendingCardOptions = pendingChoice?.cardOptions ?? [];
+  const isTopDeckChoice = pendingChoice?.type === 'TOP_DECK_PICK_ONE';
+  const isPredictChoice = pendingChoice?.type === 'PREDICT_ORDER';
+  const predictChoiceReady = isPredictChoice && pendingCardOptions.length > 0 && choiceAssignments.length === pendingCardOptions.length;
+  const assignChoiceCard = (optionId: string, action: 'TOP' | 'BOTTOM') => {
+    setChoiceAssignments((current) => {
+      const withoutOption = current.filter((assignment) => assignment.optionId !== optionId);
+      return [...withoutOption, { optionId, action, order: withoutOption.length }];
+    });
+  };
 
   return (
     <main className="relative overflow-hidden bg-ink text-slate-100" style={{ height: `calc(100vh - ${NAV_HEIGHT}px)` }}>
@@ -900,7 +960,7 @@ export function GameBoard() {
                   key={instance.instanceId}
                   instance={displayInstance}
                   cardDef={cardDef}
-                  isOwner={instance.ownerId === player.id && !instance.attachedToInstanceId}
+                  isOwner={canDragBoardCard(instance, cardDef)}
                   selected={selectedInstanceId === instance.instanceId}
                   onDragEnd={moveInstance}
                   onClick={handleCardClick}
@@ -1135,6 +1195,133 @@ export function GameBoard() {
               >
                 Keep on top
               </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+      {pendingChoice ? (
+        <div className="absolute inset-0 z-40 grid place-items-center bg-ink/85 px-5">
+          <section className={`w-full ${pendingCardOptions.length > 0 ? 'max-w-4xl' : 'max-w-md'} border border-forge/60 bg-[#05080d] p-5 text-slate-100 shadow-[0_18px_60px_rgba(0,0,0,0.78)] ring-1 ring-white/5`}>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Choice pending</p>
+            <h2 className="mt-1 text-lg font-semibold text-forge">{pendingChoice.prompt}</h2>
+            {pendingChoice.sourceCardId ? (
+              <p className="mt-2 text-sm text-slate-400">
+                Source: {cardsById.get(pendingChoice.sourceCardId)?.name ?? pendingChoice.sourceCardId}
+              </p>
+            ) : null}
+            {pendingCardOptions.length > 0 ? (
+              <div className="mt-5 grid gap-3 md:grid-cols-3">
+                {pendingCardOptions.map((option) => {
+                  const selected = selectedChoiceCardOptionId === option.optionId;
+                  const assignment = choiceAssignments.find((item) => item.optionId === option.optionId);
+                  return (
+                    <div
+                      key={option.optionId}
+                      className={`border bg-panel/95 p-3 shadow-lg ${selected ? 'border-forge' : 'border-line'} ${assignment ? 'opacity-80' : ''}`}
+                    >
+                      {option.imageUrl ? (
+                        <img src={option.imageUrl} alt={option.name} className="mx-auto aspect-[5/7] max-h-48 rounded border border-line object-cover" />
+                      ) : (
+                        <div className="grid aspect-[5/7] max-h-48 place-items-center border border-line bg-ink text-sm text-slate-400">{option.name}</div>
+                      )}
+                      <h3 className="mt-3 text-sm font-semibold text-slate-100">{option.name}</h3>
+                      {option.rulesText ? <p className="mt-2 max-h-20 overflow-auto text-xs leading-relaxed text-slate-300">{option.rulesText}</p> : null}
+                      {isTopDeckChoice ? (
+                        <button
+                          type="button"
+                          className={`mt-3 w-full ${selected ? 'btn-primary' : 'btn-secondary'}`}
+                          onClick={() => setSelectedChoiceCardOptionId(option.optionId)}
+                        >
+                          {selected ? 'Selected' : 'Choose for hand'}
+                        </button>
+                      ) : null}
+                      {isPredictChoice ? (
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            className={assignment?.action === 'TOP' ? 'btn-primary' : 'btn-secondary'}
+                            disabled={choiceSubmitting}
+                            onClick={() => assignChoiceCard(option.optionId, 'TOP')}
+                          >
+                            Top
+                          </button>
+                          <button
+                            type="button"
+                            className={assignment?.action === 'BOTTOM' ? 'btn-primary' : 'btn-secondary'}
+                            disabled={choiceSubmitting}
+                            onClick={() => assignChoiceCard(option.optionId, 'BOTTOM')}
+                          >
+                            Bottom
+                          </button>
+                        </div>
+                      ) : null}
+                      {assignment ? <p className="mt-2 text-xs text-forge">Assigned {assignment.action.toLowerCase()}.</p> : null}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
+            <div className="mt-5 flex flex-wrap justify-end gap-3">
+              {isTopDeckChoice ? (
+                <button
+                  className="btn-primary"
+                  disabled={!canResolveChoice || choiceSubmitting || !selectedChoiceCardOptionId}
+                  onClick={() => {
+                    if (!canResolveChoice || !pendingChoice || !selectedChoiceCardOptionId) {
+                      notifyWarning('Choice unavailable', 'Choose one card before resolving this effect.');
+                      return;
+                    }
+                    setChoiceSubmitting(true);
+                    publishMove({
+                      type: 'RESOLVE_CHOICE',
+                      playerId: player.id,
+                      choiceId: pendingChoice.choiceId,
+                      selectedCardOptionId: selectedChoiceCardOptionId,
+                      selectedAction: 'HAND',
+                    });
+                  }}
+                >
+                  {choiceSubmitting ? 'Submitting...' : 'Put selected into hand'}
+                </button>
+              ) : null}
+              {isPredictChoice ? (
+                <button
+                  className="btn-primary"
+                  disabled={!canResolveChoice || choiceSubmitting || !predictChoiceReady}
+                  onClick={() => {
+                    if (!canResolveChoice || !pendingChoice || !predictChoiceReady) {
+                      notifyWarning('Choice unavailable', 'Assign every card to top or bottom before resolving.');
+                      return;
+                    }
+                    setChoiceSubmitting(true);
+                    publishMove({
+                      type: 'RESOLVE_CHOICE',
+                      playerId: player.id,
+                      choiceId: pendingChoice.choiceId,
+                      assignments: choiceAssignments,
+                    });
+                  }}
+                >
+                  {choiceSubmitting ? 'Submitting...' : 'Resolve order'}
+                </button>
+              ) : null}
+              {!isTopDeckChoice && !isPredictChoice ? pendingChoice.options.map((option) => (
+                <button
+                  key={option.id}
+                  className={option.id === 'NO' || option.id === 'DECLINE' ? 'btn-secondary' : 'btn-primary'}
+                  disabled={!canResolveChoice || choiceSubmitting}
+                  onClick={() => {
+                    if (!canResolveChoice || !pendingChoice) {
+                      notifyWarning('Choice unavailable', 'The server has not approved resolving this choice yet.');
+                      return;
+                    }
+                    setChoiceSubmitting(true);
+                    publishMove({ type: 'RESOLVE_CHOICE', playerId: player.id, choiceId: pendingChoice.choiceId, selectedOptionId: option.id });
+                  }}
+                >
+                  {choiceSubmitting ? 'Submitting...' : option.label}
+                </button>
+              )) : null}
             </div>
           </section>
         </div>

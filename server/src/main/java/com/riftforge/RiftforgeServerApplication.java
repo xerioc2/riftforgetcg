@@ -2,6 +2,7 @@ package com.riftforge;
 
 import com.riftforge.model.move.*;
 import com.riftforge.model.MatchRecord;
+import com.riftforge.model.PendingChoice;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
@@ -30,7 +31,8 @@ public class RiftforgeServerApplication {
           PlayCardMove.class, MoveCardMove.class, RepositionCardMove.class, TapRuneMove.class,
           DiscardRuneMove.class, MoveToBattlefieldMove.class,
           MulliganMove.class, UndoRunesMove.class, PassPhaseMove.class, ResolveShowdownMove.class, AdjustScoreMove.class, VisionChoiceMove.class,
-          DismissRevealedMove.class, HideCardMove.class, EquipGearMove.class,
+          DismissRevealedMove.class, HideCardMove.class, EquipGearMove.class, ResolveChoiceMove.class,
+          PendingChoice.class, PendingChoice.ChoiceOption.class, PendingChoice.CardChoiceOption.class, PendingChoice.CardChoiceAssignment.class,
           MatchRecord.class, MatchRecord.PlayerSummary.class
       }) {
         hints.reflection().registerType(type, all);

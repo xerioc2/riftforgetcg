@@ -4,6 +4,7 @@ import com.riftforge.model.CardDefinition;
 import com.riftforge.model.CardInstance;
 import com.riftforge.model.GameMode;
 import com.riftforge.model.LiveGameState;
+import com.riftforge.model.PendingChoice;
 import com.riftforge.model.Phase;
 import com.riftforge.model.RuneState;
 import com.riftforge.model.ZoneName;
@@ -33,6 +34,13 @@ public class RulesValidator {
 
   public void validate(LiveGameState state, MoveRequest move) {
     if (move instanceof DismissRevealedMove) return;
+    if (move instanceof ResolveChoiceMove choice) {
+      validateResolveChoice(state, choice);
+      return;
+    }
+    if (state.getPendingChoice() != null) {
+      throw new IllegalMoveException("Resolve the pending choice before taking another action.");
+    }
     if (state.getCurrentPhase() == Phase.MULLIGAN) {
       if (move instanceof MulliganMove mulligan) {
         validateMulligan(state, mulligan);
@@ -68,6 +76,52 @@ public class RulesValidator {
     if (move instanceof RepositionCardMove reposition) { validateRepositionCard(state, reposition); return; }
     if (move instanceof TapRuneMove tapRune) { validateTapRune(state, tapRune); return; }
     if (move instanceof DiscardRuneMove discardRune) validateDiscardRune(state, discardRune);
+  }
+
+  private void validateResolveChoice(LiveGameState state, ResolveChoiceMove move) {
+    PendingChoice choice = state.getPendingChoice();
+    if (choice == null) throw new IllegalMoveException("No choice is pending.");
+    if (!choice.getPlayerId().equals(move.playerId())) throw new IllegalMoveException("That choice belongs to another player.");
+    if (!choice.getChoiceId().equals(move.choiceId())) throw new IllegalMoveException("That choice is no longer pending.");
+    if (PendingChoice.TYPE_TOP_DECK_PICK_ONE.equals(choice.getType())) {
+      boolean validCard = choice.getCardOptions().stream()
+          .anyMatch(option -> option.optionId().equals(move.selectedCardOptionId()));
+      if (!validCard) throw new IllegalMoveException("Choose one of the revealed cards.");
+      return;
+    }
+    if (PendingChoice.TYPE_PREDICT_ORDER.equals(choice.getType())) {
+      validatePredictChoice(choice, move);
+      return;
+    }
+    boolean validOption = choice.getOptions().stream()
+        .anyMatch(option -> option.id().equals(move.selectedOptionId()));
+    if (!validOption) throw new IllegalMoveException("Invalid choice option.");
+    if (PendingChoice.TYPE_OPTIONAL_PAY_1_DRAW_ONE.equals(choice.getType())
+        && PendingChoice.OPTION_PAY_1.equals(move.selectedOptionId())
+        && playerEnergy(state, move.playerId()) < 1) {
+      throw new IllegalMoveException("Insufficient energy for that choice.");
+    }
+  }
+
+  private void validatePredictChoice(PendingChoice choice, ResolveChoiceMove move) {
+    if (move.assignments().size() != choice.getCardOptions().size()) {
+      throw new IllegalMoveException("Choose top or bottom for each revealed card.");
+    }
+    Set<String> optionIds = new HashSet<>();
+    choice.getCardOptions().forEach(option -> optionIds.add(option.optionId()));
+    Set<String> assignedIds = new HashSet<>();
+    for (PendingChoice.CardChoiceAssignment assignment : move.assignments()) {
+      if (!optionIds.contains(assignment.optionId())) {
+        throw new IllegalMoveException("That card is not part of this choice.");
+      }
+      if (!assignedIds.add(assignment.optionId())) {
+        throw new IllegalMoveException("Each revealed card can only be assigned once.");
+      }
+      if (!PendingChoice.ACTION_TOP.equals(assignment.action())
+          && !PendingChoice.ACTION_BOTTOM.equals(assignment.action())) {
+        throw new IllegalMoveException("Choose top or bottom for each revealed card.");
+      }
+    }
   }
 
   private void validateMulligan(LiveGameState state, MulliganMove move) {
@@ -300,13 +354,18 @@ public class RulesValidator {
   }
 
   private void validateMoveToBattlefield(LiveGameState state, MoveToBattlefieldMove move) {
-    requireMain(state);
-    if (state.getActiveShowdown() != null) throw new IllegalMoveException("A showdown is already active.");
     CardInstance card = findCard(state, move.instanceId());
     if (!move.playerId().equals(card.getOwnerId())) throw new IllegalMoveException("You do not own that card.");
     CardDefinition def = cardDataService.getCard(card.getCardId());
     boolean unit = isType(def, "Unit");
     boolean champion = isType(def, "Champion");
+    boolean legend = isType(def, "Legend");
+    if (legend) throw new IllegalMoveException("Legends cannot be moved to the battlefield in this alpha model.");
+    if (champion && card.getZone() == ZoneName.CHAMPION && state.getCurrentPhase() != Phase.MAIN) {
+      throw new IllegalMoveException("You can only play your Champion during a legal play window.");
+    }
+    requireMain(state);
+    if (state.getActiveShowdown() != null) throw new IllegalMoveException("A showdown is already active.");
     if (!unit && !champion) {
       throw new IllegalMoveException("Only Units and Champions can move to the battlefield.");
     }
@@ -315,6 +374,9 @@ public class RulesValidator {
     }
     if (champion && card.getZone() != ZoneName.CHAMPION && card.getZone() != ZoneName.BASE) {
       throw new IllegalMoveException("Only Champions from your champion zone or base can move to the battlefield.");
+    }
+    if (champion && card.getZone() == ZoneName.CHAMPION && playerEnergy(state, move.playerId()) < Math.max(0, def.cost())) {
+      throw new IllegalMoveException("Not enough energy to play " + def.name() + ".");
     }
     if (card.isTapped()) throw new IllegalMoveException("Only ready cards can move to the battlefield.");
   }
@@ -392,5 +454,13 @@ public class RulesValidator {
   private RuneState findRune(LiveGameState state, String id) {
     return state.getRunes().stream().filter(r -> r.getInstanceId().equals(id)).findFirst()
         .orElseThrow(() -> new IllegalMoveException("Rune not found."));
+  }
+
+  private int playerEnergy(LiveGameState state, String playerId) {
+    return state.getPlayers().stream()
+        .filter(player -> playerId.equals(player.getUserId()))
+        .findFirst()
+        .map(player -> player.getAvailableEnergy())
+        .orElse(0);
   }
 }

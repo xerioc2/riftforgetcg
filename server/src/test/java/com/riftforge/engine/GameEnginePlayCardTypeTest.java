@@ -961,6 +961,72 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void championFromChampionZoneRequiresEnoughEnergy() {
+    LiveGameState state = state(card("champion", "p1", ZoneName.CHAMPION));
+    stubCard("champion", "Irelia - Fervent", "Champion", 5, 4, 5, "");
+
+    assertThatThrownBy(() -> engine.applyMove(state, new MoveToBattlefieldMove("p1", "champion")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Not enough energy to play Irelia - Fervent.");
+
+    CardInstance champion = find(state, "champion");
+    assertThat(champion.getZone()).isEqualTo(ZoneName.CHAMPION);
+  }
+
+  @Test
+  void championFromChampionZoneConsumesEnergyWhenPlayed() {
+    LiveGameState state = state(card("champion", "p1", ZoneName.CHAMPION));
+    state.getPlayers().getFirst().setAvailableEnergy(5);
+    stubCard("champion", "Irelia - Fervent", "Champion", 5, 4, 5, "");
+
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "champion"));
+
+    CardInstance champion = find(state, "champion");
+    assertThat(champion.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(state.getPlayers().getFirst().getAvailableEnergy()).isZero();
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Played Irelia - Fervent from the Champion zone."));
+  }
+
+  @Test
+  void championFromChampionZoneCannotBePlayedOutsideMain() {
+    LiveGameState state = state(card("champion", "p1", ZoneName.CHAMPION));
+    state.setCurrentPhase(Phase.DRAW);
+    state.getPlayers().getFirst().setAvailableEnergy(5);
+    stubCard("champion", "Irelia - Fervent", "Champion", 5, 4, 5, "");
+
+    assertThatThrownBy(() -> engine.applyMove(state, new MoveToBattlefieldMove("p1", "champion")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("You can only play your Champion during a legal play window.");
+
+    assertThat(find(state, "champion").getZone()).isEqualTo(ZoneName.CHAMPION);
+  }
+
+  @Test
+  void championCannotBePlayedRepeatedlyForFreeAfterLeavingChampionZone() {
+    LiveGameState state = state(card("champion", "p1", ZoneName.CHAMPION));
+    state.getPlayers().getFirst().setAvailableEnergy(5);
+    stubCard("champion", "Irelia - Fervent", "Champion", 5, 4, 5, "");
+
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "champion"));
+
+    assertThatThrownBy(() -> engine.applyMove(state, new MoveToBattlefieldMove("p1", "champion")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Only Champions from your champion zone or base can move to the battlefield.");
+  }
+
+  @Test
+  void legendCannotMoveToBattlefieldInAlphaModel() {
+    LiveGameState state = state(card("legend", "p1", ZoneName.LEGEND));
+    stubCard("legend", "Irelia - Blade Dancer", "Legend", 0, 0, 0, "");
+
+    assertThatThrownBy(() -> engine.applyMove(state, new MoveToBattlefieldMove("p1", "legend")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Legends cannot be moved to the battlefield in this alpha model.");
+
+    assertThat(find(state, "legend").getZone()).isEqualTo(ZoneName.LEGEND);
+  }
+
+  @Test
   void championCannotBePlayedFromHand() {
     LiveGameState state = state(card("champion", "p1", ZoneName.HAND));
     stubCard("champion", "Champion", 0);

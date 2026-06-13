@@ -82,6 +82,7 @@ export type LegalAction =
   | 'DISCARD_RUNE'
   | 'UNDO_RUNES'
   | 'VISION_CHOICE'
+  | 'RESOLVE_CHOICE'
   | 'HIDE_CARD'
   | 'EQUIP_GEAR'
   | 'SANDBOX_DEAL_CARD'
@@ -196,6 +197,43 @@ export type LiveGameState = {
   scoredBattlefieldsThisTurn?: string[];
   revealedHands?: RevealedHandSnapshot[];
   legalActions?: LegalAction[];
+  pendingChoice?: PendingChoice | null;
+};
+
+export type PendingChoiceOption = {
+  id: string;
+  label: string;
+};
+
+export type PendingCardChoiceOption = {
+  optionId: string;
+  cardId: string;
+  name: string;
+  imageUrl?: string;
+  rulesText?: string;
+  originalIndex: number;
+};
+
+export type PendingCardChoiceAssignment = {
+  optionId: string;
+  action: 'TOP' | 'BOTTOM';
+  order: number;
+};
+
+export type PendingChoice = {
+  choiceId: string;
+  playerId: string;
+  type: string;
+  prompt: string;
+  options: PendingChoiceOption[];
+  cardOptions?: PendingCardChoiceOption[];
+  assignments?: PendingCardChoiceAssignment[];
+  sourceCardInstanceId?: string;
+  sourceCardId?: string;
+  publicChoice?: boolean;
+  requiredSelections?: number;
+  allowPartialResolve?: boolean;
+  context?: Record<string, string>;
 };
 
 export type ShowdownState = {

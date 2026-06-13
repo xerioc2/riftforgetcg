@@ -66,6 +66,7 @@ public class GameEngine {
       case DismissRevealedMove m -> applyDismissRevealed(state, m);
       case HideCardMove m -> applyHideCard(state, m);
       case EquipGearMove m -> applyEquipGear(state, m);
+      case ResolveChoiceMove m -> applyResolveChoice(state, m);
     };
     next.setUpdatedAt(Instant.now().toString());
     checkWinCondition(next);
@@ -282,6 +283,11 @@ public class GameEngine {
   private LiveGameState applyMoveToBattlefield(LiveGameState state, MoveToBattlefieldMove move) {
     CardInstance card = findCard(state, move.instanceId());
     CardDefinition def = cardDataService.getCard(card.getCardId());
+    boolean playedFromChampionZone = card.getZone() == ZoneName.CHAMPION;
+    if (playedFromChampionZone) {
+      PlayerState player = player(state, move.playerId());
+      player.setAvailableEnergy(Math.max(0, player.getAvailableEnergy() - Math.max(0, def.cost())));
+    }
     card.setZone(ZoneName.BATTLEFIELD);
     card.setX(0);
     card.setY(0);
@@ -290,7 +296,9 @@ public class GameEngine {
     int gankingBonus = applyGanking(state, card);
     applyMoveToBattlefieldTokenScripts(state, card);
     effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onAttack(card, state));
-    log(state, move.playerId(), "Moved " + def.name() + " to the battlefield.");
+    log(state, move.playerId(), playedFromChampionZone
+        ? "Played " + def.name() + " from the Champion zone."
+        : "Moved " + def.name() + " to the battlefield.");
     boolean opposed = state.getCards().stream()
         .anyMatch(candidate -> candidate.getZone() == ZoneName.BATTLEFIELD && !move.playerId().equals(candidate.getOwnerId()));
     if (!opposed) {
@@ -412,6 +420,94 @@ public class GameEngine {
       log(state, move.playerId(), "VISION_RESOLVED|Kept " + cardDataService.getCard(topCardId).name() + " on top of the deck.");
     }
     return state;
+  }
+
+  private LiveGameState applyResolveChoice(LiveGameState state, ResolveChoiceMove move) {
+    PendingChoice choice = state.getPendingChoice();
+    if (PendingChoice.TYPE_OPTIONAL_DRAW_ONE.equals(choice.getType())) {
+      if (PendingChoice.OPTION_YES.equals(move.selectedOptionId())) {
+        applyDraw(state, move.playerId(), 1);
+        log(state, move.playerId(), player(state, move.playerId()).getName() + " chose to draw 1.");
+      } else {
+        log(state, move.playerId(), player(state, move.playerId()).getName() + " declined " + choicePromptLabel(choice) + ".");
+      }
+    } else if (PendingChoice.TYPE_OPTIONAL_PAY_1_DRAW_ONE.equals(choice.getType())) {
+      if (PendingChoice.OPTION_PAY_1.equals(move.selectedOptionId())) {
+        PlayerState player = player(state, move.playerId());
+        player.setAvailableEnergy(Math.max(0, player.getAvailableEnergy() - 1));
+        applyDraw(state, move.playerId(), 1);
+        log(state, move.playerId(), player.getName() + " paid 1 to draw 1.");
+      } else {
+        log(state, move.playerId(), player(state, move.playerId()).getName() + " declined " + choicePromptLabel(choice) + ".");
+      }
+    } else if (PendingChoice.TYPE_TOP_DECK_PICK_ONE.equals(choice.getType())) {
+      resolveTopDeckPickOne(state, move, choice);
+    } else if (PendingChoice.TYPE_PREDICT_ORDER.equals(choice.getType())) {
+      resolvePredictOrder(state, move, choice);
+    }
+    state.setPendingChoice(null);
+    return state;
+  }
+
+  private void resolveTopDeckPickOne(LiveGameState state, ResolveChoiceMove move, PendingChoice choice) {
+    PlayerState player = player(state, move.playerId());
+    int count = Math.min(choice.getCardOptions().size(), player.getDeckPool().size());
+    if (count == 0) {
+      log(state, move.playerId(), choicePromptLabel(choice) + " found no cards.");
+      return;
+    }
+    List<String> lookedAt = new ArrayList<>(player.getDeckPool().subList(0, count));
+    player.getDeckPool().subList(0, count).clear();
+    PendingChoice.CardChoiceOption selected = choice.getCardOptions().stream()
+        .filter(option -> option.optionId().equals(move.selectedCardOptionId()))
+        .findFirst()
+        .orElse(null);
+    if (selected == null || selected.originalIndex() >= lookedAt.size()) {
+      player.getDeckPool().addAll(0, lookedAt);
+      throw new IllegalMoveException("Choose one of the revealed cards.");
+    }
+    String selectedCardId = lookedAt.get(selected.originalIndex());
+    addCardToHand(state, move.playerId(), selectedCardId, false);
+    for (int i = 0; i < lookedAt.size(); i++) {
+      if (i != selected.originalIndex()) player.getDeckPool().add(lookedAt.get(i));
+    }
+    log(state, move.playerId(), choicePromptLabel(choice) + " put a card into hand and recycled the rest.");
+  }
+
+  private void resolvePredictOrder(LiveGameState state, ResolveChoiceMove move, PendingChoice choice) {
+    PlayerState player = player(state, move.playerId());
+    int count = Math.min(choice.getCardOptions().size(), player.getDeckPool().size());
+    if (count == 0) {
+      log(state, move.playerId(), "Predict found no cards.");
+      return;
+    }
+    List<String> lookedAt = new ArrayList<>(player.getDeckPool().subList(0, count));
+    player.getDeckPool().subList(0, count).clear();
+    Map<String, PendingChoice.CardChoiceOption> options = new HashMap<>();
+    choice.getCardOptions().forEach(option -> options.put(option.optionId(), option));
+    List<PendingChoice.CardChoiceAssignment> orderedAssignments = new ArrayList<>(move.assignments());
+    orderedAssignments.sort((left, right) -> Integer.compare(left.order(), right.order()));
+    List<String> topIds = new ArrayList<>();
+    List<String> bottomIds = new ArrayList<>();
+    for (PendingChoice.CardChoiceAssignment assignment : orderedAssignments) {
+      PendingChoice.CardChoiceOption option = options.get(assignment.optionId());
+      if (option == null || option.originalIndex() >= lookedAt.size()) continue;
+      String cardId = lookedAt.get(option.originalIndex());
+      if (PendingChoice.ACTION_TOP.equals(assignment.action())) topIds.add(cardId);
+      if (PendingChoice.ACTION_BOTTOM.equals(assignment.action())) bottomIds.add(cardId);
+    }
+    Collections.reverse(topIds);
+    player.getDeckPool().addAll(0, topIds);
+    player.getDeckPool().addAll(bottomIds);
+    log(state, move.playerId(), "Resolved Predict ordering.");
+  }
+
+  private String choicePromptLabel(PendingChoice choice) {
+    if (choice.getSourceCardId() != null && !choice.getSourceCardId().isBlank()) {
+      CardDefinition source = cardDataService.getCard(choice.getSourceCardId());
+      if (source != null && source.name() != null && !source.name().isBlank()) return source.name();
+    }
+    return "the effect";
   }
 
   private LiveGameState applyDismissRevealed(LiveGameState state, DismissRevealedMove move) {
@@ -673,6 +769,21 @@ public class GameEngine {
 
   private void applyRulesTextEffect(CardInstance card, CardInstance target, LiveGameState state, CardDefinition def) {
     String text = def.rulesText() == null ? "" : def.rulesText().toLowerCase();
+    if (isStackedDeckEffect(text)) {
+      List<CardDefinition> topCards = topDeckDefinitions(state, card.getOwnerId(), 3);
+      if (topCards.isEmpty()) {
+        log(state, card.getOwnerId(), def.name() + " found no cards.");
+      } else {
+        state.setPendingChoice(PendingChoice.topDeckPickOne(
+            UUID.randomUUID().toString(),
+            card.getOwnerId(),
+            card.getCardId(),
+            card.getInstanceId(),
+            topCards));
+        log(state, card.getOwnerId(), def.name() + " is waiting for a private card choice.");
+      }
+      return;
+    }
     if (text.contains("reveal") && text.contains("hand")) {
       state.getPlayers().stream()
           .map(PlayerState::getUserId)
@@ -700,6 +811,21 @@ public class GameEngine {
       }
     }
     if (text.contains("draw 1")) applyDraw(state, card.getOwnerId(), 1);
+  }
+
+  private boolean isStackedDeckEffect(String text) {
+    return text.contains("look at the top 3")
+        && text.contains("put 1")
+        && text.contains("hand")
+        && text.contains("recycle");
+  }
+
+  private List<CardDefinition> topDeckDefinitions(LiveGameState state, String playerId, int count) {
+    PlayerState player = player(state, playerId);
+    return player.getDeckPool().stream()
+        .limit(count)
+        .map(cardDataService::getCard)
+        .toList();
   }
 
   private void applyDraw(LiveGameState state, String playerId, int count) {
@@ -748,6 +874,10 @@ public class GameEngine {
       return;
     }
     String cardId = player.getDeckPool().remove(0);
+    addCardToHand(state, playerId, cardId, true);
+  }
+
+  private void addCardToHand(LiveGameState state, String playerId, String cardId, boolean logCardName) {
     CardDefinition def = cardDataService.getCard(cardId);
     int maxZ = state.getCards().stream().mapToInt(CardInstance::getZIndex).max().orElse(0);
     CardInstance instance = new CardInstance();
@@ -762,7 +892,7 @@ public class GameEngine {
     instance.setTempKeywords(new ArrayList<>());
     instance.setZIndex(maxZ + 1);
     state.getCards().add(instance);
-    log(state, playerId, "Drew " + def.name() + ".");
+    if (logCardName) log(state, playerId, "Drew " + def.name() + ".");
   }
 
   private void checkWinCondition(LiveGameState state) {

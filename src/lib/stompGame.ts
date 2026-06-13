@@ -19,6 +19,15 @@ export type MoveRequest =
   | { type: 'RESOLVE_SHOWDOWN'; playerId: string }
   | { type: 'ADJUST_SCORE'; playerId: string; targetPlayerId: string; delta: number }
   | { type: 'VISION_CHOICE'; playerId: string; recycle: boolean }
+  | {
+      type: 'RESOLVE_CHOICE';
+      playerId: string;
+      choiceId: string;
+      selectedOptionId?: string;
+      selectedCardOptionId?: string;
+      selectedAction?: 'HAND' | 'TOP' | 'BOTTOM';
+      assignments?: { optionId: string; action: 'TOP' | 'BOTTOM'; order: number }[];
+    }
   | { type: 'DISMISS_REVEALED'; playerId: string; instanceId: string }
   | { type: 'HIDE_CARD'; playerId: string; instanceId: string; paymentRuneId: string }
   | { type: 'EQUIP_GEAR'; playerId: string; gearInstanceId: string; targetInstanceId: string };

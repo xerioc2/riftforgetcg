@@ -7,6 +7,7 @@ import com.riftforge.model.CardDefinition;
 import com.riftforge.model.CardInstance;
 import com.riftforge.model.GameMode;
 import com.riftforge.model.LiveGameState;
+import com.riftforge.model.PendingChoice;
 import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
 import com.riftforge.model.RuneState;
@@ -63,6 +64,17 @@ class LegalActionsServiceTest {
             LegalAction.TAP_RUNE,
             LegalAction.DISCARD_RUNE,
             LegalAction.UNDO_RUNES);
+  }
+
+  @Test
+  void pendingChoiceExposesOnlyResolveChoiceToOwner() {
+    LiveGameState state = state(Phase.MAIN, "p1");
+    state.setPendingChoice(PendingChoice.optionalDrawOne("choice-1", "p1", "source", "Draw a card?"));
+
+    assertThat(service.legalActions(state, "p1"))
+        .containsExactly(LegalAction.RESOLVE_CHOICE);
+    assertThat(service.legalActions(state, "p2"))
+        .isEmpty();
   }
 
   @Test

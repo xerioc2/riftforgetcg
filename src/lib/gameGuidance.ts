@@ -39,6 +39,7 @@ export function legalActionHint(
     return options.activePlayerIsBot ? 'RiftBot is thinking...' : `Waiting for ${options.activePlayerName ?? 'opponent'}.`;
   }
   if (actions.has('KEEP_HAND') || actions.has('MULLIGAN')) return 'You can keep or mulligan.';
+  if (actions.has('RESOLVE_CHOICE')) return 'Choose an option to continue.';
   if (actions.has('RESOLVE_SHOWDOWN') && actions.has('PLAY_CARD')) return 'You may play supported Action cards or resolve the showdown.';
   if (actions.has('RESOLVE_SHOWDOWN')) return 'You can resolve this showdown.';
   if (actions.has('PLAY_CARD') && actions.size === 1) return 'You may play supported Action cards.';
@@ -50,6 +51,7 @@ export function legalActionHint(
   if (actions.has('TAP_RUNE') || actions.has('DISCARD_RUNE') || actions.has('UNDO_RUNES')) parts.push('use runes');
   if (actions.has('MOVE_TO_BATTLEFIELD')) parts.push('move units');
   if (actions.has('VISION_CHOICE')) parts.push('choose Vision');
+  if (actions.has('RESOLVE_CHOICE')) parts.push('choose an option');
   if (actions.has('PASS_PHASE') || actions.has('END_TURN')) parts.push('pass');
   if (parts.length > 0) return `You can ${joinActionParts(parts)}.`;
 

@@ -310,11 +310,19 @@ public class CardDataService {
     boolean supportedEffect = normalized.contains(":rb_might:")
         || normalized.contains("return a unit")
         || normalized.contains("ready it")
-        || normalized.contains("draw 1");
+        || normalized.contains("draw 1")
+        || isStackedDeckEffect(normalized);
     return normalized.contains("counter a spell")
         || normalized.contains("counter an enemy spell")
         || requiresMultipleTargets
         || !supportedEffect;
+  }
+
+  private boolean isStackedDeckEffect(String normalized) {
+    return normalized.contains("look at the top 3")
+        && normalized.contains("put 1")
+        && normalized.contains("hand")
+        && normalized.contains("recycle");
   }
 
   private CardDefinition normalize(JsonNode card) {

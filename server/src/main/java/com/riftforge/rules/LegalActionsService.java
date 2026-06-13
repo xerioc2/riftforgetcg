@@ -41,7 +41,10 @@ public class LegalActionsService {
     }
 
     EnumSet<LegalAction> actions = EnumSet.noneOf(LegalAction.class);
-    addSandboxActions(state, actions);
+    if (state.getPendingChoice() != null) {
+      if (playerId.equals(state.getPendingChoice().getPlayerId())) actions.add(LegalAction.RESOLVE_CHOICE);
+      return actions;
+    }
 
     if (state.getCurrentPhase() == Phase.MULLIGAN) {
       if (!state.getMulligansDone().contains(playerId)) {
@@ -50,6 +53,8 @@ public class LegalActionsService {
       }
       return actions;
     }
+
+    addSandboxActions(state, actions);
 
     if (state.getActiveShowdown() != null) {
       if (showdownParticipantRules.isShowdownAttacker(state, playerId)) {

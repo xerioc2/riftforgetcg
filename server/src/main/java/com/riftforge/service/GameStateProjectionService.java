@@ -2,6 +2,7 @@ package com.riftforge.service;
 
 import com.riftforge.model.CardInstance;
 import com.riftforge.model.LiveGameState;
+import com.riftforge.model.PendingChoice;
 import com.riftforge.model.PlayerState;
 import com.riftforge.model.RevealedHandSnapshot;
 import com.riftforge.model.RuneState;
@@ -38,6 +39,7 @@ public class GameStateProjectionService {
     view.setScoredBattlefieldsThisTurn(new HashSet<>(state.getScoredBattlefieldsThisTurn()));
     view.setActiveShowdown(copyShowdown(state.getActiveShowdown()));
     view.setGameMode(state.getGameMode());
+    view.setPendingChoice(copyChoiceForViewer(state.getPendingChoice(), viewerPlayerId));
     view.setLegalActions(viewerPlayerId == null ? Set.of() : legalActionsService.legalActionsFor(state, viewerPlayerId));
     view.setPlayers(state.getPlayers().stream().map(this::copyPlayer).toList());
     view.setRunes(state.getRunes().stream().map(this::copyRune).toList());
@@ -112,5 +114,26 @@ public class GameStateProjectionService {
         new ArrayList<>(showdown.attackerInstanceIds()),
         new HashMap<>(showdown.gankingBonuses()),
         showdown.step());
+  }
+
+  private PendingChoice copyChoiceForViewer(PendingChoice choice, String viewerPlayerId) {
+    if (choice == null) return null;
+    if (!choice.isPublicChoice() && !Objects.equals(choice.getPlayerId(), viewerPlayerId)) return null;
+    PendingChoice copy = new PendingChoice();
+    copy.setChoiceId(choice.getChoiceId());
+    copy.setPlayerId(choice.getPlayerId());
+    copy.setType(choice.getType());
+    copy.setPrompt(choice.getPrompt());
+    copy.setOptions(new ArrayList<>(choice.getOptions()));
+    boolean isOwner = Objects.equals(choice.getPlayerId(), viewerPlayerId);
+    copy.setCardOptions(isOwner ? new ArrayList<>(choice.getCardOptions()) : new ArrayList<>());
+    copy.setAssignments(isOwner ? new ArrayList<>(choice.getAssignments()) : new ArrayList<>());
+    copy.setSourceCardInstanceId(choice.getSourceCardInstanceId());
+    copy.setSourceCardId(choice.getSourceCardId());
+    copy.setPublicChoice(choice.isPublicChoice());
+    copy.setRequiredSelections(choice.getRequiredSelections());
+    copy.setAllowPartialResolve(choice.isAllowPartialResolve());
+    copy.setContext(new HashMap<>(choice.getContext()));
+    return copy;
   }
 }

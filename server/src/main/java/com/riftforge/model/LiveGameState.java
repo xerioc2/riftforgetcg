@@ -28,6 +28,7 @@ public class LiveGameState {
   private ShowdownState activeShowdown;
   private GameMode gameMode = GameMode.ENFORCED;
   private Set<LegalAction> legalActions = new HashSet<>();
+  private PendingChoice pendingChoice;
 
   public record LogEntry(String id, String timestamp, String userId, String text) {}
   public record ShowdownState(String attackingPlayerId, List<String> attackerInstanceIds, Map<String, Integer> gankingBonuses, ShowdownStep step) {
@@ -74,4 +75,6 @@ public class LiveGameState {
   public void setGameMode(GameMode gameMode) { this.gameMode = gameMode == null ? GameMode.ENFORCED : gameMode; }
   public Set<LegalAction> getLegalActions() { return legalActions; }
   public void setLegalActions(Set<LegalAction> legalActions) { this.legalActions = legalActions == null ? new HashSet<>() : legalActions; }
+  public PendingChoice getPendingChoice() { return pendingChoice; }
+  public void setPendingChoice(PendingChoice pendingChoice) { this.pendingChoice = pendingChoice; }
 }

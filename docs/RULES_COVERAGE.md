@@ -61,6 +61,8 @@ Current implementation notes:
 - Submitted decks are partitioned into Legend, Champion, main deck, runes, and battlefields.
 - Legend and Champion start in their correct zones.
 - Champion-zone identity cards are not legal equip targets while they remain in the Champion zone. When destroyed in supported combat/cleanup paths, Champions return to the Champion zone rather than Trash, and attached Gear returns to Base.
+- Chosen Champions can be deployed from the Champion zone only during supported Main play and must spend their real energy cost from currently available energy.
+- Legends are identity/reference cards in the alpha model and cannot be moved to the battlefield.
 - Opening hand draws from the main deck pool only.
 - Deck/rune counts are projected without exposing hidden deck contents.
 
@@ -104,12 +106,15 @@ Current implementation notes:
 - Early phases do not expose normal main actions through `LegalActionsService`.
 - Server-computed legal actions are included in player-specific projected state so the client can hide or disable actions using the same conservative action matrix.
 - Current action windows include mulligan, basic phase pass, active-player Main Phase actions, a lightweight active-showdown Action window, active showdown resolution, and sandbox actions only in SANDBOX mode.
+- Pending choices pause normal actions and expose `RESOLVE_CHOICE` only to the prompted player through player-specific projections.
+- Private card-selection choices can show top-deck card options only to the owner; opponent and spectator projections omit those identities.
 
 Known gaps:
 - Official cleanup/HOT FEPR sequencing is not fully modeled.
 - The engine still uses `END` while current official terminology uses Ending/expiration details.
 - Trigger and chain timing is highly simplified.
 - Full Reaction timing and priority/chain timing are not represented in the legal-action projection yet.
+- Choice support covers private yes/no, pay-1, Stacked Deck-style top-3 pick-one, and a Predict-style top/bottom ordering foundation; multi-target choices, linked choices, and full timing windows remain incomplete.
 
 Test coverage:
 - `LegalActionsServiceTest`
@@ -177,7 +182,7 @@ Current implementation notes:
   temporary Might boosts, selected unit/champion return-to-hand, and selected
   friendly unit/champion readying.
 - Unsupported spell shapes are blocked by `CardDataService.isUnsupportedAction`.
-- VISION/Predict-like peeking has a basic private choice flow.
+- A generic pending-choice framework exists for private yes/no, pay-1, Stacked Deck-style top-3 pick-one, and Predict-style top/bottom ordering prompts. VISION still uses its narrow private keep/recycle flow.
 
 Known gaps:
 - Chain timing, Reaction timing, countering spells, multi-target spells, replacement/prevention, and many spell-specific effects are not complete.
@@ -452,7 +457,7 @@ Known gaps:
 - Supported status should not be promoted until the whole card has explicit
   behavior and tests; helper-backed simple effects still leave cards Partial
   when timing, choices, or extra clauses are incomplete.
-- Optional triggers, may choices, targeting decisions, and chain items are incomplete.
+- Optional triggers and may choices are partial: private yes/no and pay-1 prompts exist, but complex targeting decisions, ordered choices, and chain items are incomplete.
 
 Test coverage:
 - Scattered validator/engine tests.

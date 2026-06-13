@@ -3,9 +3,11 @@ package com.riftforge.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.riftforge.model.CardDefinition;
 import com.riftforge.model.CardInstance;
 import com.riftforge.model.GameMode;
 import com.riftforge.model.LiveGameState;
+import com.riftforge.model.PendingChoice;
 import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
 import com.riftforge.model.RevealedHandSnapshot;
@@ -327,6 +329,76 @@ class GameStateProjectionServiceTest {
         .contains(LegalAction.SANDBOX_DEAL_CARD, LegalAction.SANDBOX_ADJUST_SCORE, LegalAction.SANDBOX_MOVE_CARD);
   }
 
+  @Test
+  void pendingChoiceOwnerProjectionSeesPromptAndResolveAction() {
+    LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.ENFORCED);
+    state.setPendingChoice(PendingChoice.optionalDrawOne("choice-1", "p1", "safe-source", "Draw a card?"));
+
+    LiveGameState view = projectionService.toPublicView(state, "p1");
+
+    assertThat(view.getPendingChoice()).isNotNull();
+    assertThat(view.getPendingChoice().getPrompt()).isEqualTo("Draw a card?");
+    assertThat(view.getPendingChoice().getOptions()).extracting(PendingChoice.ChoiceOption::id)
+        .containsExactly(PendingChoice.OPTION_YES, PendingChoice.OPTION_NO);
+    assertThat(view.getLegalActions()).containsExactly(LegalAction.RESOLVE_CHOICE);
+  }
+
+  @Test
+  void pendingChoiceOpponentAndSpectatorDoNotSeePrivatePrompt() throws Exception {
+    LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.ENFORCED);
+    state.setPendingChoice(PendingChoice.optionalDrawOne("choice-1", "p1", "private-source-card", "Private prompt with private-source-card"));
+
+    LiveGameState opponentView = projectionService.toPublicView(state, "p2");
+    LiveGameState spectatorView = projectionService.toPublicView(state, null);
+
+    assertThat(opponentView.getPendingChoice()).isNull();
+    assertThat(opponentView.getLegalActions()).isEmpty();
+    assertThat(spectatorView.getPendingChoice()).isNull();
+    assertThat(spectatorView.getLegalActions()).isEmpty();
+    assertThat(objectMapper.writeValueAsString(opponentView)).doesNotContain("Private prompt", "private-source-card");
+    assertThat(objectMapper.writeValueAsString(spectatorView)).doesNotContain("Private prompt", "private-source-card");
+  }
+
+  @Test
+  void pendingCardChoiceOwnerSeesPrivateCardOptions() {
+    LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.ENFORCED);
+    state.setPendingChoice(PendingChoice.topDeckPickOne(
+        "choice-1",
+        "p1",
+        "stacked-deck",
+        "source-instance",
+        List.of(cardDef("private-top-a", "Private Top A"), cardDef("private-top-b", "Private Top B"))));
+
+    LiveGameState view = projectionService.toPublicView(state, "p1");
+
+    assertThat(view.getPendingChoice()).isNotNull();
+    assertThat(view.getPendingChoice().getCardOptions())
+        .extracting(PendingChoice.CardChoiceOption::cardId)
+        .containsExactly("private-top-a", "private-top-b");
+    assertThat(view.getLegalActions()).containsExactly(LegalAction.RESOLVE_CHOICE);
+  }
+
+  @Test
+  void pendingCardChoiceOpponentAndSpectatorDoNotSeePrivateCardOptions() throws Exception {
+    LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.ENFORCED);
+    state.setPendingChoice(PendingChoice.topDeckPickOne(
+        "choice-1",
+        "p1",
+        "private-stacked-deck",
+        "source-instance",
+        List.of(cardDef("private-top-a", "Private Top A"), cardDef("private-top-b", "Private Top B"))));
+
+    LiveGameState opponentView = projectionService.toPublicView(state, "p2");
+    LiveGameState spectatorView = projectionService.toPublicView(state, null);
+
+    assertThat(opponentView.getPendingChoice()).isNull();
+    assertThat(spectatorView.getPendingChoice()).isNull();
+    assertThat(objectMapper.writeValueAsString(opponentView))
+        .doesNotContain("private-top-a", "Private Top A", "private-top-b", "Private Top B", "private-stacked-deck");
+    assertThat(objectMapper.writeValueAsString(spectatorView))
+        .doesNotContain("private-top-a", "Private Top A", "private-top-b", "Private Top B", "private-stacked-deck");
+  }
+
   private LiveGameState state(CardInstance... cards) {
     LiveGameState state = new LiveGameState();
     state.setCards(List.of(cards));
@@ -376,6 +448,10 @@ class GameStateProjectionServiceTest {
     snapshot.setRevealedOwnerId(ownerId);
     snapshot.setInstanceIds(List.of(instanceIds));
     return snapshot;
+  }
+
+  private CardDefinition cardDef(String id, String name) {
+    return new CardDefinition(id, name, "Unit", null, List.of(), 0, 1, null, null, null, "Private rules text", 1, 1, List.of());
   }
 
   private void assertAttachedGearIsPublic(LiveGameState view) {
