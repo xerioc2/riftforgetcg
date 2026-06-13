@@ -171,6 +171,10 @@ Sources checked:
 
 ## Recommended Next Sprints
 
+Use `docs/ALPHA_PRIORITY_BOARD.md` for the current pre-playtest decision
+order. The list below is a post-stabilization implementation backlog, not a
+reason to keep adding rules systems before the external alpha stop line.
+
 1. Harden low-risk combat descriptors.
    - Promote simple descriptor-only cards after direct card review.
    - Wire Mighty threshold-crossing events and source-specific triggers.
