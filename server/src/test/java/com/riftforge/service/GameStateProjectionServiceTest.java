@@ -332,14 +332,22 @@ class GameStateProjectionServiceTest {
   @Test
   void pendingChoiceOwnerProjectionSeesPromptAndResolveAction() {
     LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.ENFORCED);
-    state.setPendingChoice(PendingChoice.optionalDrawOne("choice-1", "p1", "safe-source", "Draw a card?"));
+    state.setPendingChoice(PendingChoice.optionalPayment(
+        "choice-1",
+        "p1",
+        "safe-source",
+        "Pay 2 to draw a card?",
+        2,
+        PendingChoice.EFFECT_DRAW_1));
 
     LiveGameState view = projectionService.toPublicView(state, "p1");
 
     assertThat(view.getPendingChoice()).isNotNull();
-    assertThat(view.getPendingChoice().getPrompt()).isEqualTo("Draw a card?");
+    assertThat(view.getPendingChoice().getPrompt()).isEqualTo("Pay 2 to draw a card?");
     assertThat(view.getPendingChoice().getOptions()).extracting(PendingChoice.ChoiceOption::id)
-        .containsExactly(PendingChoice.OPTION_YES, PendingChoice.OPTION_NO);
+        .containsExactly(PendingChoice.OPTION_PAY_1, PendingChoice.OPTION_DECLINE);
+    assertThat(view.getPendingChoice().getPaymentAmount()).isEqualTo(2);
+    assertThat(view.getPendingChoice().getEffect()).isEqualTo(PendingChoice.EFFECT_DRAW_1);
     assertThat(view.getLegalActions()).containsExactly(LegalAction.RESOLVE_CHOICE);
   }
 

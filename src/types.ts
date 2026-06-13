@@ -232,6 +232,8 @@ export type PendingChoice = {
   sourceCardId?: string;
   publicChoice?: boolean;
   requiredSelections?: number;
+  paymentAmount?: number;
+  effect?: string;
   allowPartialResolve?: boolean;
   context?: Record<string, string>;
 };

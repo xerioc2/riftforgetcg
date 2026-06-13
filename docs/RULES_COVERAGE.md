@@ -115,7 +115,7 @@ Known gaps:
 - The engine still uses `END` while current official terminology uses Ending/expiration details.
 - Trigger and chain timing is highly simplified.
 - Full Reaction timing and priority/chain timing are not represented in the legal-action projection yet.
-- Choice support covers private yes/no, pay-1, Stacked Deck-style top-3 pick-one, and a Predict-style top/bottom ordering foundation; multi-target choices, linked choices, and full timing windows remain incomplete.
+- Choice support covers private yes/no, generic optional-payment prompts, Stacked Deck-style top-3 pick-one, and a Predict-style top/bottom ordering foundation; multi-target choices, linked choices, and full timing windows remain incomplete.
 
 Test coverage:
 - `LegalActionsServiceTest`
@@ -183,7 +183,7 @@ Current implementation notes:
   temporary Might boosts, selected unit/champion return-to-hand, and selected
   friendly unit/champion readying.
 - Unsupported spell shapes are blocked by `CardDataService.isUnsupportedAction`.
-- A generic pending-choice framework exists for private yes/no, pay-1, Stacked Deck-style top-3 pick-one, and Predict-style top/bottom ordering prompts. VISION still uses its narrow private keep/recycle flow.
+- A generic pending-choice framework exists for private yes/no, optional-payment, Stacked Deck-style top-3 pick-one, and Predict-style top/bottom ordering prompts. VISION still uses its narrow private keep/recycle flow.
 
 Known gaps:
 - Chain timing, Reaction timing, countering spells, multi-target spells, replacement/prevention, and many spell-specific effects are not complete.
@@ -201,6 +201,8 @@ Priority: P0.
 Status: Partial
 
 Current implementation notes:
+- The alpha Equipment lifecycle is finalized for the current single-battlefield
+  model.
 - Basic `[Equip]` gear is played from hand to Base first, then attached with a
   separate Equip action from Base to a friendly Unit/Champion in Base or at the
   battlefield.
@@ -213,6 +215,8 @@ Current implementation notes:
 - Gear attached to a unit/champion returns to Base and detaches when its host
   leaves public play, including death, return-to-hand effects, or a Champion
   returning to the Champion zone.
+- Returning Gear to Base is not treated as the Gear dying and does not process
+  Deathknell.
 
 Known gaps:
 - Official equipment timing, Equip payment/domain precision, Quick-Draw,
@@ -419,12 +423,17 @@ Current implementation notes:
 - Stellacorn Herder's full printed movement trigger is card-specific
   Supported in the single-battlefield alpha: Base/battlefield movement draws 1,
   and same-zone repositioning does not trigger it.
+- `TriggerEvent`, `TriggerDispatcher`, and `TriggerHandler` provide a small
+  deterministic trigger framework for alpha events. Movement triggers for
+  Noxian Drummer and Stellacorn Herder now run through this dispatcher.
 
 Known gaps:
 - The handler registry is a scaffold; several tracked keywords still need
   dedicated handlers before they can be called fully supported.
 - The complete official keyword list, dependent keywords, inactive text, conditional permissions, XP/Hunt/Level, and full action/reaction behavior are incomplete.
 - Some legacy placeholder keywords remain in early hard-coded effects and should be audited against current official names.
+- The trigger framework does not create a chain, priority window, optional
+  trigger ordering flow, or multiple simultaneous chain items yet.
 - Scuttle Crab's Deathknell reveal/facedown/XP text, general token definitions,
   official token cleanup, and broad non-Recruit token creation effects remain
   incomplete.
@@ -462,7 +471,7 @@ Known gaps:
 - Supported status should not be promoted until the whole card has explicit
   behavior and tests; helper-backed simple effects still leave cards Partial
   when timing, choices, or extra clauses are incomplete.
-- Optional triggers and may choices are partial: private yes/no and pay-1 prompts exist, but complex targeting decisions, ordered choices, and chain items are incomplete.
+- Optional triggers and may choices are partial: private yes/no and optional-payment prompts exist, but complex targeting decisions, linked choices, and chain items are incomplete.
 
 Test coverage:
 - Scattered validator/engine tests.

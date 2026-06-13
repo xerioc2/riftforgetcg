@@ -44,14 +44,14 @@ will raise regression risk faster than playtest value.
 | Issue/report flow | High | Low | Pre-playtest | Done | Gives testers a consistent path to submit useful bug reports. |
 | Final alpha stabilization sweep | High | Low | Pre-playtest | Done | Run validation, cross-check support policy, update release notes, and fix only small bugs. |
 | Optional payment prompts | Medium | Medium | Post-playtest | Next | Valuable for correctness, but not worth destabilizing the first alpha unless payment bugs dominate feedback. |
-| Stellacorn Herder move trigger | Medium | Medium | Post-playtest | Next | Good single-card script candidate after feedback confirms movement/showdown flow is understandable. |
+| Stellacorn Herder move trigger | Medium | Medium | Post-playtest | Done | Migrated through the alpha trigger dispatcher; movement draws 1 and same-zone reposition stays inert. |
 | Abandoned Hall spell trigger | Medium | Medium | Post-playtest | Next | Useful battlefield trigger candidate, but depends on clearer prompt/payment policy. |
 
 ## High Impact + High Risk: Plan Carefully After Playtest
 
 | Work item | Impact | Risk | Timing | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
-| Trigger framework | High | High | Post-playtest | Next | Needed for scale, but touches ordering, event timing, prompts, and support metadata. |
+| Trigger framework v1 | High | High | Post-playtest | In progress | Small deterministic event/handler dispatcher exists for alpha movement triggers. Chain, priority, optional ordering, and complex trigger windows remain deferred. |
 | Charm / enemy movement | High | High | Post-playtest | Deferred | Needs precise legal destinations, ownership, battlefield/control rules, and UI affordances. |
 | Hidden play-from-hidden | High | High | Post-playtest | Deferred | Requires timing windows, payment, reveal/masking transitions, and target legality. |
 | Ambush-as-Reaction | High | High | Post-playtest | Deferred | Depends on chain/reaction windows and correct response priority. |

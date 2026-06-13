@@ -132,6 +132,8 @@ public class GameStateProjectionService {
     copy.setSourceCardId(choice.getSourceCardId());
     copy.setPublicChoice(choice.isPublicChoice());
     copy.setRequiredSelections(choice.getRequiredSelections());
+    copy.setPaymentAmount(choice.getPaymentAmount());
+    copy.setEffect(choice.getEffect());
     copy.setAllowPartialResolve(choice.isAllowPartialResolve());
     copy.setContext(new HashMap<>(choice.getContext()));
     return copy;

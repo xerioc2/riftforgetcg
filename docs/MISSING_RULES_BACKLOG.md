@@ -53,7 +53,7 @@ Sources checked:
 | --- | --- | --- | --- | --- |
 | Explicit target model | Partial | Current target validation is mostly heuristic. Spells need target type, ownership, location, and count rules. | `MoveRequest`, `RulesValidator`, `GameEngine`, `CardDataService`, frontend target UI | Gust can target only a unit at a battlefield with 3 or less Might. |
 | Multi-target and paired choices | Unsupported | Defiant Dance and Star-Crossed require more than one target with different constraints. | `MoveRequest`, `RulesValidator`, `GameEngine`, target UI | Defiant Dance rejects selecting the same target for both effects unless card text allows it. |
-| Private choice prompts | Partial | A generic `pendingChoice` model now supports owner-only yes/no, pay-1, Stacked Deck-style top-3 card selection, and Predict-style top/bottom ordering. Vision still uses a narrow private keep/recycle flow. Keeper's Verdict, Deathknell reveal, multi-target decisions, and linked choices still need richer prompts. | `LiveGameState`, `GameEngine`, `GameStateProjectionService`, `stompGame.ts`, modal UI | Keeper's Verdict privately asks the affected owner to put a selected unit on top or bottom without leaking hidden deck information. |
+| Private choice prompts | Partial | A generic `pendingChoice` model now supports owner-only yes/no, optional-payment, Stacked Deck-style top-3 card selection, and Predict-style top/bottom ordering. Vision still uses a narrow private keep/recycle flow. Keeper's Verdict, Deathknell reveal, multi-target decisions, and linked choices still need richer prompts. | `LiveGameState`, `GameEngine`, `GameStateProjectionService`, `stompGame.ts`, modal UI | Keeper's Verdict privately asks the affected owner to put a selected unit on top or bottom without leaking hidden deck information. |
 
 ### Movement and Battlefields
 
@@ -97,7 +97,7 @@ Sources checked:
 | Item | Status | Why it matters | Likely files | Suggested first test |
 | --- | --- | --- | --- | --- |
 | Irelia Tempo spell scripts | Partial/Unsupported | Stacked Deck has a private top-3 choice implementation. Defy, Defiant Dance, Not So Fast, and Star-Crossed are still blocked or heuristic because they need chain/counterspell or multi-target support. | `CardEffectRegistry`, effect handlers, target/choice UI | Defy counters a legal pending spell and rejects illegal pending targets. |
-| Fiora Vanguard unit triggers | Partial | Noxian Drummer, Loyal Poro, and Vanguard Captain are card-specific Supported, while Stalking Wolf, Crowd Favorite, and Dune Drake define unsupported/partial deck identity. | `GameEngine`, triggered handlers, token/XP systems | Dune Drake gains Might only when attacking into a ready enemy unit at the same battlefield. |
+| Fiora Vanguard unit triggers | Partial | Noxian Drummer's move-to-battlefield trigger and Stellacorn Herder's move trigger now dispatch through the alpha trigger framework. Loyal Poro and Vanguard Captain are card-specific Supported through their current services/scripts, while Stalking Wolf, Crowd Favorite, and Dune Drake define unsupported/partial deck identity. | `TriggerDispatcher`, trigger handlers, `GameEngine`, token/XP systems | Dune Drake gains Might only when attacking into a ready enemy unit at the same battlefield. |
 | Legend and Champion text | Partial | Starter legends/champions are visible and important but their text is mostly unscripted. Chosen Champions can deploy from the Champion zone only in supported Main timing and must spend available energy; Legends remain pinned identity/reference cards in the alpha model. | `GameEngine`, `RulesValidator`, activated/triggered handlers, payment UI | Fiora - Worthy readies a unit when a controlled unit becomes Mighty and payment is legal. |
 
 ### Keywords in Starter Decks
@@ -182,10 +182,10 @@ reason to keep adding rules systems before the external alpha stop line.
 2. Expand the target/choice prompt model.
    - Build on explicit targets and the private pending-choice framework with multi-target and linked result prompts before broad spell scripting.
    - Start with Gust and En Garde because they are simpler than counterspells.
-3. Implement starter-deck trigger primitives.
-   - Deathknell trigger queue.
-   - Recruit token creation.
-   - Legion token effect.
-   - Buff marker.
+3. Expand starter-deck trigger primitives.
+   - Build on `TriggerDispatcher` for additional simple movement, attack,
+     spell-play, conquer, and Mighty-threshold triggers.
+   - Keep Deathknell in `DeathTriggerService` until migration is worth the risk.
+   - Add Buff marker support before promoting Buff/Hunt cards.
 4. Start the chain/reaction model.
    - Needed for Defy, Not So Fast, Riposte, Ambush, and Hidden to become real.

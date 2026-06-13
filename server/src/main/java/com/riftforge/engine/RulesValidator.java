@@ -96,11 +96,16 @@ public class RulesValidator {
     boolean validOption = choice.getOptions().stream()
         .anyMatch(option -> option.id().equals(move.selectedOptionId()));
     if (!validOption) throw new IllegalMoveException("Invalid choice option.");
-    if (PendingChoice.TYPE_OPTIONAL_PAY_1_DRAW_ONE.equals(choice.getType())
+    if ((PendingChoice.TYPE_OPTIONAL_PAY_1_DRAW_ONE.equals(choice.getType())
+        || PendingChoice.TYPE_OPTIONAL_PAYMENT.equals(choice.getType()))
         && PendingChoice.OPTION_PAY_1.equals(move.selectedOptionId())
-        && playerEnergy(state, move.playerId()) < 1) {
+        && playerEnergy(state, move.playerId()) < optionalPaymentAmount(choice)) {
       throw new IllegalMoveException("Insufficient energy for that choice.");
     }
+  }
+
+  private int optionalPaymentAmount(PendingChoice choice) {
+    return choice.getPaymentAmount() > 0 ? choice.getPaymentAmount() : 1;
   }
 
   private void validatePredictChoice(PendingChoice choice, ResolveChoiceMove move) {

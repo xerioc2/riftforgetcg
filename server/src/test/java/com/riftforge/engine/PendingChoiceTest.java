@@ -65,7 +65,7 @@ class PendingChoiceTest {
     assertThat(state.getPendingChoice()).isNull();
     assertThat(player(state, "p1").getDeckPool()).isEmpty();
     assertThat(state.getCards()).anySatisfy(card -> assertThat(card.getCardId()).isEqualTo("drawn-card"));
-    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Alice chose to draw 1."));
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Alice chose yes for Test Source."));
   }
 
   @Test
@@ -93,7 +93,72 @@ class PendingChoiceTest {
     assertThat(state.getPendingChoice()).isNull();
     assertThat(player(state, "p1").getAvailableEnergy()).isZero();
     assertThat(state.getCards()).anySatisfy(card -> assertThat(card.getCardId()).isEqualTo("drawn-card"));
-    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Alice paid 1 to draw 1."));
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Alice paid 1 for Test Source."));
+  }
+
+  @Test
+  void genericYesNoChoiceAppliesDrawEffectOnYes() {
+    LiveGameState state = state();
+    state.setPendingChoice(PendingChoice.yesNo("choice-1", "p1", "source", "Draw one?", PendingChoice.EFFECT_DRAW_1));
+    player(state, "p1").setDeckPool(new ArrayList<>(List.of("drawn-card")));
+
+    engine.applyMove(state, new ResolveChoiceMove("p1", "choice-1", PendingChoice.OPTION_YES));
+
+    assertThat(state.getPendingChoice()).isNull();
+    assertThat(player(state, "p1").getDeckPool()).isEmpty();
+    assertThat(state.getCards()).anySatisfy(card -> assertThat(card.getCardId()).isEqualTo("drawn-card"));
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Alice chose yes for Test Source."));
+  }
+
+  @Test
+  void genericYesNoChoiceSkipsEffectOnNo() {
+    LiveGameState state = state();
+    state.setPendingChoice(PendingChoice.yesNo("choice-1", "p1", "source", "Draw one?", PendingChoice.EFFECT_DRAW_1));
+    player(state, "p1").setDeckPool(new ArrayList<>(List.of("drawn-card")));
+
+    engine.applyMove(state, new ResolveChoiceMove("p1", "choice-1", PendingChoice.OPTION_NO));
+
+    assertThat(state.getPendingChoice()).isNull();
+    assertThat(player(state, "p1").getDeckPool()).containsExactly("drawn-card");
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Alice declined Test Source."));
+  }
+
+  @Test
+  void genericOptionalPaymentConsumesConfiguredEnergyAndAppliesEffect() {
+    LiveGameState state = state();
+    player(state, "p1").setAvailableEnergy(2);
+    player(state, "p1").setDeckPool(new ArrayList<>(List.of("drawn-card")));
+    state.setPendingChoice(PendingChoice.optionalPayment(
+        "choice-1",
+        "p1",
+        "source",
+        "Pay 2 to draw one?",
+        2,
+        PendingChoice.EFFECT_DRAW_1));
+
+    engine.applyMove(state, new ResolveChoiceMove("p1", "choice-1", PendingChoice.OPTION_PAY_1));
+
+    assertThat(state.getPendingChoice()).isNull();
+    assertThat(player(state, "p1").getAvailableEnergy()).isZero();
+    assertThat(state.getCards()).anySatisfy(card -> assertThat(card.getCardId()).isEqualTo("drawn-card"));
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Alice paid 2 for Test Source."));
+  }
+
+  @Test
+  void genericOptionalPaymentValidatesConfiguredEnergyAtResolution() {
+    LiveGameState state = state();
+    player(state, "p1").setAvailableEnergy(1);
+    state.setPendingChoice(PendingChoice.optionalPayment(
+        "choice-1",
+        "p1",
+        "source",
+        "Pay 2 to draw one?",
+        2,
+        PendingChoice.EFFECT_DRAW_1));
+
+    assertThatThrownBy(() -> engine.applyMove(state, new ResolveChoiceMove("p1", "choice-1", PendingChoice.OPTION_PAY_1)))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Insufficient energy for that choice.");
   }
 
   @Test

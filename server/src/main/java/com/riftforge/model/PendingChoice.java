@@ -6,10 +6,14 @@ import java.util.Map;
 import java.util.HashMap;
 
 public class PendingChoice {
+  public static final String TYPE_YES_NO = "YES_NO";
+  public static final String TYPE_OPTIONAL_PAYMENT = "OPTIONAL_PAYMENT";
   public static final String TYPE_OPTIONAL_DRAW_ONE = "OPTIONAL_DRAW_ONE";
   public static final String TYPE_OPTIONAL_PAY_1_DRAW_ONE = "OPTIONAL_PAY_1_DRAW_ONE";
   public static final String TYPE_TOP_DECK_PICK_ONE = "TOP_DECK_PICK_ONE";
   public static final String TYPE_PREDICT_ORDER = "PREDICT_ORDER";
+  public static final String EFFECT_NONE = "NONE";
+  public static final String EFFECT_DRAW_1 = "DRAW_1";
   public static final String OPTION_YES = "YES";
   public static final String OPTION_NO = "NO";
   public static final String OPTION_PAY_1 = "PAY_1";
@@ -29,32 +33,60 @@ public class PendingChoice {
   private String sourceCardId;
   private boolean publicChoice;
   private int requiredSelections;
+  private int paymentAmount;
+  private String effect = EFFECT_NONE;
   private boolean allowPartialResolve;
   private Map<String, String> context = new HashMap<>();
 
-  public static PendingChoice optionalDrawOne(String choiceId, String playerId, String sourceCardId, String prompt) {
+  public static PendingChoice yesNo(
+      String choiceId,
+      String playerId,
+      String sourceCardId,
+      String prompt,
+      String effect) {
     PendingChoice choice = new PendingChoice();
     choice.setChoiceId(choiceId);
     choice.setPlayerId(playerId);
-    choice.setType(TYPE_OPTIONAL_DRAW_ONE);
+    choice.setType(TYPE_YES_NO);
     choice.setSourceCardId(sourceCardId);
     choice.setPrompt(prompt);
+    choice.setEffect(effect);
     choice.setOptions(List.of(
         new ChoiceOption(OPTION_YES, "Yes"),
         new ChoiceOption(OPTION_NO, "No")));
     return choice;
   }
 
-  public static PendingChoice optionalPayOneDrawOne(String choiceId, String playerId, String sourceCardId, String prompt) {
+  public static PendingChoice optionalPayment(
+      String choiceId,
+      String playerId,
+      String sourceCardId,
+      String prompt,
+      int paymentAmount,
+      String effect) {
     PendingChoice choice = new PendingChoice();
     choice.setChoiceId(choiceId);
     choice.setPlayerId(playerId);
-    choice.setType(TYPE_OPTIONAL_PAY_1_DRAW_ONE);
+    choice.setType(TYPE_OPTIONAL_PAYMENT);
     choice.setSourceCardId(sourceCardId);
     choice.setPrompt(prompt);
+    choice.setPaymentAmount(paymentAmount);
+    choice.setEffect(effect);
     choice.setOptions(List.of(
-        new ChoiceOption(OPTION_PAY_1, "Pay 1"),
+        new ChoiceOption(OPTION_PAY_1, paymentAmount == 1 ? "Pay 1" : "Pay " + paymentAmount),
         new ChoiceOption(OPTION_DECLINE, "Decline")));
+    return choice;
+  }
+
+  public static PendingChoice optionalDrawOne(String choiceId, String playerId, String sourceCardId, String prompt) {
+    PendingChoice choice = yesNo(choiceId, playerId, sourceCardId, prompt, EFFECT_DRAW_1);
+    choice.setType(TYPE_OPTIONAL_DRAW_ONE);
+    return choice;
+  }
+
+  public static PendingChoice optionalPayOneDrawOne(String choiceId, String playerId, String sourceCardId, String prompt) {
+    PendingChoice choice = optionalPayment(choiceId, playerId, sourceCardId, prompt, 1, EFFECT_DRAW_1);
+    choice.setType(TYPE_OPTIONAL_PAY_1_DRAW_ONE);
     return choice;
   }
 
@@ -132,6 +164,10 @@ public class PendingChoice {
   public void setPublicChoice(boolean publicChoice) { this.publicChoice = publicChoice; }
   public int getRequiredSelections() { return requiredSelections; }
   public void setRequiredSelections(int requiredSelections) { this.requiredSelections = requiredSelections; }
+  public int getPaymentAmount() { return paymentAmount; }
+  public void setPaymentAmount(int paymentAmount) { this.paymentAmount = Math.max(0, paymentAmount); }
+  public String getEffect() { return effect; }
+  public void setEffect(String effect) { this.effect = effect == null || effect.isBlank() ? EFFECT_NONE : effect; }
   public boolean isAllowPartialResolve() { return allowPartialResolve; }
   public void setAllowPartialResolve(boolean allowPartialResolve) { this.allowPartialResolve = allowPartialResolve; }
   public Map<String, String> getContext() { return context; }

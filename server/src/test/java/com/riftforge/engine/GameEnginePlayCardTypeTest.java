@@ -831,6 +831,28 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void attachedGearDoesNotTriggerDeathknellWhenHostDies() {
+    CardInstance spell = card("spell", "p1", ZoneName.HAND);
+    CardInstance host = card("host", "p2", ZoneName.BATTLEFIELD);
+    host.setCurrentHealth(0);
+    CardInstance gear = card("equip", "p2", ZoneName.BASE);
+    gear.setAttachedToInstanceId("host");
+    LiveGameState state = state(spell, host, gear);
+    stubCard("spell", "Simple Spell", "Spell", 0, 0, 0, "Draw 1.");
+    stubCard("host", "Destroyed Unit", "Unit", 0, 2, 2, null);
+    stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] [Deathknell] Attached unit gets +1.");
+    when(cardDataService.hasKeyword("equip", "DEATHKNELL")).thenReturn(true);
+
+    engine.applyMove(state, play("spell", ZoneName.BASE));
+
+    assertThat(host.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(gear.getAttachedToInstanceId()).isNull();
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Equip Gear returned to Base."));
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("Deathknell"));
+  }
+
+  @Test
   void attachedGearReturnsToBaseWhenChampionHostReturnsToChampionZoneByCleanup() {
     CardInstance spell = card("spell", "p1", ZoneName.HAND);
     CardInstance champion = card("champion", "p2", ZoneName.BATTLEFIELD);

@@ -15,6 +15,7 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,9 +33,26 @@ public class GameEngine {
   private final CardEffectRegistry effects;
   private final DeathTriggerService deathTriggerService;
   private final TokenFactory tokenFactory;
+  private final TriggerDispatcher triggerDispatcher;
   private final int targetScore;
 
-  public GameEngine(RulesValidator rulesValidator, CombatResolver combatResolver, CardZoneService cardZoneService, CardDataService cardDataService, CardEffectRegistry effects, DeathTriggerService deathTriggerService, TokenFactory tokenFactory, @Value("${riftforge.target-score}") int targetScore) {
+  public GameEngine(RulesValidator rulesValidator, CombatResolver combatResolver, CardZoneService cardZoneService, CardDataService cardDataService, CardEffectRegistry effects, DeathTriggerService deathTriggerService, TokenFactory tokenFactory, int targetScore) {
+    this(
+        rulesValidator,
+        combatResolver,
+        cardZoneService,
+        cardDataService,
+        effects,
+        deathTriggerService,
+        tokenFactory,
+        new TriggerDispatcher(List.of(
+            new NoxianDrummerMoveTrigger(cardDataService, tokenFactory),
+            new StellacornHerderMoveTrigger(cardDataService))),
+        targetScore);
+  }
+
+  @Autowired
+  public GameEngine(RulesValidator rulesValidator, CombatResolver combatResolver, CardZoneService cardZoneService, CardDataService cardDataService, CardEffectRegistry effects, DeathTriggerService deathTriggerService, TokenFactory tokenFactory, TriggerDispatcher triggerDispatcher, @Value("${riftforge.target-score}") int targetScore) {
     this.rulesValidator = rulesValidator;
     this.combatResolver = combatResolver;
     this.cardZoneService = cardZoneService;
@@ -42,6 +60,7 @@ public class GameEngine {
     this.effects = effects;
     this.deathTriggerService = deathTriggerService;
     this.tokenFactory = tokenFactory;
+    this.triggerDispatcher = triggerDispatcher;
     this.targetScore = targetScore;
   }
 
@@ -309,8 +328,7 @@ public class GameEngine {
     card.setTapped(!cardDataService.hasKeyword(card, "AMBUSH"));
     card.setHasSummoningSickness(false);
     int gankingBonus = applyGanking(state, card);
-    applyMovementScripts(state, card, sourceZone, ZoneName.BATTLEFIELD);
-    applyMoveToBattlefieldTokenScripts(state, card);
+    dispatchCardMoved(state, card, sourceZone, ZoneName.BATTLEFIELD, "MOVE_TO_BATTLEFIELD");
     effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onAttack(card, state));
     log(state, move.playerId(), playedFromChampionZone
         ? "Played " + def.name() + " from the Champion zone."
@@ -440,19 +458,22 @@ public class GameEngine {
 
   private LiveGameState applyResolveChoice(LiveGameState state, ResolveChoiceMove move) {
     PendingChoice choice = state.getPendingChoice();
-    if (PendingChoice.TYPE_OPTIONAL_DRAW_ONE.equals(choice.getType())) {
+    if (PendingChoice.TYPE_OPTIONAL_DRAW_ONE.equals(choice.getType())
+        || PendingChoice.TYPE_YES_NO.equals(choice.getType())) {
       if (PendingChoice.OPTION_YES.equals(move.selectedOptionId())) {
-        applyDraw(state, move.playerId(), 1);
-        log(state, move.playerId(), player(state, move.playerId()).getName() + " chose to draw 1.");
+        applyChoiceEffect(state, move.playerId(), choice);
+        log(state, move.playerId(), player(state, move.playerId()).getName() + " chose yes for " + choicePromptLabel(choice) + ".");
       } else {
         log(state, move.playerId(), player(state, move.playerId()).getName() + " declined " + choicePromptLabel(choice) + ".");
       }
-    } else if (PendingChoice.TYPE_OPTIONAL_PAY_1_DRAW_ONE.equals(choice.getType())) {
+    } else if (PendingChoice.TYPE_OPTIONAL_PAY_1_DRAW_ONE.equals(choice.getType())
+        || PendingChoice.TYPE_OPTIONAL_PAYMENT.equals(choice.getType())) {
       if (PendingChoice.OPTION_PAY_1.equals(move.selectedOptionId())) {
         PlayerState player = player(state, move.playerId());
-        player.setAvailableEnergy(Math.max(0, player.getAvailableEnergy() - 1));
-        applyDraw(state, move.playerId(), 1);
-        log(state, move.playerId(), player.getName() + " paid 1 to draw 1.");
+        int amount = optionalPaymentAmount(choice);
+        player.setAvailableEnergy(Math.max(0, player.getAvailableEnergy() - amount));
+        applyChoiceEffect(state, move.playerId(), choice);
+        log(state, move.playerId(), player.getName() + " paid " + amount + " for " + choicePromptLabel(choice) + ".");
       } else {
         log(state, move.playerId(), player(state, move.playerId()).getName() + " declined " + choicePromptLabel(choice) + ".");
       }
@@ -463,6 +484,16 @@ public class GameEngine {
     }
     state.setPendingChoice(null);
     return state;
+  }
+
+  private void applyChoiceEffect(LiveGameState state, String playerId, PendingChoice choice) {
+    if (PendingChoice.EFFECT_DRAW_1.equals(choice.getEffect())) {
+      applyDraw(state, playerId, 1);
+    }
+  }
+
+  private int optionalPaymentAmount(PendingChoice choice) {
+    return choice.getPaymentAmount() > 0 ? choice.getPaymentAmount() : 1;
   }
 
   private void resolveTopDeckPickOne(LiveGameState state, ResolveChoiceMove move, PendingChoice choice) {
@@ -649,7 +680,7 @@ public class GameEngine {
       card.setZone(ZoneName.BASE);
       card.setX(0);
       card.setY(0);
-      applyMovementScripts(state, card, ZoneName.BATTLEFIELD, ZoneName.BASE);
+      dispatchCardMoved(state, card, ZoneName.BATTLEFIELD, ZoneName.BASE, "RETURN_TO_BASE");
     });
   }
 
@@ -691,19 +722,9 @@ public class GameEngine {
     }
   }
 
-  private void applyMoveToBattlefieldTokenScripts(LiveGameState state, CardInstance card) {
-    CardDefinition def = cardDataService.getCard(card.getCardId());
-    if (!isNamed(def, "Noxian Drummer")) return;
-    tokenFactory.createRecruit(state, card.getOwnerId(), ZoneName.BATTLEFIELD, card.getX() + 40, card.getY() + 40);
-    log(state, card.getOwnerId(), "Noxian Drummer created a Recruit token.");
-  }
-
-  private void applyMovementScripts(LiveGameState state, CardInstance card, ZoneName sourceZone, ZoneName targetZone) {
+  private void dispatchCardMoved(LiveGameState state, CardInstance card, ZoneName sourceZone, ZoneName targetZone, String cause) {
     if (sourceZone == targetZone) return;
-    CardDefinition def = cardDataService.getCard(card.getCardId());
-    if (!isNamed(def, "Stellacorn Herder")) return;
-    applyDraw(state, card.getOwnerId(), 1);
-    log(state, card.getOwnerId(), "Stellacorn Herder drew 1 after moving.");
+    triggerDispatcher.dispatch(state, TriggerEvent.cardMoved(card, sourceZone, targetZone, "BATTLEFIELD", cause));
   }
 
   private boolean isNamed(CardDefinition def, String name) {
