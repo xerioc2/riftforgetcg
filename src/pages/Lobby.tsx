@@ -96,7 +96,7 @@ export function Lobby() {
   const deckCardIds = (deckId: string | null) => {
     const deck = decks.find((existing) => existing.id === deckId);
     if (!deck) return [];
-    return deckToGameCardIds(deck);
+    return deckToGameCardIds(deck, cardsById);
   };
 
   const selectedDeckCardIds = deckCardIds(myDeckId);
@@ -111,8 +111,9 @@ export function Lobby() {
     });
     if (!response.ok) {
       const message = await readableHttpError(response, 'Deck is not valid.');
-      setDeckError(message);
-      notifyError('Ready failed', message);
+      const deckMessage = selectedDeck ? `${selectedDeck.name}: ${message}` : message;
+      setDeckError(deckMessage);
+      notifyError('Ready failed', deckMessage);
       return;
     }
     const nextRoom = (await response.json()) as RoomState;

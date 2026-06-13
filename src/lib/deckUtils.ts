@@ -1,4 +1,4 @@
-import type { Deck } from '../types';
+import type { Deck, RiftCard } from '../types';
 
 export function getDeckLegendCardId(deck: Deck): string | undefined {
   if (deck.legendCardId) return deck.legendCardId;
@@ -8,12 +8,15 @@ export function getDeckLegendCardId(deck: Deck): string | undefined {
   return championIdIsInDeck ? undefined : deck.championCardId;
 }
 
-export function deckToGameCardIds(deck: Deck): string[] {
-  const ids = deck.cards.flatMap((entry) =>
-    Array.from({ length: entry.quantity }, () => entry.cardId)
-  );
-  if (deck.championCardId && !ids.includes(deck.championCardId)) ids.unshift(deck.championCardId);
+export function deckToGameCardIds(deck: Deck, cardsById?: Map<string, RiftCard>): string[] {
   const legendCardId = getDeckLegendCardId(deck);
+  const ids = deck.cards.flatMap((entry) => {
+    const card = cardsById?.get(entry.cardId);
+    if (card?.type === 'Legend') return [];
+    if (entry.cardId === legendCardId) return [];
+    return Array.from({ length: entry.quantity }, () => entry.cardId);
+  });
+  if (deck.championCardId && !ids.includes(deck.championCardId)) ids.unshift(deck.championCardId);
   if (legendCardId) ids.unshift(legendCardId);
   return ids;
 }

@@ -71,7 +71,10 @@ export function DeckBuild() {
 
   const addCard = (card: RiftCard) => {
     if (card.type === 'Legend') {
-      patchDeck({ legendCardId: card.id });
+      patchDeck({
+        legendCardId: card.id,
+        cards: activeDeck.cards.filter((entry) => cardsById.get(entry.cardId)?.type !== 'Legend'),
+      });
       return;
     }
 
@@ -136,27 +139,31 @@ export function DeckBuild() {
   };
 
   return (
-    <main className="min-h-[calc(100vh-73px)] bg-ink text-slate-100">
-      <div className="mx-auto grid max-w-[1500px] gap-5 px-5 py-5 xl:grid-cols-[minmax(0,1fr)_430px]">
-        <section className="min-w-0">
-          <div className="mb-4 flex flex-wrap items-center gap-3 text-sm text-slate-300">
+    <main className="h-auto min-h-[calc(100vh-73px)] bg-ink text-slate-100 xl:h-[calc(100vh-73px)] xl:overflow-hidden">
+      <div className="mx-auto grid h-full max-w-[1500px] gap-5 px-5 py-5 xl:grid-cols-[minmax(0,1fr)_430px]">
+        <section className="flex min-h-0 min-w-0 flex-col">
+          <div className="shrink-0 pb-4">
+            <div className="mb-4 flex flex-wrap items-center gap-3 text-sm text-slate-300">
             <StatusPill tone={cards.length ? 'good' : 'warn'}>{cards.length} cards cached</StatusPill>
             <StatusPill tone="good">Standalone mode</StatusPill>
             <button className="btn-secondary" onClick={() => void loadCards()} disabled={loading}>
               {loading ? 'Refreshing...' : 'Refresh cards'}
             </button>
+            </div>
+            <FilterBar filters={filters} options={filterOptions} onChange={setFilters} />
+            {error ? <Notice tone="bad">{error}</Notice> : null}
           </div>
-          <FilterBar filters={filters} options={filterOptions} onChange={setFilters} />
-          {error ? <Notice tone="bad">{error}</Notice> : null}
-          <div className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
-            {filteredCards.map((card) => (
-              <CardTile key={card.id} card={card} selected={getDeckLegendCardId(activeDeck) === card.id} onAdd={() => addCard(card)} onDetails={() => setSelectedCard(card)} />
-            ))}
+          <div className="min-h-0 flex-1 overflow-y-auto pr-1 xl:pb-2">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
+              {filteredCards.map((card) => (
+                <CardTile key={card.id} card={card} selected={getDeckLegendCardId(activeDeck) === card.id} onAdd={() => addCard(card)} onDetails={() => setSelectedCard(card)} />
+              ))}
+            </div>
+            {!loading && filteredCards.length === 0 ? <Notice tone="warn">No cards match these filters. Try refreshing or clearing a filter.</Notice> : null}
           </div>
-          {!loading && filteredCards.length === 0 ? <Notice tone="warn">No cards match these filters. Try refreshing or clearing a filter.</Notice> : null}
         </section>
 
-        <aside className="xl:sticky xl:top-[92px] xl:self-start">
+        <aside className="min-h-0 xl:overflow-y-auto xl:pr-1">
           <DeckBuilder
             deck={activeDeck}
             decks={decks}
@@ -311,8 +318,9 @@ function DeckBuilder({
   saveMessage: string;
 }) {
   return (
-    <section className="border border-line bg-panel p-4 shadow-glow">
-      <div className="flex items-center gap-3">
+    <section className="flex h-full min-h-0 flex-col border border-line bg-panel p-4 shadow-glow">
+      <div className="shrink-0 border-b border-line bg-panel pb-4">
+        <div className="flex items-center gap-3">
         <select className="input flex-1" value={deck.id} onChange={(event) => onSelectDeck(event.target.value)} aria-label="Deck">
           {decks.map((existing) => (
             <option key={existing.id} value={existing.id}>
@@ -323,11 +331,29 @@ function DeckBuilder({
         <button className="btn-secondary" onClick={onCreateDeck}>
           New
         </button>
+        </div>
+
+        <input className="input mt-3 w-full text-lg font-semibold" value={deck.name} onChange={(event) => onRename(event.target.value)} />
+
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button className="btn-primary" onClick={onSave} disabled={!canSave}>
+            Save
+          </button>
+          <button className="btn-secondary" onClick={onImport}>
+            Import
+          </button>
+          <button className="btn-secondary" onClick={onExport} disabled={entries.length === 0}>
+            Export
+          </button>
+          <button className="btn-secondary border-ember/60 text-ember" onClick={() => onDeleteDeck(deck.id)}>
+            Delete
+          </button>
+        </div>
+        {saveMessage ? <p className="mt-3 text-sm text-slate-300">{saveMessage}</p> : null}
       </div>
 
-      <input className="input mt-3 w-full text-lg font-semibold" value={deck.name} onChange={(event) => onRename(event.target.value)} />
-
-      <div className="mt-4 grid grid-cols-2 gap-3 text-center">
+      <div className="min-h-0 flex-1 overflow-y-auto pt-4">
+        <div className="grid grid-cols-2 gap-3 text-center">
         <DeckMetric label="Main Cards" value={`${validation.mainDeckCards}/39`} />
         <DeckMetric label="Champion" value={validation.champion?.name ?? 'None'} />
         <DeckMetric label="Runes" value={`${validation.runeCards}/12`} />
@@ -336,14 +362,14 @@ function DeckBuilder({
         <div className="col-span-2">
           <DeckMetric label="Domains" value={validation.domains.join(', ') || 'Unset'} />
         </div>
-      </div>
+        </div>
 
-      <div className={cx('mt-4 border px-3 py-3 text-sm', validation.valid ? 'border-mint/40 text-mint' : 'border-forge/50 text-forge')}>
-        {validation.valid ? 'Deck passes constructed validation.' : validation.messages.slice(0, 4).join(' ')}
-      </div>
-      <ValidationReport validation={validation} />
+        <div className={cx('mt-4 border px-3 py-3 text-sm', validation.valid ? 'border-mint/40 text-mint' : 'border-forge/50 text-forge')}>
+          {validation.valid ? 'Deck passes constructed validation.' : validation.messages.slice(0, 4).join(' ')}
+        </div>
+        <ValidationReport validation={validation} />
 
-      <div className="mt-4 border border-line bg-ink p-3">
+        <div className="mt-4 border border-line bg-ink p-3">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-white">Starter decks</p>
@@ -369,9 +395,9 @@ function DeckBuilder({
             </div>
           ))}
         </div>
-      </div>
+        </div>
 
-      <div className="mt-4 max-h-[46vh] overflow-auto border border-line">
+        <div className="mt-4 max-h-[46vh] overflow-auto border border-line">
         {entries.map((entry) => (
           <div className="grid grid-cols-[44px_minmax(0,1fr)_92px] items-center gap-3 border-b border-line px-3 py-3 last:border-b-0" key={entry.cardId}>
             <span className="text-center text-lg font-semibold text-forge">{entry.quantity}</span>
@@ -390,25 +416,10 @@ function DeckBuilder({
           </div>
         ))}
         {entries.length === 0 ? <div className="px-3 py-8 text-center text-sm text-slate-400">Add cards from the browser or import a decklist.</div> : null}
-      </div>
+        </div>
 
-      <ManaCurve entries={entries} />
-
-      <div className="mt-4 flex flex-wrap gap-3">
-        <button className="btn-primary" onClick={onSave} disabled={!canSave}>
-          Save
-        </button>
-        <button className="btn-secondary" onClick={onImport}>
-          Import
-        </button>
-        <button className="btn-secondary" onClick={onExport} disabled={entries.length === 0}>
-          Export
-        </button>
-        <button className="btn-secondary border-ember/60 text-ember" onClick={() => onDeleteDeck(deck.id)}>
-          Delete
-        </button>
+        <ManaCurve entries={entries} />
       </div>
-      {saveMessage ? <p className="mt-3 text-sm text-slate-300">{saveMessage}</p> : null}
     </section>
   );
 }

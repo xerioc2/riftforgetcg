@@ -103,7 +103,39 @@ class ConstructedSetupIntegrationTest {
         .isThrownBy(() -> fx.roomService.ready(room.getCode(), "guest", bot.getDeckCardIds()));
   }
 
-  private void registerIreliaStarterPool() {
+  @Test
+  void ireliaStarterDeckCanReadyAndPlacesRolesInCorrectZones() {
+    List<String> deck = registerIreliaStarterPool();
+    RoomState room = fx.roomService.create("host", "Host", false, GameMode.ENFORCED);
+    fx.roomService.join(room.getCode(), "guest", "Guest");
+
+    assertThatNoException().isThrownBy(() -> fx.roomService.ready(room.getCode(), "host", deck));
+    assertThatNoException().isThrownBy(() -> fx.roomService.ready(room.getCode(), "guest", deck));
+
+    fx.roomService.start(room.getCode(), "host");
+    fx.gameService.initGame(room.getCode(), List.of("host", "guest"),
+        Map.of("host", deck, "guest", deck),
+        Map.of("host", "Host", "guest", "Guest"),
+        room.getGameMode());
+
+    LiveGameState view = fx.gameService.currentStateFor(room.getCode(), "host");
+    assertThat(view.getCards()).anySatisfy(card -> {
+      assertThat(card.getOwnerId()).isEqualTo("host");
+      assertThat(card.getZone()).isEqualTo(ZoneName.LEGEND);
+      assertThat(fx.cards.get(card.getCardId()).name()).isEqualTo("Irelia - Blade Dancer");
+    });
+    assertThat(view.getCards()).anySatisfy(card -> {
+      assertThat(card.getOwnerId()).isEqualTo("host");
+      assertThat(card.getZone()).isEqualTo(ZoneName.CHAMPION);
+      assertThat(fx.cards.get(card.getCardId()).name()).isEqualTo("Irelia - Fervent");
+    });
+    assertThat(view.getCards())
+        .filteredOn(card -> "host".equals(card.getOwnerId()) && card.getZone() == ZoneName.HAND)
+        .allSatisfy(card -> assertThat(fx.cards.get(card.getCardId()).type())
+            .isNotIn("Legend", "Champion", "Rune", "Battlefield"));
+  }
+
+  private List<String> registerIreliaStarterPool() {
     starterCard("Irelia - Blade Dancer", "Legend");
     starterCard("Irelia - Fervent", "Champion");
     starterCard("Calm Rune", "Rune");
@@ -118,10 +150,38 @@ class ConstructedSetupIntegrationTest {
         "Adaptatron")) {
       starterCard(name, "Unit");
     }
+    return List.of(
+        idFor("Irelia - Blade Dancer"),
+        idFor("Irelia - Fervent"),
+        idFor("Defy"), idFor("Defy"), idFor("Defy"),
+        idFor("Discipline"), idFor("Discipline"), idFor("Discipline"),
+        idFor("Tideturner"), idFor("Tideturner"), idFor("Tideturner"),
+        idFor("Stellacorn Herder"), idFor("Stellacorn Herder"), idFor("Stellacorn Herder"),
+        idFor("Guardian Angel"), idFor("Guardian Angel"), idFor("Guardian Angel"),
+        idFor("Boots of Swiftness"), idFor("Boots of Swiftness"), idFor("Boots of Swiftness"),
+        idFor("Defiant Dance"), idFor("Defiant Dance"), idFor("Defiant Dance"),
+        idFor("Scuttle Crab"), idFor("Scuttle Crab"), idFor("Scuttle Crab"),
+        idFor("Charm"), idFor("Charm"),
+        idFor("En Garde"), idFor("En Garde"),
+        idFor("Gust"), idFor("Gust"),
+        idFor("Ride The Wind"), idFor("Ride The Wind"),
+        idFor("Stacked Deck"), idFor("Stacked Deck"),
+        idFor("Not So Fast"), idFor("Not So Fast"),
+        idFor("Star-Crossed"), idFor("Star-Crossed"),
+        idFor("Adaptatron"),
+        idFor("Calm Rune"), idFor("Calm Rune"), idFor("Calm Rune"), idFor("Calm Rune"), idFor("Calm Rune"), idFor("Calm Rune"),
+        idFor("Chaos Rune"), idFor("Chaos Rune"), idFor("Chaos Rune"), idFor("Chaos Rune"), idFor("Chaos Rune"), idFor("Chaos Rune"),
+        idFor("Targon's Peak"),
+        idFor("Sunken Temple"),
+        idFor("Abandoned Hall"));
   }
 
   private void starterCard(String name, String type) {
-    String id = name.toLowerCase().replace(' ', '-').replace("'", "");
+    String id = idFor(name);
     fx.addCard(id, name, type);
+  }
+
+  private String idFor(String name) {
+    return name.toLowerCase().replace(' ', '-').replace("'", "");
   }
 }
