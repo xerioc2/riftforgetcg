@@ -16,7 +16,7 @@ import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
 import { readableHttpError } from '../lib/http';
 import { hasUnsupportedAdditionalCost, isActionCard, isAmbushCard, isEquipCard, isLegalTargetForMode, isReactionCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode } from '../lib/cardActions';
-import { appBuildLabel, APP_VERSION, BUILD_TAG } from '../lib/appMetadata';
+import { appBuildLabel, APP_VERSION, BUILD_DATE, BUILD_TAG } from '../lib/appMetadata';
 import { buildDebugInfo } from '../lib/debugInfo';
 import { isBotPlayer, legalActionHint, phaseGuidance, waitingStatusText } from '../lib/gameGuidance';
 import { useLocalPlayer } from '../lib/playerContext';
@@ -778,6 +778,7 @@ export function GameBoard() {
       serverUrl: getGameServerUrl(),
       appVersion: APP_VERSION,
       buildTag: BUILD_TAG,
+      buildDate: BUILD_DATE,
     });
 
   const copyDebugInfo = async () => {

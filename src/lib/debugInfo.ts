@@ -4,6 +4,7 @@ export type DebugInfoPayload = {
   app: 'RiftForge';
   appVersion: string;
   buildTag: string;
+  buildDate: string;
   roomCode: string;
   phase: string;
   activePlayerId: string;
@@ -26,6 +27,7 @@ type BuildDebugInfoInput = {
   serverUrl: string;
   appVersion: string;
   buildTag: string;
+  buildDate: string;
   generatedAt?: string;
 };
 
@@ -37,12 +39,14 @@ export function buildDebugInfo({
   serverUrl,
   appVersion,
   buildTag,
+  buildDate,
   generatedAt = new Date().toISOString(),
 }: BuildDebugInfoInput): DebugInfoPayload {
   return {
     app: 'RiftForge',
     appVersion,
     buildTag,
+    buildDate,
     roomCode,
     phase: state?.currentPhase ?? 'unknown',
     activePlayerId: state?.activePlayerId ?? 'unknown',

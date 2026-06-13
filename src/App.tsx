@@ -3,9 +3,11 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Nav } from './components/Nav';
 import { ServerLoader } from './components/ServerLoader';
 import { ToastHost } from './components/ToastHost';
+import { UpdateAvailableBanner } from './components/UpdateAvailableBanner';
 import { getGameServerCandidates, getGameServerUrl, initServerUrl, setResolvedServerUrl } from './lib/env';
 import { getOrCreateLocalPlayer, saveLocalPlayer } from './lib/localPlayer';
 import { PlayerContext } from './lib/playerContext';
+import { checkLatestRelease, dismissRelease, type ReleaseUpdate } from './lib/releaseUpdates';
 import { DeckBuild } from './pages/DeckBuild';
 import { Home } from './pages/Home';
 import { History } from './pages/History';
@@ -22,6 +24,7 @@ function App() {
   const [serverReady, setServerReady] = useState(false);
   const [serverCheckStartedAt, setServerCheckStartedAt] = useState(() => Date.now());
   const [showServerHelp, setShowServerHelp] = useState(false);
+  const [releaseUpdate, setReleaseUpdate] = useState<ReleaseUpdate | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -65,6 +68,21 @@ function App() {
     };
   }, [serverCheckStartedAt, serverUrlInitialized]);
 
+  useEffect(() => {
+    if (!serverReady) return;
+    let cancelled = false;
+    void checkLatestRelease()
+      .then((update) => {
+        if (!cancelled) setReleaseUpdate(update);
+      })
+      .catch((error) => {
+        console.debug('RiftForge release check failed.', error);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [serverReady]);
+
   if (!serverUrlInitialized || !serverReady) {
     return (
       <ServerLoader
@@ -105,6 +123,15 @@ function App() {
     <PlayerContext.Provider value={player}>
       <BrowserRouter>
         <Nav />
+        {releaseUpdate ? (
+          <UpdateAvailableBanner
+            update={releaseUpdate}
+            onDismiss={() => {
+              dismissRelease(releaseUpdate.latestTag);
+              setReleaseUpdate(null);
+            }}
+          />
+        ) : null}
         <ToastHost />
         <Routes>
           <Route path="/" element={<Home />} />
