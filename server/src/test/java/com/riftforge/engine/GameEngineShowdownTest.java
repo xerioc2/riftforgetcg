@@ -100,6 +100,29 @@ class GameEngineShowdownTest {
   }
 
   @Test
+  void failedShowdownResolveDoesNotMutateCombatState() {
+    CardInstance attacker = card("attacker", "p1", ZoneName.BASE);
+    CardInstance defender = card("defender", "p2", ZoneName.BATTLEFIELD);
+    LiveGameState state = state(attacker, defender);
+    stubUnit("attacker", 3);
+    stubUnit("defender", 1);
+
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "attacker"));
+
+    assertThatThrownBy(() -> engine.applyMove(state, new ResolveShowdownMove("p2")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Only the attacking player can resolve this showdown.");
+
+    assertThat(state.getCurrentPhase()).isEqualTo(Phase.MAIN);
+    assertThat(state.getActiveShowdown()).isNotNull();
+    assertThat(state.getActiveShowdown().step()).isEqualTo(ShowdownStep.ACTION_WINDOW);
+    assertThat(attacker.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(defender.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(attacker.getCurrentHealth()).isEqualTo(3);
+    assertThat(defender.getCurrentHealth()).isEqualTo(3);
+  }
+
+  @Test
   void allowsMultipleShowdownsInOneMainPhase() {
     LiveGameState state = state(
         card("attacker-one", "p1", ZoneName.BASE),

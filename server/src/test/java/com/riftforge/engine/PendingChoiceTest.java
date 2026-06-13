@@ -145,9 +145,32 @@ class PendingChoiceTest {
   }
 
   @Test
+  void genericOptionalPaymentDeclineClearsWithoutApplyingEffect() {
+    LiveGameState state = state();
+    player(state, "p1").setAvailableEnergy(2);
+    player(state, "p1").setDeckPool(new ArrayList<>(List.of("drawn-card")));
+    state.setPendingChoice(PendingChoice.optionalPayment(
+        "choice-1",
+        "p1",
+        "source",
+        "Pay 2 to draw one?",
+        2,
+        PendingChoice.EFFECT_DRAW_1));
+
+    engine.applyMove(state, new ResolveChoiceMove("p1", "choice-1", PendingChoice.OPTION_DECLINE));
+
+    assertThat(state.getPendingChoice()).isNull();
+    assertThat(player(state, "p1").getAvailableEnergy()).isEqualTo(2);
+    assertThat(player(state, "p1").getDeckPool()).containsExactly("drawn-card");
+    assertThat(state.getCards()).isEmpty();
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Alice declined Test Source."));
+  }
+
+  @Test
   void genericOptionalPaymentValidatesConfiguredEnergyAtResolution() {
     LiveGameState state = state();
     player(state, "p1").setAvailableEnergy(1);
+    player(state, "p1").setDeckPool(new ArrayList<>(List.of("drawn-card")));
     state.setPendingChoice(PendingChoice.optionalPayment(
         "choice-1",
         "p1",
@@ -159,6 +182,10 @@ class PendingChoiceTest {
     assertThatThrownBy(() -> engine.applyMove(state, new ResolveChoiceMove("p1", "choice-1", PendingChoice.OPTION_PAY_1)))
         .isInstanceOf(IllegalMoveException.class)
         .hasMessage("Insufficient energy for that choice.");
+    assertThat(state.getPendingChoice()).isNotNull();
+    assertThat(player(state, "p1").getAvailableEnergy()).isEqualTo(1);
+    assertThat(player(state, "p1").getDeckPool()).containsExactly("drawn-card");
+    assertThat(state.getCards()).isEmpty();
   }
 
   @Test
@@ -179,6 +206,17 @@ class PendingChoiceTest {
     assertThatThrownBy(() -> engine.applyMove(state, new ResolveChoiceMove("p2", "choice-1", PendingChoice.OPTION_YES)))
         .isInstanceOf(IllegalMoveException.class)
         .hasMessage("That choice belongs to another player.");
+  }
+
+  @Test
+  void spectatorCannotResolvePrivateChoice() {
+    LiveGameState state = state();
+    state.setPendingChoice(PendingChoice.yesNo("choice-1", "p1", "source", "Draw one?", PendingChoice.EFFECT_DRAW_1));
+
+    assertThatThrownBy(() -> engine.applyMove(state, new ResolveChoiceMove("spectator", "choice-1", PendingChoice.OPTION_YES)))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("That choice belongs to another player.");
+    assertThat(state.getPendingChoice()).isNotNull();
   }
 
   @Test
@@ -257,6 +295,26 @@ class PendingChoiceTest {
     assertThatThrownBy(() -> engine.applyMove(state, new ResolveChoiceMove("p1", "choice-1", null, "card-9", PendingChoice.ACTION_HAND, List.of())))
         .isInstanceOf(IllegalMoveException.class)
         .hasMessage("Choose one of the revealed cards.");
+  }
+
+  @Test
+  void staleStackedDeckChoiceRestoresDeckOrderOnFailure() {
+    LiveGameState state = state();
+    player(state, "p1").setDeckPool(new ArrayList<>(List.of("top-a")));
+    state.setPendingChoice(PendingChoice.topDeckPickOne(
+        "choice-1",
+        "p1",
+        "stacked-deck",
+        "source-instance",
+        List.of(cardDataService.getCard("top-a"), cardDataService.getCard("top-b"))));
+
+    assertThatThrownBy(() -> engine.applyMove(state, new ResolveChoiceMove("p1", "choice-1", null, "card-1", PendingChoice.ACTION_HAND, List.of())))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Choose one of the revealed cards.");
+
+    assertThat(state.getPendingChoice()).isNotNull();
+    assertThat(player(state, "p1").getDeckPool()).containsExactly("top-a");
+    assertThat(state.getCards()).isEmpty();
   }
 
   @Test

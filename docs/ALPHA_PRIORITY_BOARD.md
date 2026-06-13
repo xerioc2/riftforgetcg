@@ -32,7 +32,7 @@ will raise regression risk faster than playtest value.
 | Champion deployment payment | High | Medium | Pre-playtest | Done | Makes chosen Champions usable without treating them as normal hand cards. |
 | Equipment lifecycle | High | Medium | Pre-playtest | Done | Gear can be played to Base, equipped, cleaned up from hosts, and tested with starter decks. |
 | Illegal drag snapback | High | Low | Pre-playtest | Done | Prevents UI confusion when server rejects a move. |
-| Stacked Deck private choice | High | Medium | Pre-playtest | Done | Exercises private prompts and top-deck choice privacy without a full chain system. |
+| Pending choice prompts | High | Medium | Pre-playtest | Done | Owner-only yes/no, optional payment, Stacked Deck top-card choice, and Predict-style ordering prompts exist without a full chain system. |
 | Target selection | High | Medium | Pre-playtest | Done | Required for simple spells, Equip, and many bug reports to be meaningful. |
 | Action / Defender Action windows | High | Medium | Pre-playtest | Done | Provides a limited showdown action window while keeping Reaction/chain deferred. |
 | Hidden foundation | Medium | Medium | Pre-playtest | Done | Establishes masking and zones without later play-from-hidden timing. |
@@ -43,7 +43,7 @@ will raise regression risk faster than playtest value.
 | Privacy regression suite | High | Medium | Pre-playtest | Done | Protects hand, hidden, private-choice, projection, and debug-info surfaces. |
 | Issue/report flow | High | Low | Pre-playtest | Done | Gives testers a consistent path to submit useful bug reports. |
 | Final alpha stabilization sweep | High | Low | Pre-playtest | Done | Run validation, cross-check support policy, update release notes, and fix only small bugs. |
-| Optional payment prompts | Medium | Medium | Post-playtest | Next | Valuable for correctness, but not worth destabilizing the first alpha unless payment bugs dominate feedback. |
+| Optional payment prompts | Medium | Medium | Post-playtest | Done | Generic prompts can offer Pay/Decline, validate available alpha energy at resolution time, spend that energy, and clear safely. Real trigger hookups remain conservative. |
 | Stellacorn Herder move trigger | Medium | Medium | Post-playtest | Done | Migrated through the alpha trigger dispatcher; movement draws 1 and same-zone reposition stays inert. |
 | Abandoned Hall spell trigger | Medium | Medium | Post-playtest | Next | Useful battlefield trigger candidate, but depends on clearer prompt/payment policy. |
 
@@ -51,7 +51,7 @@ will raise regression risk faster than playtest value.
 
 | Work item | Impact | Risk | Timing | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
-| Trigger framework v1 | High | High | Post-playtest | In progress | Small deterministic event/handler dispatcher exists for alpha movement triggers. Chain, priority, optional ordering, and complex trigger windows remain deferred. |
+| Trigger framework v1 | High | High | Post-playtest | Done | Small deterministic event/handler dispatcher exists for alpha movement triggers. Chain, priority, optional ordering, and complex trigger windows remain deferred. |
 | Charm / enemy movement | High | High | Post-playtest | Deferred | Needs precise legal destinations, ownership, battlefield/control rules, and UI affordances. |
 | Hidden play-from-hidden | High | High | Post-playtest | Deferred | Requires timing windows, payment, reveal/masking transitions, and target legality. |
 | Ambush-as-Reaction | High | High | Post-playtest | Deferred | Depends on chain/reaction windows and correct response priority. |

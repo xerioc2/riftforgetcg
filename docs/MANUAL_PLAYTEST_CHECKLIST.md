@@ -15,6 +15,8 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - If your deck has Champion Units in the MainDeck, confirm they draw/play as main-deck cards instead of starting in the Champion zone.
 - Use a targeted effect and confirm the target prompt and error messages make sense.
 - If an optional choice prompt appears, choose an option and confirm the game resumes.
+- If an optional payment prompt appears, try Pay when you have enough energy and confirm the energy is spent and the effect resolves.
+- If an optional payment prompt appears, try Decline and confirm the prompt clears without applying the effect.
 - If you play Stacked Deck, confirm only you see the top-card options, one card goes to hand, and the rest recycle without appearing in the public log.
 - Play Gear to Base, then equip it to a friendly Unit or Champion if you draw one.
 - Confirm attached Gear stays with a host that moves from Base to battlefield.
@@ -70,6 +72,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - With Fiora Vanguard, confirm Vanguard Sergeant is treated as Supported and Daring Poro/Laurent Duelist remain readable Assault examples.
 - Play or attempt a targeted effect and confirm target prompts/errors are visible.
 - If an optional choice prompt appears, resolve it and confirm normal actions return afterward.
+- If an optional payment prompt appears, confirm only the prompted player sees Pay/Decline and the opponent view does not reveal prompt details.
 - If you draw Stacked Deck, play it and confirm the private card-selection modal is readable and returns to normal actions after resolving.
 - Play Equip Gear when available and confirm it enters Base first.
 - Click the Gear in Base, choose a friendly Unit/Champion, and confirm it attaches.

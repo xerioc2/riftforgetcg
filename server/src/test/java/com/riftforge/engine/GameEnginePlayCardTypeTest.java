@@ -702,15 +702,22 @@ class GameEnginePlayCardTypeTest {
 
   @Test
   void equipCannotAttachEnemyUnit() {
+    CardInstance gear = card("equip", "p1", ZoneName.BASE);
+    CardInstance enemy = card("enemy", "p2", ZoneName.BATTLEFIELD);
     LiveGameState state = state(
-        card("equip", "p1", ZoneName.BASE),
-        card("enemy", "p2", ZoneName.BATTLEFIELD));
+        gear,
+        enemy);
     stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
     stubCard("enemy", "Enemy Unit", "Unit", 0, 2, 2, null);
 
     assertThatThrownBy(() -> engine.applyMove(state, equip("equip", "enemy")))
         .isInstanceOf(IllegalMoveException.class)
         .hasMessage("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
+    assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(gear.getAttachedToInstanceId()).isNull();
+    assertThat(gear.getX()).isZero();
+    assertThat(gear.getY()).isZero();
+    assertThat(enemy.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
   }
 
   @Test
@@ -1006,6 +1013,8 @@ class GameEnginePlayCardTypeTest {
   @Test
   void championFromChampionZoneRequiresEnoughEnergy() {
     LiveGameState state = state(card("champion", "p1", ZoneName.CHAMPION));
+    state.getPlayers().getFirst().setAvailableEnergy(3);
+    state.setRunes(new ArrayList<>(List.of(rune("rune-1", "p1", false))));
     stubCard("champion", "Irelia - Fervent", "Champion", 5, 4, 5, "");
 
     assertThatThrownBy(() -> engine.applyMove(state, new MoveToBattlefieldMove("p1", "champion")))
@@ -1014,6 +1023,10 @@ class GameEnginePlayCardTypeTest {
 
     CardInstance champion = find(state, "champion");
     assertThat(champion.getZone()).isEqualTo(ZoneName.CHAMPION);
+    assertThat(champion.isTapped()).isFalse();
+    assertThat(state.getPlayers().getFirst().getAvailableEnergy()).isEqualTo(3);
+    assertThat(state.getRunes()).singleElement().satisfies(rune -> assertThat(rune.isTapped()).isFalse());
+    assertThat(state.getActiveShowdown()).isNull();
   }
 
   @Test
@@ -1154,6 +1167,7 @@ class GameEnginePlayCardTypeTest {
     assertThat(state.getCards()).noneMatch(card -> card.getCardId().equals("drawn-two"));
     assertThat(state.getPlayers().getFirst().getDeckPool()).containsExactly("drawn-two");
     assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Stellacorn Herder drew 1 after moving."));
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("Drawn One"));
   }
 
   @Test
@@ -1168,6 +1182,21 @@ class GameEnginePlayCardTypeTest {
 
     assertThat(state.getCards()).noneMatch(card -> card.getCardId().equals("drawn-one"));
     assertThat(state.getPlayers().getFirst().getDeckPool()).containsExactly("drawn-one");
+  }
+
+  @Test
+  void stellacornHerderTriggerDoesNotFireForUnrelatedCards() {
+    CardInstance unit = card("unit", "p1", ZoneName.BASE);
+    LiveGameState state = state(unit);
+    state.getPlayers().getFirst().setDeckPool(new ArrayList<>(List.of("drawn-one")));
+    stubCard("unit", "Ordinary Unit", "Unit", 0, 2, 2, "No movement trigger.");
+    stubCard("drawn-one", "Drawn One", "Unit", 0, 1, 1, null);
+
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "unit"));
+
+    assertThat(state.getCards()).noneMatch(card -> card.getCardId().equals("drawn-one"));
+    assertThat(state.getPlayers().getFirst().getDeckPool()).containsExactly("drawn-one");
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("Stellacorn Herder"));
   }
 
   @Test
