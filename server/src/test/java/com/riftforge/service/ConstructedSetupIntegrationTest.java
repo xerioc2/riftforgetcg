@@ -40,7 +40,7 @@ class ConstructedSetupIntegrationTest {
           .filter(player -> playerId.equals(player.getUserId()))
           .findFirst()
           .orElseThrow();
-      assertThat(me.getDeckCount()).isEqualTo(35);
+      assertThat(me.getDeckCount()).isEqualTo(36);
       assertThat(me.getRunePoolRemaining()).isEqualTo(12);
 
       List<CardInstance> handCards = view.getCards().stream()
@@ -168,7 +168,7 @@ class ConstructedSetupIntegrationTest {
         idFor("Stacked Deck"), idFor("Stacked Deck"),
         idFor("Not So Fast"), idFor("Not So Fast"),
         idFor("Star-Crossed"), idFor("Star-Crossed"),
-        idFor("Adaptatron"),
+        idFor("Adaptatron"), idFor("Adaptatron"),
         idFor("Calm Rune"), idFor("Calm Rune"), idFor("Calm Rune"), idFor("Calm Rune"), idFor("Calm Rune"), idFor("Calm Rune"),
         idFor("Chaos Rune"), idFor("Chaos Rune"), idFor("Chaos Rune"), idFor("Chaos Rune"), idFor("Chaos Rune"), idFor("Chaos Rune"),
         idFor("Targon's Peak"),

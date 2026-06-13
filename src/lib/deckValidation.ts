@@ -14,8 +14,7 @@ export function validateDeck(deck: Deck, cardsById: Map<string, RiftCard>): Deck
     .filter((entry): entry is typeof entry & { card: RiftCard } => Boolean(entry.card));
   const missingCardIds = deck.cards.filter((entry) => !cardsById.has(entry.cardId)).map((entry) => entry.cardId);
   const selectedChampion = deck.championCardId ? cardsById.get(deck.championCardId) : undefined;
-  const selectedChampionIsSeparate = selectedChampion?.type === 'Champion'
-    && !entries.some((entry) => entry.cardId === deck.championCardId);
+  const selectedChampionIsValid = selectedChampion?.type === 'Champion';
   const supportEntries = deckSupportEntries(deck, cardsById);
   const bannedCards = entries.map(({ card }) => card).filter(isBannedInConstructed);
   const unsupportedCards = supportEntries
@@ -25,10 +24,9 @@ export function validateDeck(deck: Deck, cardsById: Map<string, RiftCard>): Deck
     .filter((entry) => entry.status === 'PARTIAL')
     .map(({ card, reason }) => ({ card, reason }));
   const mainDeckCards = entries
-    .filter(({ card }) => card.type !== 'Rune' && card.type !== 'Battlefield' && card.type !== 'Legend' && card.type !== 'Champion')
-    .reduce((sum, card) => sum + card.quantity, 0);
-  const championCards = entries.filter(({ card }) => card.type === 'Champion').reduce((sum, card) => sum + card.quantity, 0)
-    + (selectedChampionIsSeparate ? 1 : 0);
+    .filter(({ card }) => card.type !== 'Rune' && card.type !== 'Battlefield' && card.type !== 'Legend')
+    .reduce((sum, entry) => sum + entry.quantity, 0);
+  const championCards = selectedChampionIsValid ? 1 : 0;
   const totalCards = mainDeckCards + championCards;
   const runeCards = entries.filter(({ card }) => card.type === 'Rune').reduce((sum, card) => sum + card.quantity, 0);
   const battlefieldEntries = entries.filter(({ card }) => card.type === 'Battlefield');
@@ -37,8 +35,8 @@ export function validateDeck(deck: Deck, cardsById: Map<string, RiftCard>): Deck
   if (!deck.name.trim()) messages.push('Deck needs a name.');
   if (!legend) messages.push('Choose a Legend to set the deck domains.');
   if (missingCardIds.length > 0) messages.push(`${missingCardIds.length} saved card ID${missingCardIds.length === 1 ? '' : 's'} are missing from card data.`);
-  if (championCards !== 1) messages.push(`Choose exactly 1 Champion (${championCards}/1).`);
-  if (mainDeckCards !== 39) messages.push(`Main Deck must contain exactly 39 non-Champion cards (${mainDeckCards}/39).`);
+  if (championCards !== 1) messages.push('Choose exactly 1 Chosen Champion.');
+  if (mainDeckCards !== 40) messages.push(`Main Deck must contain exactly 40 cards. Current count: ${mainDeckCards}.`);
   if (runeCards !== 12) messages.push(`Rune Pool must contain exactly 12 runes (${runeCards}/12).`);
   if (battlefieldCards !== 3) messages.push(`Choose exactly 3 Battlefields (${battlefieldCards}/3).`);
   if (new Set(battlefieldEntries.map(({ card }) => card.name)).size !== battlefieldCards) {
@@ -54,7 +52,7 @@ export function validateDeck(deck: Deck, cardsById: Map<string, RiftCard>): Deck
       quantity: (current?.quantity ?? 0) + entry.quantity,
     });
   }
-  if (selectedChampionIsSeparate && selectedChampion && deck.championCardId) {
+  if (selectedChampionIsValid && selectedChampion && deck.championCardId) {
     const current = quantitiesById.get(deck.championCardId);
     quantitiesById.set(deck.championCardId, {
       card: selectedChampion,
@@ -80,7 +78,7 @@ export function validateDeck(deck: Deck, cardsById: Map<string, RiftCard>): Deck
     valid: messages.length === 0,
     messages,
     legend,
-    champion: entries.find(({ card }) => card.type === 'Champion')?.card ?? (selectedChampion?.type === 'Champion' ? selectedChampion : undefined),
+    champion: selectedChampionIsValid ? selectedChampion : undefined,
     domains,
     totalCards,
     mainDeckCards,

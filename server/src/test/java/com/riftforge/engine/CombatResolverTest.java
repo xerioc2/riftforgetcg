@@ -328,6 +328,31 @@ class CombatResolverTest {
   }
 
   @Test
+  void loyalPoroDrawsExactlyOnceWhenItDiesWithAnotherFriendlyUnit() {
+    CardInstance attacker = card("a", "attacker", "p1");
+    CardInstance loyalPoro = card("loyal", "loyal-poro", "p2");
+    CardInstance friend = card("friend", "friend", "p2");
+    stub(attacker, 2, 3);
+    stub(loyalPoro, 0, 1, "Loyal Poro", List.of("DEATHKNELL"));
+    stub(friend, 0, 1);
+    stubCard("drawn", "Drawn Card", "Unit", 1, 1, List.of());
+    when(cardDataService.hasKeyword("loyal-poro", "DEATHKNELL")).thenReturn(true);
+    LiveGameState state = state(attacker, loyalPoro, friend);
+    state.setPlayers(playersWithDeck("drawn", "second-card"));
+
+    resolver.resolve(state, "p1");
+
+    assertThat(loyalPoro.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(friend.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(state.getCards().stream()
+        .filter(card -> card.getOwnerId().equals("p2"))
+        .filter(card -> card.getZone() == ZoneName.HAND)
+        .filter(card -> card.getCardId().equals("drawn") || card.getCardId().equals("second-card")))
+        .hasSize(1);
+    assertThat(state.getLog().stream().filter(entry -> entry.text().contains("Loyal Poro's Deathknell drew 1."))).hasSize(1);
+  }
+
+  @Test
   void simultaneousDeathknellEventsAreProcessedDeterministicallyAndOnce() {
     CardInstance attacker = card("zed", "zed-deathknell", "p1");
     CardInstance defender = card("alpha", "alpha-deathknell", "p2");

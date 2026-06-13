@@ -133,26 +133,26 @@ public class RoomService {
     long legendCount = submittedCards.stream()
         .filter(card -> isType(card, "Legend"))
         .count();
+    int legendIndex = firstIndexOfType(submittedCards, "Legend");
     if (legendCount == 0) throw new IllegalArgumentException("Deck must include a Legend card.");
     if (format == DeckFormat.FULL_CONSTRUCTED && legendCount != 1) {
       throw new IllegalArgumentException("Deck must include exactly 1 Legend card.");
     }
 
-    long championCount = submittedCards.stream()
-        .filter(card -> isType(card, "Champion"))
-        .count();
-    if (format == DeckFormat.FULL_CONSTRUCTED && championCount != 1) {
-      throw new IllegalArgumentException("Deck must include exactly 1 Champion card.");
+    int chosenChampionIndex = firstIndexOfType(submittedCards, "Champion");
+    if (format == DeckFormat.FULL_CONSTRUCTED && chosenChampionIndex != legendIndex + 1) {
+      throw new IllegalArgumentException("Deck must include exactly 1 Chosen Champion card.");
     }
 
-    long mainDeckCount = submittedCards.stream()
-        .filter(card -> !isType(card, "Rune"))
-        .filter(card -> !isType(card, "Battlefield"))
-        .filter(card -> !isType(card, "Champion"))
-        .filter(card -> !isType(card, "Legend"))
-        .count();
-    if (format == DeckFormat.FULL_CONSTRUCTED && mainDeckCount != 39) {
-      throw new IllegalArgumentException("Main deck must contain exactly 39 cards (Champion is in addition).");
+    long mainDeckCount = 0;
+    for (int i = 0; i < submittedCards.size(); i++) {
+      CardDefinition card = submittedCards.get(i);
+      if (isType(card, "Rune") || isType(card, "Battlefield") || isType(card, "Legend")) continue;
+      if (i == chosenChampionIndex) continue;
+      mainDeckCount++;
+    }
+    if (format == DeckFormat.FULL_CONSTRUCTED && mainDeckCount != 40) {
+      throw new IllegalArgumentException("Main Deck must contain exactly 40 cards. Current count: " + mainDeckCount + ".");
     }
     if (format == DeckFormat.PLAYTEST_BOT && mainDeckCount < 20) {
       throw new IllegalArgumentException("Main deck must have at least 20 cards.");
@@ -205,6 +205,13 @@ public class RoomService {
 
   private boolean isType(CardDefinition card, String type) {
     return card.type() != null && type.equalsIgnoreCase(card.type().trim());
+  }
+
+  private int firstIndexOfType(List<CardDefinition> cards, String type) {
+    for (int i = 0; i < cards.size(); i++) {
+      if (isType(cards.get(i), type)) return i;
+    }
+    return -1;
   }
 
   private CardDefinition resolveCard(String cardId) {
@@ -339,7 +346,7 @@ public class RoomService {
     addCopies(deck, byName, "Stacked Deck", 2);
     addCopies(deck, byName, "Not So Fast", 2);
     addCopies(deck, byName, "Star-Crossed", 2);
-    addCopies(deck, byName, "Adaptatron", 1);
+    addCopies(deck, byName, "Adaptatron", 2);
     addCopies(deck, byName, "Calm Rune", 6);
     addCopies(deck, byName, "Chaos Rune", 6);
     addCopies(deck, byName, "Targon's Peak", 1);

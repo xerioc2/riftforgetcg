@@ -7,7 +7,7 @@ This document tracks RiftForge's rules-engine coverage against the current Riftb
 Reference baseline:
 - Official Riftbound site and Rules Hub entry point: https://riftbound.leagueoflegends.com/en-us/
 - Core Rules article notes that the Core Rules document is the technical rules source and that the Rules Hub has the most up-to-date references.
-- How to Play / Core Rules quick guide confirms the deck parts, 12-card rune deck, 40-card main deck with chosen champion, 39-card shuffled main deck, battlefield setup, scoring, and rune payment basics.
+- How to Play / Core Rules quick guide confirms the deck parts, 12-card rune deck, 40-card MainDeck, separate chosen Champion, battlefield setup, scoring, and rune payment basics.
 - Unleashed Core Rules patch notes, 2026-03-30, clarify showdowns, combat cleanup, winning the game, dependent keywords, action/reaction timing, and new systems.
 - Tournament Rules and organized play articles remain the baseline for match procedure, decklists, penalties, and tournament legality.
 
@@ -23,8 +23,8 @@ Reference baseline:
 Status: Partial
 
 Current implementation notes:
-- `RoomService.validateDeck` validates `FULL_CONSTRUCTED` as exactly 1 Legend, exactly 1 chosen Champion, exactly 39 non-special main cards, exactly 12 runes, exactly 3 unique battlefields, and a 3-copy limit for exact card IDs excluding only Legend, Rune, and Battlefield cards.
-- The chosen Champion copy is included in exact-card copy counting. Current `FULL_CONSTRUCTED` still allows exactly one Champion-type card total, so other main-deck Champion Units are deferred until identity/tag validation is more reliable.
+- `RoomService.validateDeck` validates `FULL_CONSTRUCTED` as exactly 1 Legend, exactly 1 chosen Champion role card, exactly 40 MainDeck cards, exactly 12 runes, exactly 3 unique battlefields, and a 3-copy limit for exact card IDs excluding only Legend, Rune, and Battlefield cards.
+- The chosen Champion copy is separate from the 40-card MainDeck but is included in exact-card copy counting. Champion-type Units in the MainDeck are allowed and count as MainDeck cards; only the role-selected chosen Champion starts in the Champion zone.
 - `PLAYTEST_BOT` stays looser so bot games can run with generated test decks.
 - Constructed banlist names are centralized in `TournamentLegality` and rejected during `FULL_CONSTRUCTED` validation.
 - `CardSupportService` assigns conservative support metadata: Supported,
@@ -404,11 +404,11 @@ Current implementation notes:
 - DEATHKNELL has basic trigger plumbing through `DeathTriggerService`: real
   deaths fire after graveyard movement, bounce/return-to-hand does not fire,
   simultaneous combat deaths are batched deterministically, and Loyal Poro's
-  "didn't die alone" draw is covered.
+  full printed "didn't die alone" draw text is card-specific Supported.
 - Simple Recruit token creation exists through `TokenFactory` for starter-deck
-  scripts. Noxian Drummer creates one Recruit when moved to battlefield, and
-  Vanguard Captain creates two Recruits when its current simple Legion condition
-  is active.
+  scripts. Noxian Drummer's move-to-battlefield trigger and Vanguard Captain's
+  Legion token trigger are card-specific Supported in the single-battlefield
+  alpha.
 
 Known gaps:
 - The handler registry is a scaffold; several tracked keywords still need
@@ -416,7 +416,8 @@ Known gaps:
 - The complete official keyword list, dependent keywords, inactive text, conditional permissions, XP/Hunt/Level, and full action/reaction behavior are incomplete.
 - Some legacy placeholder keywords remain in early hard-coded effects and should be audited against current official names.
 - Scuttle Crab's Deathknell reveal/facedown/XP text, general token definitions,
-  official token cleanup, and broad token creation effects remain incomplete.
+  official token cleanup, and broad non-Recruit token creation effects remain
+  incomplete.
 
 Test coverage:
 - `RulesValidatorKeywordTest`

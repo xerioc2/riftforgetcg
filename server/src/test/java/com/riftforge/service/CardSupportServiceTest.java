@@ -14,12 +14,18 @@ class CardSupportServiceTest {
   private final CardSupportService service = new CardSupportService(cardDataService);
 
   @Test
-  void auditedStarterBasicAndAssaultUnitsAreSupported() {
+  void auditedStarterUnitsAreSupported() {
     assertThat(service.statusFor(card("vanguard-sergeant", "Vanguard Sergeant", "Unit", "")))
         .isEqualTo(CardSupportStatus.SUPPORTED);
     assertThat(service.statusFor(card("daring-poro", "Daring Poro", "Unit", "[Assault] (+1 Might while attacking.)")))
         .isEqualTo(CardSupportStatus.SUPPORTED);
     assertThat(service.statusFor(card("laurent-duelist", "Laurent Duelist", "Unit", "[Assault 2] (+2 Might while attacking.)")))
+        .isEqualTo(CardSupportStatus.SUPPORTED);
+    assertThat(service.statusFor(card("noxian-drummer", "Noxian Drummer", "Unit", "When I move to a battlefield, play a 1 Might Recruit unit token here.")))
+        .isEqualTo(CardSupportStatus.SUPPORTED);
+    assertThat(service.statusFor(card("loyal-poro", "Loyal Poro", "Unit", "[Deathknell] If I didn't die alone, draw 1.")))
+        .isEqualTo(CardSupportStatus.SUPPORTED);
+    assertThat(service.statusFor(card("vanguard-captain", "Vanguard Captain", "Unit", "[Legion] When you play me, play two Recruit unit tokens here.")))
         .isEqualTo(CardSupportStatus.SUPPORTED);
   }
 

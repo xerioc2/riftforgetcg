@@ -46,7 +46,7 @@ export const STARTER_DECKS: StarterDeckSpec[] = [
       { name: 'Stacked Deck', quantity: 2 },
       { name: 'Not So Fast', quantity: 2 },
       { name: 'Star-Crossed', quantity: 2 },
-      { name: 'Adaptatron', quantity: 1 },
+      { name: 'Adaptatron', quantity: 2 },
     ],
     runes: [
       { name: 'Calm Rune', quantity: 6 },
@@ -76,6 +76,7 @@ export const STARTER_DECKS: StarterDeckSpec[] = [
       { name: 'Crowd Favorite', quantity: 3 },
       { name: 'Riposte', quantity: 3 },
       { name: 'Dune Drake', quantity: 3 },
+      { name: 'Dauntless Vanguard', quantity: 1 },
     ],
     runes: [
       { name: 'Body Rune', quantity: 6 },
@@ -107,7 +108,6 @@ export function resolveStarterDeck(spec: StarterDeckSpec, cards: RiftCard[]): Re
     if (card) entries.push({ cardId: card.id, quantity });
   };
 
-  if (champion) entries.push({ cardId: champion.id, quantity: 1 });
   spec.main.forEach((entry) => addEntry(entry.name, entry.quantity));
   spec.runes.forEach((entry) => addEntry(entry.name, entry.quantity));
   spec.battlefields.forEach((name) => addEntry(name, 1));

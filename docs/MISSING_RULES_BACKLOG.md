@@ -89,7 +89,7 @@ Sources checked:
 
 | Item | Status | Why it matters | Likely files | Suggested first test |
 | --- | --- | --- | --- | --- |
-| Recruit token creation | Partial | Noxian Drummer and Vanguard Captain can create simple 1 Might Recruit Unit tokens, but only through narrow starter-deck scripts. | `TokenFactory`, `GameEngine`, `CardDefinition`, projection | A future non-Recruit token card creates the correct token stats without special-casing the card name. |
+| Recruit token creation | Partial | Noxian Drummer and Vanguard Captain are card-specific Supported for simple 1 Might Recruit Unit tokens, but the broader token system still only covers narrow Recruit scripts. | `TokenFactory`, `GameEngine`, `CardDefinition`, projection | A future non-Recruit token card creates the correct token stats without special-casing the card name. |
 | Token lifecycle and visibility | Partial | Recruit tokens can fight and are public cards outside deck pools, but official cleanup/disappear policy outside combat is not complete. | `CardInstance`, `CardZoneService`, serialization | A Recruit token dies in combat and follows the official token cleanup policy for trash/removed zones. |
 
 ### Card-Specific Scripting
@@ -97,7 +97,7 @@ Sources checked:
 | Item | Status | Why it matters | Likely files | Suggested first test |
 | --- | --- | --- | --- | --- |
 | Irelia Tempo spell scripts | Partial/Unsupported | Defy, Defiant Dance, Not So Fast, Star-Crossed, and Stacked Deck are currently blocked or heuristic. | `CardEffectRegistry`, effect handlers, target/choice UI | Defy counters a legal pending spell and rejects illegal pending targets. |
-| Fiora Vanguard unit triggers | Partial | Noxian Drummer, Loyal Poro, and Vanguard Captain have narrow starter-deck scripts, while Stalking Wolf, Crowd Favorite, and Dune Drake define unsupported/partial deck identity. | `GameEngine`, triggered handlers, token/XP systems | Dune Drake gains Might only when attacking into a ready enemy unit at the same battlefield. |
+| Fiora Vanguard unit triggers | Partial | Noxian Drummer, Loyal Poro, and Vanguard Captain are card-specific Supported, while Stalking Wolf, Crowd Favorite, and Dune Drake define unsupported/partial deck identity. | `GameEngine`, triggered handlers, token/XP systems | Dune Drake gains Might only when attacking into a ready enemy unit at the same battlefield. |
 | Legend and Champion text | Partial | Starter legends/champions are visible and important but their text is mostly unscripted. | `GameEngine`, activated/triggered handlers, payment UI | Fiora - Worthy readies a unit when a controlled unit becomes Mighty and payment is legal. |
 
 ### Keywords in Starter Decks
@@ -105,7 +105,7 @@ Sources checked:
 | Item | Status | Why it matters | Likely files | Suggested first test |
 | --- | --- | --- | --- | --- |
 | "Becomes Mighty" triggers | Partial | `CombatStatsService` can identify Mighty Unit/Champion cards, but Fiora deck and Sunken Temple still need threshold-crossing trigger timing. | `CombatStatsService`, `GameEngine`, trigger handlers | A unit with 4 Might receiving +1 becomes Mighty exactly once and triggers Fiora. |
-| Deathknell | Partial | Basic death trigger plumbing exists and Loyal Poro's draw condition is tested. Scuttle Crab still needs reveal/facedown/XP support. | `DeathTriggerService`, `CombatResolver`, `GameEngine`, projection/XP systems | Scuttle Crab Deathknell chooses an opponent, reveals hand safely, allows facedown inspection only as allowed, and grants XP. |
+| Deathknell | Partial | Basic death trigger plumbing exists and Loyal Poro's full printed draw condition is card-specific Supported. Scuttle Crab still needs reveal/facedown/XP support. | `DeathTriggerService`, `CombatResolver`, `GameEngine`, projection/XP systems | Scuttle Crab Deathknell chooses an opponent, reveals hand safely, allows facedown inspection only as allowed, and grants XP. |
 | Buff | Unsupported as official action/state | Adaptatron and Crowd Favorite need persistent buff markers. | `CardInstance`, `GameEngine`, effect handlers | Buffing an unbuffed unit adds +1 Might; a second Buff does not stack if official rule says one buff. |
 | Hidden/Ambush | Partial | Hidden cards can be moved from hand to a dedicated hidden zone, masked from non-owners, and kept out of targeting/combat/movement. Clean Ambush Units can be played from hand directly to the battlefield in Main when a friendly Unit/Champion is already there. Tideturner, Facebreaker, and Stalking Wolf still need later hidden play, Ambush-as-Reaction, additional-cost handling, and real reaction timing. | `RulesValidator`, `GameEngine`, `GameStateProjectionService`, chain/timing model | A Hidden card can be played later only in a legal reaction window. |
 
@@ -141,7 +141,7 @@ Sources checked:
 | Item | Status | Why it matters | Likely files | Suggested first test |
 | --- | --- | --- | --- | --- |
 | Set legality and rotation | Not started | Public playtests and tournaments need format validation beyond the current banlist. | `TournamentLegality`, `RoomService`, card metadata | A card outside the selected format is rejected from FULL_CONSTRUCTED. |
-| Champion identity and signature legality | Partial | Constructed validation now requires exactly one Legend and exactly one chosen Champion, and exact-card copy counting includes the chosen Champion. Champion-tag matching to the Legend, main-deck Champion Unit identity, and Signature-card restrictions still need reliable structured Riftcodex fields or a curated metadata layer. | `CardDataService`, `RoomService`, deck builder validation, card metadata overrides | Irelia - Blade Dancer accepts only an Irelia chosen Champion, rejects a Signature card as the chosen Champion, and still allows legal non-chosen Champion Units only when identity rules allow them. |
+| Champion identity and signature legality | Partial | Constructed validation now separates the chosen Champion role from Champion-type MainDeck Units, and exact-card copy counting includes the chosen Champion. Champion-tag matching to the Legend, full Champion Unit identity rules, and Signature-card restrictions still need reliable structured Riftcodex fields or a curated metadata layer. | `CardDataService`, `RoomService`, deck builder validation, card metadata overrides | Irelia - Blade Dancer accepts only an Irelia chosen Champion, rejects a Signature card as the chosen Champion, and still allows legal non-chosen Champion Units in the MainDeck. |
 | Sideboards and match procedure | Not started | Imported decklists include sideboards, but they are skipped today. | deck model, `RoomService`, deck import/export | Importing a sideboard stores it separately and does not shuffle it into game setup. |
 
 ## P3: Polish / Tournament / Multiplayer / Edge Cases

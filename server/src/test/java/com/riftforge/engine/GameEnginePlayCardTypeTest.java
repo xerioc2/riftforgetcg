@@ -1073,6 +1073,28 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void vanguardCaptainLegionDoesNotUsePreviousPlayersPlayedCardFlagAfterTurnChange() {
+    CardInstance captain = card("captain", "p2", ZoneName.HAND);
+    LiveGameState state = state(captain);
+    state.setCurrentPhase(Phase.END);
+    state.setActivePlayerId("p1");
+    state.setCardPlayedThisTurn(true);
+    stubCard("captain", "Vanguard Captain", "Unit", 0, 2, 2, "[Legion] Create two Recruits.");
+    stubCard(TokenFactory.RECRUIT_TOKEN_CARD_ID, "Recruit", "Unit", 0, 1, 1, "Token Unit.");
+    when(cardDataService.hasKeyword(any(CardInstance.class), anyString())).thenAnswer(invocation -> {
+      CardInstance card = invocation.getArgument(0);
+      String keyword = invocation.getArgument(1);
+      return "captain".equals(card.getCardId()) && "LEGION".equalsIgnoreCase(keyword);
+    });
+
+    engine.applyMove(state, new PassPhaseMove("p1"));
+    state.setCurrentPhase(Phase.MAIN);
+    engine.applyMove(state, play("p2", "captain", ZoneName.BASE));
+
+    assertThat(state.getCards()).noneMatch(card -> TokenFactory.RECRUIT_TOKEN_CARD_ID.equals(card.getCardId()));
+  }
+
+  @Test
   void movingIntoContestedBattlefieldStartsShowdown() {
     LiveGameState state = state(
         card("attacker", "p1", ZoneName.BASE),

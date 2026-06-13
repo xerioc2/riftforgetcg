@@ -75,7 +75,7 @@ class AlphaPlaytestRegressionTest {
       assertThat(playerNode.has("deckPool")).isFalse();
       assertThat(playerNode.has("runeDeckPool")).isFalse();
       assertThat(playerNode.has("selectedBattlefields")).isFalse();
-      assertThat(playerNode.path("deckCount").asInt()).isEqualTo(35);
+      assertThat(playerNode.path("deckCount").asInt()).isEqualTo(36);
       assertThat(playerNode.path("runePoolRemaining").asInt()).isEqualTo(12);
     }
   }
@@ -139,7 +139,7 @@ class AlphaPlaytestRegressionTest {
         .filter(candidate -> playerId.equals(candidate.getUserId()))
         .findFirst()
         .orElseThrow();
-    assertThat(player.getDeckCount()).isEqualTo(35);
+    assertThat(player.getDeckCount()).isEqualTo(36);
     assertThat(player.getRunePoolRemaining()).isEqualTo(12);
     assertThat(player.getSelectedBattlefields()).hasSize(3);
     assertThat(player.getDeckPool())

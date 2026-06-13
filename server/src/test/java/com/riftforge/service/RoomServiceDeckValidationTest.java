@@ -38,7 +38,7 @@ class RoomServiceDeckValidationTest {
     add("legend", "Legend");
     add("champion", "Champion");
     List<String> deck = new ArrayList<>(List.of("legend", "champion"));
-    addMainDeckCards(deck, 39);
+    addMainDeckCards(deck, 40);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
@@ -71,7 +71,7 @@ class RoomServiceDeckValidationTest {
         .orElseThrow()
         .getDeckCardIds();
 
-    assertThat(botDeck).hasSize(56);
+    assertThat(botDeck).hasSize(57);
     assertThatNoException().isThrownBy(() -> roomService.setBotDeck(room.getCode(), botDeck));
   }
 
@@ -80,7 +80,7 @@ class RoomServiceDeckValidationTest {
     add("champion", "Champion");
     List<String> deck = new ArrayList<>();
     deck.add("champion");
-    addMainDeckCards(deck, 39);
+    addMainDeckCards(deck, 40);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
@@ -96,7 +96,7 @@ class RoomServiceDeckValidationTest {
     add("legend-2", "Legend");
     add("champion", "Champion");
     List<String> deck = new ArrayList<>(List.of("legend-1", "legend-2", "champion"));
-    addMainDeckCards(deck, 39);
+    addMainDeckCards(deck, 40);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
@@ -111,7 +111,7 @@ class RoomServiceDeckValidationTest {
     add("legend", "Legend");
     add("champion", "Champion");
     List<String> deck = new ArrayList<>(List.of("legend", "champion", "missing-card"));
-    addMainDeckCards(deck, 38);
+    addMainDeckCards(deck, 39);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
@@ -127,7 +127,7 @@ class RoomServiceDeckValidationTest {
     add("champion", "Champion");
     add("copy-card", "Unit");
     List<String> deck = new ArrayList<>(List.of("legend", "champion", "copy-card", "copy-card", "copy-card", "copy-card"));
-    addMainDeckCards(deck, 35);
+    addMainDeckCards(deck, 36);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
@@ -138,25 +138,39 @@ class RoomServiceDeckValidationTest {
   }
 
   @Test
-  void fullConstructedDeckWithWrongMainDeckCountIsRejected() {
+  void fullConstructedDeckWithThirtyNineMainDeckCardsIsRejected() {
     add("legend", "Legend");
     add("champion", "Champion");
     List<String> deck = new ArrayList<>(List.of("legend", "champion"));
-    addMainDeckCards(deck, 18);
+    addMainDeckCards(deck, 39);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
 
     assertThatThrownBy(() -> roomService.ready(room.getCode(), "p1", deck))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("Main deck must contain exactly 39 cards (Champion is in addition).");
+        .hasMessage("Main Deck must contain exactly 40 cards. Current count: 39.");
   }
 
   @Test
-  void fullConstructedDeckWithFortyNonChampionMainCardsIsRejected() {
+  void fullConstructedDeckWithFortyOneMainDeckCardsIsRejected() {
     add("legend", "Legend");
     add("champion", "Champion");
     List<String> deck = new ArrayList<>(List.of("legend", "champion"));
+    addMainDeckCards(deck, 41);
+    addRunes(deck, 12);
+    addBattlefields(deck, 3);
+    RoomState room = roomService.create("p1", "Player One", false);
+
+    assertThatThrownBy(() -> roomService.ready(room.getCode(), "p1", deck))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Main Deck must contain exactly 40 cards. Current count: 41.");
+  }
+
+  @Test
+  void fullConstructedDeckWithNoChampionIsRejected() {
+    add("legend", "Legend");
+    List<String> deck = new ArrayList<>(List.of("legend"));
     addMainDeckCards(deck, 40);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
@@ -164,37 +178,55 @@ class RoomServiceDeckValidationTest {
 
     assertThatThrownBy(() -> roomService.ready(room.getCode(), "p1", deck))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("Main deck must contain exactly 39 cards (Champion is in addition).");
+        .hasMessage("Deck must include exactly 1 Chosen Champion card.");
   }
 
   @Test
-  void fullConstructedDeckWithNoChampionIsRejected() {
+  void mainDeckChampionUnitDoesNotSatisfyChosenChampionRole() {
     add("legend", "Legend");
+    add("annie", "Champion", "Annie, Stubborn");
     List<String> deck = new ArrayList<>(List.of("legend"));
     addMainDeckCards(deck, 39);
+    deck.add("annie");
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
 
     assertThatThrownBy(() -> roomService.ready(room.getCode(), "p1", deck))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("Deck must include exactly 1 Champion card.");
+        .hasMessage("Deck must include exactly 1 Chosen Champion card.");
   }
 
   @Test
-  void fullConstructedDeckWithTwoChampionsIsRejected() {
+  void mainDeckChampionUnitsAreAllowedAndCountAsMainDeckCards() {
     add("legend", "Legend");
-    add("champion-1", "Champion");
-    add("champion-2", "Champion");
-    List<String> deck = new ArrayList<>(List.of("legend", "champion-1", "champion-2"));
-    addMainDeckCards(deck, 39);
+    add("chosen-champion", "Champion", "Irelia - Fervent");
+    add("annie", "Champion", "Annie, Stubborn");
+    add("fizz", "Champion", "Fizz, Trickster");
+    List<String> deck = new ArrayList<>(List.of("legend", "chosen-champion", "annie", "fizz"));
+    addMainDeckCards(deck, 38);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
 
-    assertThatThrownBy(() -> roomService.ready(room.getCode(), "p1", deck))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("Deck must include exactly 1 Champion card.");
+    assertThatNoException().isThrownBy(() -> roomService.ready(room.getCode(), "p1", deck));
+    assertThat(room.getPlayers().getFirst().isReady()).isTrue();
+  }
+
+  @Test
+  void ireliaDeckWithFortyMainDeckCardsPassesValidation() {
+    add("legend", "Legend", "Irelia - Blade Dancer");
+    add("chosen-champion", "Champion", "Irelia - Fervent");
+    add("annie", "Champion", "Annie, Stubborn");
+    add("fizz", "Champion", "Fizz, Trickster");
+    List<String> deck = new ArrayList<>(List.of("legend", "chosen-champion", "annie", "fizz"));
+    addMainDeckCards(deck, 38);
+    addRunes(deck, 12);
+    addBattlefields(deck, 3);
+    RoomState room = roomService.create("p1", "Player One", false);
+
+    assertThatNoException().isThrownBy(() -> roomService.ready(room.getCode(), "p1", deck));
+    assertThat(room.getPlayers().getFirst().isReady()).isTrue();
   }
 
   @Test
@@ -202,7 +234,7 @@ class RoomServiceDeckValidationTest {
     add("legend", "Legend");
     add("champion", "Champion");
     List<String> deck = new ArrayList<>(List.of("legend", "champion"));
-    addMainDeckCards(deck, 39);
+    addMainDeckCards(deck, 40);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
 
@@ -217,7 +249,7 @@ class RoomServiceDeckValidationTest {
     add("champion", "Champion");
     add("called-shot", "Unit", "Called Shot");
     List<String> deck = new ArrayList<>(List.of("legend", "champion", "called-shot"));
-    addMainDeckCards(deck, 38);
+    addMainDeckCards(deck, 39);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
@@ -233,7 +265,7 @@ class RoomServiceDeckValidationTest {
     add("champion", "Champion");
     add("dreaming-tree", "Battlefield", "Dreaming Tree");
     List<String> deck = new ArrayList<>(List.of("legend", "champion", "dreaming-tree"));
-    addMainDeckCards(deck, 39);
+    addMainDeckCards(deck, 40);
     addRunes(deck, 12);
     addBattlefields(deck, 2);
     RoomState room = roomService.create("p1", "Player One", false);
@@ -248,7 +280,7 @@ class RoomServiceDeckValidationTest {
     add("legend", "Legend");
     add("champion", "Champion");
     List<String> deck = new ArrayList<>(List.of("legend", "champion"));
-    addMainDeckCards(deck, 39);
+    addMainDeckCards(deck, 40);
     addRunes(deck, 12);
     addBattlefields(deck, 2);
     RoomState room = roomService.create("p1", "Player One", false);
@@ -292,13 +324,41 @@ class RoomServiceDeckValidationTest {
   }
 
   @Test
+  void chosenChampionPlusTwoMainDeckCopiesPassesCopyLimit() {
+    add("legend", "Legend");
+    add("champion", "Champion", "Test Champion");
+    List<String> deck = new ArrayList<>(List.of("legend", "champion", "champion", "champion"));
+    addMainDeckCards(deck, 38);
+    addRunes(deck, 12);
+    addBattlefields(deck, 3);
+    RoomState room = roomService.create("p1", "Player One", false);
+
+    assertThatNoException().isThrownBy(() -> roomService.ready(room.getCode(), "p1", deck));
+  }
+
+  @Test
+  void chosenChampionPlusThreeMainDeckCopiesFailsCopyLimit() {
+    add("legend", "Legend");
+    add("champion", "Champion", "Test Champion");
+    List<String> deck = new ArrayList<>(List.of("legend", "champion", "champion", "champion", "champion"));
+    addMainDeckCards(deck, 37);
+    addRunes(deck, 12);
+    addBattlefields(deck, 3);
+    RoomState room = roomService.create("p1", "Player One", false);
+
+    assertThatThrownBy(() -> roomService.ready(room.getCode(), "p1", deck))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Cannot include more than 3 copies of Test Champion.");
+  }
+
+  @Test
   void unsupportedCardIsBlockedInSupportedOnlyMode() {
     add("legend", "Legend");
     add("champion", "Champion");
     add("unsupported-spell", "Spell", "Unimplemented Spell");
     when(cardDataService.isUnsupportedAction("unsupported-spell")).thenReturn(true);
     List<String> deck = new ArrayList<>(List.of("legend", "champion", "unsupported-spell"));
-    addMainDeckCards(deck, 38);
+    addMainDeckCards(deck, 39);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
@@ -314,7 +374,7 @@ class RoomServiceDeckValidationTest {
     add("legend", "Legend");
     add("champion", "Champion");
     List<String> deck = new ArrayList<>(List.of("legend", "champion"));
-    addMainDeckCards(deck, 39);
+    addMainDeckCards(deck, 40);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
@@ -331,7 +391,7 @@ class RoomServiceDeckValidationTest {
     add("legend", "Legend");
     add("champion", "Champion");
     List<String> deck = new ArrayList<>(List.of("legend", "champion"));
-    addMainDeckCards(deck, 39);
+    addMainDeckCards(deck, 40);
     add("calm-rune", "Rune", "Calm Rune");
     addCopies(deck, "calm-rune", 12);
     addBattlefields(deck, 3);
@@ -411,7 +471,7 @@ class RoomServiceDeckValidationTest {
     addCopies(deck, "stacked-deck", 2);
     addCopies(deck, "not-so-fast", 2);
     addCopies(deck, "star-crossed", 2);
-    addCopies(deck, "adaptatron", 1);
+    addCopies(deck, "adaptatron", 2);
     addCopies(deck, "calm-rune", 6);
     addCopies(deck, "chaos-rune", 6);
     deck.add("targons-peak");

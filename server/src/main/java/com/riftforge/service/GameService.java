@@ -177,29 +177,25 @@ public class GameService {
     int zIndex = 0;
     for (String playerId : playerIds) {
       List<String> deck = decksByPlayer.getOrDefault(playerId, List.of());
-      List<String> champions = deck.stream()
-          .filter(id -> isCardType(id, "Champion"))
-          .toList();
-      List<String> legends = deck.stream()
-          .filter(id -> isCardType(id, "Legend"))
-          .toList();
-      List<String> runes = deck.stream()
+      List<String> remaining = new ArrayList<>(deck);
+      String legendId = removeFirstCardType(remaining, "Legend");
+      String championId = removeFirstCardType(remaining, "Champion");
+      List<String> runes = remaining.stream()
           .filter(id -> isCardType(id, "Rune"))
           .toList();
-      List<String> battlefields = deck.stream()
+      List<String> battlefields = remaining.stream()
           .filter(id -> isCardType(id, "Battlefield"))
           .toList();
-      List<String> dealable = deck.stream()
-          .filter(id -> !isCardType(id, "Champion"))
+      List<String> dealable = remaining.stream()
           .filter(id -> !isCardType(id, "Legend"))
           .filter(id -> !isCardType(id, "Rune"))
           .filter(id -> !isCardType(id, "Battlefield"))
           .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
-      if (!champions.isEmpty()) {
-        state.getCards().add(createZoneCard(champions.get(0), playerId, ZoneName.CHAMPION, ++zIndex));
+      if (championId != null) {
+        state.getCards().add(createZoneCard(championId, playerId, ZoneName.CHAMPION, ++zIndex));
       }
-      if (!legends.isEmpty()) {
-        state.getCards().add(createZoneCard(legends.get(0), playerId, ZoneName.LEGEND, ++zIndex));
+      if (legendId != null) {
+        state.getCards().add(createZoneCard(legendId, playerId, ZoneName.LEGEND, ++zIndex));
       }
       Collections.shuffle(dealable);
       List<String> hand = dealable.stream().limit(4).toList();
@@ -235,6 +231,13 @@ public class GameService {
   private boolean isCardType(String cardId, String type) {
     CardDefinition def = cardDataService.getCard(cardId);
     return def != null && def.type() != null && type.equalsIgnoreCase(def.type().trim());
+  }
+
+  private String removeFirstCardType(List<String> cardIds, String type) {
+    for (int i = 0; i < cardIds.size(); i++) {
+      if (isCardType(cardIds.get(i), type)) return cardIds.remove(i);
+    }
+    return null;
   }
 
   private CardInstance createZoneCard(String cardId, String playerId, ZoneName zone, int zIndex) {

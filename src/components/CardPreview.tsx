@@ -20,9 +20,12 @@ export function CardPreview({ card, instance, onInspect }: { card: RiftCard | nu
   const support = cardSupportStatus(card);
 
   return (
-    <aside className="group pointer-events-auto absolute z-40 w-[min(420px,calc(100vw-24px))] border border-forge/50 bg-panel/98 shadow-glow" style={{ left: position.x, bottom: position.y }}>
+    <aside
+      className="group pointer-events-auto absolute z-40 w-[min(440px,calc(100vw-24px))] overflow-hidden border border-forge/70 bg-[#05080d] text-slate-100 shadow-[0_18px_60px_rgba(0,0,0,0.78)] ring-1 ring-white/5"
+      style={{ left: position.x, bottom: position.y }}
+    >
       <div
-        className="flex h-5 cursor-move items-center bg-line/60 px-2 text-xs text-slate-500"
+        className="flex h-6 cursor-move items-center border-b border-forge/20 bg-[#10151d] px-2 text-xs text-slate-400"
         onMouseDown={(event) => {
           event.preventDefault();
           const startX = event.clientX;
@@ -55,27 +58,32 @@ export function CardPreview({ card, instance, onInspect }: { card: RiftCard | nu
           </button>
         ) : null}
       </div>
-      <div className="grid grid-cols-[150px_minmax(0,1fr)] gap-4 p-3">
-        <div className="flex aspect-[5/7] items-center justify-center overflow-hidden bg-slate-950">
+      <div className="grid grid-cols-[150px_minmax(0,1fr)] gap-4 p-4">
+        <div className="flex aspect-[5/7] items-center justify-center overflow-hidden border border-slate-700/70 bg-slate-950 shadow-[0_10px_30px_rgba(0,0,0,0.45)]">
           {card.imageUrl ? <img className="h-full w-full object-cover" src={card.imageUrl} alt="" /> : <span className="px-3 text-center text-sm text-slate-400">{card.name}</span>}
         </div>
         <div className="min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <h2 className="text-base font-semibold text-white">{card.name}</h2>
+            <h2 className="text-base font-semibold leading-5 text-white">{card.name}</h2>
             {card.cost !== undefined ? <span className="badge text-forge">{card.cost}</span> : null}
           </div>
-          <p className="mt-1 text-xs uppercase text-slate-400">{[card.type, card.rarity].filter(Boolean).join(' / ')}</p>
+          <p className="mt-1 text-xs uppercase tracking-wide text-slate-400">{[card.type, card.rarity].filter(Boolean).join(' / ')}</p>
           <span className={`mt-2 inline-flex border px-2 py-1 text-xs font-semibold uppercase tracking-wide ${supportBadgeClass[support.status]}`} title={support.reason}>
             {support.status.replace('_', ' ')}
           </span>
           {card.power != null && card.health != null ? (
-            <p className="mt-2 text-xs font-semibold text-slate-300">
-              Might {card.power}
-              {(instance?.mightBonus ?? 0) > 0 ? ` (+${instance?.mightBonus})` : ''} / Guard {instance?.currentHealth ?? card.health}/{card.health}
-            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-semibold text-slate-200">
+              <span className="border border-slate-700/80 bg-[#0b1017] px-2 py-1">
+                Might {card.power}
+                {(instance?.mightBonus ?? 0) > 0 ? ` (+${instance?.mightBonus})` : ''}
+              </span>
+              <span className="border border-slate-700/80 bg-[#0b1017] px-2 py-1">
+                Guard {instance?.currentHealth ?? card.health}/{card.health}
+              </span>
+            </div>
           ) : null}
           {['Spell', 'Gear'].includes(card.type) ? (
-            <p className={`mt-2 text-xs font-semibold ${unsupportedReason ? 'text-ember' : 'text-mint'}`}>
+            <p className={`mt-3 border border-slate-700/70 bg-[#0b1017] px-2 py-2 text-xs font-semibold leading-5 ${unsupportedReason ? 'text-ember' : 'text-mint'}`}>
               {unsupportedReason ?? 'No blocked effect detected for alpha play'}
             </p>
           ) : null}
@@ -86,13 +94,19 @@ export function CardPreview({ card, instance, onInspect }: { card: RiftCard | nu
               </span>
             ))}
           </div>
-          {card.rulesText ? <p className="mt-3 max-h-44 overflow-hidden whitespace-pre-wrap text-sm leading-5 text-slate-200">{card.rulesText}</p> : <p className="mt-3 text-sm text-slate-500">No rules text.</p>}
+          {card.rulesText ? (
+            <p className="mt-3 max-h-52 overflow-y-auto whitespace-pre-wrap border border-slate-700/70 bg-[#080c12] p-3 text-sm leading-6 text-slate-100">
+              {card.rulesText}
+            </p>
+          ) : (
+            <p className="mt-3 border border-slate-700/70 bg-[#080c12] p-3 text-sm text-slate-500">No rules text.</p>
+          )}
           {card.keywords?.length ? (
-            <div className="mt-3 space-y-1">
+            <div className="mt-3 space-y-2 border-t border-slate-700/70 pt-3">
               {card.keywords.map((keyword) => (
-                <div key={keyword} className="flex items-start gap-2 text-xs">
+                <div key={keyword} className="flex items-start gap-2 border border-slate-700/60 bg-[#080c12] px-2 py-2 text-xs">
                   <span className="badge border-forge/40 text-forge">{keyword}</span>
-                  <span className="text-slate-400">{keywordDescription(keyword)}</span>
+                  <span className="leading-5 text-slate-300">{keywordDescription(keyword)}</span>
                 </div>
               ))}
             </div>

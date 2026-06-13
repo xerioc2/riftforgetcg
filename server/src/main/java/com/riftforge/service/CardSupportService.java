@@ -19,7 +19,10 @@ public class CardSupportService {
       "ORDER RUNE",
       "VANGUARD SERGEANT",
       "DARING PORO",
-      "LAURENT DUELIST");
+      "LAURENT DUELIST",
+      "NOXIAN DRUMMER",
+      "LOYAL PORO",
+      "VANGUARD CAPTAIN");
 
   private final CardDataService cardDataService;
 

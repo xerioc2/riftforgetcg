@@ -59,10 +59,7 @@ export function importDeckText(text: string, catalog: RiftCard[]): DeckImportRes
         continue;
       }
       if (targetType === 'Legend') legendCardId = card.id;
-      if (targetType === 'Champion') {
-        championCardId = card.id;
-        quantities.set(card.id, (quantities.get(card.id) ?? 0) + 1);
-      }
+      if (targetType === 'Champion') championCardId = card.id;
       matchedLines++;
       continue;
     }
@@ -99,7 +96,11 @@ export function importDeckText(text: string, catalog: RiftCard[]): DeckImportRes
       continue;
     }
 
-    if (card.type === 'Champion') championCardId = card.id;
+    if (targetType === 'Champion') {
+      championCardId = card.id;
+      matchedLines++;
+      continue;
+    }
     quantities.set(card.id, (quantities.get(card.id) ?? 0) + quantity);
     matchedLines++;
   }
@@ -119,10 +120,9 @@ export function exportDeckText(deck: Deck, cardsById: Map<string, RiftCard>): st
   const entries = deck.cards
     .map((entry) => ({ ...entry, card: cardsById.get(entry.cardId) }))
     .filter((entry): entry is typeof entry & { card: RiftCard } => Boolean(entry.card));
-  const champion = entries.find(({ card }) => card.type === 'Champion')?.card
-    ?? (deck.championCardId ? cardsById.get(deck.championCardId) : undefined);
+  const champion = deck.championCardId ? cardsById.get(deck.championCardId) : undefined;
   const main = entries
-    .filter(({ card }) => card.type !== 'Legend' && card.type !== 'Champion' && card.type !== 'Rune' && card.type !== 'Battlefield')
+    .filter(({ card }) => card.type !== 'Legend' && card.type !== 'Rune' && card.type !== 'Battlefield')
     .sort(compareDeckEntries);
   const runes = entries.filter(({ card }) => card.type === 'Rune').sort(compareDeckEntries);
   const battlefields = entries.filter(({ card }) => card.type === 'Battlefield').sort(compareDeckEntries);

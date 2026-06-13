@@ -10,13 +10,14 @@ export function getDeckLegendCardId(deck: Deck): string | undefined {
 
 export function deckToGameCardIds(deck: Deck, cardsById?: Map<string, RiftCard>): string[] {
   const legendCardId = getDeckLegendCardId(deck);
+  const championCardId = deck.championCardId;
   const ids = deck.cards.flatMap((entry) => {
     const card = cardsById?.get(entry.cardId);
     if (card?.type === 'Legend') return [];
     if (entry.cardId === legendCardId) return [];
     return Array.from({ length: entry.quantity }, () => entry.cardId);
   });
-  if (deck.championCardId && !ids.includes(deck.championCardId)) ids.unshift(deck.championCardId);
+  if (championCardId) ids.unshift(championCardId);
   if (legendCardId) ids.unshift(legendCardId);
   return ids;
 }

@@ -59,7 +59,7 @@ RiftForge currently has a server-authoritative playtest foundation:
 - Movement legality for the current single-battlefield model: ready units and
   Champions can move to battle, contested movement starts a showdown, and
   same-zone visual repositioning uses a dedicated server move
-- Constructed deck setup with 1 Legend, 1 Champion, 39 non-Champion main cards,
+- Constructed deck setup with 1 Legend, 1 Chosen Champion, 40 MainDeck cards,
   12 runes, and 3 unique battlefields
 - Opening hand draws only from the main deck, not runes, battlefields, Legend,
   or Champion

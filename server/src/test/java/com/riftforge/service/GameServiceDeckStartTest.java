@@ -51,7 +51,7 @@ class GameServiceDeckStartTest {
   void fullConstructedGameStartPartitionsDeckSections() {
     add("legend", "Legend");
     add("champion", "Champion");
-    addMainDeckCards(39);
+    addMainDeckCards(40);
     addRunes(12);
     addBattlefields(3);
     List<String> deck = constructedDeck("legend", "champion");
@@ -59,7 +59,7 @@ class GameServiceDeckStartTest {
     gameService.initGame("ROOM", List.of("p1"), Map.of("p1", deck), Map.of("p1", "Player One"));
 
     LiveGameState state = gameService.currentState("ROOM");
-    assertThat(state.getPlayers().getFirst().getDeckCount()).isEqualTo(35);
+    assertThat(state.getPlayers().getFirst().getDeckCount()).isEqualTo(36);
     assertThat(state.getPlayers().getFirst().getRunePoolRemaining()).isEqualTo(12);
     assertThat(state.getPlayers().getFirst().getSelectedBattlefields()).containsExactlyInAnyOrder("battlefield-0", "battlefield-1", "battlefield-2");
     assertThat(state.getPlayers().getFirst().getDeckPool())
@@ -77,7 +77,40 @@ class GameServiceDeckStartTest {
         .filteredOn(card -> card.getOwnerId().equals("p1") && card.getZone() == ZoneName.HAND)
         .hasSize(4)
         .allSatisfy(card -> assertThat(cards.get(card.getCardId()).type())
-            .isNotIn("Rune", "Battlefield", "Legend", "Champion"));
+            .isNotIn("Rune", "Battlefield", "Legend"));
+  }
+
+  @Test
+  void mainDeckChampionUnitsStayInMainDeckAtGameStart() {
+    add("legend", "Legend");
+    add("chosen-champion", "Champion");
+    add("annie", "Champion");
+    add("fizz", "Champion");
+    addMainDeckCards(38);
+    addRunes(12);
+    addBattlefields(3);
+    List<String> deck = constructedDeck("legend", "chosen-champion");
+    deck.add(2, "annie");
+    deck.add(3, "fizz");
+
+    gameService.initGame("ROOM", List.of("p1"), Map.of("p1", deck), Map.of("p1", "Player One"));
+
+    LiveGameState state = gameService.currentState("ROOM");
+    assertThat(state.getCards())
+        .filteredOn(card -> card.getZone() == ZoneName.CHAMPION)
+        .singleElement()
+        .satisfies(card -> assertThat(card.getCardId()).isEqualTo("chosen-champion"));
+    assertThat(state.getCards())
+        .noneMatch(card -> (card.getCardId().equals("annie") || card.getCardId().equals("fizz"))
+            && card.getZone() == ZoneName.CHAMPION);
+
+    List<String> visibleAndDeckMain = new ArrayList<>(state.getPlayers().getFirst().getDeckPool());
+    state.getCards().stream()
+        .filter(card -> card.getOwnerId().equals("p1") && card.getZone() == ZoneName.HAND)
+        .map(card -> card.getCardId())
+        .forEach(visibleAndDeckMain::add);
+    assertThat(visibleAndDeckMain).contains("annie", "fizz");
+    assertThat(state.getPlayers().getFirst().getDeckCount()).isEqualTo(36);
   }
 
   @Test

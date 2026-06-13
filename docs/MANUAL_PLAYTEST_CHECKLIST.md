@@ -8,6 +8,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Keep your opening hand or mulligan at least one card.
 - Play a Unit and confirm it stays visible in Base.
 - Confirm your Legend starts in the Legend zone and your chosen Champion starts in the Champion zone.
+- If your deck has Champion Units in the MainDeck, confirm they draw/play as main-deck cards instead of starting in the Champion zone.
 - Use a targeted effect and confirm the target prompt and error messages make sense.
 - Play Gear to Base, then equip it to a friendly Unit or Champion if you draw one.
 - Hide a card if you draw a `[Hidden]` card.

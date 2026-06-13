@@ -79,11 +79,10 @@ export function DeckBuild() {
     }
 
     if (card.type === 'Champion') {
-      const nextCards = [
-        ...activeDeck.cards.filter((entry) => cardsById.get(entry.cardId)?.type !== 'Champion'),
-        { cardId: card.id, quantity: 1 },
-      ];
-      patchDeck({ championCardId: card.id, cards: nextCards });
+      patchDeck({
+        championCardId: card.id,
+        cards: activeDeck.cards.filter((entry) => entry.cardId !== card.id),
+      });
       return;
     }
 
@@ -354,8 +353,8 @@ function DeckBuilder({
 
       <div className="min-h-0 flex-1 overflow-y-auto pt-4">
         <div className="grid grid-cols-2 gap-3 text-center">
-        <DeckMetric label="Main Cards" value={`${validation.mainDeckCards}/39`} />
-        <DeckMetric label="Champion" value={validation.champion?.name ?? 'None'} />
+        <DeckMetric label="Main Cards" value={`${validation.mainDeckCards}/40`} />
+        <DeckMetric label="Chosen Champion" value={validation.champion?.name ?? 'None'} />
         <DeckMetric label="Runes" value={`${validation.runeCards}/12`} />
         <DeckMetric label="Battlefields" value={`${validation.battlefieldCards}/3`} />
         <DeckMetric label="Legend" value={validation.legend?.name ?? 'None'} />
@@ -442,11 +441,11 @@ function DeckImportModal({
   const previewCounts = useMemo(() => {
     const result = { main: 0, champion: 0, runes: 0, battlefields: 0 };
     if (!preview) return result;
+    result.champion = preview.championCardId ? 1 : 0;
     for (const entry of preview.cards) {
       const card = catalogById.get(entry.cardId);
       if (!card) continue;
-      if (card.type === 'Champion') result.champion += entry.quantity;
-      else if (card.type === 'Rune') result.runes += entry.quantity;
+      if (card.type === 'Rune') result.runes += entry.quantity;
       else if (card.type === 'Battlefield') result.battlefields += entry.quantity;
       else if (card.type !== 'Legend') result.main += entry.quantity;
     }
@@ -485,7 +484,7 @@ function DeckImportModal({
             <p className="font-semibold text-white">Import preview</p>
             <div className="mt-2 grid grid-cols-2 gap-2 text-xs sm:grid-cols-5">
               <span className="badge">Legend {preview.legendCardId ? '1' : '0'}</span>
-              <span className="badge">Champion {previewCounts.champion}</span>
+              <span className="badge">Chosen Champion {previewCounts.champion}</span>
               <span className="badge">Main {previewCounts.main}</span>
               <span className="badge">Runes {previewCounts.runes}</span>
               <span className="badge">Battlefields {previewCounts.battlefields}</span>

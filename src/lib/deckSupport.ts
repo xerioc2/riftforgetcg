@@ -10,6 +10,9 @@ const SUPPORTED_CARD_NAMES = new Set([
   'VANGUARD SERGEANT',
   'DARING PORO',
   'LAURENT DUELIST',
+  'NOXIAN DRUMMER',
+  'LOYAL PORO',
+  'VANGUARD CAPTAIN',
 ]);
 
 export type DeckSupportEntry = {

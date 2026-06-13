@@ -1,6 +1,6 @@
 # RiftForge Supported Cards Matrix
 
-Last audit: 2026-06-11
+Last audit: 2026-06-12
 
 This is a scaffold for tracking card-specific support. "Heuristic" means the engine may support a text pattern, but the individual card has not been scripted and tested as a tournament-accurate implementation.
 
@@ -30,8 +30,8 @@ surfaces Partial cards as warnings, and always rejects Banned constructed cards.
 | Any text with `return a unit` / `return target unit` | Any | Spell | Partial | Helper-backed rules-text script returns the selected battlefield unit/champion to hand and returns attachments to Base. | Might restrictions, ownership edge cases, replacement effects, and multi-target variants. | `GameEnginePlayCardTypeTest` | Bounce does not fire Deathknell. |
 | Any text with `ready it` | Any | Spell/Gear | Partial | Helper-backed rules-text script readies the selected friendly battlefield unit/champion. | Full timing windows and non-ready movement clauses. | `GameEnginePlayCardTypeTest` | Server/client target detection treats `ready it` as friendly-target text. |
 | VISION keyword cards | Any | Any | Partial | Peeks top main-deck card privately and supports keep/recycle choice. | Full Predict rules and multiple-card ordering. | Projection and legal-action indirect | Uses private logs and `VISION_CHOICE`. |
-| DEATHKNELL keyword units | Any | Unit | Partial | Death events are detected after real deaths, do not fire on bounce, and are batched deterministically. Loyal Poro's draw trigger is scripted. | Optional trigger choices, XP, reveal/facedown access, and most card-specific Deathknell effects. | `CombatResolverTest`, `EffectHandlerRegistryTest`, `GameEnginePlayCardTypeTest` | Scuttle Crab is still Partial because reveal/facedown/XP are not supported. |
-| Recruit token creation | Any | Token Unit | Partial | Simple 1 Might / 1 health Recruit Unit tokens can be created at Base/Battlefield and can fight. | General token registry, official cleanup/disappear policy, non-Recruit tokens, and token source metadata. | `GameEnginePlayCardTypeTest`, `CombatResolverTest` | Used by Noxian Drummer and Vanguard Captain starter-deck scripts. |
+| DEATHKNELL keyword units | Any | Unit | Partial | Death events are detected after real deaths, do not fire on bounce, and are batched deterministically. Loyal Poro's draw trigger is scripted and card-specific Supported. | Optional trigger choices, XP, reveal/facedown access, and most non-Loyal-Poro card-specific Deathknell effects. | `CombatResolverTest`, `EffectHandlerRegistryTest`, `GameEnginePlayCardTypeTest` | Scuttle Crab is still Partial because reveal/facedown/XP are not supported. |
+| Recruit token creation | Any | Token Unit | Partial | Simple 1 Might / 1 health Recruit Unit tokens can be created at Base/Battlefield, stay out of deck pools, and can fight. Noxian Drummer and Vanguard Captain scripts are card-specific Supported. | General token registry, official cleanup/disappear policy, non-Recruit tokens, and token source metadata. | `GameEnginePlayCardTypeTest`, `CombatResolverTest` | Broader token system remains partial even though these starter scripts are covered. |
 | Called Shot | Current Constructed | Card | Banned | Rejected in `FULL_CONSTRUCTED`. | N/A | `RoomServiceDeckValidationTest` | Banlist entry only. |
 | Draven, Vanquisher | Current Constructed | Card | Banned | Rejected in `FULL_CONSTRUCTED`. | N/A | Banlist utility via same path | Add direct test if card fixture is introduced. |
 | Fight or Flight | Current Constructed | Card | Banned | Rejected in `FULL_CONSTRUCTED`. | N/A | Banlist utility via same path | Add direct test if card fixture is introduced. |
@@ -78,15 +78,16 @@ support-gate result, and rules text, lives in `docs/CARD_RULES_BACKLOG.md`.
 | Keeper's Verdict | Fiora Vanguard | Spell | Unsupported | Spell: draw/card selection | Needs enemy-unit target plus owner top/bottom deck choice. |
 | Spectral Matron | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs trash-unit selection and free-play cost bypass with power-cost handling. |
 | Stalking Wolf | Fiora Vanguard | Unit | Partial | Ambush foundation exists for clean Ambush units, but this card is blocked in enforced play because its additional kill cost is not implemented. | Needs additional-cost kill validation and Ambush-as-Reaction timing. |
-| Noxian Drummer | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Move-to-battlefield creates a 1 Might Recruit token; broader token system and multiple-battlefield precision remain incomplete. |
-| Loyal Poro | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Deathknell draw trigger is implemented for "did not die alone"; broader Deathknell optional/timing edge cases remain incomplete. |
-| Vanguard Captain | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Simple Legion condition creates two Recruit tokens after another card was played this turn; dependent keyword edge cases remain incomplete. |
+| Noxian Drummer | Fiora Vanguard | Unit | Supported | Token creation trigger | Full printed text is implemented and directly tested in the single-battlefield alpha: moving to battlefield creates one 1 Might Recruit token there, does not trigger on reposition, and does not pollute deck counts. |
+| Loyal Poro | Fiora Vanguard | Unit | Supported | Deathknell draw trigger | Full printed text is implemented and directly tested: Deathknell fires on death only, skips bounce, draws exactly once when another friendly unit was at the location, and does not draw alone. |
+| Vanguard Captain | Fiora Vanguard | Unit | Supported | Legion token creation | Full printed text is implemented and directly tested: Legion requires another card played earlier this turn, does not count itself, resets on turn change, and creates exactly two Recruit tokens. |
 | Facebreaker | Fiora Vanguard | Spell | Unsupported | Unsupported/unknown text pattern | Hidden foundation exists, but Facebreaker still needs later hidden play timing plus friendly/enemy Stun target scripting. |
 | Vanguard Sergeant | Fiora Vanguard | Unit | Supported | Basic unit with no special text | No printed text; direct tests cover play to Base, move to battlefield, health, and log behavior. |
 | Laurent Duelist | Fiora Vanguard | Unit | Supported | Basic Assault unit | Full printed text is the Assault 2 descriptor; +2 Might while attacking only is directly tested with combat damage/destruction coverage. |
 | Crowd Favorite | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs XP/Hunt, activated XP spend, and Buff state support. |
 | Riposte | Fiora Vanguard | Spell | Partial | Spell: stat/might modifier | Needs reaction timing, spell target model, counter behavior, and variable might buff. |
 | Dune Drake | Fiora Vanguard | Unit | Partial | Unit with triggered ability | Needs attack trigger checking ready enemy units at the battlefield. |
+| Dauntless Vanguard | Fiora Vanguard | Unit | Partial | Unit with movement exception | Needs play-to-occupied-enemy-battlefield permission and multiple-battlefield precision. |
 | Body Rune | Fiora Vanguard | Rune | Supported | Rune/payment rules | Basic rune setup/actions are covered; deeper payment edge cases remain roadmap work. |
 | Order Rune | Fiora Vanguard | Rune | Supported | Rune/payment rules | Basic rune setup/actions are covered; deeper payment edge cases remain roadmap work. |
 | Aspirant's Climb | Fiora Vanguard | Battlefield | Partial | Battlefield ability | Needs target-score modification from selected battlefield setup. |
