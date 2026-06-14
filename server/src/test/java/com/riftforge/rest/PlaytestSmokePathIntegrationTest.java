@@ -108,6 +108,27 @@ class PlaytestSmokePathIntegrationTest {
         .contains(LegalAction.PLAY_CARD, LegalAction.PASS_PHASE, LegalAction.MOVE_TO_BATTLEFIELD);
   }
 
+  @Test
+  void humanVsGeneratedRiftBotStillPromptsHumanBattlefieldSelection() {
+    List<String> deck = fx.registerConstructedDeck();
+
+    RoomController.TokenizedRoom created =
+        roomController.create(new RoomController.CreateRequest("host", "Host", true, GameMode.ENFORCED));
+    String code = created.room().getCode();
+    String hostToken = created.sessionToken();
+
+    assertThat(roomController.ready(code, new RoomController.ReadyRequest("host", hostToken, deck, false)).getStatusCode())
+        .isEqualTo(HttpStatus.OK);
+    assertThat(roomController.start(code, new RoomController.StartRequest("host", hostToken)).getStatusCode())
+        .isEqualTo(HttpStatus.OK);
+
+    LiveGameState hostView = stateFor(code, "host", hostToken);
+    assertThat(hostView.getCurrentPhase()).isEqualTo(Phase.SELECT_BATTLEFIELD);
+    assertThat(hostView.getLegalActions()).containsExactly(LegalAction.SELECT_BATTLEFIELD);
+    assertThat(hostView.getPlayers().stream().filter(player -> "host".equals(player.getUserId())).findFirst().orElseThrow().getBattlefieldChoices())
+        .containsExactly("battlefield-0", "battlefield-1", "battlefield-2");
+  }
+
   private LiveGameState stateFor(String code, String playerId, String token) {
     ResponseEntity<?> response = gameRestController.state(code, playerId, token);
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);

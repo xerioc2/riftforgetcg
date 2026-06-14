@@ -79,7 +79,7 @@ export function HandRack({
   const selectedCost = selectedCard?.cost ?? 0;
   const canAffordSelected = selectedCost <= effectiveEnergy;
   const selectedType = selectedCard?.type?.toLowerCase();
-  const selectedCanPlayFromHand = selectedType !== 'legend' && selectedType !== 'champion' && selectedType !== 'battlefield';
+  const selectedCanPlayFromHand = selectedType !== 'legend' && selectedType !== 'battlefield';
   const selectedIsReaction = canPlayReactions && selectedCard?.type?.toLowerCase() === 'spell';
   const canPlaySelected = selectedCanPlayFromHand && (canPlayCards || selectedIsReaction);
   const selectedHasHidden = (selectedCard?.rulesText ?? '').toLowerCase().includes('[hidden]')
@@ -168,7 +168,7 @@ export function HandRack({
           const isHovered = hovered === instance.instanceId;
           const isSelected = selected === instance.instanceId;
           const type = card?.type?.toLowerCase();
-          const canPlayFromHand = type !== 'legend' && type !== 'champion' && type !== 'battlefield';
+          const canPlayFromHand = type !== 'legend' && type !== 'battlefield';
           const isReaction = canPlayReactions && card?.type?.toLowerCase() === 'spell';
           const isPlayable = canPlayFromHand && (canPlayCards || isReaction);
           return (
