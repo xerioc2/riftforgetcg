@@ -1,6 +1,4 @@
 const PHASE_LABELS: Record<string, string> = {
-  SELECT_BATTLEFIELD: 'Battlefield',
-  MULLIGAN: 'Mulligan',
   AWAKEN: 'Awaken',
   BEGINNING: 'Beginning',
   CHANNEL: 'Channel',
@@ -10,6 +8,11 @@ const PHASE_LABELS: Record<string, string> = {
 };
 
 const PHASES = Object.keys(PHASE_LABELS);
+
+const SETUP_LABELS: Record<string, string> = {
+  SELECT_BATTLEFIELD: 'Setup: Battlefield selection',
+  MULLIGAN: 'Setup: Mulligan',
+};
 
 const SHOWDOWN_STEP_LABELS: Record<string, string> = {
   STAGED: 'Staged',
@@ -49,6 +52,8 @@ export function PhaseBar({
   connectionStatus,
   bottom = 172,
 }: PhaseBarProps) {
+  const setupLabel = SETUP_LABELS[currentPhase];
+  const isPregameSetup = Boolean(setupLabel);
   const showdownLabel = showdownStep ? `Showdown: ${SHOWDOWN_STEP_LABELS[showdownStep] ?? showdownStep}` : 'Showdown';
   const currentLabel = activeShowdown && currentPhase === 'MAIN' ? `Main Phase - ${showdownLabel}` : PHASE_LABELS[currentPhase] ?? currentPhase;
   return (
@@ -62,6 +67,7 @@ export function PhaseBar({
           ))}
         </div>
         <div className="mt-0.5 flex min-w-0 items-center gap-2 overflow-hidden text-[11px] leading-4">
+          {setupLabel ? <span className="shrink-0 font-semibold text-forge">{setupLabel}</span> : null}
           {guidance ? <span className="truncate text-slate-300">{guidance}</span> : null}
           {legalActionHint ? <span className="truncate text-forge">{legalActionHint}</span> : null}
           {waitingStatus ? <span className="truncate text-slate-400">{waitingStatus}</span> : null}
@@ -70,7 +76,7 @@ export function PhaseBar({
       </div>
       <div className="ml-auto flex items-center gap-3">
         <span className={`whitespace-nowrap text-xs font-semibold ${isMyTurn ? 'text-forge' : 'text-slate-300'}`}>
-          {isMyTurn ? 'Your turn' : `${opponentName}'s turn`}
+          {isPregameSetup ? 'Pregame setup' : isMyTurn ? 'Your turn' : `${opponentName}'s turn`}
         </span>
         {canPass ? (
           <button className="btn-primary min-h-7 px-4 py-1 text-xs" onClick={onPassPhase}>
