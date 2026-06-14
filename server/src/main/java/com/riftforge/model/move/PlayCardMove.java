@@ -10,20 +10,31 @@ public record PlayCardMove(
     int x,
     int y,
     String targetInstanceId,
+    List<TargetSelection> targets,
     boolean accelerate,
     List<String> paymentRuneIds,
     List<String> premiumRuneIds
 ) implements MoveRequest {
   public PlayCardMove {
+    targets = targets == null ? List.of() : List.copyOf(targets);
     paymentRuneIds = paymentRuneIds == null ? List.of() : List.copyOf(paymentRuneIds);
     premiumRuneIds = premiumRuneIds == null ? List.of() : List.copyOf(premiumRuneIds);
   }
 
   public PlayCardMove(String playerId, String instanceId, ZoneName targetZone, int x, int y, String targetInstanceId) {
-    this(playerId, instanceId, targetZone, x, y, targetInstanceId, false, List.of(), List.of());
+    this(playerId, instanceId, targetZone, x, y, targetInstanceId, List.of(), false, List.of(), List.of());
   }
 
   public PlayCardMove(String playerId, String instanceId, ZoneName targetZone, int x, int y, String targetInstanceId, boolean accelerate) {
-    this(playerId, instanceId, targetZone, x, y, targetInstanceId, accelerate, List.of(), List.of());
+    this(playerId, instanceId, targetZone, x, y, targetInstanceId, List.of(), accelerate, List.of(), List.of());
+  }
+
+  public PlayCardMove(String playerId, String instanceId, ZoneName targetZone, int x, int y, String targetInstanceId, boolean accelerate, List<String> paymentRuneIds, List<String> premiumRuneIds) {
+    this(playerId, instanceId, targetZone, x, y, targetInstanceId, List.of(), accelerate, paymentRuneIds, premiumRuneIds);
+  }
+
+  public record TargetSelection(String role, String instanceId) {
+    public static final String FRIENDLY_UNIT = "friendlyUnit";
+    public static final String ENEMY_UNIT = "enemyUnit";
   }
 }

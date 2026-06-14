@@ -68,7 +68,7 @@ class AlphaPlaytestRegressionTest {
         .hasSize(4)
         .containsOnly(GameStateProjectionService.HIDDEN_CARD_ID);
     assertThat(spectatorView.getLegalActions()).isEmpty();
-    assertThat(hostView.getLegalActions()).containsExactlyInAnyOrder(LegalAction.KEEP_HAND, LegalAction.MULLIGAN);
+    assertThat(hostView.getLegalActions()).containsExactly(LegalAction.SELECT_BATTLEFIELD);
 
     JsonNode json = new ObjectMapper().valueToTree(hostView);
     for (JsonNode playerNode : json.path("players")) {

@@ -41,7 +41,7 @@ public class GameStateProjectionService {
     view.setGameMode(state.getGameMode());
     view.setPendingChoice(copyChoiceForViewer(state.getPendingChoice(), viewerPlayerId));
     view.setLegalActions(viewerPlayerId == null ? Set.of() : legalActionsService.legalActionsFor(state, viewerPlayerId));
-    view.setPlayers(state.getPlayers().stream().map(this::copyPlayer).toList());
+    view.setPlayers(state.getPlayers().stream().map(player -> copyPlayer(player, viewerPlayerId)).toList());
     view.setRunes(state.getRunes().stream().map(this::copyRune).toList());
     view.setRevealedHands(state.getRevealedHands().stream()
         .filter(snapshot -> viewerPlayerId != null && viewerPlayerId.equals(snapshot.getRevealedToPlayerId()))
@@ -76,7 +76,7 @@ public class GameStateProjectionService {
     return text != null && (text.startsWith("VISION_PEEK|") || text.startsWith("VISION_RESOLVED|"));
   }
 
-  private PlayerState copyPlayer(PlayerState player) {
+  private PlayerState copyPlayer(PlayerState player, String viewerPlayerId) {
     PlayerState copy = new PlayerState();
     copy.setUserId(player.getUserId());
     copy.setName(player.getName());
@@ -84,6 +84,11 @@ public class GameStateProjectionService {
     copy.setAvailableEnergy(player.getAvailableEnergy());
     copy.setRunePoolRemaining(player.getRunePoolRemaining());
     copy.setDeckPool(player.getDeckPool() == null ? new ArrayList<>() : new ArrayList<>(player.getDeckPool()));
+    copy.setSelectedBattlefields(new ArrayList<>());
+    copy.setBattlefieldChoices(Objects.equals(player.getUserId(), viewerPlayerId)
+        ? new ArrayList<>(player.getSelectedBattlefields())
+        : new ArrayList<>());
+    copy.setSelectedBattlefieldId(player.getSelectedBattlefieldId());
     return copy;
   }
 

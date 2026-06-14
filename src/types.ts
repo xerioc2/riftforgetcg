@@ -70,6 +70,7 @@ export type DeckValidation = {
 export type RoomStatus = 'waiting' | 'playing' | 'finished';
 export type GameMode = 'ENFORCED' | 'SANDBOX';
 export type LegalAction =
+  | 'SELECT_BATTLEFIELD'
   | 'KEEP_HAND'
   | 'MULLIGAN'
   | 'PASS_PHASE'
@@ -153,6 +154,8 @@ export type PlayerGameState = {
   availableEnergy?: number;
   runePoolRemaining?: number;
   deckCount?: number;
+  battlefieldChoices?: string[];
+  selectedBattlefieldId?: string | null;
 };
 
 export type MatchRecord = {

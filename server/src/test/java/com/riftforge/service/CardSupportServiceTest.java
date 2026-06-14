@@ -25,9 +25,13 @@ class CardSupportServiceTest {
         .isEqualTo(CardSupportStatus.SUPPORTED);
     assertThat(service.statusFor(card("loyal-poro", "Loyal Poro", "Unit", "[Deathknell] If I didn't die alone, draw 1.")))
         .isEqualTo(CardSupportStatus.SUPPORTED);
+    assertThat(service.statusFor(card("lonely-poro", "Lonely Poro", "Unit", "[Deathknell] If I died alone, draw 1.")))
+        .isEqualTo(CardSupportStatus.SUPPORTED);
     assertThat(service.statusFor(card("vanguard-captain", "Vanguard Captain", "Unit", "[Legion] When you play me, play two Recruit unit tokens here.")))
         .isEqualTo(CardSupportStatus.SUPPORTED);
     assertThat(service.statusFor(card("stellacorn-herder", "Stellacorn Herder", "Unit", "When I move, draw 1.")))
+        .isEqualTo(CardSupportStatus.SUPPORTED);
+    assertThat(service.statusFor(card("disarming-rake", "Disarming Rake", "Unit", "When you play me, you may kill a gear.")))
         .isEqualTo(CardSupportStatus.SUPPORTED);
   }
 

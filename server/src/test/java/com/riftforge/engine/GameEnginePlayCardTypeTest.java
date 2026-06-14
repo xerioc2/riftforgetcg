@@ -10,8 +10,10 @@ import com.riftforge.effect.CardEffectRegistry;
 import com.riftforge.model.CardDefinition;
 import com.riftforge.model.CardInstance;
 import com.riftforge.model.LiveGameState;
+import com.riftforge.model.PendingChoice;
 import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
+import com.riftforge.model.RevealedHandSnapshot;
 import com.riftforge.model.RuneState;
 import com.riftforge.model.ZoneName;
 import com.riftforge.model.move.EquipGearMove;
@@ -20,6 +22,7 @@ import com.riftforge.model.move.MoveToBattlefieldMove;
 import com.riftforge.model.move.PassPhaseMove;
 import com.riftforge.model.move.PlayCardMove;
 import com.riftforge.model.move.RepositionCardMove;
+import com.riftforge.model.move.ResolveChoiceMove;
 import com.riftforge.model.move.ResolveShowdownMove;
 import com.riftforge.rules.LegalActionsService;
 import com.riftforge.service.CardDataService;
@@ -245,6 +248,190 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void scuttleCrabZeroMightDoesNotAutoTrashAndCanMoveToBattlefield() {
+    CardInstance scuttle = card("scuttle", "p1", ZoneName.HAND);
+    LiveGameState state = state(scuttle);
+    stubCard("scuttle", "Scuttle Crab", "Unit", 0, 0, 2, "When you play me, draw 1. [Deathknell] Choose an opponent.", List.of("DEATHKNELL"));
+
+    engine.applyMove(state, play("scuttle", ZoneName.BASE));
+
+    assertThat(scuttle.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(scuttle.getCurrentHealth()).isEqualTo(2);
+
+    scuttle.setTapped(false);
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "scuttle"));
+
+    assertThat(scuttle.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(scuttle.getCurrentHealth()).isEqualTo(2);
+  }
+
+  @Test
+  void scuttleCrabOnPlayDrawsOneWithoutPubliclyLoggingDrawnCardName() {
+    LiveGameState state = state(card("scuttle", "p1", ZoneName.HAND));
+    state.getPlayers().getFirst().setDeckPool(new ArrayList<>(List.of("secret-drawn", "next-card")));
+    stubCard("scuttle", "Scuttle Crab", "Unit", 0, 0, 2, "When you play me, draw 1. [Deathknell] Choose an opponent.", List.of("DEATHKNELL"));
+    stubCard("secret-drawn", "Secret Drawn Card", "Unit", 0, 1, 1, null);
+    stubCard("next-card", "Next Card", "Unit", 0, 1, 1, null);
+
+    engine.applyMove(state, play("scuttle", ZoneName.BASE));
+
+    assertThat(state.getCards()).anyMatch(card -> card.getOwnerId().equals("p1")
+        && card.getCardId().equals("secret-drawn")
+        && card.getZone() == ZoneName.HAND);
+    assertThat(state.getPlayers().getFirst().getDeckPool()).containsExactly("next-card");
+    assertThat(state.getLog()).extracting(LiveGameState.LogEntry::text)
+        .contains("Drew a card.")
+        .doesNotContain("Drew Secret Drawn Card.");
+  }
+
+  @Test
+  void disarmingRakeEntersPlayWithoutPromptWhenNoGearExists() {
+    LiveGameState state = state(card("rake", "p1", ZoneName.HAND));
+    stubCard("rake", "Disarming Rake", "Unit", 0, 1, 2, "When you play me, you may kill a gear.");
+
+    engine.applyMove(state, play("rake", ZoneName.BASE));
+
+    assertThat(find(state, "rake").getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(state.getPendingChoice()).isNull();
+  }
+
+  @Test
+  void disarmingRakeCreatesOwnerOnlyGearDestroyPromptWhenGearExists() {
+    LiveGameState state = state(card("rake", "p1", ZoneName.HAND), card("gear", "p2", ZoneName.BASE));
+    stubCard("rake", "Disarming Rake", "Unit", 0, 1, 2, "When you play me, you may kill a gear.");
+    stubCard("gear", "Enemy Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+
+    engine.applyMove(state, play("rake", ZoneName.BASE));
+
+    PendingChoice choice = state.getPendingChoice();
+    assertThat(choice).isNotNull();
+    assertThat(choice.getPlayerId()).isEqualTo("p1");
+    assertThat(choice.getType()).isEqualTo(PendingChoice.TYPE_YES_NO);
+    assertThat(choice.getEffect()).isEqualTo(PendingChoice.EFFECT_CREATE_DESTROY_GEAR_CHOICE);
+    assertThat(choice.isPublicChoice()).isFalse();
+  }
+
+  @Test
+  void disarmingRakeDeclineLeavesGearUnchanged() {
+    LiveGameState state = disarmingRakeState(card("gear", "p2", ZoneName.BASE));
+    stubCard("gear", "Enemy Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    engine.applyMove(state, play("rake", ZoneName.BASE));
+
+    engine.applyMove(state, new ResolveChoiceMove("p1", state.getPendingChoice().getChoiceId(), PendingChoice.OPTION_NO));
+
+    assertThat(state.getPendingChoice()).isNull();
+    assertThat(find(state, "gear").getZone()).isEqualTo(ZoneName.BASE);
+  }
+
+  @Test
+  void disarmingRakeYesThenLegalFriendlyGearTargetDestroysGear() {
+    LiveGameState state = disarmingRakeState(card("gear", "p1", ZoneName.BASE));
+    stubCard("gear", "Friendly Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    engine.applyMove(state, play("rake", ZoneName.BASE));
+    engine.applyMove(state, new ResolveChoiceMove("p1", state.getPendingChoice().getChoiceId(), PendingChoice.OPTION_YES));
+
+    PendingChoice targetChoice = state.getPendingChoice();
+    assertThat(targetChoice.getType()).isEqualTo(PendingChoice.TYPE_TARGET_GEAR);
+    engine.applyMove(state, resolveTarget(targetChoice, "gear"));
+
+    assertThat(find(state, "gear").getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(find(state, "gear").getAttachedToInstanceId()).isNull();
+    assertThat(state.getPendingChoice()).isNull();
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Disarming Rake destroyed Friendly Gear."));
+  }
+
+  @Test
+  void disarmingRakeCanDestroyEnemyGear() {
+    LiveGameState state = disarmingRakeState(card("gear", "p2", ZoneName.BASE));
+    stubCard("gear", "Enemy Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    engine.applyMove(state, play("rake", ZoneName.BASE));
+    engine.applyMove(state, new ResolveChoiceMove("p1", state.getPendingChoice().getChoiceId(), PendingChoice.OPTION_YES));
+
+    engine.applyMove(state, resolveTarget(state.getPendingChoice(), "gear"));
+
+    assertThat(find(state, "gear").getZone()).isEqualTo(ZoneName.DISCARD);
+  }
+
+  @Test
+  void disarmingRakeDestroysAttachedGearWithoutReturningItToBase() {
+    CardInstance gear = card("gear", "p2", ZoneName.BASE);
+    gear.setAttachedToInstanceId("host");
+    LiveGameState state = disarmingRakeState(gear, card("host", "p2", ZoneName.BATTLEFIELD));
+    stubCard("gear", "Attached Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    stubCard("host", "Host Unit", "Unit", 0, 2, 2, null);
+    engine.applyMove(state, play("rake", ZoneName.BASE));
+    engine.applyMove(state, new ResolveChoiceMove("p1", state.getPendingChoice().getChoiceId(), PendingChoice.OPTION_YES));
+
+    engine.applyMove(state, resolveTarget(state.getPendingChoice(), "gear"));
+
+    assertThat(find(state, "gear").getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(find(state, "gear").getAttachedToInstanceId()).isNull();
+    assertThat(find(state, "host").getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().equals("Attached Gear returned to Base."));
+  }
+
+  @Test
+  void disarmingRakeRejectsNonGearTargetWithoutPartialMutation() {
+    LiveGameState state = disarmingRakeState(card("gear", "p2", ZoneName.BASE), card("unit", "p2", ZoneName.BATTLEFIELD));
+    stubCard("gear", "Enemy Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    stubCard("unit", "Enemy Unit", "Unit", 0, 2, 2, null);
+    engine.applyMove(state, play("rake", ZoneName.BASE));
+    engine.applyMove(state, new ResolveChoiceMove("p1", state.getPendingChoice().getChoiceId(), PendingChoice.OPTION_YES));
+    PendingChoice targetChoice = state.getPendingChoice();
+
+    assertThatThrownBy(() -> engine.applyMove(state, resolveTarget(targetChoice, "unit")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Choose a public Gear in play.");
+
+    assertThat(find(state, "gear").getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(state.getPendingChoice()).isEqualTo(targetChoice);
+  }
+
+  @Test
+  void disarmingRakeRejectsHiddenHandDeckAndTrashGearTargets() {
+    CardInstance hidden = card("hidden-gear", "p2", ZoneName.BASE);
+    hidden.setFaceDown(true);
+    LiveGameState state = disarmingRakeState(
+        card("legal-gear", "p2", ZoneName.BASE),
+        hidden,
+        card("hand-gear", "p2", ZoneName.HAND),
+        card("deck-gear", "p2", ZoneName.DECK),
+        card("trash-gear", "p2", ZoneName.DISCARD));
+    stubCard("legal-gear", "Legal Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    stubCard("hidden-gear", "Hidden Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    stubCard("hand-gear", "Hand Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    stubCard("deck-gear", "Deck Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    stubCard("trash-gear", "Trash Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    engine.applyMove(state, play("rake", ZoneName.BASE));
+    engine.applyMove(state, new ResolveChoiceMove("p1", state.getPendingChoice().getChoiceId(), PendingChoice.OPTION_YES));
+    PendingChoice targetChoice = state.getPendingChoice();
+
+    for (String invalidTarget : List.of("hidden-gear", "hand-gear", "deck-gear", "trash-gear")) {
+      assertThatThrownBy(() -> engine.applyMove(state, resolveTarget(targetChoice, invalidTarget)))
+          .isInstanceOf(IllegalMoveException.class)
+          .hasMessage("Choose a public Gear in play.");
+    }
+    assertThat(find(state, "legal-gear").getZone()).isEqualTo(ZoneName.BASE);
+  }
+
+  @Test
+  void wrongPlayerCannotResolveDisarmingRakePromptOrTarget() {
+    LiveGameState state = disarmingRakeState(card("gear", "p2", ZoneName.BASE));
+    stubCard("gear", "Enemy Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    engine.applyMove(state, play("rake", ZoneName.BASE));
+
+    assertThatThrownBy(() -> engine.applyMove(state, new ResolveChoiceMove("p2", state.getPendingChoice().getChoiceId(), PendingChoice.OPTION_YES)))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("That choice belongs to another player.");
+
+    engine.applyMove(state, new ResolveChoiceMove("p1", state.getPendingChoice().getChoiceId(), PendingChoice.OPTION_YES));
+    assertThatThrownBy(() -> engine.applyMove(state, new ResolveChoiceMove("p2", state.getPendingChoice().getChoiceId(), null, null, null, "gear", List.of())))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("That choice belongs to another player.");
+    assertThat(find(state, "gear").getZone()).isEqualTo(ZoneName.BASE);
+  }
+
+  @Test
   void friendlyTargetAcceptedForFriendlyUnitEffect() {
     CardInstance spell = card("buff", "p1", ZoneName.HAND);
     CardInstance friendly = card("friendly", "p1", ZoneName.BATTLEFIELD);
@@ -291,6 +478,114 @@ class GameEnginePlayCardTypeTest {
 
     assertThat(firstEnemy.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
     assertThat(selectedEnemy.getZone()).isEqualTo(ZoneName.HAND);
+  }
+
+  @Test
+  void multiTargetReturnResolvesFriendlyAndEnemyTargets() {
+    CardInstance spell = card("team-bounce", "p1", ZoneName.HAND);
+    CardInstance friendly = card("friendly", "p1", ZoneName.BASE);
+    CardInstance enemy = card("enemy", "p2", ZoneName.BATTLEFIELD);
+    LiveGameState state = state(spell, friendly, enemy);
+    stubCard("team-bounce", "Team Bounce", "Spell", 0, 0, 0, "Return a friendly unit and an enemy unit to their owners' hands.");
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    stubCard("enemy", "Enemy Unit", "Unit", 0, 2, 2, null);
+    when(cardDataService.requiresFriendlyAndEnemyTargets("team-bounce")).thenReturn(true);
+
+    engine.applyMove(state, playMultiTarget("team-bounce", "friendly", "enemy"));
+
+    assertThat(friendly.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(enemy.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(spell.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Team Bounce returned a friendly unit and an enemy unit to hand."));
+  }
+
+  @Test
+  void multiTargetReturnRequiresBothRolesAndDoesNotSpendOnFailure() {
+    CardInstance spell = card("team-bounce", "p1", ZoneName.HAND);
+    CardInstance friendly = card("friendly", "p1", ZoneName.BATTLEFIELD);
+    LiveGameState state = state(spell, friendly);
+    state.getPlayers().getFirst().setAvailableEnergy(2);
+    stubCard("team-bounce", "Team Bounce", "Spell", 2, 0, 0, "Return a friendly unit and an enemy unit to their owners' hands.");
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    when(cardDataService.requiresFriendlyAndEnemyTargets("team-bounce")).thenReturn(true);
+
+    assertThatThrownBy(() -> engine.applyMove(state, new PlayCardMove(
+        "p1",
+        "team-bounce",
+        ZoneName.BASE,
+        0,
+        0,
+        null,
+        List.of(new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.FRIENDLY_UNIT, "friendly")),
+        false,
+        List.of(),
+        List.of())))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("This card requires a friendly target and an enemy target.");
+
+    assertThat(spell.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(friendly.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(state.getPlayers().getFirst().getAvailableEnergy()).isEqualTo(2);
+  }
+
+  @Test
+  void multiTargetReturnValidatesControllersAndPublicCombatants() {
+    CardInstance spell = card("team-bounce", "p1", ZoneName.HAND);
+    CardInstance friendly = card("friendly", "p1", ZoneName.BATTLEFIELD);
+    CardInstance enemy = card("enemy", "p2", ZoneName.BATTLEFIELD);
+    CardInstance gear = card("gear", "p2", ZoneName.BATTLEFIELD);
+    CardInstance hiddenEnemy = card("hidden-enemy", "p2", ZoneName.HIDDEN);
+    LiveGameState state = state(spell, friendly, enemy, gear, hiddenEnemy);
+    stubCard("team-bounce", "Team Bounce", "Spell", 0, 0, 0, "Return a friendly unit and an enemy unit to their owners' hands.");
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    stubCard("enemy", "Enemy Unit", "Unit", 0, 2, 2, null);
+    stubCard("gear", "Gear", "Gear", 0, 0, 0, null);
+    stubCard("hidden-enemy", "Hidden Enemy", "Unit", 0, 2, 2, null);
+    when(cardDataService.requiresFriendlyAndEnemyTargets("team-bounce")).thenReturn(true);
+
+    assertThatThrownBy(() -> engine.applyMove(state, playMultiTarget("team-bounce", "enemy", "friendly")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Friendly target must be controlled by you.");
+    assertThatThrownBy(() -> engine.applyMove(state, playMultiTarget("team-bounce", "friendly", "friendly")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Targets must be different cards.");
+    assertThatThrownBy(() -> engine.applyMove(state, playMultiTarget("team-bounce", "friendly", "gear")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Target must be a Unit or Champion.");
+    assertThatThrownBy(() -> engine.applyMove(state, playMultiTarget("team-bounce", "friendly", "hidden-enemy")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Target must be a public Unit or Champion.");
+
+    assertThat(spell.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(friendly.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(enemy.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+  }
+
+  @Test
+  void multiTargetReturnCleansAttachmentsAndDoesNotTriggerDeathknell() {
+    CardInstance spell = card("team-bounce", "p1", ZoneName.HAND);
+    CardInstance friendly = card("friendly", "p1", ZoneName.BATTLEFIELD);
+    CardInstance enemy = card("loyal", "p2", ZoneName.BATTLEFIELD);
+    CardInstance gear = card("equip", "p1", ZoneName.BASE);
+    gear.setAttachedToInstanceId("friendly");
+    LiveGameState state = state(spell, friendly, enemy, gear);
+    state.getPlayers().get(1).setDeckPool(new ArrayList<>(List.of("drawn")));
+    stubCard("team-bounce", "Team Bounce", "Spell", 0, 0, 0, "Return a friendly unit and an enemy unit to their owners' hands.");
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    stubCard("loyal", "Loyal Poro", "Unit", 0, 1, 1, "[Deathknell] Draw 1 if I did not die alone.");
+    stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    stubCard("drawn", "Drawn Card", "Unit", 0, 1, 1, null);
+    when(cardDataService.requiresFriendlyAndEnemyTargets("team-bounce")).thenReturn(true);
+    when(cardDataService.hasKeyword("loyal", "DEATHKNELL")).thenReturn(true);
+
+    engine.applyMove(state, playMultiTarget("team-bounce", "friendly", "loyal"));
+
+    assertThat(friendly.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(enemy.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(gear.getAttachedToInstanceId()).isNull();
+    assertThat(state.getCards()).noneMatch(card -> card.getCardId().equals("drawn"));
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("Deathknell"));
   }
 
   @Test
@@ -343,6 +638,26 @@ class GameEnginePlayCardTypeTest {
     engine.applyMove(state, playTarget("bounce", "loyal"));
 
     assertThat(loyalPoro.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(state.getCards()).noneMatch(card -> card.getCardId().equals("drawn"));
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("Deathknell"));
+  }
+
+  @Test
+  void lonelyPoroDeathknellDoesNotFireWhenReturnedToHand() {
+    CardInstance spell = card("bounce", "p1", ZoneName.HAND);
+    CardInstance lonelyPoro = card("lonely", "p2", ZoneName.BATTLEFIELD);
+    LiveGameState state = state(spell, lonelyPoro);
+    state.getPlayers().get(1).setDeckPool(new ArrayList<>(List.of("drawn")));
+    stubCard("bounce", "Bounce Spell", "Spell", 0, 0, 0, "Return a unit to its owner's hand.");
+    stubCard("lonely", "Lonely Poro", "Unit", 0, 1, 1, "[Deathknell] Draw 1 if I died alone.");
+    stubCard("drawn", "Drawn Card", "Unit", 0, 1, 1, null);
+    when(cardDataService.requiresBattlefieldTarget("bounce")).thenReturn(true);
+    when(cardDataService.requiresEnemyTarget("bounce")).thenReturn(true);
+    when(cardDataService.hasKeyword("lonely", "DEATHKNELL")).thenReturn(true);
+
+    engine.applyMove(state, playTarget("bounce", "lonely"));
+
+    assertThat(lonelyPoro.getZone()).isEqualTo(ZoneName.HAND);
     assertThat(state.getCards()).noneMatch(card -> card.getCardId().equals("drawn"));
     assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("Deathknell"));
   }
@@ -1171,6 +1486,45 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void stellacornHerderDrawsOneWhenReturnedFromBattlefieldToBaseAfterShowdown() {
+    CardInstance herder = card("herder", "p1", ZoneName.BASE);
+    CardInstance defender = card("defender", "p2", ZoneName.BATTLEFIELD);
+    defender.setCurrentHealth(5);
+    LiveGameState state = state(herder, defender);
+    state.getPlayers().getFirst().setDeckPool(new ArrayList<>(List.of("battlefield-draw", "return-draw", "remaining")));
+    stubCard("herder", "Stellacorn Herder", "Unit", 0, 2, 2, "When I move, draw 1.");
+    stubCard("defender", "Defender", "Unit", 0, 0, 5, null);
+    stubCard("battlefield-draw", "Battlefield Draw", "Unit", 0, 1, 1, null);
+    stubCard("return-draw", "Return Draw", "Unit", 0, 1, 1, null);
+    stubCard("remaining", "Remaining", "Unit", 0, 1, 1, null);
+
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "herder"));
+    engine.applyMove(state, new ResolveShowdownMove("p1"));
+
+    assertThat(herder.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(state.getCards()).anyMatch(card -> card.getCardId().equals("battlefield-draw") && card.getZone() == ZoneName.HAND);
+    assertThat(state.getCards()).anyMatch(card -> card.getCardId().equals("return-draw") && card.getZone() == ZoneName.HAND);
+    assertThat(state.getPlayers().getFirst().getDeckPool()).containsExactly("remaining");
+    assertThat(state.getLog()).filteredOn(entry -> entry.text().equals("Stellacorn Herder drew 1 after moving.")).hasSize(2);
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("Battlefield Draw") || entry.text().contains("Return Draw"));
+  }
+
+  @Test
+  void stellacornHerderDoesNotDrawWhenPlayedFromHandToBase() {
+    LiveGameState state = state(card("herder", "p1", ZoneName.HAND));
+    state.getPlayers().getFirst().setDeckPool(new ArrayList<>(List.of("drawn-one")));
+    stubCard("herder", "Stellacorn Herder", "Unit", 0, 2, 2, "When I move, draw 1.");
+    stubCard("drawn-one", "Drawn One", "Unit", 0, 1, 1, null);
+
+    engine.applyMove(state, play("herder", ZoneName.BASE));
+
+    assertThat(find(state, "herder").getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(state.getCards()).noneMatch(card -> card.getCardId().equals("drawn-one"));
+    assertThat(state.getPlayers().getFirst().getDeckPool()).containsExactly("drawn-one");
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("Stellacorn Herder drew"));
+  }
+
+  @Test
   void stellacornHerderDoesNotDrawWhenRepositioned() {
     CardInstance herder = card("herder", "p1", ZoneName.BASE);
     LiveGameState state = state(herder);
@@ -1182,6 +1536,54 @@ class GameEnginePlayCardTypeTest {
 
     assertThat(state.getCards()).noneMatch(card -> card.getCardId().equals("drawn-one"));
     assertThat(state.getPlayers().getFirst().getDeckPool()).containsExactly("drawn-one");
+  }
+
+  @Test
+  void stellacornHerderDoesNotDrawWhenReturnedToHand() {
+    CardInstance herder = card("herder", "p1", ZoneName.BATTLEFIELD);
+    LiveGameState state = state(card("bounce", "p1", ZoneName.HAND), herder);
+    state.getPlayers().getFirst().setDeckPool(new ArrayList<>(List.of("drawn-one")));
+    stubCard("bounce", "Bounce Spell", "Spell", 0, 0, 0, "Return a unit to its owner's hand.");
+    stubCard("herder", "Stellacorn Herder", "Unit", 0, 2, 2, "When I move, draw 1.");
+    stubCard("drawn-one", "Drawn One", "Unit", 0, 1, 1, null);
+    when(cardDataService.requiresBattlefieldTarget("bounce")).thenReturn(true);
+
+    engine.applyMove(state, playTarget("bounce", "herder"));
+
+    assertThat(herder.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(state.getCards()).noneMatch(card -> card.getCardId().equals("drawn-one"));
+    assertThat(state.getPlayers().getFirst().getDeckPool()).containsExactly("drawn-one");
+  }
+
+  @Test
+  void stellacornHerderDoesNotDrawWhenDestroyedOrMovedToTrash() {
+    CardInstance herder = card("herder", "p1", ZoneName.BASE);
+    herder.setCurrentHealth(0);
+    LiveGameState state = state(card("spell", "p1", ZoneName.HAND), herder);
+    state.getPlayers().getFirst().setDeckPool(new ArrayList<>(List.of("drawn-one")));
+    stubCard("spell", "Simple Spell", "Spell", 0, 0, 0, "No effect.");
+    stubCard("herder", "Stellacorn Herder", "Unit", 0, 2, 2, "When I move, draw 1.");
+    stubCard("drawn-one", "Drawn One", "Unit", 0, 1, 1, null);
+
+    engine.applyMove(state, play("spell", ZoneName.BASE));
+
+    assertThat(herder.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(state.getCards()).noneMatch(card -> card.getCardId().equals("drawn-one"));
+    assertThat(state.getPlayers().getFirst().getDeckPool()).containsExactly("drawn-one");
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("Stellacorn Herder drew"));
+  }
+
+  @Test
+  void stellacornHerderEmptyDeckLogsNoDrawWithoutDrawMessage() {
+    CardInstance herder = card("herder", "p1", ZoneName.BASE);
+    LiveGameState state = state(herder);
+    state.getPlayers().getFirst().setDeckPool(new ArrayList<>());
+    stubCard("herder", "Stellacorn Herder", "Unit", 0, 2, 2, "When I move, draw 1.");
+
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "herder"));
+
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Player One's deck is empty - no draw."));
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().equals("Stellacorn Herder drew 1 after moving."));
   }
 
   @Test
@@ -1331,6 +1733,18 @@ class GameEnginePlayCardTypeTest {
     assertThat(unit.getZone()).isEqualTo(ZoneName.HAND);
   }
 
+  @Test
+  void revealedHandPermissionClearsAtEndOfViewerTurn() {
+    LiveGameState state = state();
+    state.setCurrentPhase(Phase.END);
+    state.setActivePlayerId("p1");
+    state.setRevealedHands(new ArrayList<>(List.of(revealedHand("p1", "p2", "secret-hand"))));
+
+    engine.applyMove(state, new PassPhaseMove("p1"));
+
+    assertThat(state.getRevealedHands()).isEmpty();
+  }
+
   private LiveGameState state(CardInstance... cards) {
     PlayerState p1 = new PlayerState();
     p1.setUserId("p1");
@@ -1363,8 +1777,36 @@ class GameEnginePlayCardTypeTest {
     return new PlayCardMove(playerId, instanceId, ZoneName.BASE, 0, 0, targetInstanceId, false, List.of(), List.of());
   }
 
+  private PlayCardMove playMultiTarget(String instanceId, String friendlyTargetId, String enemyTargetId) {
+    return new PlayCardMove(
+        "p1",
+        instanceId,
+        ZoneName.BASE,
+        0,
+        0,
+        null,
+        List.of(
+            new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.FRIENDLY_UNIT, friendlyTargetId),
+            new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.ENEMY_UNIT, enemyTargetId)),
+        false,
+        List.of(),
+        List.of());
+  }
+
   private EquipGearMove equip(String gearInstanceId, String targetInstanceId) {
     return new EquipGearMove("p1", gearInstanceId, targetInstanceId);
+  }
+
+  private LiveGameState disarmingRakeState(CardInstance... extraCards) {
+    stubCard("rake", "Disarming Rake", "Unit", 0, 1, 2, "When you play me, you may kill a gear.");
+    List<CardInstance> cards = new ArrayList<>();
+    cards.add(card("rake", "p1", ZoneName.HAND));
+    cards.addAll(List.of(extraCards));
+    return state(cards.toArray(CardInstance[]::new));
+  }
+
+  private ResolveChoiceMove resolveTarget(PendingChoice choice, String targetInstanceId) {
+    return new ResolveChoiceMove("p1", choice.getChoiceId(), null, null, null, targetInstanceId, List.of());
   }
 
   private CardInstance card(String id, String ownerId, ZoneName zone) {
@@ -1407,5 +1849,13 @@ class GameEnginePlayCardTypeTest {
   private void stubCard(String id, String name, String type, int cost, int power, int health, String rulesText, List<String> keywords) {
     when(cardDataService.getCard(id)).thenReturn(
         new CardDefinition(id, name, type, null, List.of(), cost, 0, null, null, null, rulesText, power, health, keywords));
+  }
+
+  private RevealedHandSnapshot revealedHand(String toPlayerId, String ownerId, String... instanceIds) {
+    RevealedHandSnapshot snapshot = new RevealedHandSnapshot();
+    snapshot.setRevealedToPlayerId(toPlayerId);
+    snapshot.setRevealedOwnerId(ownerId);
+    snapshot.setInstanceIds(List.of(instanceIds));
+    return snapshot;
   }
 }

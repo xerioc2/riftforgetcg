@@ -29,6 +29,7 @@ will raise regression risk faster than playtest value.
 | Work item | Impact | Risk | Timing | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
 | Constructed deck correction | High | Medium | Pre-playtest | Done | Role-separated Legend, chosen Champion, main deck, runes, and battlefields unblock real deck testing. |
+| Pre-mulligan Battlefield selection | High | Low | Pre-playtest | Done | Constructed games now reveal/lock one selected Battlefield per player before mulligans while keeping full multi-Battlefield play deferred. |
 | Champion deployment payment | High | Medium | Pre-playtest | Done | Makes chosen Champions usable without treating them as normal hand cards. |
 | Equipment lifecycle | High | Medium | Pre-playtest | Done | Gear can be played to Base, equipped, cleaned up from hosts, and tested with starter decks. |
 | Illegal drag snapback | High | Low | Pre-playtest | Done | Prevents UI confusion when server rejects a move. |
@@ -37,7 +38,7 @@ will raise regression risk faster than playtest value.
 | Action / Defender Action windows | High | Medium | Pre-playtest | Done | Provides a limited showdown action window while keeping Reaction/chain deferred. |
 | Hidden foundation | Medium | Medium | Pre-playtest | Done | Establishes masking and zones without later play-from-hidden timing. |
 | Ambush foundation | Medium | Medium | Pre-playtest | Done | Narrow Main-phase battlefield play path; Ambush-as-Reaction remains deferred. |
-| Deathknell / tokens | Medium | Medium | Pre-playtest | Done | Supports safe starter-unit scripts and token plumbing. |
+| Deathknell / tokens | Medium | Medium | Pre-playtest | Done | Supports safe starter-unit scripts, token plumbing, and Scuttle Crab's 1v1 private hand reveal while XP/facedown remain deferred. |
 | Responsive board | High | Low | Pre-playtest | Done | Makes fullscreen playtests readable and reduces layout complaints. |
 | Support badges | High | Low | Pre-playtest | Done | Sets tester expectations for Partial, Unsupported, Banned, and Not Audited cards. |
 | Privacy regression suite | High | Medium | Pre-playtest | Done | Protects hand, hidden, private-choice, projection, and debug-info surfaces. |
@@ -83,7 +84,7 @@ will raise regression risk faster than playtest value.
 The alpha should be described as:
 
 - Single-battlefield playtest model.
-- Constructed deck setup enforced, with role-separated Legend and chosen Champion.
+- Constructed deck setup enforced, with role-separated Legend, chosen Champion, and pre-mulligan Battlefield selection.
 - Starter-deck-oriented card support, with badges and warnings.
 - Partial Action/showdown support, not full Reaction/chain.
 - Strong privacy regression coverage for current hidden-information surfaces.

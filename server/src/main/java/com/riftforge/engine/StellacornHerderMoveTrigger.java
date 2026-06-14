@@ -23,24 +23,31 @@ public class StellacornHerderMoveTrigger implements TriggerHandler {
   public boolean supports(TriggerEvent event) {
     return event.type() == TriggerType.CARD_MOVED
         && event.oldZone() != event.newZone()
+        && isSupportedAlphaMove(event.oldZone(), event.newZone())
         && isNamed(event.sourceCard(), "Stellacorn Herder");
   }
 
   @Override
   public void handle(LiveGameState state, TriggerEvent event) {
-    autoDraw(state, event.controllerId());
-    log(state, event.controllerId(), "Stellacorn Herder drew 1 after moving.");
+    if (autoDraw(state, event.controllerId())) {
+      log(state, event.controllerId(), "Stellacorn Herder drew 1 after moving.");
+    }
   }
 
-  private void autoDraw(LiveGameState state, String playerId) {
+  private boolean isSupportedAlphaMove(ZoneName oldZone, ZoneName newZone) {
+    return (oldZone == ZoneName.BASE && newZone == ZoneName.BATTLEFIELD)
+        || (oldZone == ZoneName.BATTLEFIELD && newZone == ZoneName.BASE);
+  }
+
+  private boolean autoDraw(LiveGameState state, String playerId) {
     PlayerState player = state.getPlayers().stream()
         .filter(candidate -> candidate.getUserId().equals(playerId))
         .findFirst()
         .orElse(null);
-    if (player == null) return;
+    if (player == null) return false;
     if (player.getDeckPool().isEmpty()) {
       log(state, playerId, player.getName() + "'s deck is empty - no draw.");
-      return;
+      return false;
     }
     String cardId = player.getDeckPool().remove(0);
     CardDefinition def = cardDataService.getCard(cardId);
@@ -55,6 +62,7 @@ public class StellacornHerderMoveTrigger implements TriggerHandler {
     instance.setTempKeywords(new ArrayList<>());
     instance.setZIndex(maxZ + 1);
     state.getCards().add(instance);
+    return true;
   }
 
   private boolean isNamed(CardInstance card, String name) {

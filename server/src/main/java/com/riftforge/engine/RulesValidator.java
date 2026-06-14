@@ -6,6 +6,7 @@ import com.riftforge.model.GameMode;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.PendingChoice;
 import com.riftforge.model.Phase;
+import com.riftforge.model.PlayerState;
 import com.riftforge.model.RuneState;
 import com.riftforge.model.ZoneName;
 import com.riftforge.model.move.*;
@@ -41,6 +42,14 @@ public class RulesValidator {
     if (state.getPendingChoice() != null) {
       throw new IllegalMoveException("Resolve the pending choice before taking another action.");
     }
+    if (state.getCurrentPhase() == Phase.SELECT_BATTLEFIELD) {
+      if (move instanceof SelectBattlefieldMove select) {
+        validateSelectBattlefield(state, select);
+        return;
+      }
+      throw new IllegalMoveException("Choose a Battlefield before mulligan.");
+    }
+    if (move instanceof SelectBattlefieldMove) throw new IllegalMoveException("Battlefields are already selected.");
     if (state.getCurrentPhase() == Phase.MULLIGAN) {
       if (move instanceof MulliganMove mulligan) {
         validateMulligan(state, mulligan);
@@ -93,6 +102,11 @@ public class RulesValidator {
       validatePredictChoice(choice, move);
       return;
     }
+    if (PendingChoice.TYPE_TARGET_GEAR.equals(choice.getType())) {
+      if (PendingChoice.OPTION_DECLINE.equals(move.selectedOptionId())) return;
+      validateDestroyGearChoiceTarget(state, move);
+      return;
+    }
     boolean validOption = choice.getOptions().stream()
         .anyMatch(option -> option.id().equals(move.selectedOptionId()));
     if (!validOption) throw new IllegalMoveException("Invalid choice option.");
@@ -106,6 +120,14 @@ public class RulesValidator {
 
   private int optionalPaymentAmount(PendingChoice choice) {
     return choice.getPaymentAmount() > 0 ? choice.getPaymentAmount() : 1;
+  }
+
+  private void validateDestroyGearChoiceTarget(LiveGameState state, ResolveChoiceMove move) {
+    if (move.selectedTargetInstanceId() == null || move.selectedTargetInstanceId().isBlank()) {
+      throw new IllegalMoveException("Choose a Gear to destroy.");
+    }
+    CardInstance target = findCard(state, move.selectedTargetInstanceId());
+    if (!isLegalGearDestroyTarget(target)) throw new IllegalMoveException("Choose a public Gear in play.");
   }
 
   private void validatePredictChoice(PendingChoice choice, ResolveChoiceMove move) {
@@ -158,6 +180,24 @@ public class RulesValidator {
     throw new IllegalMoveException(moveName + " is only available in sandbox games.");
   }
 
+  private void validateSelectBattlefield(LiveGameState state, SelectBattlefieldMove move) {
+    PlayerState player = state.getPlayers().stream()
+        .filter(candidate -> candidate.getUserId().equals(move.playerId()))
+        .findFirst()
+        .orElseThrow(() -> new IllegalMoveException("Player is not in this game."));
+    if (player.getSelectedBattlefieldId() != null && !player.getSelectedBattlefieldId().isBlank()) {
+      throw new IllegalMoveException("You already selected a Battlefield.");
+    }
+    if (move.battlefieldCardId() == null || move.battlefieldCardId().isBlank()) {
+      throw new IllegalMoveException("Battlefield selection is required.");
+    }
+    if (!player.getSelectedBattlefields().contains(move.battlefieldCardId())) {
+      throw new IllegalMoveException("Choose one of your Battlefields.");
+    }
+    CardDefinition def = cardDataService.getCard(move.battlefieldCardId());
+    if (!isType(def, "Battlefield")) throw new IllegalMoveException("Selected card must be a Battlefield.");
+  }
+
   private void validatePlayCard(LiveGameState state, PlayCardMove move) {
     CardInstance card = findCard(state, move.instanceId());
     if (!move.playerId().equals(card.getOwnerId()) || card.getZone() != ZoneName.HAND) {
@@ -194,9 +234,15 @@ public class RulesValidator {
     boolean spellOrGear = spell || gear;
     if (spellOrGear && cardDataService.isUnsupportedAction(card.getCardId())) throw new IllegalMoveException("That card's effect is not supported yet.");
     boolean hasExplicitTarget = move.targetInstanceId() != null && !move.targetInstanceId().isBlank();
+    boolean hasStructuredTargets = !move.targets().isEmpty();
     if (gear && hasExplicitTarget) {
       throw new IllegalMoveException("Play Equipment to Base first, then equip it from Base.");
     }
+    if (cardDataService.requiresFriendlyAndEnemyTargets(card.getCardId())) {
+      validateFriendlyAndEnemyTargets(state, move);
+      return;
+    }
+    if (hasStructuredTargets) throw new IllegalMoveException("That card does not use multiple targets.");
     if (spell && (cardDataService.requiresBattlefieldTarget(card.getCardId()) || hasExplicitTarget)) {
       validateTarget(state, move, card);
     }
@@ -326,6 +372,48 @@ public class RulesValidator {
     }
   }
 
+  private void validateFriendlyAndEnemyTargets(LiveGameState state, PlayCardMove move) {
+    if (move.targets().size() != 2) throw new IllegalMoveException("This card requires a friendly target and an enemy target.");
+    Set<String> seenRoles = new HashSet<>();
+    Set<String> seenInstances = new HashSet<>();
+    for (PlayCardMove.TargetSelection target : move.targets()) {
+      if (target == null || target.role() == null || target.role().isBlank()) {
+        throw new IllegalMoveException("This card requires a friendly target and an enemy target.");
+      }
+      if (target.instanceId() == null || target.instanceId().isBlank()) {
+        throw new IllegalMoveException("This card requires a friendly target and an enemy target.");
+      }
+      if (!seenRoles.add(target.role())) throw new IllegalMoveException("This card requires one target for each role.");
+      if (!seenInstances.add(target.instanceId())) throw new IllegalMoveException("Targets must be different cards.");
+      CardInstance card = findCard(state, target.instanceId());
+      validateMultiTargetRole(state, move.playerId(), target.role(), card);
+    }
+    if (!seenRoles.contains(PlayCardMove.TargetSelection.FRIENDLY_UNIT)
+        || !seenRoles.contains(PlayCardMove.TargetSelection.ENEMY_UNIT)) {
+      throw new IllegalMoveException("This card requires a friendly target and an enemy target.");
+    }
+  }
+
+  private void validateMultiTargetRole(LiveGameState state, String playerId, String role, CardInstance target) {
+    if (target.getZone() != ZoneName.BASE && target.getZone() != ZoneName.BATTLEFIELD) {
+      throw new IllegalMoveException("Target must be a public Unit or Champion.");
+    }
+    if (target.isFaceDown()) throw new IllegalMoveException("Target must be a public Unit or Champion.");
+    CardDefinition targetDef = cardDataService.getCard(target.getCardId());
+    if (!isType(targetDef, "Unit") && !isType(targetDef, "Champion")) {
+      throw new IllegalMoveException("Target must be a Unit or Champion.");
+    }
+    if (PlayCardMove.TargetSelection.FRIENDLY_UNIT.equals(role)) {
+      if (!target.getOwnerId().equals(playerId)) throw new IllegalMoveException("Friendly target must be controlled by you.");
+      return;
+    }
+    if (PlayCardMove.TargetSelection.ENEMY_UNIT.equals(role)) {
+      if (target.getOwnerId().equals(playerId)) throw new IllegalMoveException("Enemy target must be controlled by an opponent.");
+      return;
+    }
+    throw new IllegalMoveException("Unknown target role.");
+  }
+
   private void validateEquipGear(LiveGameState state, EquipGearMove move) {
     requireMain(state);
     if (state.getActiveShowdown() != null) throw new IllegalMoveException("Resolve the active showdown first.");
@@ -356,6 +444,13 @@ public class RulesValidator {
     if (!target.getOwnerId().equals(playerId)) {
       throw new IllegalMoveException("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
     }
+  }
+
+  private boolean isLegalGearDestroyTarget(CardInstance target) {
+    if (target.getZone() != ZoneName.BASE && target.getZone() != ZoneName.BATTLEFIELD) return false;
+    if (target.isFaceDown()) return false;
+    CardDefinition targetDef = cardDataService.getCard(target.getCardId());
+    return isType(targetDef, "Gear");
   }
 
   private void validateMoveToBattlefield(LiveGameState state, MoveToBattlefieldMove move) {

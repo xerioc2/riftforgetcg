@@ -9,6 +9,7 @@ import com.riftforge.model.Phase;
 import com.riftforge.model.ZoneName;
 import com.riftforge.model.move.MulliganMove;
 import com.riftforge.model.move.PassPhaseMove;
+import com.riftforge.model.move.SelectBattlefieldMove;
 import com.riftforge.rules.LegalAction;
 import com.riftforge.service.GameStateProjectionService;
 import com.riftforge.service.MatchHistoryService;
@@ -58,6 +59,24 @@ class PlaytestSmokePathIntegrationTest {
 
     LiveGameState hostView = stateFor(code, "host", hostToken);
     LiveGameState guestView = stateFor(code, "guest", guestToken);
+    assertThat(hostView.getCurrentPhase()).isEqualTo(Phase.SELECT_BATTLEFIELD);
+    assertThat(hostView.getLegalActions()).containsExactly(LegalAction.SELECT_BATTLEFIELD);
+    assertThat(guestView.getLegalActions()).containsExactly(LegalAction.SELECT_BATTLEFIELD);
+    assertThat(hostView.getPlayers().stream().filter(player -> "host".equals(player.getUserId())).findFirst().orElseThrow().getBattlefieldChoices())
+        .containsExactly("battlefield-0", "battlefield-1", "battlefield-2");
+    assertThat(hostView.getPlayers().stream().filter(player -> "guest".equals(player.getUserId())).findFirst().orElseThrow().getBattlefieldChoices())
+        .isEmpty();
+    gameController.handleMove(code, new MulliganMove("host", List.of()), () -> "host");
+    assertThat(fx.gameService.currentState(code).getCurrentPhase()).isEqualTo(Phase.SELECT_BATTLEFIELD);
+    assertThat(fx.gameService.currentState(code).getMulligansDone()).isEmpty();
+
+    gameController.handleMove(code, new SelectBattlefieldMove("host", "battlefield-0"), () -> "host");
+    assertThat(stateFor(code, "host", hostToken).getLegalActions()).isEmpty();
+    assertThat(stateFor(code, "guest", guestToken).getLegalActions()).containsExactly(LegalAction.SELECT_BATTLEFIELD);
+    gameController.handleMove(code, new SelectBattlefieldMove("guest", "battlefield-1"), () -> "guest");
+
+    hostView = stateFor(code, "host", hostToken);
+    guestView = stateFor(code, "guest", guestToken);
     assertThat(hostView.getCurrentPhase()).isEqualTo(Phase.MULLIGAN);
     assertThat(hostView.getLegalActions()).containsExactlyInAnyOrder(LegalAction.KEEP_HAND, LegalAction.MULLIGAN);
     assertThat(guestView.getLegalActions()).containsExactlyInAnyOrder(LegalAction.KEEP_HAND, LegalAction.MULLIGAN);

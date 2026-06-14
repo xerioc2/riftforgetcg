@@ -15,7 +15,7 @@ import { autoPlaceInZone, computeLayout, runeSlotPositions, type ZoneRect } from
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
 import { readableHttpError } from '../lib/http';
-import { hasUnsupportedAdditionalCost, isActionCard, isAmbushCard, isEquipCard, isLegalTargetForMode, isReactionCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode } from '../lib/cardActions';
+import { hasUnsupportedAdditionalCost, isActionCard, isAmbushCard, isEquipCard, isLegalTargetForMode, isReactionCard, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
 import { appBuildLabel, APP_VERSION, BUILD_DATE, BUILD_TAG } from '../lib/appMetadata';
 import { buildDebugInfo } from '../lib/debugInfo';
 import { isBotPlayer, legalActionHint, phaseGuidance, waitingStatusText } from '../lib/gameGuidance';
@@ -107,6 +107,7 @@ export function GameBoard() {
   const [hoveredInstance, setHoveredInstance] = useState<CardInstance | undefined>();
   const [inspectCard, setInspectCard] = useState<CardInstance | null>(null);
   const [pendingTargetSelection, setPendingTargetSelection] = useState<{ instanceId: string; mode: TargetMode } | null>(null);
+  const [pendingMultiTargetSelection, setPendingMultiTargetSelection] = useState<{ instanceId: string; requirements: TargetRequirement[]; selected: { role: TargetRole; instanceId: string }[] } | null>(null);
   const [pendingAccelerate, setPendingAccelerate] = useState<{ instanceId: string; card: RiftCard } | null>(null);
   const [pendingVision, setPendingVision] = useState<{ logId: string; cardId: string; cardName: string } | null>(null);
   const [choiceSubmitting, setChoiceSubmitting] = useState(false);
@@ -185,6 +186,7 @@ export function GameBoard() {
     if (state?.currentPhase !== 'MAIN' || state?.activeShowdown) {
       setPendingRuneTaps(new Set());
       setPendingTargetSelection(null);
+      setPendingMultiTargetSelection(null);
     }
   }, [state?.activeShowdown, state?.currentPhase]);
 
@@ -211,7 +213,10 @@ export function GameBoard() {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setPendingTargetSelection(null);
+      if (event.key === 'Escape') {
+        setPendingTargetSelection(null);
+        setPendingMultiTargetSelection(null);
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -436,11 +441,29 @@ export function GameBoard() {
       notifyWarning('No legal targets', noLegalTargetsMessage(mode));
       return false;
     }
+    setPendingMultiTargetSelection(null);
     setPendingTargetSelection({ instanceId, mode });
     return true;
   };
 
-  const playCardToBase = (instanceId: string, cardDef: RiftCard | undefined, accelerate = false, targetInstanceId?: string) => {
+  const beginMultiTargetSelection = (instanceId: string, requirements: TargetRequirement[]) => {
+    const missing = requirements.find((requirement) => legalTargetsForMode(requirement.mode).length === 0);
+    if (missing) {
+      notifyWarning('No legal targets', noLegalTargetsMessage(missing.mode));
+      return false;
+    }
+    setPendingTargetSelection(null);
+    setPendingMultiTargetSelection({ instanceId, requirements, selected: [] });
+    return true;
+  };
+
+  const playCardToBase = (
+    instanceId: string,
+    cardDef: RiftCard | undefined,
+    accelerate = false,
+    targetInstanceId?: string,
+    targets?: { role: TargetRole; instanceId: string }[],
+  ) => {
     const payment = selectPaymentRunesForCard(cardDef, accelerate ? 1 : 0);
     if (!payment) return;
     const isRune = cardDef?.type?.toLowerCase() === 'rune';
@@ -450,13 +473,13 @@ export function GameBoard() {
       const runePosition = runeZone ? runeSlotPositions(runeZone, TOTAL_RUNE_SLOTS)[Math.min(runeCount, TOTAL_RUNE_SLOTS - 1)] : undefined;
       const runeX = runePosition?.x ?? size.width / 2;
       const runeY = runePosition?.y ?? size.height / 2;
-      publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'RUNE', x: runeX, y: runeY, targetInstanceId, accelerate, ...payment });
+      publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'RUNE', x: runeX, y: runeY, targetInstanceId, targets, accelerate, ...payment });
       return;
     }
     const base = zones.find((zone) => zone.zoneName === 'base' && zone.ownerId === player.id);
     const baseCount = state?.cards.filter((card) => card.ownerId === player.id && sameZone(card.zone, 'base')).length ?? 0;
     const position = base ? autoPlaceInZone(base, baseCount, baseCount + 1) : { x: size.width / 2, y: size.height / 2 };
-    publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'BASE', ...position, targetInstanceId, accelerate, ...payment });
+    publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'BASE', ...position, targetInstanceId, targets, accelerate, ...payment });
   };
 
   const deployChampionFromZone = (instanceId: string) => {
@@ -584,6 +607,11 @@ export function GameBoard() {
       notifyWarning('Unsupported card effect', unsupportedReason);
       return;
     }
+    const multiTargetRequirements = multiTargetRequirementsForCard(cardDef);
+    if (multiTargetRequirements.length > 0) {
+      beginMultiTargetSelection(instanceId, multiTargetRequirements);
+      return;
+    }
     const targetMode = targetModeForCard(cardDef);
     if (targetMode === 'UNSUPPORTED') {
       notifyWarning('Unsupported targeting', 'That card needs a targeting flow that is not supported yet.');
@@ -668,6 +696,51 @@ export function GameBoard() {
     const instance = state?.cards.find((card) => card.instanceId === instanceId);
     if (!instance) return;
     const targetCard = cardsById.get(instance.cardId);
+    if (state?.pendingChoice?.type === 'TARGET_GEAR' && state.pendingChoice.playerId === player.id) {
+      if (!isLegalTargetForMode(instance, targetCard, 'ANY_PUBLIC_GEAR', player.id)) {
+        notifyWarning('Invalid target', 'Choose a Gear in play, or use Cancel to decline.');
+        return;
+      }
+      if (!canTakeAction(state, 'RESOLVE_CHOICE')) {
+        notifyWarning('Choice unavailable', 'The server has not approved resolving this choice yet.');
+        return;
+      }
+      setChoiceSubmitting(true);
+      publishMove({
+        type: 'RESOLVE_CHOICE',
+        playerId: player.id,
+        choiceId: state.pendingChoice.choiceId,
+        selectedTargetInstanceId: instanceId,
+      });
+      return;
+    }
+    if (pendingMultiTargetSelection) {
+      const requirement = pendingMultiTargetSelection.requirements[pendingMultiTargetSelection.selected.length];
+      if (!requirement) {
+        setPendingMultiTargetSelection(null);
+        return;
+      }
+      const alreadySelected = pendingMultiTargetSelection.selected.some((target) => target.instanceId === instanceId);
+      const isValidMultiTarget = isLegalTargetForMode(instance, targetCard, requirement.mode, player.id);
+      if (alreadySelected) {
+        notifyWarning('Invalid target', 'Targets must be different cards.');
+        return;
+      }
+      if (!isValidMultiTarget) {
+        notifyWarning('Invalid target', `${requirement.prompt} Press Esc or right-click to cancel.`);
+        return;
+      }
+      const nextSelected = [...pendingMultiTargetSelection.selected, { role: requirement.role, instanceId }];
+      if (nextSelected.length < pendingMultiTargetSelection.requirements.length) {
+        setPendingMultiTargetSelection({ ...pendingMultiTargetSelection, selected: nextSelected });
+        return;
+      }
+      const spellInstance = state?.cards.find((card) => card.instanceId === pendingMultiTargetSelection.instanceId);
+      const spellDef = spellInstance ? cardsById.get(spellInstance.cardId) : undefined;
+      playCardToBase(pendingMultiTargetSelection.instanceId, spellDef, false, undefined, nextSelected);
+      setPendingMultiTargetSelection(null);
+      return;
+    }
     const isValidPendingTarget = pendingTargetSelection
       ? isLegalTargetForMode(instance, targetCard, pendingTargetSelection.mode, player.id)
       : false;
@@ -756,6 +829,14 @@ export function GameBoard() {
       return;
     }
     publishMove({ type: 'MULLIGAN', playerId: player.id, discardInstanceIds });
+  };
+
+  const selectBattlefield = (battlefieldCardId: string) => {
+    if (!canTakeAction(state, 'SELECT_BATTLEFIELD')) {
+      notifyWarning('Action unavailable', 'Choose your Battlefield before mulligan begins.');
+      return;
+    }
+    publishMove({ type: 'SELECT_BATTLEFIELD', playerId: player.id, battlefieldCardId });
   };
 
   const sendChat = (text: string) => {
@@ -857,6 +938,7 @@ export function GameBoard() {
   const hasTappedOwnRune = (state.runes ?? []).some((rune) => rune.ownerId === player.id && rune.tapped);
   const canUndoRunes = canTakeAction(state, 'UNDO_RUNES') && hasTappedOwnRune;
   const canPass = canTakeAction(state, 'PASS_PHASE') || canResolveShowdown;
+  const canSelectBattlefield = canTakeAction(state, 'SELECT_BATTLEFIELD');
   const canMulligan = canTakeAction(state, 'MULLIGAN');
   const canKeepHand = canTakeAction(state, 'KEEP_HAND');
   const canHideCards = canTakeAction(state, 'HIDE_CARD');
@@ -878,6 +960,8 @@ export function GameBoard() {
       && !showdownActive
       && spendableEnergy >= (selectedCardDef.cost ?? 0),
   );
+  const battlefieldChoices = me?.battlefieldChoices ?? [];
+  const selectedBattlefield = me?.selectedBattlefieldId ?? null;
   const guidanceText = phaseGuidance(state.currentPhase, showdownActive, state.activeShowdown?.step);
   const actionHintText = legalActionHint(state.legalActions, { isPlayer: Boolean(me), isMyTurn, activePlayerName, activePlayerIsBot });
   const waitingText = waitingStatusText({ isMyTurn, activePlayerName, activePlayerIsBot, waitingLong: waitingTooLong });
@@ -938,11 +1022,25 @@ export function GameBoard() {
     }
     return canTakeAction(state, 'SANDBOX_MOVE_CARD');
   };
+  const currentMultiTargetRequirement = pendingMultiTargetSelection?.requirements[pendingMultiTargetSelection.selected.length];
   const pendingChoice = state.pendingChoice;
+  const isGearTargetChoice = pendingChoice?.type === 'TARGET_GEAR' && pendingChoice.playerId === player.id;
+  const activeTargetMode = pendingTargetSelection?.mode ?? currentMultiTargetRequirement?.mode ?? (isGearTargetChoice ? 'ANY_PUBLIC_GEAR' : undefined);
+  const selectedMultiTargetIds = new Set(pendingMultiTargetSelection?.selected.map((target) => target.instanceId) ?? []);
   const pendingCardOptions = pendingChoice?.cardOptions ?? [];
   const isTopDeckChoice = pendingChoice?.type === 'TOP_DECK_PICK_ONE';
   const isPredictChoice = pendingChoice?.type === 'PREDICT_ORDER';
   const predictChoiceReady = isPredictChoice && pendingCardOptions.length > 0 && choiceAssignments.length === pendingCardOptions.length;
+  const cancelPendingGearTargetChoice = () => {
+    if (!pendingChoice || !isGearTargetChoice || choiceSubmitting) return;
+    setChoiceSubmitting(true);
+    publishMove({
+      type: 'RESOLVE_CHOICE',
+      playerId: player.id,
+      choiceId: pendingChoice.choiceId,
+      selectedOptionId: 'DECLINE',
+    });
+  };
   const assignChoiceCard = (optionId: string, action: 'TOP' | 'BOTTOM') => {
     setChoiceAssignments((current) => {
       const withoutOption = current.filter((assignment) => assignment.optionId !== optionId);
@@ -961,6 +1059,8 @@ export function GameBoard() {
           onContextMenu={(event) => {
             event.evt.preventDefault();
             if (pendingTargetSelection) setPendingTargetSelection(null);
+            if (pendingMultiTargetSelection) setPendingMultiTargetSelection(null);
+            if (isGearTargetChoice) cancelPendingGearTargetChoice();
           }}
         >
           <Layer listening={false}>
@@ -1028,6 +1128,14 @@ export function GameBoard() {
                       setPendingTargetSelection(null);
                       return;
                     }
+                    if (pendingMultiTargetSelection) {
+                      setPendingMultiTargetSelection(null);
+                      return;
+                    }
+                    if (isGearTargetChoice) {
+                      cancelPendingGearTargetChoice();
+                      return;
+                    }
                     if (canTakeAction(state, 'SANDBOX_FLIP_CARD')) publishMove({ type: 'FLIP_CARD', playerId: player.id, instanceId: id });
                     else notifyWarning('Sandbox only', 'Manual flip is only available in Sandbox games.');
                   }}
@@ -1039,15 +1147,23 @@ export function GameBoard() {
             })}
           </Layer>
           <Layer listening={false}>
-            {pendingTargetSelection
+            {activeTargetMode
               ? boardCardDisplayItems
                   .filter(({ instance }) => {
                     const cardDef = cardsById.get(instance.cardId);
-                    return isLegalTargetForMode(instance, cardDef, pendingTargetSelection.mode, player.id);
+                    return isLegalTargetForMode(instance, cardDef, activeTargetMode, player.id)
+                      && !selectedMultiTargetIds.has(instance.instanceId);
                   })
                   .map(({ instance, displayInstance }) => <Rect key={`target-top-${instance.instanceId}`} x={displayInstance.x - 44} y={displayInstance.y - 60} width={88} height={120} fill="rgba(229,108,79,0.12)" stroke="#e56c4f" shadowColor="#e56c4f" shadowBlur={20} cornerRadius={6} />)
               : null}
+            {pendingMultiTargetSelection
+              ? boardCardDisplayItems
+                  .filter(({ instance }) => selectedMultiTargetIds.has(instance.instanceId))
+                  .map(({ instance, displayInstance }) => <Rect key={`selected-target-${instance.instanceId}`} x={displayInstance.x - 48} y={displayInstance.y - 64} width={96} height={128} fill="rgba(234,179,8,0.10)" stroke="#eab308" shadowColor="#eab308" shadowBlur={16} cornerRadius={6} />)
+              : null}
             {pendingTargetSelection ? <Text x={0} y={8} width={size.width} text={`${targetPromptForMode(pendingTargetSelection.mode)} Esc/right-click to cancel.`} align="center" fontSize={13} fontStyle="bold" fill="#e56c4f" /> : null}
+            {pendingMultiTargetSelection && currentMultiTargetRequirement ? <Text x={0} y={8} width={size.width} text={`${currentMultiTargetRequirement.prompt} (${pendingMultiTargetSelection.selected.length + 1}/${pendingMultiTargetSelection.requirements.length}) Esc/right-click to cancel.`} align="center" fontSize={13} fontStyle="bold" fill="#e56c4f" /> : null}
+            {isGearTargetChoice ? <Text x={0} y={8} width={size.width} text="Choose a Gear in play. Right-click to cancel." align="center" fontSize={13} fontStyle="bold" fill="#e56c4f" /> : null}
           </Layer>
         </Stage>
       </div>
@@ -1390,6 +1506,53 @@ export function GameBoard() {
               )) : null}
             </div>
           </section>
+        </div>
+      ) : null}
+      {state.currentPhase === 'SELECT_BATTLEFIELD' && (canSelectBattlefield || selectedBattlefield) ? (
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-ink/95 px-6 py-8">
+          {selectedBattlefield ? (
+            <section className="border border-line bg-panel px-10 py-8 text-center shadow-glow">
+              <h2 className="text-xl font-semibold text-forge">Battlefield locked in</h2>
+              <p className="mt-2 text-sm text-slate-400">Waiting for the other player to choose...</p>
+              <p className="mt-3 text-sm text-slate-300">{cardsById.get(selectedBattlefield)?.name ?? selectedBattlefield}</p>
+            </section>
+          ) : battlefieldChoices.length === 0 ? (
+            <section className="border border-line bg-panel px-10 py-8 text-center shadow-glow">
+              <h2 className="text-xl font-semibold text-forge">Waiting for Battlefields...</h2>
+              <p className="mt-2 text-sm text-slate-400">The server is preparing your Battlefield choices. If this persists, copy debug info and restart the room.</p>
+              <button type="button" className="btn-secondary mt-4" onClick={() => navigate('/')}>Back to Home</button>
+            </section>
+          ) : (
+            <section className="w-full max-w-4xl border border-line bg-panel p-6 shadow-glow">
+              <div className="mb-5">
+                <h2 className="text-2xl font-semibold text-forge">Choose your Battlefield</h2>
+                <p className="mt-1 text-sm text-slate-400">Pick one of your three Battlefields. It will be revealed and locked before mulligans begin.</p>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                {battlefieldChoices.map((cardId) => {
+                  const card = cardsById.get(cardId);
+                  return (
+                    <button
+                      type="button"
+                      key={cardId}
+                      className="group border border-line bg-void p-3 text-left transition-colors hover:border-forge hover:bg-forge/10 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={!wsConnected || !canSelectBattlefield}
+                      onMouseEnter={() => handleCardHover(card ?? null)}
+                      onMouseLeave={() => handleCardHover(null)}
+                      onClick={() => selectBattlefield(cardId)}
+                    >
+                      {card?.imageUrl ? <img className="aspect-[5/7] w-full object-contain" src={card.imageUrl} alt={card.name} /> : null}
+                      <span className="mt-3 block truncate text-sm font-semibold text-forge">{card?.name ?? cardId}</span>
+                      <span className="mt-1 block text-xs text-slate-400">Select Battlefield</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-6 flex items-center justify-between gap-3">
+                {!wsConnected ? <p className="text-sm text-ember">Connection lost - reconnecting...</p> : <p className="text-sm text-slate-500">Mulligans unlock after both players select.</p>}
+              </div>
+            </section>
+          )}
         </div>
       ) : null}
       {state.currentPhase === 'MULLIGAN' && (canKeepHand || canMulligan || hasMulliganed) ? (

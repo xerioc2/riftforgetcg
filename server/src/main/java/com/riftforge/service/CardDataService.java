@@ -245,6 +245,12 @@ public class CardDataService {
         || text.contains("deal") && text.contains("damage to target");
   }
 
+  public boolean requiresFriendlyAndEnemyTargets(String cardId) {
+    CardDefinition def = getCard(cardId);
+    String text = def == null || def.rulesText() == null ? "" : def.rulesText().toLowerCase();
+    return text.contains("friendly unit") && text.contains("enemy unit");
+  }
+
   public boolean requiresFriendlyTarget(String cardId) {
     CardDefinition def = getCard(cardId);
     String text = def.rulesText() == null ? "" : def.rulesText().toLowerCase();
@@ -305,10 +311,14 @@ public class CardDataService {
     String normalized = text.toLowerCase();
     if ("Gear".equalsIgnoreCase(def.type())) return !isEquip(def);
     if (!"Spell".equalsIgnoreCase(def.type())) return false;
+    boolean supportedFriendlyEnemyReturn = normalized.contains("return")
+        && normalized.contains("friendly unit")
+        && normalized.contains("enemy unit");
     boolean requiresMultipleTargets = normalized.contains("another unit")
-        || normalized.contains("a friendly unit and an enemy unit");
+        || (normalized.contains("a friendly unit and an enemy unit") && !supportedFriendlyEnemyReturn);
     boolean supportedEffect = normalized.contains(":rb_might:")
         || normalized.contains("return a unit")
+        || supportedFriendlyEnemyReturn
         || normalized.contains("ready it")
         || normalized.contains("draw 1")
         || isStackedDeckEffect(normalized);

@@ -46,6 +46,16 @@ public class LegalActionsService {
       return actions;
     }
 
+    if (state.getCurrentPhase() == Phase.SELECT_BATTLEFIELD) {
+      state.getPlayers().stream()
+          .filter(player -> playerId.equals(player.getUserId()))
+          .filter(player -> !player.getSelectedBattlefields().isEmpty())
+          .findFirst()
+          .filter(player -> player.getSelectedBattlefieldId() == null || player.getSelectedBattlefieldId().isBlank())
+          .ifPresent(player -> actions.add(LegalAction.SELECT_BATTLEFIELD));
+      return actions;
+    }
+
     if (state.getCurrentPhase() == Phase.MULLIGAN) {
       if (!state.getMulligansDone().contains(playerId)) {
         actions.add(LegalAction.KEEP_HAND);

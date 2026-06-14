@@ -131,6 +131,22 @@ class EffectHandlerRegistryTest {
         List.of())).implemented()).isFalse();
   }
 
+  @Test
+  void pairedFriendlyEnemyReturnSpellIsSupportedButOtherMultiTargetTextStaysBlocked() {
+    EffectHandlerRegistry registry = new EffectHandlerRegistry(List.of(new TankHandler()));
+
+    assertThat(registry.supportStatus(card(
+        "star-crossed",
+        "Spell",
+        "Return a friendly unit and an enemy unit to their owners' hands.",
+        List.of())).implemented()).isTrue();
+    assertThat(registry.supportStatus(card(
+        "defiant-dance",
+        "Spell",
+        "Give a unit +2 Might this turn and another unit -2 Might this turn.",
+        List.of())).implemented()).isFalse();
+  }
+
   private CardDefinition card(String id, String type, String rulesText, List<String> keywords) {
     return new CardDefinition(id, id, type, null, List.of(), 0, 0, null, null, null, rulesText, 1, 1, keywords);
   }

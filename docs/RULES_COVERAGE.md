@@ -31,7 +31,7 @@ Current implementation notes:
   Partial, Unsupported, Banned, or Not Audited.
 - Current fully supported starter-deck cards are limited to basic runes,
   Vanguard Sergeant, Daring Poro, Laurent Duelist, Noxian Drummer,
-  Loyal Poro, Vanguard Captain, and Stellacorn Herder.
+  Loyal Poro, Lonely Poro, Vanguard Captain, and Stellacorn Herder.
 - Ready validation can optionally enforce supported-cards-only mode, blocking
   Unsupported or Not Audited cards while surfacing Partial cards as warnings.
 - The deck builder imports and exports tournament-style sections: Legend,
@@ -61,6 +61,7 @@ Status: Partial
 Current implementation notes:
 - Submitted decks are partitioned into Legend, Champion, main deck, runes, and battlefields.
 - Legend and Champion start in their correct zones.
+- Constructed games enter `SELECT_BATTLEFIELD` before mulligan. Each player sees their own three submitted Battlefields, chooses one, and selected Battlefield IDs are revealed/locked before mulligans begin.
 - Champion-zone identity cards are not legal equip targets while they remain in the Champion zone. When destroyed in supported combat/cleanup paths, Champions return to the Champion zone rather than Trash, and attached Gear returns to Base.
 - Chosen Champions can be deployed from the Champion zone only during supported Main play and must spend their real energy cost from currently available energy.
 - Legends are identity/reference cards in the alpha model and cannot be moved to the battlefield.
@@ -68,7 +69,7 @@ Current implementation notes:
 - Deck/rune counts are projected without exposing hidden deck contents.
 
 Known gaps:
-- Battlefield selection/control is simplified to a single battlefield key in several engine paths.
+- Battlefield play/control is still simplified to a single battlefield key in several engine paths after the pre-mulligan selection step.
 - Starting player selection is not fully derived from battlefield ownership/randomization.
 - 2-4 player setup is not fully rules-complete.
 
@@ -78,11 +79,14 @@ Test coverage:
 
 Priority: P0 for battlefield model before tournament-accurate games.
 
-## Mulligan
+## Battlefield Selection And Mulligan
 
 Status: Partial
 
 Current implementation notes:
+- `SELECT_BATTLEFIELD` phase exists before `MULLIGAN` for constructed decks with Battlefield choices.
+- Player-specific projections include only that player's own Battlefield choices. Selected Battlefields are public once chosen.
+- Legal-action visibility exposes `SELECT_BATTLEFIELD` only to players who still need to choose.
 - MULLIGAN phase exists.
 - Players may keep or recycle up to 2 cards, then draw replacements.
 - Legal-action visibility exposes only `KEEP_HAND` and `MULLIGAN` during mulligan until the player completes it.
@@ -90,10 +94,12 @@ Current implementation notes:
 Known gaps:
 - Multiplayer turn-order mulligan nuance is not deeply modeled.
 - UI/engine language should stay aligned with official "recycle up to 2" wording.
+- Full official multiple-Battlefield location setup remains post-alpha.
 
 Test coverage:
 - `LegalActionsServiceTest`
 - `BotServicePhaseFlowTest`
+- `LegalActionsFlowIntegrationTest`
 
 Priority: P2.
 
@@ -102,11 +108,11 @@ Priority: P2.
 Status: Partial
 
 Current implementation notes:
-- Engine phases are `MULLIGAN`, `AWAKEN`, `BEGINNING`, `CHANNEL`, `DRAW`, `MAIN`, `END`.
+- Engine phases are `SELECT_BATTLEFIELD`, `MULLIGAN`, `AWAKEN`, `BEGINNING`, `CHANNEL`, `DRAW`, `MAIN`, `END`.
 - Phase passing is server-authoritative.
 - Early phases do not expose normal main actions through `LegalActionsService`.
 - Server-computed legal actions are included in player-specific projected state so the client can hide or disable actions using the same conservative action matrix.
-- Current action windows include mulligan, basic phase pass, active-player Main Phase actions, a lightweight active-showdown Action window, active showdown resolution, and sandbox actions only in SANDBOX mode.
+- Current action windows include Battlefield selection, mulligan, basic phase pass, active-player Main Phase actions, a lightweight active-showdown Action window, active showdown resolution, and sandbox actions only in SANDBOX mode.
 - Pending choices pause normal actions and expose `RESOLVE_CHOICE` only to the prompted player through player-specific projections.
 - Private card-selection choices can show top-deck card options only to the owner; opponent and spectator projections omit those identities.
 
@@ -115,7 +121,7 @@ Known gaps:
 - The engine still uses `END` while current official terminology uses Ending/expiration details.
 - Trigger and chain timing is highly simplified.
 - Full Reaction timing and priority/chain timing are not represented in the legal-action projection yet.
-- Choice support covers private yes/no, generic optional-payment prompts, Stacked Deck-style top-3 pick-one, and a Predict-style top/bottom ordering foundation; multi-target choices, linked choices, and full timing windows remain incomplete.
+- Choice support covers private yes/no, generic optional-payment prompts, Stacked Deck-style top-3 pick-one, and a Predict-style top/bottom ordering foundation; required two-target spell selection has a narrow paired friendly/enemy foundation, while optional targets, linked choices, and full timing windows remain incomplete.
 
 Test coverage:
 - `LegalActionsServiceTest`
@@ -178,15 +184,24 @@ Current implementation notes:
 - Spells can be played during MAIN.
 - Spells resolve through the supported effect path and move to discard afterward.
 - Spells cannot move to the battlefield as units.
-- Targeted-spell heuristics require a valid battlefield target.
+- Targeted-spell heuristics require valid server-checked targets. Single-target spells use the legacy `targetInstanceId` path; one narrow multi-target path supports required friendly Unit/Champion plus enemy Unit/Champion roles.
 - Simple helper-backed effect scripts currently cover draw 1, selected
-  temporary Might boosts, selected unit/champion return-to-hand, and selected
-  friendly unit/champion readying.
+  temporary Might boosts, selected unit/champion return-to-hand, paired
+  friendly/enemy unit return-to-hand, and selected friendly unit/champion
+  readying.
 - Unsupported spell shapes are blocked by `CardDataService.isUnsupportedAction`.
-- A generic pending-choice framework exists for private yes/no, optional-payment, Stacked Deck-style top-3 pick-one, and Predict-style top/bottom ordering prompts. VISION still uses its narrow private keep/recycle flow.
+- A generic pending-choice framework exists for private yes/no, optional-payment,
+  board-target follow-up prompts, Stacked Deck-style top-3 pick-one, and
+  Predict-style top/bottom ordering prompts. VISION still uses its narrow
+  private keep/recycle flow.
+- Disarming Rake uses the narrow enter-play optional prompt path: after it
+  successfully enters play, its controller may choose to destroy a public Gear.
+  If accepted, a second owner-only Gear target choice destroys the selected
+  friendly or enemy Gear to Trash. Attached Gear is detached and trashed, not
+  returned to Base, and this does not run Deathknell.
 
 Known gaps:
-- Chain timing, Reaction timing, countering spells, multi-target spells, replacement/prevention, and many spell-specific effects are not complete.
+- Chain timing, Reaction timing, countering spells, optional/three-plus/conditional multi-target spells, full optional trigger ordering, replacement/prevention, and many spell-specific effects are not complete.
 - Active-showdown `[Action]` play is lightweight: showdown participants can play supported Action cards, the attacker can resolve, and no chain/response system exists yet.
 
 Test coverage:
@@ -412,17 +427,24 @@ Current implementation notes:
   controller already has a friendly Unit/Champion at the battlefield. Reaction
   timing and additional costs, including Stalking Wolf's kill cost, remain
   unsupported.
-- DEATHKNELL has basic trigger plumbing through `DeathTriggerService`: real
-  deaths fire after graveyard movement, bounce/return-to-hand does not fire,
-  simultaneous combat deaths are batched deterministically, and Loyal Poro's
-  full printed "didn't die alone" draw text is card-specific Supported.
+- DEATHKNELL has keyword-driven trigger plumbing through `DeathTriggerService`:
+  real Unit/Champion deaths fire after graveyard movement, bounce/return-to-hand
+  does not fire, simultaneous combat deaths are batched deterministically, and
+  card-specific Deathknell effects dispatch through dedicated handlers. Loyal
+  Poro's full printed "didn't die alone" draw text and Lonely Poro's full
+  printed "died alone" draw text are card-specific Supported;
+  Scuttle Crab has a safe 1v1 alpha handler that privately reveals the
+  opponent hand only to the Crab controller and clears that permission at the
+  controller's end phase. XP and facedown viewing remain deferred.
 - Simple Recruit token creation exists through `TokenFactory` for starter-deck
   scripts. Noxian Drummer's move-to-battlefield trigger and Vanguard Captain's
   Legion token trigger are card-specific Supported in the single-battlefield
   alpha.
 - Stellacorn Herder's full printed movement trigger is card-specific
-  Supported in the single-battlefield alpha: Base/battlefield movement draws 1,
-  and same-zone repositioning does not trigger it.
+  Supported in the single-battlefield alpha: Base -> battlefield and
+  battlefield -> Base/recall movement each draw 1 privately, while play from
+  hand, return to hand, trash/death, setup/import, hidden transitions, and
+  same-zone repositioning do not trigger it.
 - `TriggerEvent`, `TriggerDispatcher`, and `TriggerHandler` provide a small
   deterministic trigger framework for alpha events. Movement triggers for
   Noxian Drummer and Stellacorn Herder now run through this dispatcher.
@@ -471,7 +493,10 @@ Known gaps:
 - Supported status should not be promoted until the whole card has explicit
   behavior and tests; helper-backed simple effects still leave cards Partial
   when timing, choices, or extra clauses are incomplete.
-- Optional triggers and may choices are partial: private yes/no and optional-payment prompts exist, but complex targeting decisions, linked choices, and chain items are incomplete.
+- Optional triggers and may choices are partial: private yes/no,
+  optional-payment, and narrow follow-up board-target prompts exist, but complex
+  targeting decisions, linked choices, trigger ordering, and chain items are
+  incomplete.
 
 Test coverage:
 - Scattered validator/engine tests.
@@ -527,10 +552,10 @@ Current implementation notes:
 - `LegalActionsService` returns conservative high-level actions for the current player.
 - Player-specific `GameStateProjectionService` output now includes `legalActions` for the viewer.
 - Spectator/public projections receive an empty legal-action set.
-- The frontend consumes `state.legalActions` to gate mulligan/keep, pass phase, play card, move to battlefield, rune actions, active showdown resolution, and sandbox-only controls.
+- The frontend consumes `state.legalActions` to gate Battlefield selection, mulligan/keep, pass phase, play card, move to battlefield, rune actions, active showdown resolution, and sandbox-only controls.
 - `RulesValidator` remains the source of enforcement.
 - The service intentionally does not claim support for card-specific or reaction windows that are not implemented.
-- Currently modeled windows: mulligan, basic phase pass, Main Phase active-player actions, participant supported Action play during active showdowns, active showdown resolution, and SANDBOX-only developer actions.
+- Currently modeled windows: Battlefield selection, mulligan, basic phase pass, Main Phase active-player actions, participant supported Action play during active showdowns, active showdown resolution, and SANDBOX-only developer actions.
 
 Known gaps:
 - Actions are not card-instance-specific.

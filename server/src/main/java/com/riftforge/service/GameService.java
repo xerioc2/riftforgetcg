@@ -157,7 +157,7 @@ public class GameService {
     LiveGameState state = new LiveGameState();
     state.setRoomCode(roomCode);
     state.setGameMode(gameMode);
-    state.setCurrentPhase(Phase.MULLIGAN);
+    state.setCurrentPhase(Phase.SELECT_BATTLEFIELD);
     String firstPlayerId = playerIds.isEmpty() ? null
         : playerIds.get(ThreadLocalRandom.current().nextInt(playerIds.size()));
     state.setActivePlayerId(firstPlayerId);
@@ -221,9 +221,14 @@ public class GameService {
             player.setDeckPool(new ArrayList<>(dealable.subList(Math.min(4, dealable.size()), dealable.size())));
             player.setRuneDeckPool(new ArrayList<>(runes));
             player.setRunePoolRemaining(runes.isEmpty() ? 10 : runes.size());
-            // TODO: Use selected battlefield cards when full battlefield setup is implemented.
             player.setSelectedBattlefields(new ArrayList<>(battlefields));
+            player.setBattlefieldChoices(new ArrayList<>(battlefields));
           });
+    }
+    boolean anyBattlefieldChoices = state.getPlayers().stream()
+        .anyMatch(player -> !player.getSelectedBattlefields().isEmpty());
+    if (!anyBattlefieldChoices) {
+      state.setCurrentPhase(Phase.MULLIGAN);
     }
     return state;
   }

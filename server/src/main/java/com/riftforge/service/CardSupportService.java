@@ -23,8 +23,10 @@ public class CardSupportService {
       "LAURENT DUELIST",
       "NOXIAN DRUMMER",
       "LOYAL PORO",
+      "LONELY PORO",
       "VANGUARD CAPTAIN",
-      "STELLACORN HERDER");
+      "STELLACORN HERDER",
+      "DISARMING RAKE");
 
   private static final Map<String, String> PARTIAL_REASONS = Map.ofEntries(
       Map.entry("IRELIA - FERVENT", "Partial: Deflect targeting tax is heuristic, and the choose/ready +1 Might trigger is not implemented yet."),
@@ -34,6 +36,7 @@ public class CardSupportService {
       Map.entry("BOOTS OF SWIFTNESS", "Partial: alpha Equip lifecycle is implemented and tested, but exact Chaos power payment and official Equip timing remain incomplete."),
       Map.entry("ABANDONED HALL", "Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely."),
       Map.entry("ADAPTATRON", "Partial: conquer trigger, optional gear kill, and official Buff state are not implemented yet."),
+      Map.entry("SCUTTLE CRAB", "Partial: on-play draw and 1v1 private hand reveal Deathknell are implemented, but XP and facedown-card viewing are deferred."),
       Map.entry("EN GARDE", "Partial: selected friendly +Might is helper-backed, but Reaction timing remains incomplete."),
       Map.entry("GUST", "Partial: selected return-to-hand is helper-backed, but Reaction timing and the 3-or-less-Might target filter remain incomplete."));
 

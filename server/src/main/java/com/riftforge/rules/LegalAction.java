@@ -1,6 +1,7 @@
 package com.riftforge.rules;
 
 public enum LegalAction {
+  SELECT_BATTLEFIELD,
   KEEP_HAND,
   MULLIGAN,
   PASS_PHASE,

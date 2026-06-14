@@ -12,8 +12,11 @@ public class PendingChoice {
   public static final String TYPE_OPTIONAL_PAY_1_DRAW_ONE = "OPTIONAL_PAY_1_DRAW_ONE";
   public static final String TYPE_TOP_DECK_PICK_ONE = "TOP_DECK_PICK_ONE";
   public static final String TYPE_PREDICT_ORDER = "PREDICT_ORDER";
+  public static final String TYPE_TARGET_GEAR = "TARGET_GEAR";
   public static final String EFFECT_NONE = "NONE";
   public static final String EFFECT_DRAW_1 = "DRAW_1";
+  public static final String EFFECT_CREATE_DESTROY_GEAR_CHOICE = "CREATE_DESTROY_GEAR_CHOICE";
+  public static final String EFFECT_DESTROY_GEAR = "DESTROY_GEAR";
   public static final String OPTION_YES = "YES";
   public static final String OPTION_NO = "NO";
   public static final String OPTION_PAY_1 = "PAY_1";
@@ -123,6 +126,25 @@ public class PendingChoice {
     choice.setPrompt("Choose which cards stay on top and which go to the bottom.");
     choice.setRequiredSelections(topCards.size());
     choice.setCardOptions(cardOptions(topCards));
+    return choice;
+  }
+
+  public static PendingChoice destroyGearTarget(
+      String choiceId,
+      String playerId,
+      String sourceCardId,
+      String sourceCardInstanceId,
+      String prompt) {
+    PendingChoice choice = new PendingChoice();
+    choice.setChoiceId(choiceId);
+    choice.setPlayerId(playerId);
+    choice.setType(TYPE_TARGET_GEAR);
+    choice.setSourceCardId(sourceCardId);
+    choice.setSourceCardInstanceId(sourceCardInstanceId);
+    choice.setPrompt(prompt);
+    choice.setEffect(EFFECT_DESTROY_GEAR);
+    choice.setRequiredSelections(1);
+    choice.setOptions(List.of(new ChoiceOption(OPTION_DECLINE, "Cancel")));
     return choice;
   }
 

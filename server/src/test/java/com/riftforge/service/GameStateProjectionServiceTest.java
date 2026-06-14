@@ -251,6 +251,24 @@ class GameStateProjectionServiceTest {
   }
 
   @Test
+  void scuttleCrabRevealDoesNotExposeOpponentHandToSpectatorOrWrongPlayer() throws Exception {
+    LiveGameState state = state(
+        handCard("p2-hand", "p2", "secret-card"));
+    state.setRevealedHands(List.of(revealedHand("p1", "p2", "p2-hand")));
+
+    LiveGameState controllerView = projectionService.toPublicView(state, "p1");
+    LiveGameState ownerView = projectionService.toPublicView(state, "p2");
+    LiveGameState spectatorView = projectionService.toPublicView(state, null);
+
+    assertThat(controllerView.getRevealedHands()).singleElement()
+        .satisfies(snapshot -> assertThat(snapshot.getInstanceIds()).containsExactly("p2-hand"));
+    assertThat(objectMapper.writeValueAsString(controllerView)).doesNotContain("secret-card");
+    assertThat(ownerView.getRevealedHands()).isEmpty();
+    assertThat(spectatorView.getRevealedHands()).isEmpty();
+    assertThat(objectMapper.writeValueAsString(spectatorView)).doesNotContain("secret-card");
+  }
+
+  @Test
   void activePlayerMainProjectionIncludesNormalActions() {
     LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.ENFORCED);
 

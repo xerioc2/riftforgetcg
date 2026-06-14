@@ -1,12 +1,19 @@
 import type { RiftCard } from '../types';
 
-export type TargetMode = 'NONE' | 'FRIENDLY_UNIT' | 'ENEMY_UNIT' | 'ANY_BATTLEFIELD_UNIT' | 'FRIENDLY_UNIT_FOR_EQUIP' | 'UNSUPPORTED';
+export type TargetMode = 'NONE' | 'FRIENDLY_UNIT' | 'ENEMY_UNIT' | 'ANY_BATTLEFIELD_UNIT' | 'FRIENDLY_PUBLIC_UNIT' | 'ENEMY_PUBLIC_UNIT' | 'FRIENDLY_UNIT_FOR_EQUIP' | 'ANY_PUBLIC_GEAR' | 'UNSUPPORTED';
+export type TargetRole = 'friendlyUnit' | 'enemyUnit';
+export type TargetRequirement = {
+  role: TargetRole;
+  mode: TargetMode;
+  prompt: string;
+};
 
 export function targetModeForCard(card: RiftCard | undefined): TargetMode {
   if (!card || !['spell', 'gear'].includes(card.type?.toLowerCase())) return 'NONE';
   const text = (card.rulesText ?? '').toLowerCase();
   if (card.type?.toLowerCase() === 'gear') return text.includes('[equip]') ? 'NONE' : 'UNSUPPORTED';
-  if (text.includes('another unit') || text.includes('a friendly unit and an enemy unit')) return 'UNSUPPORTED';
+  if (multiTargetRequirementsForCard(card).length > 0) return 'NONE';
+  if (text.includes('another unit')) return 'UNSUPPORTED';
   if (text.includes('counter a spell')
     || text.includes('counter an enemy spell')
     || text.includes('choose a spell')
@@ -27,6 +34,24 @@ export function targetModeForCard(card: RiftCard | undefined): TargetMode {
     || text.includes('move a unit')
     || (text.includes('deal') && text.includes('damage to target'));
   return requiresTarget ? 'ANY_BATTLEFIELD_UNIT' : 'NONE';
+}
+
+export function multiTargetRequirementsForCard(card: RiftCard | undefined): TargetRequirement[] {
+  if (!card || card.type?.toLowerCase() !== 'spell') return [];
+  const text = (card.rulesText ?? '').toLowerCase();
+  if (!text.includes('friendly unit') || !text.includes('enemy unit')) return [];
+  return [
+    {
+      role: 'friendlyUnit',
+      mode: 'FRIENDLY_PUBLIC_UNIT',
+      prompt: 'Choose a friendly Unit or Champion.',
+    },
+    {
+      role: 'enemyUnit',
+      mode: 'ENEMY_PUBLIC_UNIT',
+      prompt: 'Choose an enemy Unit or Champion.',
+    },
+  ];
 }
 
 export function isEquipCard(card: RiftCard | undefined) {
@@ -70,8 +95,14 @@ export function targetPromptForMode(mode: TargetMode) {
       return 'Choose an enemy unit.';
     case 'ANY_BATTLEFIELD_UNIT':
       return 'Choose a unit at a battlefield.';
+    case 'FRIENDLY_PUBLIC_UNIT':
+      return 'Choose a friendly Unit or Champion.';
+    case 'ENEMY_PUBLIC_UNIT':
+      return 'Choose an enemy Unit or Champion.';
     case 'FRIENDLY_UNIT_FOR_EQUIP':
       return 'Choose a friendly Unit or Champion in Base or at the battlefield.';
+    case 'ANY_PUBLIC_GEAR':
+      return 'Choose a Gear in play.';
     case 'UNSUPPORTED':
       return 'This targeting pattern is not supported yet.';
     case 'NONE':
@@ -84,12 +115,18 @@ export function noLegalTargetsMessage(mode: TargetMode) {
   switch (mode) {
     case 'FRIENDLY_UNIT_FOR_EQUIP':
       return 'No legal equip targets. You need a friendly Unit or Champion in Base or at the battlefield.';
+    case 'ANY_PUBLIC_GEAR':
+      return 'No Gear in play can be targeted.';
     case 'FRIENDLY_UNIT':
       return 'No legal friendly targets.';
     case 'ENEMY_UNIT':
       return 'No legal enemy targets.';
     case 'ANY_BATTLEFIELD_UNIT':
       return 'No legal battlefield targets.';
+    case 'FRIENDLY_PUBLIC_UNIT':
+      return 'No legal friendly Unit or Champion targets.';
+    case 'ENEMY_PUBLIC_UNIT':
+      return 'No legal enemy Unit or Champion targets.';
     case 'UNSUPPORTED':
       return 'That targeting pattern is not supported yet.';
     case 'NONE':
@@ -102,11 +139,16 @@ export function isLegalTargetForMode(card: { ownerId: string; zone: string; face
   if (!card || !cardDef) return false;
   const type = cardDef.type?.toLowerCase();
   const isUnitLike = type === 'unit' || type === 'champion';
+  if (mode === 'ANY_PUBLIC_GEAR') {
+    return type === 'gear' && !card.faceDown && (card.zone.toLowerCase() === 'base' || card.zone.toLowerCase() === 'battlefield');
+  }
   if (!isUnitLike || card.faceDown) return false;
   const zone = card.zone.toLowerCase();
   if (mode === 'FRIENDLY_UNIT_FOR_EQUIP') {
     return card.ownerId === playerId && (zone === 'base' || zone === 'battlefield');
   }
+  if (mode === 'FRIENDLY_PUBLIC_UNIT') return card.ownerId === playerId && (zone === 'base' || zone === 'battlefield');
+  if (mode === 'ENEMY_PUBLIC_UNIT') return card.ownerId !== playerId && (zone === 'base' || zone === 'battlefield');
   if (zone !== 'battlefield') return false;
   if (mode === 'FRIENDLY_UNIT') return card.ownerId === playerId;
   if (mode === 'ENEMY_UNIT') return card.ownerId !== playerId;
@@ -123,10 +165,11 @@ export function unsupportedCardReason(card: RiftCard | undefined): string | null
   if (type !== 'spell') return null;
   const supported = text.includes(':rb_might:')
     || text.includes('return a unit')
+    || (text.includes('friendly unit') && text.includes('enemy unit') && text.includes('return'))
     || text.includes('ready it')
     || text.includes('draw 1')
     || isStackedDeckEffectText(text);
   if (text.includes('counter a spell') || text.includes('counter an enemy spell')) return 'Counter spells need the future reaction stack.';
-  if (text.includes('another unit') || text.includes('a friendly unit and an enemy unit')) return 'Multi-target spells are not supported yet.';
+  if (text.includes('another unit')) return 'That targeting pattern is not supported yet.';
   return supported ? null : 'That spell effect is not supported yet.';
 }

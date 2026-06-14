@@ -9,6 +9,7 @@ import com.riftforge.model.ZoneName;
 import com.riftforge.model.move.MoveToBattlefieldMove;
 import com.riftforge.model.move.MulliganMove;
 import com.riftforge.model.move.PassPhaseMove;
+import com.riftforge.model.move.SelectBattlefieldMove;
 import com.riftforge.rules.LegalAction;
 import com.riftforge.testsupport.GameStackFixture;
 import java.util.List;
@@ -36,7 +37,36 @@ class LegalActionsFlowIntegrationTest {
   }
 
   @Test
+  void battlefieldSelectionPrecedesMulliganAndIsOwnerProjected() {
+    assertThat(fx.gameService.currentState(ROOM).getCurrentPhase()).isEqualTo(Phase.SELECT_BATTLEFIELD);
+    assertThat(legalActionsFor("p1")).containsExactly(LegalAction.SELECT_BATTLEFIELD);
+    assertThat(legalActionsFor("p2")).containsExactly(LegalAction.SELECT_BATTLEFIELD);
+    assertThat(fx.gameService.currentStateFor(ROOM, "p1").getPlayers().stream()
+        .filter(player -> "p1".equals(player.getUserId()))
+        .findFirst()
+        .orElseThrow()
+        .getBattlefieldChoices()).containsExactly("battlefield-0", "battlefield-1", "battlefield-2");
+    assertThat(fx.gameService.currentStateFor(ROOM, "p1").getPlayers().stream()
+        .filter(player -> "p2".equals(player.getUserId()))
+        .findFirst()
+        .orElseThrow()
+        .getBattlefieldChoices()).isEmpty();
+
+    fx.gameService.processMove(ROOM, new SelectBattlefieldMove("p1", "battlefield-0"));
+
+    assertThat(legalActionsFor("p1")).isEmpty();
+    assertThat(legalActionsFor("p2")).containsExactly(LegalAction.SELECT_BATTLEFIELD);
+    assertThat(fx.gameService.currentStateFor(ROOM, "p2").getPlayers().stream()
+        .filter(player -> "p1".equals(player.getUserId()))
+        .findFirst()
+        .orElseThrow()
+        .getSelectedBattlefieldId()).isEqualTo("battlefield-0");
+  }
+
+  @Test
   void mulliganPhaseOffersKeepAndMulliganUntilEachPlayerDecides() {
+    completeBattlefieldSelection();
+
     assertThat(legalActionsFor("p1")).containsExactlyInAnyOrder(LegalAction.KEEP_HAND, LegalAction.MULLIGAN);
     assertThat(legalActionsFor("p2")).containsExactlyInAnyOrder(LegalAction.KEEP_HAND, LegalAction.MULLIGAN);
 
@@ -120,7 +150,15 @@ class LegalActionsFlowIntegrationTest {
     return fx.gameService.currentStateFor(ROOM, playerId).getLegalActions();
   }
 
+  private void completeBattlefieldSelection() {
+    if (fx.gameService.currentState(ROOM).getCurrentPhase() != Phase.SELECT_BATTLEFIELD) return;
+    fx.gameService.processMove(ROOM, new SelectBattlefieldMove("p1", "battlefield-0"));
+    fx.gameService.processMove(ROOM, new SelectBattlefieldMove("p2", "battlefield-1"));
+    assertThat(fx.gameService.currentState(ROOM).getCurrentPhase()).isEqualTo(Phase.MULLIGAN);
+  }
+
   private void completeMulligans() {
+    completeBattlefieldSelection();
     fx.gameService.processMove(ROOM, new MulliganMove("p1", List.of()));
     fx.gameService.processMove(ROOM, new MulliganMove("p2", List.of()));
     assertThat(fx.gameService.currentState(ROOM).getCurrentPhase()).isEqualTo(Phase.AWAKEN);

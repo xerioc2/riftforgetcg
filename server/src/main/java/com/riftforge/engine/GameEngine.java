@@ -76,6 +76,7 @@ public class GameEngine {
       case TapRuneMove m -> applyTapRune(state, m);
       case DiscardRuneMove m -> applyDiscardRune(state, m);
       case MoveToBattlefieldMove m -> applyMoveToBattlefield(state, m);
+      case SelectBattlefieldMove m -> applySelectBattlefield(state, m);
       case ResolveShowdownMove m -> applyResolveShowdown(state, m);
       case MulliganMove m -> applyMulligan(state, m);
       case UndoRunesMove m -> applyUndoRunes(state, m);
@@ -174,7 +175,11 @@ public class GameEngine {
       String topCardName = topCardId.isBlank() ? "No card" : cardDataService.getCard(topCardId).name();
       log(state, move.playerId(), "VISION_PEEK|" + topCardId + "|" + topCardName);
     }
-    applyRulesTextEffect(card, target, state, def);
+    if (cardDataService.requiresFriendlyAndEnemyTargets(card.getCardId())) {
+      applyFriendlyAndEnemyReturn(card, move, state, def);
+    } else {
+      applyRulesTextEffect(card, target, state, def);
+    }
     moveDestroyedBoardCards(state);
     if (cardTypeLower.equals("spell")) {
       cardZoneService.moveToGraveyard(card);
@@ -348,6 +353,30 @@ public class GameEngine {
     return state;
   }
 
+  private LiveGameState applySelectBattlefield(LiveGameState state, SelectBattlefieldMove move) {
+    PlayerState player = player(state, move.playerId());
+    player.setSelectedBattlefieldId(move.battlefieldCardId());
+    CardDefinition def = cardDataService.getCard(move.battlefieldCardId());
+    log(state, move.playerId(), "Selected " + def.name() + " as their Battlefield.");
+    boolean allSelected = state.getPlayers().stream()
+        .allMatch(candidate -> candidate.getSelectedBattlefields().isEmpty()
+            || (candidate.getSelectedBattlefieldId() != null && !candidate.getSelectedBattlefieldId().isBlank()));
+    if (allSelected) {
+      state.setCurrentPhase(Phase.MULLIGAN);
+      String activeBattlefield = state.getPlayers().stream()
+          .map(PlayerState::getSelectedBattlefieldId)
+          .filter(id -> id != null && !id.isBlank())
+          .sorted(String.CASE_INSENSITIVE_ORDER)
+          .findFirst()
+          .orElse("BATTLEFIELD");
+      String battlefieldName = "BATTLEFIELD".equals(activeBattlefield)
+          ? "the default Battlefield"
+          : cardDataService.getCard(activeBattlefield).name();
+      log(state, move.playerId(), "Battlefields locked. Using " + battlefieldName + " for the single-battlefield alpha. Advanced to MULLIGAN.");
+    }
+    return state;
+  }
+
   private void startAmbushBattlefield(LiveGameState state, CardInstance card, CardDefinition def, String playerId) {
     log(state, playerId, "Ambushed " + def.name() + " to the battlefield.");
     boolean opposed = state.getCards().stream()
@@ -458,10 +487,11 @@ public class GameEngine {
 
   private LiveGameState applyResolveChoice(LiveGameState state, ResolveChoiceMove move) {
     PendingChoice choice = state.getPendingChoice();
+    PendingChoice nextChoice = null;
     if (PendingChoice.TYPE_OPTIONAL_DRAW_ONE.equals(choice.getType())
         || PendingChoice.TYPE_YES_NO.equals(choice.getType())) {
       if (PendingChoice.OPTION_YES.equals(move.selectedOptionId())) {
-        applyChoiceEffect(state, move.playerId(), choice);
+        nextChoice = applyChoiceEffect(state, move.playerId(), choice);
         log(state, move.playerId(), player(state, move.playerId()).getName() + " chose yes for " + choicePromptLabel(choice) + ".");
       } else {
         log(state, move.playerId(), player(state, move.playerId()).getName() + " declined " + choicePromptLabel(choice) + ".");
@@ -472,7 +502,7 @@ public class GameEngine {
         PlayerState player = player(state, move.playerId());
         int amount = optionalPaymentAmount(choice);
         player.setAvailableEnergy(Math.max(0, player.getAvailableEnergy() - amount));
-        applyChoiceEffect(state, move.playerId(), choice);
+        nextChoice = applyChoiceEffect(state, move.playerId(), choice);
         log(state, move.playerId(), player.getName() + " paid " + amount + " for " + choicePromptLabel(choice) + ".");
       } else {
         log(state, move.playerId(), player(state, move.playerId()).getName() + " declined " + choicePromptLabel(choice) + ".");
@@ -481,15 +511,30 @@ public class GameEngine {
       resolveTopDeckPickOne(state, move, choice);
     } else if (PendingChoice.TYPE_PREDICT_ORDER.equals(choice.getType())) {
       resolvePredictOrder(state, move, choice);
+    } else if (PendingChoice.TYPE_TARGET_GEAR.equals(choice.getType())) {
+      if (PendingChoice.OPTION_DECLINE.equals(move.selectedOptionId())) {
+        log(state, move.playerId(), player(state, move.playerId()).getName() + " cancelled " + choicePromptLabel(choice) + ".");
+      } else {
+        destroyGearTarget(state, move, choice);
+      }
     }
-    state.setPendingChoice(null);
+    state.setPendingChoice(nextChoice);
     return state;
   }
 
-  private void applyChoiceEffect(LiveGameState state, String playerId, PendingChoice choice) {
+  private PendingChoice applyChoiceEffect(LiveGameState state, String playerId, PendingChoice choice) {
     if (PendingChoice.EFFECT_DRAW_1.equals(choice.getEffect())) {
       applyDraw(state, playerId, 1);
     }
+    if (PendingChoice.EFFECT_CREATE_DESTROY_GEAR_CHOICE.equals(choice.getEffect())) {
+      return PendingChoice.destroyGearTarget(
+          UUID.randomUUID().toString(),
+          playerId,
+          choice.getSourceCardId(),
+          choice.getSourceCardInstanceId(),
+          "Choose a Gear to destroy with " + choicePromptLabel(choice) + ".");
+    }
+    return null;
   }
 
   private int optionalPaymentAmount(PendingChoice choice) {
@@ -700,6 +745,7 @@ public class GameEngine {
     state.getCards().stream()
         .filter(card -> card.getOwnerId().equals(state.getActivePlayerId()) && card.getZone() == ZoneName.BATTLEFIELD)
         .forEach(card -> effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onTurnEnd(card, state)));
+    state.getRevealedHands().removeIf(snapshot -> state.getActivePlayerId().equals(snapshot.getRevealedToPlayerId()));
     healBoardCards(state);
   }
 
@@ -816,6 +862,19 @@ public class GameEngine {
 
   private void applyRulesTextEffect(CardInstance card, CardInstance target, LiveGameState state, CardDefinition def) {
     String text = def.rulesText() == null ? "" : def.rulesText().toLowerCase();
+    if (isDisarmingRakeDestroyGearEffect(text)) {
+      if (hasDestroyableGear(state)) {
+        PendingChoice choice = PendingChoice.yesNo(
+            UUID.randomUUID().toString(),
+            card.getOwnerId(),
+            card.getCardId(),
+            "Destroy a Gear with " + def.name() + "?",
+            PendingChoice.EFFECT_CREATE_DESTROY_GEAR_CHOICE);
+        choice.setSourceCardInstanceId(card.getInstanceId());
+        state.setPendingChoice(choice);
+        log(state, card.getOwnerId(), def.name() + " is waiting for a Gear destroy choice.");
+      }
+    }
     if (isStackedDeckEffect(text)) {
       List<CardDefinition> topCards = topDeckDefinitions(state, card.getOwnerId(), 3);
       if (topCards.isEmpty()) {
@@ -857,7 +916,56 @@ public class GameEngine {
         readyUnit(state, card, def, target);
       }
     }
-    if (text.contains("draw 1")) applyDraw(state, card.getOwnerId(), 1);
+    if (isImmediateDrawOneEffect(text)) applyDraw(state, card.getOwnerId(), 1);
+  }
+
+  private boolean isImmediateDrawOneEffect(String text) {
+    return text.contains("draw 1")
+        && !text.contains("when i move");
+  }
+
+  private boolean isDisarmingRakeDestroyGearEffect(String text) {
+    return text.contains("when you play me")
+        && text.contains("may")
+        && (text.contains("kill a gear") || text.contains("destroy a gear"));
+  }
+
+  private boolean hasDestroyableGear(LiveGameState state) {
+    return state.getCards().stream().anyMatch(this::isDestroyableGear);
+  }
+
+  private boolean isDestroyableGear(CardInstance target) {
+    if (target.getZone() != ZoneName.BASE && target.getZone() != ZoneName.BATTLEFIELD) return false;
+    if (target.isFaceDown()) return false;
+    CardDefinition targetDef = cardDataService.getCard(target.getCardId());
+    return targetDef != null && "Gear".equalsIgnoreCase(targetDef.type());
+  }
+
+  private void destroyGearTarget(LiveGameState state, ResolveChoiceMove move, PendingChoice choice) {
+    CardInstance target = findCard(state, move.selectedTargetInstanceId());
+    if (!isDestroyableGear(target)) throw new IllegalMoveException("Choose a public Gear in play.");
+    CardDefinition targetDef = cardDataService.getCard(target.getCardId());
+    target.setAttachedToInstanceId(null);
+    cardZoneService.moveToGraveyard(target);
+    log(state, move.playerId(), choicePromptLabel(choice) + " destroyed " + targetDef.name() + ".");
+  }
+
+  private void applyFriendlyAndEnemyReturn(CardInstance source, PlayCardMove move, LiveGameState state, CardDefinition sourceDef) {
+    CardInstance friendly = structuredTarget(state, move, PlayCardMove.TargetSelection.FRIENDLY_UNIT);
+    CardInstance enemy = structuredTarget(state, move, PlayCardMove.TargetSelection.ENEMY_UNIT);
+    returnUnitToOwnerHand(state, source, sourceDef, friendly);
+    returnUnitToOwnerHand(state, source, sourceDef, enemy);
+    log(state, source.getOwnerId(), sourceDef.name() + " returned a friendly unit and an enemy unit to hand.");
+  }
+
+  private CardInstance structuredTarget(LiveGameState state, PlayCardMove move, String role) {
+    return move.targets().stream()
+        .filter(target -> role.equals(target.role()))
+        .findFirst()
+        .flatMap(target -> state.getCards().stream()
+            .filter(card -> card.getInstanceId().equals(target.instanceId()))
+            .findFirst())
+        .orElseThrow(() -> new IllegalMoveException("This card requires a friendly target and an enemy target."));
   }
 
   private boolean isStackedDeckEffect(String text) {
@@ -921,7 +1029,8 @@ public class GameEngine {
       return;
     }
     String cardId = player.getDeckPool().remove(0);
-    addCardToHand(state, playerId, cardId, true);
+    addCardToHand(state, playerId, cardId, false);
+    log(state, playerId, "Drew a card.");
   }
 
   private void addCardToHand(LiveGameState state, String playerId, String cardId, boolean logCardName) {

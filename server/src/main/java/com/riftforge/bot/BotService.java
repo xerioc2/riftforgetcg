@@ -17,6 +17,7 @@ import com.riftforge.model.move.MulliganMove;
 import com.riftforge.model.move.MoveRequest;
 import com.riftforge.model.move.ResolveChoiceMove;
 import com.riftforge.model.move.ResolveShowdownMove;
+import com.riftforge.model.move.SelectBattlefieldMove;
 import com.riftforge.model.move.TapRuneMove;
 import com.riftforge.rules.LegalAction;
 import com.riftforge.rules.LegalActionsService;
@@ -193,6 +194,14 @@ public class BotService {
       return false;
     }
     return switch (state.getCurrentPhase()) {
+      case SELECT_BATTLEFIELD -> {
+        if (legalActions.contains(LegalAction.SELECT_BATTLEFIELD)) {
+          yield doSelectBattlefield(roomCode, state, botId);
+        } else {
+          log.warn("Bot cannot choose Battlefield because no selection action is legal: room={}, bot={}, legalActions={}", roomCode, botId, legalActions);
+          yield false;
+        }
+      }
       case MULLIGAN -> {
         if (legalActions.contains(LegalAction.MULLIGAN) || legalActions.contains(LegalAction.KEEP_HAND)) {
           yield doMulligan(roomCode, state, botId);
@@ -204,6 +213,18 @@ public class BotService {
       case AWAKEN, BEGINNING, CHANNEL, DRAW, END -> passIfLegal(roomCode, state, botId, legalActions);
       case MAIN -> doMain(roomCode, state, botId);
     };
+  }
+
+  private boolean doSelectBattlefield(String roomCode, LiveGameState state, String botId) {
+    return state.getPlayers().stream()
+        .filter(player -> botId.equals(player.getUserId()))
+        .findFirst()
+        .flatMap(player -> player.getSelectedBattlefields().stream().findFirst())
+        .map(battlefieldId -> processBotMove(roomCode, state, botId, new SelectBattlefieldMove(botId, battlefieldId)))
+        .orElseGet(() -> {
+          log.warn("Bot has no Battlefield choice available: room={}, bot={}", roomCode, botId);
+          return false;
+        });
   }
 
   private boolean doMulligan(String roomCode, LiveGameState state, String botId) {
@@ -346,10 +367,11 @@ public class BotService {
         String targetInstanceId = targetForCard(current, pickedDef, botId)
             .map(CardInstance::getInstanceId)
             .orElse(null);
+        List<PlayCardMove.TargetSelection> targets = targetsForCard(current, pickedDef, botId);
         int boardCount = (int) current.getCards().stream()
             .filter(c -> botId.equals(c.getOwnerId()) && (c.getZone() == ZoneName.BASE || c.getZone() == ZoneName.BATTLEFIELD))
             .count();
-        acted |= processBotMove(roomCode, current, botId, new PlayCardMove(botId, pick.get().getInstanceId(), ZoneName.BASE, 60 + boardCount * 100, 220, targetInstanceId));
+        acted |= processBotMove(roomCode, current, botId, new PlayCardMove(botId, pick.get().getInstanceId(), ZoneName.BASE, 60 + boardCount * 100, 220, targetInstanceId, targets, false, List.of(), List.of()));
         sleepBriefly(300);
         played = true;
       }
@@ -433,20 +455,41 @@ public class BotService {
     CardDefinition def = cardDataService.getCard(card.getCardId());
     if (cardDataService.isUnsupportedAction(def.id())) return false;
     if (cardDataService.isEquip(def)) return true;
+    if (cardDataService.requiresFriendlyAndEnemyTargets(def.id())) return targetsForCard(state, def, botId).size() == 2;
     if (!cardDataService.requiresBattlefieldTarget(def.id())) return true;
     return targetForCard(state, def, botId).isPresent();
+  }
+
+  private List<PlayCardMove.TargetSelection> targetsForCard(LiveGameState state, CardDefinition def, String botId) {
+    if (!cardDataService.requiresFriendlyAndEnemyTargets(def.id())) return List.of();
+    Optional<CardInstance> friendly = publicUnitTarget(state, botId, true);
+    Optional<CardInstance> enemy = publicUnitTarget(state, botId, false);
+    if (friendly.isEmpty() || enemy.isEmpty()) return List.of();
+    return List.of(
+        new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.FRIENDLY_UNIT, friendly.get().getInstanceId()),
+        new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.ENEMY_UNIT, enemy.get().getInstanceId()));
   }
 
   private Optional<CardInstance> targetForCard(LiveGameState state, CardDefinition def, String botId) {
     if (!cardDataService.requiresBattlefieldTarget(def.id())) return Optional.empty();
     if (cardDataService.isEquip(def)) return Optional.empty();
+    if (cardDataService.requiresFriendlyAndEnemyTargets(def.id())) return Optional.empty();
     String text = def.rulesText() == null ? "" : def.rulesText().toLowerCase();
     boolean preferFriendly = cardDataService.requiresFriendlyTarget(def.id())
         || text.contains("give a unit")
         || text.contains("ready it");
+    return publicUnitTarget(state, botId, preferFriendly);
+  }
+
+  private Optional<CardInstance> publicUnitTarget(LiveGameState state, String botId, boolean friendly) {
     return state.getCards().stream()
-        .filter(candidate -> candidate.getZone() == ZoneName.BATTLEFIELD)
-        .filter(candidate -> preferFriendly == botId.equals(candidate.getOwnerId()))
+        .filter(candidate -> candidate.getZone() == ZoneName.BASE || candidate.getZone() == ZoneName.BATTLEFIELD)
+        .filter(candidate -> !candidate.isFaceDown())
+        .filter(candidate -> friendly == botId.equals(candidate.getOwnerId()))
+        .filter(candidate -> {
+          CardDefinition def = cardDataService.getCard(candidate.getCardId());
+          return def != null && ("Unit".equalsIgnoreCase(def.type()) || "Champion".equalsIgnoreCase(def.type()));
+        })
         .findFirst();
   }
 
@@ -480,6 +523,7 @@ public class BotService {
     }
     if (state.getActiveShowdown() != null) return actions.contains(LegalAction.RESOLVE_SHOWDOWN);
     return switch (state.getCurrentPhase()) {
+      case SELECT_BATTLEFIELD -> actions.contains(LegalAction.SELECT_BATTLEFIELD);
       case MULLIGAN -> actions.contains(LegalAction.MULLIGAN) || actions.contains(LegalAction.KEEP_HAND);
       case AWAKEN, BEGINNING, CHANNEL, DRAW, END ->
           actions.contains(LegalAction.PASS_PHASE) || actions.contains(LegalAction.END_TURN);
@@ -518,6 +562,15 @@ public class BotService {
           .map(PlayerState::getUserId)
           .filter(this::isBotId)
           .filter(id -> !state.getMulligansDone().contains(id))
+          .findFirst()
+          .orElse(null);
+    }
+    if (state.getCurrentPhase() == Phase.SELECT_BATTLEFIELD) {
+      return state.getPlayers().stream()
+          .filter(player -> isBotId(player.getUserId()))
+          .filter(player -> !player.getSelectedBattlefields().isEmpty())
+          .filter(player -> player.getSelectedBattlefieldId() == null || player.getSelectedBattlefieldId().isBlank())
+          .map(PlayerState::getUserId)
           .findFirst()
           .orElse(null);
     }

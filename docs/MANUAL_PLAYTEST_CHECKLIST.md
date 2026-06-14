@@ -8,6 +8,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Create a room or join one with a room code.
 - Select a deck in the lobby, review support warnings, then Ready and Start.
 - Start a human vs RiftBot or human vs human game.
+- Choose one Battlefield before mulligan and confirm the opponent's unchosen Battlefield pool is not visible.
 - Keep your opening hand or mulligan at least one card.
 - Play a Unit and confirm it stays visible in Base.
 - Confirm your Legend starts in the Legend zone and your chosen Champion starts in the Champion zone.
@@ -17,6 +18,8 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - If an optional choice prompt appears, choose an option and confirm the game resumes.
 - If an optional payment prompt appears, try Pay when you have enough energy and confirm the energy is spent and the effect resolves.
 - If an optional payment prompt appears, try Decline and confirm the prompt clears without applying the effect.
+- If you play Disarming Rake while Gear is in play, confirm Yes asks you to
+  choose a Gear, Cancel/No leaves Gear alone, and a selected Gear goes to Trash.
 - If you play Stacked Deck, confirm only you see the top-card options, one card goes to hand, and the rest recycle without appearing in the public log.
 - Play Gear to Base, then equip it to a friendly Unit or Champion if you draw one.
 - Confirm attached Gear stays with a host that moves from Base to battlefield.
@@ -37,6 +40,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - If card data or stat parsing changed, clear or refresh the local card cache.
 - Create a human vs RiftBot room.
 - Load or select a constructed deck, then ready and start.
+- Choose one Battlefield from the three-card setup prompt.
 - Keep the opening hand or mulligan at least one card.
 - Confirm RiftBot updates live after mulligan and during its turn.
 - Play a Unit and confirm it stays in Base.
@@ -45,6 +49,8 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Inspect those cards in the deck builder and in-game hover/inspect views; their support badge should say Supported.
 - Play or attempt a targeted effect and confirm target prompts/errors are visible.
 - If a private choice prompt appears, confirm only the prompted player sees the options.
+- If Disarming Rake appears in the sideboard/playtest pool, try both declining
+  and destroying a friendly or enemy Gear.
 - If Stacked Deck appears, resolve the top-3 private prompt and confirm opponent/spectator views do not reveal those card names.
 - Play Gear to Base, equip it to a valid friendly Unit/Champion, and confirm the log says what was equipped.
 - Confirm Gear cannot target the Champion while it is still in the Champion zone; it can target a Champion only after the Champion has moved into Base or the battlefield.
@@ -65,6 +71,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Start RiftForge and create a human vs RiftBot room.
 - Load or select a constructed deck.
 - Ready up, start the game, and confirm the opening mulligan appears.
+- Confirm the Battlefield selection prompt appears before mulligan, then choose one Battlefield.
 - Keep the opening hand or mulligan at least one card.
 - Confirm your hand cards are visible to you after mulligan.
 - Confirm RiftBot advances through its turn steps without manual help.

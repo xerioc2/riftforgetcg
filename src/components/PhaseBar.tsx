@@ -1,4 +1,5 @@
 const PHASE_LABELS: Record<string, string> = {
+  SELECT_BATTLEFIELD: 'Battlefield',
   MULLIGAN: 'Mulligan',
   AWAKEN: 'Awaken',
   BEGINNING: 'Beginning',

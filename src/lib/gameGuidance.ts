@@ -1,6 +1,7 @@
 import type { LegalAction } from '../types';
 
 const PHASE_GUIDANCE: Record<string, string> = {
+  SELECT_BATTLEFIELD: 'Choose one Battlefield. After both players lock in, mulligans begin.',
   MULLIGAN: 'Choose cards to recycle or keep your opening hand.',
   AWAKEN: 'Start-of-turn ready step.',
   BEGINNING: 'Beginning effects and hold scoring.',
@@ -38,6 +39,7 @@ export function legalActionHint(
     if (options.isMyTurn) return 'No server-approved actions are available right now.';
     return options.activePlayerIsBot ? 'RiftBot is thinking...' : `Waiting for ${options.activePlayerName ?? 'opponent'}.`;
   }
+  if (actions.has('SELECT_BATTLEFIELD')) return 'Choose one Battlefield.';
   if (actions.has('KEEP_HAND') || actions.has('MULLIGAN')) return 'You can keep or mulligan.';
   if (actions.has('RESOLVE_CHOICE')) return 'Choose an option to continue.';
   if (actions.has('RESOLVE_SHOWDOWN') && actions.has('PLAY_CARD')) return 'You may play supported Action cards or resolve the showdown.';
