@@ -85,7 +85,9 @@ function visualZoneFor(instance: CardInstance, zones: ZoneRect[]) {
 }
 
 function shouldAutoPlacePublicCard(instance: CardInstance) {
-  return (sameZone(instance.zone, 'base') || sameZone(instance.zone, 'battlefield')) && instance.x === 0 && instance.y === 0;
+  if (!sameZone(instance.zone, 'base') && !sameZone(instance.zone, 'battlefield')) return false;
+  if (instance.x === 0 && instance.y === 0) return true;
+  return instance.ownerId.toLowerCase().startsWith('bot-player-');
 }
 
 export function GameBoard() {
@@ -592,12 +594,10 @@ export function GameBoard() {
       );
       return;
     }
-    if (type === 'legend' || type === 'champion' || type === 'battlefield') {
+    if (type === 'legend' || type === 'battlefield') {
       const message = type === 'legend'
         ? 'Legends are identity cards and are not played from hand.'
-        : type === 'champion'
-          ? 'Champions start in the Champion zone and are not played from hand.'
-          : 'Battlefields are selected during setup and are not played from hand.';
+        : 'Battlefields are selected during setup and are not played from hand.';
       notifyWarning('Cannot play that card', message);
       return;
     }
@@ -1508,7 +1508,7 @@ export function GameBoard() {
           </section>
         </div>
       ) : null}
-      {state.currentPhase === 'SELECT_BATTLEFIELD' && (canSelectBattlefield || selectedBattlefield) ? (
+      {state.currentPhase === 'SELECT_BATTLEFIELD' ? (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-ink/95 px-6 py-8">
           {selectedBattlefield ? (
             <section className="border border-line bg-panel px-10 py-8 text-center shadow-glow">

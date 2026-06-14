@@ -481,6 +481,34 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void championUnitReturnedToHandCanBePlayedAgain() {
+    CardInstance gust = card("gust", "p1", ZoneName.HAND);
+    CardInstance champion = card("champion", "p2", ZoneName.BATTLEFIELD);
+    CardInstance gear = card("gear", "p2", ZoneName.BATTLEFIELD);
+    gear.setAttachedToInstanceId("champion");
+    LiveGameState state = state(gust, champion, gear);
+    stubCard("gust", "Gust", "Spell", 0, 0, 0, "Return a unit to its owner's hand.");
+    stubCard("champion", "Champion Unit", "Champion", 0, 4, 5, "[DEATHKNELL] Supported death effect.");
+    stubCard("gear", "Attached Gear", "Gear", 0, 0, 0, "[Equip]");
+    when(cardDataService.requiresBattlefieldTarget("gust")).thenReturn(true);
+    state.getPlayers().get(1).getDeckPool().add("drawn-card");
+
+    engine.applyMove(state, playTarget("gust", "champion"));
+
+    assertThat(champion.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(gear.getAttachedToInstanceId()).isNull();
+    assertThat(state.getPlayers().get(1).getDeckPool()).containsExactly("drawn-card");
+
+    state.setActivePlayerId("p2");
+    engine.applyMove(state, play("p2", "champion", ZoneName.BASE));
+
+    assertThat(champion.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(champion.getCurrentHealth()).isEqualTo(5);
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Played Champion Unit"));
+  }
+
+  @Test
   void multiTargetReturnResolvesFriendlyAndEnemyTargets() {
     CardInstance spell = card("team-bounce", "p1", ZoneName.HAND);
     CardInstance friendly = card("friendly", "p1", ZoneName.BASE);
@@ -1414,13 +1442,16 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
-  void championCannotBePlayedFromHand() {
+  void championUnitInHandCanBePlayedNormally() {
     LiveGameState state = state(card("champion", "p1", ZoneName.HAND));
-    stubCard("champion", "Champion", 0);
+    stubCard("champion", "Champion Unit", "Champion", 0, 4, 5, "");
 
-    assertThatThrownBy(() -> engine.applyMove(state, play("champion", ZoneName.BASE)))
-        .isInstanceOf(IllegalMoveException.class)
-        .hasMessage("Champion cards cannot be played from hand.");
+    engine.applyMove(state, play("champion", ZoneName.BASE));
+
+    CardInstance champion = find(state, "champion");
+    assertThat(champion.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(champion.getCurrentHealth()).isEqualTo(5);
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Played Champion Unit"));
   }
 
   @Test

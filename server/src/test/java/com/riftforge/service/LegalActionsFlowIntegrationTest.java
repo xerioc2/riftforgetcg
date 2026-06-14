@@ -1,5 +1,6 @@
 package com.riftforge.service;
 
+import static com.riftforge.bot.BotConstants.BOT_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.riftforge.model.CardInstance;
@@ -61,6 +62,27 @@ class LegalActionsFlowIntegrationTest {
         .findFirst()
         .orElseThrow()
         .getSelectedBattlefieldId()).isEqualTo("battlefield-0");
+  }
+
+  @Test
+  void humanVsRiftBotBattlefieldSelectionDoesNotSkipHumanPrompt() {
+    String room = "BOTROOM";
+    List<String> deck = fx.registerConstructedDeck();
+    fx.gameService.initGame(room, List.of("human", BOT_ID),
+        Map.of("human", deck, BOT_ID, deck),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+
+    fx.gameService.processMove(room, new SelectBattlefieldMove(BOT_ID, "battlefield-0"));
+
+    LiveGameState humanView = fx.gameService.currentStateFor(room, "human");
+    assertThat(humanView.getCurrentPhase()).isEqualTo(Phase.SELECT_BATTLEFIELD);
+    assertThat(humanView.getLegalActions()).containsExactly(LegalAction.SELECT_BATTLEFIELD);
+    assertThat(humanView.getPlayers().stream()
+        .filter(player -> "human".equals(player.getUserId()))
+        .findFirst()
+        .orElseThrow()
+        .getBattlefieldChoices()).containsExactly("battlefield-0", "battlefield-1", "battlefield-2");
+    assertThat(humanView.getLegalActions()).doesNotContain(LegalAction.KEEP_HAND, LegalAction.MULLIGAN);
   }
 
   @Test

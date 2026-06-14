@@ -207,18 +207,18 @@ public class RulesValidator {
     validatePlayTiming(state, move, def);
     boolean rune = isType(def, "Rune");
     boolean unit = isType(def, "Unit");
+    boolean champion = isType(def, "Champion");
     boolean spell = isType(def, "Spell");
     boolean gear = isType(def, "Gear");
     boolean ambushToBattlefield = move.targetZone() == ZoneName.BATTLEFIELD;
     if (isType(def, "Legend")) throw new IllegalMoveException("Legend cards cannot be played from hand.");
-    if (isType(def, "Champion")) throw new IllegalMoveException("Champion cards cannot be played from hand.");
     if (isType(def, "Battlefield")) throw new IllegalMoveException("Battlefield cards cannot be played from hand.");
     if (cardDataService.hasUnsupportedAdditionalCost(def)) throw new IllegalMoveException("That card's additional cost is not supported yet.");
     if (rune && move.targetZone() != ZoneName.RUNE) throw new IllegalMoveException("Rune cards must be placed in the rune zone.");
     if (!rune && move.targetZone() == ZoneName.RUNE) throw new IllegalMoveException("Only Rune cards can be placed in the rune zone.");
     if (ambushToBattlefield) validateAmbushBattlefieldPlay(state, move, def, unit);
-    else if ((unit || spell || gear) && move.targetZone() != ZoneName.BASE) throw new IllegalMoveException("Non-rune cards must be played to base.");
-    if (!rune && !unit && !spell && !gear) throw new IllegalMoveException("That card type cannot be played from hand.");
+    else if ((unit || champion || spell || gear) && move.targetZone() != ZoneName.BASE) throw new IllegalMoveException("Non-rune cards must be played to base.");
+    if (!rune && !unit && !champion && !spell && !gear) throw new IllegalMoveException("That card type cannot be played from hand.");
     if (move.accelerate() && (!"Unit".equalsIgnoreCase(def.type()) || !cardDataService.hasKeyword(card, "ACCELERATE"))) {
       throw new IllegalMoveException("That card does not have ACCELERATE.");
     }
