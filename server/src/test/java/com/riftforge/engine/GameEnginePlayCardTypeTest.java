@@ -499,6 +499,9 @@ class GameEnginePlayCardTypeTest {
     assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
     assertThat(gear.getAttachedToInstanceId()).isNull();
     assertThat(state.getPlayers().get(1).getDeckPool()).containsExactly("drawn-card");
+    LiveGameState opponentView = new GameStateProjectionService(new LegalActionsService())
+        .toPublicView(state, "p1");
+    assertThat(find(opponentView, "champion").getCardId()).isEqualTo(GameStateProjectionService.HIDDEN_CARD_ID);
 
     state.setActivePlayerId("p2");
     engine.applyMove(state, play("p2", "champion", ZoneName.BASE));

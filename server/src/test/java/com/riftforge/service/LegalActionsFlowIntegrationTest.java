@@ -86,6 +86,34 @@ class LegalActionsFlowIntegrationTest {
   }
 
   @Test
+  void invalidBattlefieldSelectionDoesNotMutateState() {
+    fx.gameService.processMove(ROOM, new SelectBattlefieldMove("p1", "battlefield-9"));
+
+    LiveGameState state = fx.gameService.currentState(ROOM);
+    assertThat(state.getCurrentPhase()).isEqualTo(Phase.SELECT_BATTLEFIELD);
+    assertThat(state.getPlayers().stream()
+        .filter(player -> "p1".equals(player.getUserId()))
+        .findFirst()
+        .orElseThrow()
+        .getSelectedBattlefieldId()).isNull();
+    assertThat(legalActionsFor("p1")).containsExactly(LegalAction.SELECT_BATTLEFIELD);
+  }
+
+  @Test
+  void decksWithoutBattlefieldChoicesSkipSafelyToMulligan() {
+    String room = "NOFIELD";
+    List<String> deck = registerNoBattlefieldDeck();
+
+    fx.gameService.initGame(room, List.of("p1", "p2"),
+        Map.of("p1", deck, "p2", deck),
+        Map.of("p1", "Player One", "p2", "Player Two"));
+
+    assertThat(fx.gameService.currentState(room).getCurrentPhase()).isEqualTo(Phase.MULLIGAN);
+    assertThat(fx.gameService.currentStateFor(room, "p1").getLegalActions())
+        .containsExactlyInAnyOrder(LegalAction.KEEP_HAND, LegalAction.MULLIGAN);
+  }
+
+  @Test
   void mulliganPhaseOffersKeepAndMulliganUntilEachPlayerDecides() {
     completeBattlefieldSelection();
 
@@ -177,6 +205,19 @@ class LegalActionsFlowIntegrationTest {
     fx.gameService.processMove(ROOM, new SelectBattlefieldMove("p1", "battlefield-0"));
     fx.gameService.processMove(ROOM, new SelectBattlefieldMove("p2", "battlefield-1"));
     assertThat(fx.gameService.currentState(ROOM).getCurrentPhase()).isEqualTo(Phase.MULLIGAN);
+  }
+
+  private List<String> registerNoBattlefieldDeck() {
+    List<String> deck = new java.util.ArrayList<>();
+    fx.addCard("no-field-legend", "No Field Legend", "Legend");
+    fx.addCard("no-field-champion", "No Field Champion", "Champion");
+    deck.add("no-field-legend");
+    deck.add("no-field-champion");
+    for (int i = 0; i < 8; i++) {
+      fx.addCard("no-field-unit-" + i, "No Field Unit " + i, "Unit");
+      deck.add("no-field-unit-" + i);
+    }
+    return deck;
   }
 
   private void completeMulligans() {
