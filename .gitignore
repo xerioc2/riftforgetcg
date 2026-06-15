@@ -23,3 +23,4 @@ RiftForge_*.exe
 *.rpm
 src-tauri/target/release/
 src-tauri/target/release/bundle/
+release-assets/

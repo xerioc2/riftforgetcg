@@ -33,6 +33,12 @@ export function phaseGuidance(
   topChainItem?: ChainItem,
 ) {
   if (activeChain) {
+    if (topChainItem?.status === 'COUNTERED') {
+      return 'Countered items are skipped when they reach the top of the chain.';
+    }
+    if (topChainItem?.status === 'FIZZLED') {
+      return 'Fizzled items are cleared when they reach the top of the chain.';
+    }
     if (isStackedDeckChainItem(topChainItem)) {
       return chainReady
         ? 'Resolve Stacked Deck on the chain to choose from the top cards.'

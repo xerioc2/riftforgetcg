@@ -327,6 +327,7 @@ public class BotService {
 
       List<CardInstance> readyBaseCards = state.getCards().stream()
           .filter(c -> botId.equals(c.getOwnerId()) && c.getZone() == ZoneName.BASE && !c.isTapped())
+          .filter(this::isCombatant)
           .toList();
       for (CardInstance card : readyBaseCards) {
         Set<LegalAction> actions = legalActions(state, botId);

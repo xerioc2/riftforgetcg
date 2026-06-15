@@ -171,6 +171,49 @@ class GameStateProjectionServiceTest {
   }
 
   @Test
+  void battlefieldChoicesAndSelectionsRemainPrivateDuringSelection() {
+    LiveGameState state = stateWithPlayers(Phase.SELECT_BATTLEFIELD, "p1", GameMode.ENFORCED);
+    PlayerState p1 = state.getPlayers().get(0);
+    PlayerState p2 = state.getPlayers().get(1);
+    p1.setSelectedBattlefields(List.of("p1-battlefield-a", "p1-battlefield-b", "p1-battlefield-c"));
+    p1.setSelectedBattlefieldId("p1-battlefield-a");
+    p2.setSelectedBattlefields(List.of("p2-battlefield-a", "p2-battlefield-b", "p2-battlefield-c"));
+    p2.setSelectedBattlefieldId("p2-battlefield-a");
+
+    LiveGameState p1View = projectionService.toPublicView(state, "p1");
+    PlayerState own = p1View.getPlayers().stream().filter(player -> player.getUserId().equals("p1")).findFirst().orElseThrow();
+    PlayerState opponent = p1View.getPlayers().stream().filter(player -> player.getUserId().equals("p2")).findFirst().orElseThrow();
+    LiveGameState spectatorView = projectionService.toPublicView(state, null);
+
+    assertThat(own.getBattlefieldChoices()).containsExactly("p1-battlefield-a", "p1-battlefield-b", "p1-battlefield-c");
+    assertThat(own.getSelectedBattlefieldId()).isEqualTo("p1-battlefield-a");
+    assertThat(opponent.getBattlefieldChoices()).isEmpty();
+    assertThat(opponent.getSelectedBattlefieldId()).isNull();
+    assertThat(spectatorView.getPlayers()).allSatisfy(player -> {
+      assertThat(player.getBattlefieldChoices()).isEmpty();
+      assertThat(player.getSelectedBattlefieldId()).isNull();
+    });
+  }
+
+  @Test
+  void selectedBattlefieldsBecomePublicAfterSelectionCompletes() {
+    LiveGameState state = stateWithPlayers(Phase.MULLIGAN, "p1", GameMode.ENFORCED);
+    state.getPlayers().get(0).setSelectedBattlefields(List.of("p1-private-choice-a", "p1-private-choice-b"));
+    state.getPlayers().get(0).setSelectedBattlefieldId("p1-selected-battlefield");
+    state.getPlayers().get(1).setSelectedBattlefields(List.of("p2-private-choice-a", "p2-private-choice-b"));
+    state.getPlayers().get(1).setSelectedBattlefieldId("p2-selected-battlefield");
+
+    LiveGameState p1View = projectionService.toPublicView(state, "p1");
+    LiveGameState spectatorView = projectionService.toPublicView(state, null);
+
+    assertThat(p1View.getPlayers()).extracting(PlayerState::getSelectedBattlefieldId)
+        .containsExactly("p1-selected-battlefield", "p2-selected-battlefield");
+    assertThat(spectatorView.getPlayers()).extracting(PlayerState::getSelectedBattlefieldId)
+        .containsExactly("p1-selected-battlefield", "p2-selected-battlefield");
+    assertThat(spectatorView.getPlayers()).allSatisfy(player -> assertThat(player.getBattlefieldChoices()).isEmpty());
+  }
+
+  @Test
   void serializedPlayerProjectionShowsOwnPrivateCardsButNotOpponentPrivateCards() throws Exception {
     LiveGameState state = state(
         handCard("p1-hand", "p1", "p1-private-hand-card"),

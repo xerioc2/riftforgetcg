@@ -77,9 +77,9 @@ class BotServicePhaseFlowTest {
     CombatResolver combatResolver = new CombatResolver(cardDataService, effects, cardZoneService, new CombatStatsService(cardDataService), deathTriggerService);
     RulesValidator rulesValidator = new RulesValidator(cardDataService);
     GameEngine engine = new GameEngine(rulesValidator, combatResolver, cardZoneService, cardDataService, effects, deathTriggerService, tokenFactory, 8);
-    gameService = new GameService(engine, cardDataService, messaging, eventPublisher, new MatchHistoryService(), new GameStateProjectionService(new LegalActionsService()));
+    gameService = new GameService(engine, cardDataService, messaging, eventPublisher, new MatchHistoryService(), new GameStateProjectionService(new LegalActionsService(cardDataService)));
     roomService = new RoomService(messaging, cardDataService);
-    botService = new BotService(gameService, cardDataService, new LegalActionsService());
+    botService = new BotService(gameService, cardDataService, new LegalActionsService(cardDataService));
     when(cardDataService.getAll()).thenReturn(cards);
     when(cardDataService.getCard(anyString())).thenAnswer(invocation -> cards.get(invocation.getArgument(0)));
     add("legend", "Legend", 0);
@@ -436,6 +436,14 @@ class BotServicePhaseFlowTest {
     state.setCurrentPhase(Phase.MAIN);
     state.setActivePlayerId(BOT_ID);
     state.setChainState(chain(false, BOT_ID));
+    CardDefinition source = new CardDefinition("source-card", "Source Card", "Spell", null, List.of(), 0, 0, null, null, null, "Draw 1.", 0, 0, List.of());
+    CardDefinition defy = new CardDefinition("defy", "Defy", "Spell", null, List.of(), 0, 0, null, null, null, "[Reaction] Counter a spell.", 0, 0, List.of());
+    cards.put("source-card", source);
+    cards.put("defy", defy);
+    when(cardDataService.isDefyCounterReaction(defy)).thenReturn(true);
+    CardInstance defyInstance = testCard("defy-1", "human", ZoneName.HAND);
+    defyInstance.setCardId("defy");
+    state.getCards().add(defyInstance);
 
     botService.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
     LiveGameState latest = waitUntilChainFocus(gameService, roomCode, "human");
@@ -868,6 +876,80 @@ class BotServicePhaseFlowTest {
   }
 
   @Test
+  void botDoesNotTryToMoveGearFromBaseAndCanPassMain() throws Exception {
+    String roomCode = "GEAR";
+    add("guardian-angel", "Gear", 0);
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setActivePlayerId(BOT_ID);
+    state.setCurrentPhase(Phase.MAIN);
+    state.getCards().removeIf(card -> BOT_ID.equals(card.getOwnerId()));
+    CardInstance gear = testCard("guardian-angel-1", BOT_ID, ZoneName.BASE);
+    gear.setCardId("guardian-angel");
+    state.getCards().add(gear);
+
+    botService.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+    LiveGameState latest = waitUntilPhase(gameService, roomCode, Phase.END);
+    latest.setWinnerId("test-complete");
+
+    assertThat(latest.getCurrentPhase()).isEqualTo(Phase.END);
+    assertThat(latest.getCards())
+        .anySatisfy(card -> {
+          assertThat(card.getInstanceId()).isEqualTo("guardian-angel-1");
+          assertThat(card.getZone()).isEqualTo(ZoneName.BASE);
+        });
+    waitForNoActingRooms();
+  }
+
+  @Test
+  void botSkipsUnsupportedReactionInMainAndPassesInsteadOfSubmittingIt() throws Exception {
+    String roomCode = "NSF1";
+    cards.put("not-so-fast", new CardDefinition(
+        "not-so-fast",
+        "Not So Fast",
+        "Spell",
+        null,
+        List.of(),
+        0,
+        0,
+        null,
+        null,
+        null,
+        "[Reaction] Counter an enemy spell or ability that chooses a friendly unit or gear.",
+        0,
+        0,
+        List.of()));
+    when(cardDataService.isUnsupportedAction("not-so-fast")).thenReturn(true);
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setActivePlayerId(BOT_ID);
+    state.setCurrentPhase(Phase.MAIN);
+    state.getCards().removeIf(card -> BOT_ID.equals(card.getOwnerId()));
+    CardInstance reaction = testCard("not-so-fast-1", BOT_ID, ZoneName.HAND);
+    reaction.setCardId("not-so-fast");
+    state.getCards().add(reaction);
+
+    botService.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+    LiveGameState latest = waitUntilPhase(gameService, roomCode, Phase.END);
+    latest.setWinnerId("test-complete");
+
+    assertThat(latest.getCards())
+        .anySatisfy(card -> {
+          assertThat(card.getInstanceId()).isEqualTo("not-so-fast-1");
+          assertThat(card.getZone()).isEqualTo(ZoneName.HAND);
+        });
+    waitForNoActingRooms();
+  }
+
+  @Test
   void botResolvesStackedDeckPendingChoice() throws Exception {
     String roomCode = "CHC1";
     gameService.initGame(
@@ -1056,6 +1138,17 @@ class BotServicePhaseFlowTest {
     while (System.currentTimeMillis() < deadline) {
       latest = service.currentState(roomCode);
       if (latest != null && latest.getPendingChoice() == null) return latest;
+      Thread.sleep(25);
+    }
+    return latest;
+  }
+
+  private LiveGameState waitUntilPhase(GameService service, String roomCode, Phase phase) throws Exception {
+    long deadline = System.currentTimeMillis() + 5_000;
+    LiveGameState latest = service.currentState(roomCode);
+    while (System.currentTimeMillis() < deadline) {
+      latest = service.currentState(roomCode);
+      if (latest != null && latest.getCurrentPhase() == phase) return latest;
       Thread.sleep(25);
     }
     return latest;

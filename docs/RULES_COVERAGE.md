@@ -140,13 +140,16 @@ Current implementation notes:
   items safely and will not resolve the same item twice.
 - Chain items also carry counter-ready metadata such as counterability,
   targetability, item type, stable item ID, public description, controller, and
-  source zone before the chain. This metadata is for future counterspell work
-  only; no countering move or counter card is connected yet.
+  source zone before the chain. This metadata powers Defy's narrow alpha
+  counter path and remains the foundation for future counterspell work.
 - `PASS_CHAIN_FOCUS` and `RESOLVE_CHAIN_TOP` are server-validated moves.
 - Pending choices still take priority over chain actions. While a chain is active, normal phase/showdown actions are blocked until the chain item is resolved.
 - `LegalActionsService` exposes `PASS_CHAIN_FOCUS`, `RESOLVE_CHAIN_TOP`,
   and narrowly supported focused Reaction play to the focused player.
   Spectators and non-focused players receive no chain actions.
+- Chain focus can fast-pass only when the focused player's only legal chain
+  action is `PASS_CHAIN_FOCUS`. It does not auto-pass pending choices, ready
+  top-item resolution, or windows where Gust/Defy is a legal response.
 - RiftBot can pass chain focus or resolve a ready top item through the same server legal-action contract.
 - Current effect resolution is deliberately limited to deterministic test/no-op
   and draw-one harness items, Stacked Deck as the first real chain opener, and
@@ -170,7 +173,8 @@ Current implementation notes:
   spectator/public views. Private/masked chain items also suppress
   counter-target metadata and source-zone details for non-owners.
 - The client shows a compact chain panel when `chainState` exists, ordered
-  top-to-bottom with public-safe item descriptions, focus state, and
+  top-to-bottom with public-safe item descriptions, focus state, target
+  summaries for Stacked Deck/Gust/Defy, disabled illegal counter targets, and
   non-pending item status. It still exposes chain buttons only through
   server-provided legal actions.
 
@@ -642,7 +646,8 @@ Current implementation notes:
 
 Known gaps:
 - Actions are not card-instance-specific.
-- Full Reaction windows and official chain priority remain future work.
+- Full Reaction windows, official chain priority, and broad counterspell
+  support remain future work.
 - Card-specific legal action prompts are not generated.
 - Target-specific and payment-specific legal action generation is incomplete.
 - Chain/timing permissions for real card responses and full priority handling are future work.

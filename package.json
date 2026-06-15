@@ -10,7 +10,14 @@
     "lint": "eslint .",
     "preview": "vite preview --host 0.0.0.0",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build",
+    "prepare:desktop": "node scripts/prepare-desktop.mjs",
+    "verify:desktop-server": "node scripts/verify-bundled-server.mjs",
+    "build:tauri-before": "node scripts/desktop-before-build.mjs",
+    "build:desktop": "tauri build",
+    "build:release": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-release.ps1",
+    "build:release:fast": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-release.ps1 -Fast",
+    "release:desktop": "node scripts/release-desktop.mjs"
   },
   "dependencies": {
     "@stomp/stompjs": "^7.3.0",

@@ -25,6 +25,7 @@ export function HandRack({
   canAmbushCards = false,
   canHideCards = false,
   canPlayReactions = false,
+  canPlayReactionCard,
   embedded = false,
   maxHeight,
 }: {
@@ -41,6 +42,7 @@ export function HandRack({
   canAmbushCards?: boolean;
   canHideCards?: boolean;
   canPlayReactions?: boolean;
+  canPlayReactionCard?: (card: RiftCard | undefined) => boolean;
   embedded?: boolean;
   maxHeight?: number;
 }) {
@@ -81,7 +83,7 @@ export function HandRack({
   const canAffordSelected = selectedCost <= effectiveEnergy;
   const selectedType = selectedCard?.type?.toLowerCase();
   const selectedCanPlayFromHand = selectedType !== 'legend' && selectedType !== 'battlefield';
-  const selectedIsReaction = canPlayReactions && isSupportedChainReactionCard(selectedCard);
+  const selectedIsReaction = canPlayReactions && isSupportedChainReactionCard(selectedCard) && (canPlayReactionCard?.(selectedCard) ?? true);
   const canPlaySelected = selectedCanPlayFromHand && (canPlayCards || selectedIsReaction);
   const selectedHasHidden = (selectedCard?.rulesText ?? '').toLowerCase().includes('[hidden]')
     || (selectedCard?.keywords ?? []).some((keyword) => keyword.toUpperCase().startsWith('HIDDEN'));
@@ -170,7 +172,7 @@ export function HandRack({
           const isSelected = selected === instance.instanceId;
           const type = card?.type?.toLowerCase();
           const canPlayFromHand = type !== 'legend' && type !== 'battlefield';
-          const isReaction = canPlayReactions && isSupportedChainReactionCard(card);
+          const isReaction = canPlayReactions && isSupportedChainReactionCard(card) && (canPlayReactionCard?.(card) ?? true);
           const isPlayable = canPlayFromHand && (canPlayCards || isReaction);
           return (
             <button

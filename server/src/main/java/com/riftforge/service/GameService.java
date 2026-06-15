@@ -26,6 +26,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.locks.ReentrantLock;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -44,14 +45,21 @@ public class GameService {
   private final ApplicationEventPublisher eventPublisher;
   private final MatchHistoryService matchHistoryService;
   private final GameStateProjectionService projectionService;
+  private final ChainFastPassService chainFastPassService;
 
   public GameService(GameEngine engine, CardDataService cardDataService, SimpMessagingTemplate messaging, ApplicationEventPublisher eventPublisher, MatchHistoryService matchHistoryService, GameStateProjectionService projectionService) {
+    this(engine, cardDataService, messaging, eventPublisher, matchHistoryService, projectionService, new ChainFastPassService(new com.riftforge.rules.LegalActionsService(cardDataService)));
+  }
+
+  @Autowired
+  public GameService(GameEngine engine, CardDataService cardDataService, SimpMessagingTemplate messaging, ApplicationEventPublisher eventPublisher, MatchHistoryService matchHistoryService, GameStateProjectionService projectionService, ChainFastPassService chainFastPassService) {
     this.engine = engine;
     this.cardDataService = cardDataService;
     this.messaging = messaging;
     this.eventPublisher = eventPublisher;
     this.matchHistoryService = matchHistoryService;
     this.projectionService = projectionService;
+    this.chainFastPassService = chainFastPassService;
   }
 
   public void initGame(String roomCode, List<String> playerIds, Map<String, List<String>> decksByPlayer, Map<String, String> playerNames) {
@@ -82,6 +90,7 @@ public class GameService {
       if (before == null) throw new IllegalStateException("Game not found: " + normalizedRoomCode);
       String previousWinnerId = before.getWinnerId();
       next = engine.applyMove(before, move);
+      next = chainFastPassService.autoPassSafeWindows(engine, next);
       games.put(normalizedRoomCode, next);
       if (next.getWinnerId() != null && previousWinnerId == null) {
         completedMatch = completedMatchSnapshot(next);

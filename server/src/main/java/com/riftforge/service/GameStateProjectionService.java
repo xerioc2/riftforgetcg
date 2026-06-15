@@ -3,6 +3,7 @@ package com.riftforge.service;
 import com.riftforge.model.CardInstance;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.PendingChoice;
+import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
 import com.riftforge.model.RevealedHandSnapshot;
 import com.riftforge.model.RuneState;
@@ -42,7 +43,8 @@ public class GameStateProjectionService {
     view.setGameMode(state.getGameMode());
     view.setPendingChoice(copyChoiceForViewer(state.getPendingChoice(), viewerPlayerId));
     view.setLegalActions(viewerPlayerId == null ? Set.of() : legalActionsService.legalActionsFor(state, viewerPlayerId));
-    view.setPlayers(state.getPlayers().stream().map(player -> copyPlayer(player, viewerPlayerId)).toList());
+    boolean battlefieldsPublic = state.getCurrentPhase() != Phase.SELECT_BATTLEFIELD;
+    view.setPlayers(state.getPlayers().stream().map(player -> copyPlayer(player, viewerPlayerId, battlefieldsPublic)).toList());
     view.setRunes(state.getRunes().stream().map(this::copyRune).toList());
     view.setRevealedHands(state.getRevealedHands().stream()
         .filter(snapshot -> viewerPlayerId != null && viewerPlayerId.equals(snapshot.getRevealedToPlayerId()))
@@ -77,8 +79,9 @@ public class GameStateProjectionService {
     return text != null && (text.startsWith("VISION_PEEK|") || text.startsWith("VISION_RESOLVED|"));
   }
 
-  private PlayerState copyPlayer(PlayerState player, String viewerPlayerId) {
+  private PlayerState copyPlayer(PlayerState player, String viewerPlayerId, boolean battlefieldsPublic) {
     PlayerState copy = new PlayerState();
+    boolean isViewer = Objects.equals(player.getUserId(), viewerPlayerId);
     copy.setUserId(player.getUserId());
     copy.setName(player.getName());
     copy.setScore(player.getScore());
@@ -86,10 +89,10 @@ public class GameStateProjectionService {
     copy.setRunePoolRemaining(player.getRunePoolRemaining());
     copy.setDeckPool(player.getDeckPool() == null ? new ArrayList<>() : new ArrayList<>(player.getDeckPool()));
     copy.setSelectedBattlefields(new ArrayList<>());
-    copy.setBattlefieldChoices(Objects.equals(player.getUserId(), viewerPlayerId)
+    copy.setBattlefieldChoices(isViewer
         ? new ArrayList<>(player.getSelectedBattlefields())
         : new ArrayList<>());
-    copy.setSelectedBattlefieldId(player.getSelectedBattlefieldId());
+    copy.setSelectedBattlefieldId(isViewer || battlefieldsPublic ? player.getSelectedBattlefieldId() : null);
     return copy;
   }
 

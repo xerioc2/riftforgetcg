@@ -9,6 +9,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Select a deck in the lobby, review support warnings, then Ready and Start.
 - Start a human vs RiftBot or human vs human game.
 - Choose one Battlefield before mulligan and confirm the opponent's unchosen Battlefield pool is not visible.
+- After both players choose, confirm each selected Battlefield appears in its board Battlefield slot and cannot be targeted, moved, tapped, or fought.
 - Keep your opening hand or mulligan at least one card.
 - Play a Unit and confirm it stays visible in Base.
 - Confirm your Legend starts in the Legend zone and your chosen Champion starts in the Champion zone.
@@ -27,6 +28,9 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - If the chain panel appears, confirm it lists public-safe chain items
   top-to-bottom, shows focus/ready status clearly, and does not expose hidden
   or private card names.
+- If neither player has a legal Gust/Defy response, confirm the chain skips
+  dead response windows and leaves the top item ready to resolve instead of
+  requiring extra Pass Chain clicks.
 - If Defy is in hand during chain focus, confirm it can target a supported
   public spell chain item such as Stacked Deck, counters that item, and prevents
   the Stacked Deck top-card choice from appearing.
@@ -49,7 +53,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - If card data or stat parsing changed, clear or refresh the local card cache.
 - Create a human vs RiftBot room.
 - Load or select a constructed deck, then ready and start.
-- Choose one Battlefield from the three-card setup prompt.
+- Choose one Battlefield from the three-card setup prompt and confirm it appears on the board after both players choose.
 - Keep the opening hand or mulligan at least one card.
 - Confirm RiftBot updates live after mulligan and during its turn.
 - Play a Unit and confirm it stays in Base.
@@ -75,6 +79,12 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Confirm the chain panel status updates do not imply counterspells are
   broadly supported yet; Gust and Defy are the only real alpha Reaction
   responses.
+- Confirm unsupported Reactions such as Not So Fast do not appear playable,
+  even while the chain panel is active.
+- During human vs RiftBot, try clicking an unsupported Reaction such as Not So
+  Fast during a no-chain or opponent-turn window; confirm a local warning
+  appears, the UI does not stay stuck waiting for a server update, and RiftBot
+  continues or ends its turn.
 - Resolve a showdown after the focus/pass cycle completes, then assign combat damage when prompted.
 - In human vs RiftBot, create a multi-unit combat where RiftBot has more combatants than the opposing side; confirm RiftBot assigns all damage, the showdown resolves, and the game does not freeze.
 - If practical, smoke both paths: RiftBot attacking with multiple units and RiftBot defending with multiple units.
@@ -90,6 +100,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Load or select a constructed deck.
 - Ready up, start the game, and confirm the opening mulligan appears.
 - Confirm the Battlefield selection prompt appears before mulligan, then choose one Battlefield.
+- Confirm your selected Battlefield and the opponent/RiftBot selected Battlefield appear on the board after setup and remain non-interactive location displays.
 - Keep the opening hand or mulligan at least one card.
 - Confirm your hand cards are visible to you after mulligan.
 - Confirm RiftBot advances through its turn steps without manual help.
@@ -114,6 +125,13 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - If the opponent has Defy in hand, confirm it can select the Stacked Deck
   chain item from the chain panel, resolves above Stacked Deck, marks Stacked
   Deck countered, and no private Stacked Deck choice appears.
+- If no player has Gust or Defy available, confirm the chain advances directly
+  to `Resolve Chain` without making players click through empty response
+  windows.
+- While RiftBot is active in Main, click an unsupported Reaction card in your
+  hand and confirm the warning does not freeze the client; Copy debug info
+  should include awaiting update, last submitted action, last failure, chain,
+  choice, and legal-action fields.
 - Resolve a showdown after the focus/pass cycle completes, then confirm `Assign Damage` appears before cleanup.
 - Confirm attached Gear returns to Base if its host leaves play in a supported path.
 - Confirm the game log shows readable entries for play, move, target, showdown, scoring, and unsupported-effect messages.

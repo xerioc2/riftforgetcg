@@ -25,6 +25,37 @@ const SHOWDOWN_STEP_LABELS: Record<string, string> = {
   COMPLETE: 'Complete',
 };
 
+export function chainItemsTopToBottom(chainItems: ChainItem[]) {
+  return [...chainItems].reverse();
+}
+
+export function chainItemDisplayLabel(item: ChainItem) {
+  return item.publicDescription || item.sourceCardName || 'Hidden chain item';
+}
+
+export function chainItemStatusLabel(item: ChainItem) {
+  return item.status && item.status !== 'PENDING' ? item.status.toLowerCase() : undefined;
+}
+
+export function chainItemTargetSummary(
+  item: ChainItem,
+  chainItems: ChainItem[],
+  cardNameByInstanceId: Record<string, string> = {},
+) {
+  const effect = item.effectKey ?? '';
+  const targetIds = item.targetInstanceIds ?? [];
+  if (effect === 'STACKED_DECK_PICK_ONE') return 'Target: none';
+  if (effect === 'GUST_RETURN') {
+    const target = targetIds[0];
+    return target ? `Target: ${cardNameByInstanceId[target] ?? 'unit'}` : 'Target: missing';
+  }
+  if (effect === 'DEFY_COUNTER') {
+    const target = chainItems.find((candidate) => candidate.itemId === targetIds[0]);
+    return target ? `Target: ${chainItemDisplayLabel(target)}` : 'Target: chain item';
+  }
+  return undefined;
+}
+
 interface PhaseBarProps {
   currentPhase: string;
   isMyTurn: boolean;
@@ -41,6 +72,8 @@ interface PhaseBarProps {
   chainReadyToResolve?: boolean;
   chainItemCount?: number;
   chainItems?: ChainItem[];
+  chainPlayerNames?: Record<string, string>;
+  chainTargetNames?: Record<string, string>;
   chainTargetSelectionActive?: boolean;
   isChainItemTargetable?: (item: ChainItem) => boolean;
   onChainItemTarget?: (itemId: string) => void;
@@ -68,6 +101,8 @@ export function PhaseBar({
   chainReadyToResolve = false,
   chainItemCount = 0,
   chainItems = [],
+  chainPlayerNames = {},
+  chainTargetNames = {},
   chainTargetSelectionActive = false,
   isChainItemTargetable = () => false,
   onChainItemTarget,
@@ -87,7 +122,12 @@ export function PhaseBar({
   const currentLabel = activeChain && currentPhase === 'MAIN'
     ? `Main Phase - ${chainLabel}`
     : activeShowdown && currentPhase === 'MAIN' ? `Main Phase - ${showdownLabel}` : PHASE_LABELS[currentPhase] ?? currentPhase;
-  const topToBottomChainItems = [...chainItems].reverse();
+  const topToBottomChainItems = chainItemsTopToBottom(chainItems);
+  const chainMessage = chainReadyToResolve
+    ? 'Top chain item is ready to resolve.'
+    : chainTargetSelectionActive
+      ? 'Choose a legal public spell item to counter.'
+      : 'Waiting for chain responses.';
   return (
     <>
       {activeChain ? (
@@ -96,7 +136,7 @@ export function PhaseBar({
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-forge">Chain</p>
               <p className="text-[11px] text-slate-400">
-                {chainReadyToResolve ? 'Top item is ready to resolve.' : 'Waiting for chain responses.'}
+                {chainMessage}
               </p>
             </div>
             {chainFocusName ? <span className="shrink-0 text-xs font-semibold text-slate-200">Focus: {chainFocusName}</span> : null}
@@ -104,18 +144,29 @@ export function PhaseBar({
           {topToBottomChainItems.length > 0 ? (
             <ol className="mt-2 max-h-28 space-y-1 overflow-y-auto">
               {topToBottomChainItems.map((item, index) => {
-                const label = item.publicDescription || item.sourceCardName || 'Hidden chain item';
-                const status = item.status && item.status !== 'PENDING' ? item.status.toLowerCase() : undefined;
+                const label = chainItemDisplayLabel(item);
+                const status = chainItemStatusLabel(item);
+                const controller = chainPlayerNames[item.controllerPlayerId] ?? item.controllerPlayerId;
+                const targetSummary = chainItemTargetSummary(item, chainItems, chainTargetNames);
                 const targetable = chainTargetSelectionActive && isChainItemTargetable(item);
+                const disabledTarget = chainTargetSelectionActive && !targetable;
                 return (
-                  <li key={item.itemId} className={`flex items-center gap-2 border px-2 py-1 text-xs ${targetable ? 'border-mint/70 bg-mint/10' : index === 0 ? 'border-forge/60 bg-forge/10' : 'border-line bg-panel/80'}`}>
+                  <li key={item.itemId} className={`flex items-center gap-2 border px-2 py-1 text-xs ${targetable ? 'border-mint/70 bg-mint/10' : index === 0 ? 'border-forge/60 bg-forge/10' : 'border-line bg-panel/80'} ${disabledTarget ? 'opacity-65' : ''}`}>
                     <span className="shrink-0 text-[10px] font-bold uppercase text-slate-500">{index === 0 ? 'Top' : `#${topToBottomChainItems.length - index}`}</span>
-                    <span className="min-w-0 flex-1 truncate text-slate-100">{label}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="min-w-0 truncate text-slate-100">{label}</span>
+                        {controller ? <span className="shrink-0 text-[10px] text-slate-500">by {controller}</span> : null}
+                      </div>
+                      {targetSummary ? <div className="truncate text-[10px] text-slate-400">{targetSummary}</div> : null}
+                    </div>
                     {status ? <span className="shrink-0 rounded-sm border border-slate-600 px-1.5 py-0.5 text-[10px] uppercase text-slate-300">{status}</span> : null}
                     {targetable ? (
                       <button className="btn-secondary min-h-6 px-2 py-0.5 text-[10px]" onClick={() => onChainItemTarget?.(item.itemId)}>
                         Counter
                       </button>
+                    ) : disabledTarget ? (
+                      <span className="shrink-0 text-[10px] uppercase text-slate-500">Cannot counter</span>
                     ) : null}
                   </li>
                 );

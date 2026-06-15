@@ -9,17 +9,20 @@ import { GameSidebar } from '../components/GameSidebar';
 import { HandRack } from '../components/HandRack';
 import { PhaseBar } from '../components/PhaseBar';
 import { PlayerPanel } from '../components/PlayerPanel';
+import { BattlefieldLocationDisplay } from '../components/board/BattlefieldLocationDisplay';
 import { CardSprite } from '../components/board/CardSprite';
 import { RuneSprite } from '../components/board/RuneSprite';
 import { autoPlaceInZone, computeLayout, runeSlotPositions, type ZoneRect } from '../components/board/BoardLayout';
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
 import { readableHttpError } from '../lib/http';
-import { hasUnsupportedAdditionalCost, isActionCard, isAmbushCard, isDefyCounterCard, isEquipCard, isLegalTargetForMode, isReactionCard, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
+import { canUseSupportedChainResponse, hasUnsupportedAdditionalCost, isActionCard, isAmbushCard, isDefyCounterCard, isEquipCard, isGustReactionCard, isLegalTargetForMode, isReactionCard, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
 import { appBuildLabel, APP_VERSION, BUILD_DATE, BUILD_TAG } from '../lib/appMetadata';
 import { buildDebugInfo } from '../lib/debugInfo';
+import { battlefieldDisplayForPlayer, battlefieldDisplayFrame } from '../lib/battlefieldDisplay';
 import { isBotPlayer, legalActionHint, phaseGuidance, waitingStatusText } from '../lib/gameGuidance';
 import { useLocalPlayer } from '../lib/playerContext';
+import { getServerBuildInfo } from '../lib/serverBuildInfo';
 import { getRoomSessionToken } from '../lib/roomSession';
 import { play, preload } from '../lib/sfx';
 import { createGameClient, joinGame, sendMove } from '../lib/stompGame';
@@ -129,6 +132,9 @@ export function GameBoard() {
   const [handHeight, setHandHeight] = useState(230);
   const [wsConnected, setWsConnected] = useState(false);
   const [waitingTooLong, setWaitingTooLong] = useState(false);
+  const [awaitingServerUpdate, setAwaitingServerUpdate] = useState(false);
+  const [lastSubmittedActionType, setLastSubmittedActionType] = useState<string | null>(null);
+  const [lastActionFailureMessage, setLastActionFailureMessage] = useState<string | null>(null);
   const boardFrameRef = useRef<HTMLDivElement | null>(null);
   const stompClientRef = useRef<Client | null>(null);
   const prevCards = useRef<Map<string, CardInstance>>(new Map());
@@ -157,6 +163,14 @@ export function GameBoard() {
     }
     return positionsByOwner;
   }, [playerIds, zones]);
+  const battlefieldDisplays = useMemo(() => {
+    if (!state) return [];
+    return state.players.flatMap((statePlayer) => {
+      const display = battlefieldDisplayForPlayer(statePlayer, cardsById);
+      const zone = zones.find((candidate) => candidate.zoneName === 'battlefield' && candidate.ownerId === statePlayer.userId);
+      return display && zone ? [{ ...display, frame: battlefieldDisplayFrame(zone) }] : [];
+    });
+  }, [cardsById, state, zones]);
   const hand = useMemo(() => (state?.cards ?? []).filter((card) => card.ownerId === player.id && sameZone(card.zone, 'hand')), [player.id, state?.cards]);
   const handInstanceKey = useMemo(() => hand.map((card) => card.instanceId).sort().join(','), [hand]);
   const hasMulliganed = state?.mulligansDone?.includes(player.id) ?? false;
@@ -265,6 +279,7 @@ export function GameBoard() {
       }
       prevCards.current = new Map(incoming.cards.map((card) => [card.instanceId, card]));
       prevState.current = incoming;
+      setAwaitingServerUpdate(false);
       setState(incoming);
     },
     [player.id, setState],
@@ -309,7 +324,15 @@ export function GameBoard() {
             }
             if (msg.type === 'ERROR') {
               addChat({ id: crypto.randomUUID(), userId: msg.playerId, email: null, text: msg.message, sentAt: new Date().toISOString() });
+              setAwaitingServerUpdate(false);
+              setLastActionFailureMessage(msg.message);
               notifyError('Action failed', msg.message);
+              window.setTimeout(() => {
+                void fetch(playerStateUrl)
+                  .then((r) => (r.ok ? r.json() as Promise<LiveGameState> : Promise.reject(new Error('State refresh failed.'))))
+                  .then(handleIncomingState)
+                  .catch(() => notifyWarning('Unable to refresh state after failed action.'));
+              }, 250);
             }
           },
           () => joinGame(client, roomCode),
@@ -364,6 +387,21 @@ export function GameBoard() {
       .catch(() => notifyWarning('Unable to refresh state.'));
   }, [handleIncomingState, playerStateUrl]);
 
+  useEffect(() => {
+    if (!awaitingServerUpdate) return;
+    const timer = window.setTimeout(() => {
+      setAwaitingServerUpdate(false);
+      fetchProjectedState();
+    }, 2500);
+    return () => window.clearTimeout(timer);
+  }, [awaitingServerUpdate, fetchProjectedState]);
+
+  useEffect(() => {
+    if (!waitingTooLong) return;
+    notifyWarning('Still waiting for server update', 'Refreshing the current game state once.');
+    fetchProjectedState();
+  }, [fetchProjectedState, waitingTooLong]);
+
   const publishMove = (move: Parameters<typeof sendMove>[2]) => {
     if (!stompClientRef.current || !wsConnected) {
       addChat({
@@ -376,6 +414,9 @@ export function GameBoard() {
       notifyWarning('Connection is not ready', 'RiftForge is reconnecting. Try again in a moment.');
       return;
     }
+    setAwaitingServerUpdate(true);
+    setLastSubmittedActionType(move.type);
+    setLastActionFailureMessage(null);
     sendMove(stompClientRef.current, roomCode, move);
     window.setTimeout(fetchProjectedState, 300);
   };
@@ -533,6 +574,16 @@ export function GameBoard() {
   };
 
   const legalDefyChainTargets = () => (state?.chainState?.chainItems ?? []).filter(isLegalDefyChainTarget);
+
+  const hasLegalGustChainTarget = () => legalTargetsForMode('GUST_BATTLEFIELD_UNIT').length > 0;
+
+  const canPlayChainReactionCard = (card: RiftCard | undefined) => {
+    return chainActive && canUseSupportedChainResponse(card, {
+      canPlayCard: canTakeAction(state, 'PLAY_CARD'),
+      hasLegalGustTarget: hasLegalGustChainTarget(),
+      hasLegalDefyTarget: legalDefyChainTargets().length > 0,
+    });
+  };
 
   const beginChainTargetSelection = (instanceId: string) => {
     if (legalDefyChainTargets().length === 0) {
@@ -707,6 +758,10 @@ export function GameBoard() {
       }
       if (!canTakeAction(state, 'PLAY_CARD')) {
         notifyWarning('Reaction unavailable', 'Wait for your chain focus before playing a Reaction.');
+        return;
+      }
+      if (isGustReactionCard(cardDef)) {
+        beginTargetSelection(instanceId, 'GUST_BATTLEFIELD_UNIT');
         return;
       }
       if (isDefyCounterCard(cardDef)) {
@@ -1016,6 +1071,10 @@ export function GameBoard() {
       appVersion: APP_VERSION,
       buildTag: BUILD_TAG,
       buildDate: BUILD_DATE,
+      ...getServerBuildInfo(),
+      awaitingServerUpdate,
+      lastSubmittedActionType,
+      lastActionFailureMessage,
     });
 
   const copyDebugInfo = async () => {
@@ -1138,6 +1197,13 @@ export function GameBoard() {
   const selectedBattlefield = me?.selectedBattlefieldId ?? null;
   const chainItems = state.chainState?.chainItems ?? [];
   const topChainItem = chainItems.length > 0 ? chainItems[chainItems.length - 1] : undefined;
+  const chainPlayerNames = Object.fromEntries(state.players.map((statePlayer) => [
+    statePlayer.userId,
+    statePlayer.userId === player.id ? 'you' : statePlayer.name || statePlayer.userId,
+  ]));
+  const chainTargetNames = Object.fromEntries(state.cards
+    .filter((instance) => !instance.faceDown && !['hand', 'deck', 'hidden'].includes(instance.zone.toLowerCase()))
+    .map((instance) => [instance.instanceId, cardsById.get(instance.cardId)?.name ?? 'card']));
   const guidanceText = phaseGuidance(
     state.currentPhase,
     showdownActive,
@@ -1248,6 +1314,18 @@ export function GameBoard() {
         >
           <Layer listening={false}>
             <ZoneOverlay zones={zones} />
+          </Layer>
+          <Layer>
+            {battlefieldDisplays.map((display) => (
+              <BattlefieldLocationDisplay
+                key={`selected-battlefield-${display.playerId}`}
+                frame={display.frame}
+                card={display.card}
+                label={display.label}
+                imageUrl={display.imageUrl}
+                onHover={setHoveredCard}
+              />
+            ))}
           </Layer>
           <Layer>
             {state.players.flatMap((statePlayer) => {
@@ -1418,6 +1496,8 @@ export function GameBoard() {
         chainReadyToResolve={state.chainState?.readyToResolveTop}
         chainItemCount={state.chainState?.chainItems?.length ?? 0}
         chainItems={state.chainState?.chainItems ?? []}
+        chainPlayerNames={chainPlayerNames}
+        chainTargetNames={chainTargetNames}
         chainTargetSelectionActive={Boolean(pendingChainTargetSelection)}
         isChainItemTargetable={isLegalDefyChainTarget}
         onChainItemTarget={(itemId) => {
@@ -1520,6 +1600,7 @@ export function GameBoard() {
           canAmbushCards={canAmbushCards}
           canHideCards={canHideCards}
           canPlayReactions={canPlayReactions}
+          canPlayReactionCard={canPlayChainReactionCard}
           embedded
           maxHeight={handHeight}
         />

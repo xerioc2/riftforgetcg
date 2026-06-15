@@ -90,6 +90,16 @@ export function isSupportedChainReactionCard(card: RiftCard | undefined) {
   return isGustReactionCard(card) || isDefyCounterCard(card);
 }
 
+export function canUseSupportedChainResponse(
+  card: RiftCard | undefined,
+  options: { canPlayCard: boolean; hasLegalGustTarget: boolean; hasLegalDefyTarget: boolean },
+) {
+  if (!options.canPlayCard) return false;
+  if (isGustReactionCard(card)) return options.hasLegalGustTarget;
+  if (isDefyCounterCard(card)) return options.hasLegalDefyTarget;
+  return false;
+}
+
 export function isAmbushCard(card: RiftCard | undefined) {
   return bracketedTiming(card, 'ambush')
     || (card?.keywords ?? []).some((keyword) => keyword.toUpperCase().startsWith('AMBUSH'));

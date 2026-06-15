@@ -62,6 +62,14 @@ class LegalActionsFlowIntegrationTest {
         .filter(player -> "p1".equals(player.getUserId()))
         .findFirst()
         .orElseThrow()
+        .getSelectedBattlefieldId()).isNull();
+
+    fx.gameService.processMove(ROOM, new SelectBattlefieldMove("p2", "battlefield-1"));
+
+    assertThat(fx.gameService.currentStateFor(ROOM, "p2").getPlayers().stream()
+        .filter(player -> "p1".equals(player.getUserId()))
+        .findFirst()
+        .orElseThrow()
         .getSelectedBattlefieldId()).isEqualTo("battlefield-0");
   }
 

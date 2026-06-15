@@ -19,4 +19,19 @@ describe('gameGuidance', () => {
       effectKey: 'STACKED_DECK_PICK_ONE',
     })).toBe('Resolve Stacked Deck on the chain to choose from the top cards.');
   });
+
+  it('explains that countered and fizzled items are cleared from the chain', () => {
+    expect(phaseGuidance('MAIN', false, undefined, true, true, {
+      itemId: 'item-1',
+      controllerPlayerId: 'p1',
+      publicDescription: 'Stacked Deck',
+      status: 'COUNTERED',
+    })).toBe('Countered items are skipped when they reach the top of the chain.');
+    expect(phaseGuidance('MAIN', false, undefined, true, true, {
+      itemId: 'item-2',
+      controllerPlayerId: 'p1',
+      publicDescription: 'Gust',
+      status: 'FIZZLED',
+    })).toBe('Fizzled items are cleared when they reach the top of the chain.');
+  });
 });
