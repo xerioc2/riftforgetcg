@@ -276,6 +276,19 @@ public class CardDataService {
     return hasBracketedTiming(def, "reaction");
   }
 
+  public boolean isGustReaction(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().toLowerCase();
+    boolean gustName = def.name() != null && def.name().trim().equalsIgnoreCase("Gust");
+    return "Spell".equalsIgnoreCase(def.type())
+        && isReactionCard(def)
+        && gustName
+        && text.contains("return a unit")
+        && text.contains("battlefield")
+        && (text.contains("3") || text.contains("three"))
+        && text.contains("owner");
+  }
+
   public boolean isHiddenCard(CardDefinition def) {
     if (def == null) return false;
     boolean keyword = def.keywords() != null
@@ -321,14 +334,19 @@ public class CardDataService {
         || supportedFriendlyEnemyReturn
         || normalized.contains("ready it")
         || normalized.contains("draw 1")
-        || isStackedDeckEffect(normalized);
+        || isStackedDeckEffectText(normalized);
     return normalized.contains("counter a spell")
         || normalized.contains("counter an enemy spell")
         || requiresMultipleTargets
         || !supportedEffect;
   }
 
-  private boolean isStackedDeckEffect(String normalized) {
+  public boolean isStackedDeckEffect(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    return "Spell".equalsIgnoreCase(def.type()) && isStackedDeckEffectText(def.rulesText().toLowerCase());
+  }
+
+  private boolean isStackedDeckEffectText(String normalized) {
     return normalized.contains("look at the top 3")
         && normalized.contains("put 1")
         && normalized.contains("hand")

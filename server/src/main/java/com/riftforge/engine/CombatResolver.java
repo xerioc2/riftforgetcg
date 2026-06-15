@@ -11,6 +11,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -22,13 +23,20 @@ public class CombatResolver {
   private final CardZoneService cardZoneService;
   private final CombatStatsService combatStatsService;
   private final DeathTriggerService deathTriggerService;
+  private final CombatDamageRules combatDamageRules;
 
   public CombatResolver(CardDataService cardDataService, CardEffectRegistry effects, CardZoneService cardZoneService, CombatStatsService combatStatsService, DeathTriggerService deathTriggerService) {
+    this(cardDataService, effects, cardZoneService, combatStatsService, deathTriggerService, new CombatDamageRules(cardDataService));
+  }
+
+  @Autowired
+  public CombatResolver(CardDataService cardDataService, CardEffectRegistry effects, CardZoneService cardZoneService, CombatStatsService combatStatsService, DeathTriggerService deathTriggerService, CombatDamageRules combatDamageRules) {
     this.cardDataService = cardDataService;
     this.effects = effects;
     this.cardZoneService = cardZoneService;
     this.combatStatsService = combatStatsService;
     this.deathTriggerService = deathTriggerService;
+    this.combatDamageRules = combatDamageRules;
   }
 
   public CombatResult resolve(LiveGameState state, String attackingPlayerId) {
@@ -49,6 +57,52 @@ public class CombatResolver {
         .noneMatch(card -> card.getZone() == ZoneName.BATTLEFIELD && !attackingPlayerId.equals(card.getOwnerId()));
     healSurvivors(state);
     return new CombatResult(attackersRemain, defendersEliminated);
+  }
+
+  public CombatResult resolveAssigned(
+      LiveGameState state,
+      String attackingPlayerId,
+      List<LiveGameState.CombatDamageAssignment> attackerAssignments,
+      List<LiveGameState.CombatDamageAssignment> defenderAssignments) {
+    Map<String, Integer> damage = new HashMap<>();
+    for (LiveGameState.CombatDamageAssignment assignment : attackerAssignments) {
+      damage.merge(assignment.targetInstanceId(), assignment.amount(), Integer::sum);
+    }
+    for (LiveGameState.CombatDamageAssignment assignment : defenderAssignments) {
+      damage.merge(assignment.targetInstanceId(), assignment.amount(), Integer::sum);
+    }
+    applyDamage(state, damage);
+
+    boolean attackersRemain = !battlefieldCombatants(state, attackingPlayerId).isEmpty();
+    boolean defendersEliminated = state.getCards().stream()
+        .filter(this::isCombatant)
+        .noneMatch(card -> card.getZone() == ZoneName.BATTLEFIELD && !attackingPlayerId.equals(card.getOwnerId()));
+    healSurvivors(state);
+    return new CombatResult(attackersRemain, defendersEliminated);
+  }
+
+  public List<CardInstance> battlefieldCombatants(LiveGameState state, String playerId) {
+    return state.getCards().stream()
+        .filter(this::isCombatant)
+        .filter(card -> card.getZone() == ZoneName.BATTLEFIELD && playerId.equals(card.getOwnerId()))
+        .toList();
+  }
+
+  public List<CardInstance> opposingBattlefieldCombatants(LiveGameState state, String playerId) {
+    return state.getCards().stream()
+        .filter(this::isCombatant)
+        .filter(card -> card.getZone() == ZoneName.BATTLEFIELD && !playerId.equals(card.getOwnerId()))
+        .toList();
+  }
+
+  public int lethalDamage(CardInstance card) {
+    return combatDamageRules.lethalDamage(card);
+  }
+
+  public boolean isCombatant(CardInstance card) {
+    if (card == null || card.getZone() != ZoneName.BATTLEFIELD || card.isFaceDown()) return false;
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    return def != null && ("Unit".equalsIgnoreCase(def.type()) || "Champion".equalsIgnoreCase(def.type()));
   }
 
   private void assignDamage(List<CardInstance> sources, List<CardInstance> targets, Map<String, Integer> damage, boolean attacking) {
@@ -92,12 +146,6 @@ public class CombatResolver {
     return 1;
   }
 
-  private int lethalDamage(CardInstance card) {
-    int currentHealth = card.getCurrentHealth();
-    if (currentHealth <= 0) currentHealth = cardDataService.getCard(card.getCardId()).health();
-    return Math.max(1, currentHealth);
-  }
-
   private void destroy(LiveGameState state, CardInstance card) {
     CardDefinition def = cardDataService.getCard(card.getCardId());
     List<CardInstance> returnedAttachments = cardZoneService.returnAttachmentsToBase(state, card);
@@ -124,6 +172,7 @@ public class CombatResolver {
 
   private List<CardInstance> battlefieldCards(LiveGameState state, String playerId) {
     return state.getCards().stream()
+        .filter(this::isCombatant)
         .filter(card -> card.getZone() == ZoneName.BATTLEFIELD && playerId.equals(card.getOwnerId()))
         .toList();
   }

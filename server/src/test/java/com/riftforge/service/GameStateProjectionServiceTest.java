@@ -11,6 +11,7 @@ import com.riftforge.model.PendingChoice;
 import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
 import com.riftforge.model.RevealedHandSnapshot;
+import com.riftforge.model.ShowdownStep;
 import com.riftforge.model.ZoneName;
 import com.riftforge.rules.LegalAction;
 import com.riftforge.rules.LegalActionsService;
@@ -299,14 +300,14 @@ class GameStateProjectionServiceTest {
   }
 
   @Test
-  void activeShowdownProjectionOnlyIncludesResolveForAttacker() {
+  void activeShowdownProjectionOnlyIncludesPassFocusForFocusedAttacker() {
     LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.ENFORCED);
     state.setActiveShowdown(new LiveGameState.ShowdownState("p1", List.of("attacker"), Map.of()));
 
     LiveGameState view = projectionService.toPublicView(state, "p1");
 
     assertThat(view.getLegalActions())
-        .containsExactly(LegalAction.RESOLVE_SHOWDOWN);
+        .containsExactly(LegalAction.PASS_SHOWDOWN_FOCUS);
   }
 
   @Test
@@ -325,6 +326,185 @@ class GameStateProjectionServiceTest {
             LegalAction.PASS_PHASE,
             LegalAction.END_TURN)
         .isEmpty();
+  }
+
+  @Test
+  void activeShowdownFocusStateSurvivesProjection() {
+    LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.ENFORCED);
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        "p1",
+        List.of("attacker"),
+        Map.of("attacker", 1),
+        ShowdownStep.ACTION_WINDOW,
+        List.of("p1", "p2"),
+        "p2",
+        1,
+        false));
+
+    LiveGameState view = projectionService.toPublicView(state, "p2");
+
+    assertThat(view.getActiveShowdown()).isNotNull();
+    assertThat(view.getActiveShowdown().relevantPlayerIds()).containsExactly("p1", "p2");
+    assertThat(view.getActiveShowdown().focusedPlayerId()).isEqualTo("p2");
+    assertThat(view.getActiveShowdown().consecutivePasses()).isEqualTo(1);
+    assertThat(view.getActiveShowdown().readyToResolve()).isFalse();
+  }
+
+  @Test
+  void activeShowdownReadyToResolveSurvivesProjection() {
+    LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.ENFORCED);
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        "p1",
+        List.of("attacker"),
+        Map.of(),
+        ShowdownStep.ACTION_WINDOW,
+        List.of("p1", "p2"),
+        "p1",
+        2,
+        true));
+
+    LiveGameState view = projectionService.toPublicView(state, "p1");
+
+    assertThat(view.getActiveShowdown()).isNotNull();
+    assertThat(view.getActiveShowdown().focusedPlayerId()).isEqualTo("p1");
+    assertThat(view.getActiveShowdown().consecutivePasses()).isEqualTo(2);
+    assertThat(view.getActiveShowdown().readyToResolve()).isTrue();
+    assertThat(view.getLegalActions()).containsExactly(LegalAction.RESOLVE_SHOWDOWN);
+  }
+
+  @Test
+  void activeShowdownDamageAssignmentStateSurvivesProjection() {
+    LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.ENFORCED);
+    LiveGameState.CombatDamageAssignment assignment =
+        new LiveGameState.CombatDamageAssignment("attacker", "defender", 2);
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        "p1",
+        List.of("attacker"),
+        Map.of(),
+        ShowdownStep.ASSIGN_DAMAGE,
+        List.of("p1", "p2"),
+        "p1",
+        2,
+        true,
+        "p2",
+        List.of(assignment),
+        List.of()));
+
+    LiveGameState view = projectionService.toPublicView(state, "p2");
+
+    assertThat(view.getActiveShowdown()).isNotNull();
+    assertThat(view.getActiveShowdown().step()).isEqualTo(ShowdownStep.ASSIGN_DAMAGE);
+    assertThat(view.getActiveShowdown().assigningPlayerId()).isEqualTo("p2");
+    assertThat(view.getActiveShowdown().attackerAssignments()).containsExactly(assignment);
+    assertThat(view.getLegalActions()).containsExactly(LegalAction.ASSIGN_COMBAT_DAMAGE);
+  }
+
+  @Test
+  void activeChainStateSurvivesProjectionWithFocusedLegalActionsOnly() {
+    LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.ENFORCED);
+    state.setChainState(new LiveGameState.ChainState(
+        "chain-1",
+        List.of(new LiveGameState.ChainItem(
+            "item-1",
+            "p1",
+            "source-1",
+            "source-card",
+            "Source Card",
+            LiveGameState.ChainItem.EFFECT_NO_OP_TEST,
+            List.of("target-1"),
+            1,
+            "public chain item")),
+        List.of("p1", "p2"),
+        "p2",
+        1,
+        false,
+        "SHOWDOWN_ACTION"));
+
+    LiveGameState focusedView = projectionService.toPublicView(state, "p2");
+    LiveGameState otherView = projectionService.toPublicView(state, "p1");
+    LiveGameState spectatorView = projectionService.toPublicView(state, null);
+
+    assertThat(focusedView.getChainState()).isNotNull();
+    assertThat(focusedView.getChainState().focusedPlayerId()).isEqualTo("p2");
+    assertThat(focusedView.getChainState().chainItems()).singleElement()
+        .satisfies(item -> {
+          assertThat(item.publicDescription()).isEqualTo("public chain item");
+          assertThat(item.targetInstanceIds()).containsExactly("target-1");
+        });
+    assertThat(focusedView.getLegalActions()).containsExactly(LegalAction.PASS_CHAIN_FOCUS);
+    assertThat(otherView.getChainState()).isNotNull();
+    assertThat(otherView.getLegalActions()).isEmpty();
+    assertThat(spectatorView.getChainState()).isNotNull();
+    assertThat(spectatorView.getLegalActions()).isEmpty();
+  }
+
+  @Test
+  void publicChainItemShowsSafeSourceInfoToBothPlayersAndSpectator() {
+    LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.ENFORCED);
+    state.setChainState(chainState(new LiveGameState.ChainItem(
+        "item-1",
+        "p1",
+        "source-1",
+        "public-card",
+        "Public Card",
+        LiveGameState.ChainItem.EFFECT_NO_OP_TEST,
+        List.of("public-target"),
+        1,
+        "public card effect",
+        LiveGameState.ChainItem.VISIBILITY_PUBLIC)));
+
+    for (String viewerId : List.of("p1", "p2")) {
+      LiveGameState.ChainItem item = projectionService.toPublicView(state, viewerId)
+          .getChainState()
+          .chainItems()
+          .getFirst();
+      assertThat(item.sourceCardInstanceId()).isEqualTo("source-1");
+      assertThat(item.sourceCardId()).isEqualTo("public-card");
+      assertThat(item.sourceCardName()).isEqualTo("Public Card");
+      assertThat(item.effectKey()).isEqualTo(LiveGameState.ChainItem.EFFECT_NO_OP_TEST);
+      assertThat(item.targetInstanceIds()).containsExactly("public-target");
+    }
+
+    LiveGameState.ChainItem spectatorItem = projectionService.toPublicView(state, null)
+        .getChainState()
+        .chainItems()
+        .getFirst();
+    assertThat(spectatorItem.sourceCardId()).isEqualTo("public-card");
+    assertThat(spectatorItem.targetInstanceIds()).containsExactly("public-target");
+  }
+
+  @Test
+  void controllerOnlyChainItemMasksSourceEffectAndTargetsFromOpponentAndSpectator() throws Exception {
+    LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.ENFORCED);
+    state.setChainState(chainState(new LiveGameState.ChainItem(
+        "item-1",
+        "p1",
+        "private-source-instance",
+        "private-hidden-card",
+        "Private Hidden Card",
+        "PRIVATE_HIDDEN_EFFECT",
+        List.of("private-hidden-target"),
+        1,
+        "A hidden effect",
+        LiveGameState.ChainItem.VISIBILITY_CONTROLLER_ONLY)));
+
+    LiveGameState controllerView = projectionService.toPublicView(state, "p1");
+    LiveGameState opponentView = projectionService.toPublicView(state, "p2");
+    LiveGameState spectatorView = projectionService.toPublicView(state, null);
+
+    LiveGameState.ChainItem controllerItem = controllerView.getChainState().chainItems().getFirst();
+    assertThat(controllerItem.sourceCardInstanceId()).isEqualTo("private-source-instance");
+    assertThat(controllerItem.sourceCardId()).isEqualTo("private-hidden-card");
+    assertThat(controllerItem.sourceCardName()).isEqualTo("Private Hidden Card");
+    assertThat(controllerItem.effectKey()).isEqualTo("PRIVATE_HIDDEN_EFFECT");
+    assertThat(controllerItem.targetInstanceIds()).containsExactly("private-hidden-target");
+
+    assertMaskedChainItem(opponentView.getChainState().chainItems().getFirst());
+    assertMaskedChainItem(spectatorView.getChainState().chainItems().getFirst());
+    assertThat(objectMapper.writeValueAsString(opponentView))
+        .doesNotContain("private-source-instance", "private-hidden-card", "Private Hidden Card", "PRIVATE_HIDDEN_EFFECT", "private-hidden-target");
+    assertThat(objectMapper.writeValueAsString(spectatorView))
+        .doesNotContain("private-source-instance", "private-hidden-card", "Private Hidden Card", "PRIVATE_HIDDEN_EFFECT", "private-hidden-target");
   }
 
   @Test
@@ -497,6 +677,17 @@ class GameStateProjectionServiceTest {
     return new CardDefinition(id, name, "Unit", null, List.of(), 0, 1, null, null, null, "Private rules text", 1, 1, List.of());
   }
 
+  private LiveGameState.ChainState chainState(LiveGameState.ChainItem item) {
+    return new LiveGameState.ChainState(
+        "chain-1",
+        List.of(item),
+        List.of("p1", "p2"),
+        "p1",
+        0,
+        false,
+        "TEST");
+  }
+
   private void assertAttachedGearIsPublic(LiveGameState view) {
     assertThat(view.getCards()).anySatisfy(card -> {
       assertThat(card.getInstanceId()).isEqualTo("gear");
@@ -504,5 +695,14 @@ class GameStateProjectionServiceTest {
       assertThat(card.getZone()).isEqualTo(ZoneName.BASE);
       assertThat(card.getAttachedToInstanceId()).isEqualTo("host");
     });
+  }
+
+  private void assertMaskedChainItem(LiveGameState.ChainItem item) {
+    assertThat(item.sourceCardInstanceId()).isNull();
+    assertThat(item.sourceCardId()).isEqualTo(GameStateProjectionService.HIDDEN_CARD_ID);
+    assertThat(item.sourceCardName()).isEqualTo("Hidden chain item");
+    assertThat(item.effectKey()).isNull();
+    assertThat(item.targetInstanceIds()).isEmpty();
+    assertThat(item.publicDescription()).isEqualTo("A hidden effect");
   }
 }

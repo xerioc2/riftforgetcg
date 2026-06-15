@@ -29,11 +29,110 @@ public class LiveGameState {
   private GameMode gameMode = GameMode.ENFORCED;
   private Set<LegalAction> legalActions = new HashSet<>();
   private PendingChoice pendingChoice;
+  private ChainState chainState;
 
   public record LogEntry(String id, String timestamp, String userId, String text) {}
-  public record ShowdownState(String attackingPlayerId, List<String> attackerInstanceIds, Map<String, Integer> gankingBonuses, ShowdownStep step) {
+  public record ShowdownState(
+      String attackingPlayerId,
+      List<String> attackerInstanceIds,
+      Map<String, Integer> gankingBonuses,
+      ShowdownStep step,
+      List<String> relevantPlayerIds,
+      String focusedPlayerId,
+      int consecutivePasses,
+      boolean readyToResolve,
+      String assigningPlayerId,
+      List<CombatDamageAssignment> attackerAssignments,
+      List<CombatDamageAssignment> defenderAssignments) {
     public ShowdownState(String attackingPlayerId, List<String> attackerInstanceIds, Map<String, Integer> gankingBonuses) {
       this(attackingPlayerId, attackerInstanceIds, gankingBonuses, ShowdownStep.ACTION_WINDOW);
+    }
+
+    public ShowdownState(String attackingPlayerId, List<String> attackerInstanceIds, Map<String, Integer> gankingBonuses, ShowdownStep step) {
+      this(attackingPlayerId, attackerInstanceIds, gankingBonuses, step, List.of(), attackingPlayerId, 0, false, null, List.of(), List.of());
+    }
+
+    public ShowdownState(
+        String attackingPlayerId,
+        List<String> attackerInstanceIds,
+        Map<String, Integer> gankingBonuses,
+        ShowdownStep step,
+        List<String> relevantPlayerIds,
+        String focusedPlayerId,
+        int consecutivePasses,
+        boolean readyToResolve) {
+      this(attackingPlayerId, attackerInstanceIds, gankingBonuses, step, relevantPlayerIds, focusedPlayerId, consecutivePasses, readyToResolve, null, List.of(), List.of());
+    }
+  }
+
+  public record CombatDamageAssignment(String sourceInstanceId, String targetInstanceId, int amount) {}
+
+  public record ChainState(
+      String chainId,
+      List<ChainItem> chainItems,
+      List<String> relevantPlayerIds,
+      String focusedPlayerId,
+      int consecutivePasses,
+      boolean readyToResolveTop,
+      String sourceContext) {
+    public ChainState {
+      chainItems = chainItems == null ? List.of() : List.copyOf(chainItems);
+      relevantPlayerIds = relevantPlayerIds == null ? List.of() : List.copyOf(relevantPlayerIds);
+    }
+
+    public ChainItem topItem() {
+      return chainItems.isEmpty() ? null : chainItems.get(chainItems.size() - 1);
+    }
+  }
+
+  public record ChainItem(
+      String itemId,
+      String controllerPlayerId,
+      String sourceCardInstanceId,
+      String sourceCardId,
+      String sourceCardName,
+      String effectKey,
+      List<String> targetInstanceIds,
+      int order,
+      String publicDescription,
+      String visibility) {
+    public static final String VISIBILITY_PUBLIC = "PUBLIC";
+    public static final String VISIBILITY_CONTROLLER_ONLY = "CONTROLLER_ONLY";
+    public static final String EFFECT_NO_OP_TEST = "NO_OP_TEST";
+    public static final String EFFECT_DRAW_1_TEST = "DRAW_1_TEST";
+    public static final String EFFECT_GUST_RETURN = "GUST_RETURN";
+    public static final String EFFECT_STACKED_DECK_PICK_ONE = "STACKED_DECK_PICK_ONE";
+
+    public ChainItem(
+        String itemId,
+        String controllerPlayerId,
+        String sourceCardInstanceId,
+        String sourceCardId,
+        String sourceCardName,
+        String effectKey,
+        List<String> targetInstanceIds,
+        int order,
+        String publicDescription) {
+      this(
+          itemId,
+          controllerPlayerId,
+          sourceCardInstanceId,
+          sourceCardId,
+          sourceCardName,
+          effectKey,
+          targetInstanceIds,
+          order,
+          publicDescription,
+          VISIBILITY_PUBLIC);
+    }
+
+    public ChainItem {
+      targetInstanceIds = targetInstanceIds == null ? List.of() : List.copyOf(targetInstanceIds);
+      visibility = visibility == null || visibility.isBlank() ? VISIBILITY_PUBLIC : visibility;
+    }
+
+    public boolean isPubliclyVisible() {
+      return VISIBILITY_PUBLIC.equalsIgnoreCase(visibility);
     }
   }
 
@@ -77,4 +176,6 @@ public class LiveGameState {
   public void setLegalActions(Set<LegalAction> legalActions) { this.legalActions = legalActions == null ? new HashSet<>() : legalActions; }
   public PendingChoice getPendingChoice() { return pendingChoice; }
   public void setPendingChoice(PendingChoice pendingChoice) { this.pendingChoice = pendingChoice; }
+  public ChainState getChainState() { return chainState; }
+  public void setChainState(ChainState chainState) { this.chainState = chainState; }
 }

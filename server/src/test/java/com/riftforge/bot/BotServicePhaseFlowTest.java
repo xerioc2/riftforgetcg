@@ -5,6 +5,7 @@ import static com.riftforge.bot.BotConstants.BOT_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import com.riftforge.effect.CardEffectRegistry;
@@ -16,15 +17,19 @@ import com.riftforge.engine.GameEngine;
 import com.riftforge.engine.IllegalMoveException;
 import com.riftforge.engine.RulesValidator;
 import com.riftforge.engine.TokenFactory;
+import com.riftforge.model.CardInstance;
 import com.riftforge.model.CardDefinition;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.LobbyPlayer;
 import com.riftforge.model.PendingChoice;
 import com.riftforge.model.Phase;
 import com.riftforge.model.RoomState;
+import com.riftforge.model.ShowdownStep;
 import com.riftforge.model.ZoneName;
 import com.riftforge.rules.LegalAction;
+import com.riftforge.model.move.AssignCombatDamageMove;
 import com.riftforge.model.move.PassPhaseMove;
+import com.riftforge.model.move.PassShowdownFocusMove;
 import com.riftforge.model.move.PlayCardMove;
 import com.riftforge.rules.LegalActionsService;
 import com.riftforge.service.CardDataService;
@@ -384,6 +389,300 @@ class BotServicePhaseFlowTest {
   }
 
   @Test
+  void botPassesShowdownFocusWhenLegal() throws Exception {
+    BotService gatedBot = new BotService(
+        gameService,
+        cardDataService,
+        new FixedLegalActionsService((state, playerId) -> Set.of(LegalAction.PASS_SHOWDOWN_FOCUS)));
+    String roomCode = "FOCS";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setCurrentPhase(Phase.MAIN);
+    state.setActivePlayerId(BOT_ID);
+    state.getCards().add(testCard("bot-attacker", BOT_ID, ZoneName.BATTLEFIELD));
+    state.getCards().add(testCard("human-defender", "human", ZoneName.BATTLEFIELD));
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        BOT_ID,
+        List.of("bot-attacker"),
+        Map.of(),
+        ShowdownStep.ACTION_WINDOW,
+        List.of(BOT_ID, "human"),
+        BOT_ID,
+        1,
+        false));
+
+    gatedBot.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+    LiveGameState latest = waitUntilShowdownReady(gameService, roomCode);
+    latest.setWinnerId("test-complete");
+
+    assertThat(latest.getActiveShowdown()).isNotNull();
+    assertThat(latest.getActiveShowdown().readyToResolve()).isTrue();
+    assertThat(latest.getActiveShowdown().focusedPlayerId()).isEqualTo(BOT_ID);
+  }
+
+  @Test
+  void botPassesChainFocusWhenLegal() throws Exception {
+    String roomCode = "CHNP";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setCurrentPhase(Phase.MAIN);
+    state.setActivePlayerId(BOT_ID);
+    state.setChainState(chain(false, BOT_ID));
+
+    botService.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+    LiveGameState latest = waitUntilChainFocus(gameService, roomCode, "human");
+    latest.setWinnerId("test-complete");
+
+    assertThat(latest.getChainState()).isNotNull();
+    assertThat(latest.getChainState().focusedPlayerId()).isEqualTo("human");
+    assertThat(latest.getChainState().consecutivePasses()).isEqualTo(1);
+    waitForNoActingRooms();
+  }
+
+  @Test
+  void botResolvesReadyChainTopWhenLegal() throws Exception {
+    String roomCode = "CHNR";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setCurrentPhase(Phase.MAIN);
+    state.setActivePlayerId(BOT_ID);
+    state.setChainState(chain(true, BOT_ID));
+
+    botService.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+    LiveGameState latest = waitUntilNoChain(gameService, roomCode);
+    latest.setWinnerId("test-complete");
+
+    assertThat(latest.getChainState()).isNull();
+    assertThat(latest.getLog()).anyMatch(entry -> entry.text().equals("Chain resolved."));
+    waitForNoActingRooms();
+  }
+
+  @Test
+  void botPassesFocusThenResolvesOnlyAfterShowdownIsReady() throws Exception {
+    String roomCode = "BFRS";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    add("bot-attacker", "Unit", 2);
+    add("human-defender", "Unit", 1);
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setCurrentPhase(Phase.MAIN);
+    state.setActivePlayerId(BOT_ID);
+    CardInstance attacker = testCard("bot-attacker", BOT_ID, ZoneName.BATTLEFIELD);
+    attacker.setCurrentHealth(2);
+    CardInstance defender = testCard("human-defender", "human", ZoneName.BATTLEFIELD);
+    defender.setCurrentHealth(1);
+    state.getCards().add(attacker);
+    state.getCards().add(defender);
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        BOT_ID,
+        List.of("bot-attacker"),
+        Map.of(),
+        ShowdownStep.ACTION_WINDOW,
+        List.of(BOT_ID, "human"),
+        "human",
+        0,
+        false));
+
+    gameService.processMove(roomCode, new PassShowdownFocusMove("human"));
+    LiveGameState afterHumanPass = gameService.currentState(roomCode);
+    assertThat(afterHumanPass.getActiveShowdown()).isNotNull();
+    assertThat(afterHumanPass.getActiveShowdown().readyToResolve()).isFalse();
+    assertThat(afterHumanPass.getActiveShowdown().focusedPlayerId()).isEqualTo(BOT_ID);
+
+    botService.onStateChanged(new GameStateChangedEvent(this, roomCode, afterHumanPass));
+    LiveGameState latest = waitUntilAssigningPlayer(gameService, roomCode, "human");
+    latest.setWinnerId("test-complete");
+
+    assertThat(latest.getActiveShowdown()).isNotNull();
+    assertThat(latest.getActiveShowdown().step()).isEqualTo(ShowdownStep.ASSIGN_DAMAGE);
+    assertThat(latest.getActiveShowdown().assigningPlayerId()).isEqualTo("human");
+    assertThat(latest.getLog()).anyMatch(entry -> entry.text().equals("Passed showdown focus. Showdown is ready to resolve."));
+    assertThat(latest.getLog()).anyMatch(entry -> entry.text().equals("Combat damage assignment started."));
+    assertThat(latest.getLog()).anyMatch(entry -> entry.text().equals("Assigned attacking combat damage."));
+  }
+
+  @Test
+  void botAssignsCombatDamageWhenLegal() throws Exception {
+    String roomCode = "BDMG";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    add("bot-attacker", "Unit", 1);
+    add("human-defender", "Unit", 1);
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setCurrentPhase(Phase.MAIN);
+    state.setActivePlayerId(BOT_ID);
+    state.getCards().add(testCard("bot-attacker", BOT_ID, ZoneName.BATTLEFIELD));
+    state.getCards().add(testCard("human-defender", "human", ZoneName.BATTLEFIELD));
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        BOT_ID,
+        List.of("bot-attacker"),
+        Map.of(),
+        ShowdownStep.ASSIGN_DAMAGE,
+        List.of(BOT_ID, "human"),
+        BOT_ID,
+        2,
+        true,
+        BOT_ID,
+        List.of(),
+        List.of()));
+
+    botService.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+    LiveGameState latest = waitUntilAssigningPlayer(gameService, roomCode, "human");
+    latest.setWinnerId("test-complete");
+
+    assertThat(latest.getActiveShowdown()).isNotNull();
+    assertThat(latest.getActiveShowdown().attackerAssignments()).containsExactly(
+        new LiveGameState.CombatDamageAssignment("bot-attacker", "human-defender", 1));
+    assertThat(latest.getLog()).anyMatch(entry -> entry.text().equals("Assigned attacking combat damage."));
+  }
+
+  @Test
+  void botAssignsAllCombatDamageWhenMoreSourcesThanTargets() throws Exception {
+    String roomCode = "B2V1";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    addStats("bot-one", "Unit", 3, 3);
+    addStats("bot-two", "Unit", 3, 3);
+    addStats("human-defender", "Unit", 1, 6);
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setCurrentPhase(Phase.MAIN);
+    state.setActivePlayerId(BOT_ID);
+    state.getCards().add(testCard("bot-one", BOT_ID, ZoneName.BATTLEFIELD));
+    state.getCards().add(testCard("bot-two", BOT_ID, ZoneName.BATTLEFIELD));
+    state.getCards().add(testCard("human-defender", "human", ZoneName.BATTLEFIELD));
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        BOT_ID,
+        List.of("bot-one", "bot-two"),
+        Map.of(),
+        ShowdownStep.ASSIGN_DAMAGE,
+        List.of(BOT_ID, "human"),
+        BOT_ID,
+        2,
+        true,
+        BOT_ID,
+        List.of(),
+        List.of()));
+
+    botService.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+    LiveGameState latest = waitUntilAssigningPlayer(gameService, roomCode, "human");
+    latest.setWinnerId("test-complete");
+
+    assertThat(latest.getActiveShowdown()).isNotNull();
+    assertThat(latest.getActiveShowdown().attackerAssignments())
+        .containsExactly(
+            new LiveGameState.CombatDamageAssignment("bot-one", "human-defender", 3),
+            new LiveGameState.CombatDamageAssignment("bot-two", "human-defender", 3));
+    assertThat(latest.getActiveShowdown().attackerAssignments().stream().mapToInt(LiveGameState.CombatDamageAssignment::amount).sum())
+        .isEqualTo(6);
+  }
+
+  @Test
+  void botAssignmentsRespectTankFirstLethalThenExcessToFinalTarget() throws Exception {
+    String roomCode = "B3V2";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    addStats("bot-one", "Unit", 2, 2);
+    addStats("bot-two", "Unit", 2, 2);
+    addStats("bot-three", "Unit", 2, 2);
+    addStats("human-tank", "Unit", 1, 2);
+    addStats("human-other", "Unit", 1, 2);
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setCurrentPhase(Phase.MAIN);
+    state.setActivePlayerId(BOT_ID);
+    CardInstance tank = testCard("human-tank", "human", ZoneName.BATTLEFIELD);
+    state.getCards().add(testCard("bot-one", BOT_ID, ZoneName.BATTLEFIELD));
+    state.getCards().add(testCard("bot-two", BOT_ID, ZoneName.BATTLEFIELD));
+    state.getCards().add(testCard("bot-three", BOT_ID, ZoneName.BATTLEFIELD));
+    state.getCards().add(testCard("human-other", "human", ZoneName.BATTLEFIELD));
+    state.getCards().add(tank);
+    when(cardDataService.hasKeyword(eq(tank), eq("TANK"))).thenReturn(true);
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        BOT_ID,
+        List.of("bot-one", "bot-two", "bot-three"),
+        Map.of(),
+        ShowdownStep.ASSIGN_DAMAGE,
+        List.of(BOT_ID, "human"),
+        BOT_ID,
+        2,
+        true,
+        BOT_ID,
+        List.of(),
+        List.of()));
+
+    botService.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+    LiveGameState latest = waitUntilAssigningPlayer(gameService, roomCode, "human");
+    latest.setWinnerId("test-complete");
+
+    assertThat(latest.getActiveShowdown().attackerAssignments())
+        .containsExactly(
+            new LiveGameState.CombatDamageAssignment("bot-one", "human-tank", 2),
+            new LiveGameState.CombatDamageAssignment("bot-two", "human-other", 2),
+            new LiveGameState.CombatDamageAssignment("bot-three", "human-other", 2));
+  }
+
+  @Test
+  void botDefenderAssignsAllCombatDamageWhenMoreSourcesThanTargetsAndClearsShowdown() throws Exception {
+    String roomCode = "BD21";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    addStats("human-attacker", "Unit", 1, 6);
+    addStats("bot-one", "Unit", 3, 3);
+    addStats("bot-two", "Unit", 3, 3);
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setCurrentPhase(Phase.MAIN);
+    state.setActivePlayerId("human");
+    state.getCards().add(testCard("human-attacker", "human", ZoneName.BATTLEFIELD));
+    state.getCards().add(testCard("bot-one", BOT_ID, ZoneName.BATTLEFIELD));
+    state.getCards().add(testCard("bot-two", BOT_ID, ZoneName.BATTLEFIELD));
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        "human",
+        List.of("human-attacker"),
+        Map.of(),
+        ShowdownStep.ASSIGN_DAMAGE,
+        List.of("human", BOT_ID),
+        "human",
+        2,
+        true,
+        BOT_ID,
+        List.of(new LiveGameState.CombatDamageAssignment("human-attacker", "bot-one", 1)),
+        List.of()));
+
+    botService.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+    LiveGameState latest = waitUntilShowdownCleared(gameService, roomCode);
+    latest.setWinnerId("test-complete");
+
+    assertThat(latest.getActiveShowdown()).isNull();
+    assertThat(latest.getLog()).anyMatch(entry -> entry.text().equals("Combat damage assigned. Showdown resolved."));
+  }
+
+  @Test
   void botDoesNotPlayCardDuringAwakenEvenIfPlayCardIsAdvertised() throws Exception {
     BotService gatedBot = new BotService(
         gameService,
@@ -697,6 +996,10 @@ class BotServicePhaseFlowTest {
     cards.put(id, new CardDefinition(id, id, type, null, List.of(), cost, 0, null, null, null, null, 1, 1, List.of()));
   }
 
+  private void addStats(String id, String type, int might, int health) {
+    cards.put(id, new CardDefinition(id, id, type, null, List.of(), 0, 0, null, null, null, null, might, health, List.of()));
+  }
+
   private List<String> playtestDeck() {
     List<String> deck = new ArrayList<>();
     deck.add("legend");
@@ -706,6 +1009,15 @@ class BotServicePhaseFlowTest {
       deck.add("unit-" + i);
     }
     return deck;
+  }
+
+  private CardInstance testCard(String id, String ownerId, ZoneName zone) {
+    CardInstance card = new CardInstance();
+    card.setInstanceId(id);
+    card.setCardId(id);
+    card.setOwnerId(ownerId);
+    card.setZone(zone);
+    return card;
   }
 
   @SuppressWarnings("unchecked")
@@ -744,6 +1056,85 @@ class BotServicePhaseFlowTest {
     while (System.currentTimeMillis() < deadline) {
       latest = service.currentState(roomCode);
       if (latest != null && latest.getPendingChoice() == null) return latest;
+      Thread.sleep(25);
+    }
+    return latest;
+  }
+
+  private LiveGameState waitUntilShowdownReady(GameService service, String roomCode) throws Exception {
+    long deadline = System.currentTimeMillis() + 5_000;
+    LiveGameState latest = service.currentState(roomCode);
+    while (System.currentTimeMillis() < deadline) {
+      latest = service.currentState(roomCode);
+      if (latest != null && latest.getActiveShowdown() != null && latest.getActiveShowdown().readyToResolve()) return latest;
+      Thread.sleep(25);
+    }
+    return latest;
+  }
+
+  private LiveGameState waitUntilShowdownCleared(GameService service, String roomCode) throws Exception {
+    long deadline = System.currentTimeMillis() + 5_000;
+    LiveGameState latest = service.currentState(roomCode);
+    while (System.currentTimeMillis() < deadline) {
+      latest = service.currentState(roomCode);
+      if (latest != null && latest.getActiveShowdown() == null) return latest;
+      Thread.sleep(25);
+    }
+    return latest;
+  }
+
+  private LiveGameState waitUntilNoChain(GameService service, String roomCode) throws Exception {
+    long deadline = System.currentTimeMillis() + 5_000;
+    LiveGameState latest = service.currentState(roomCode);
+    while (System.currentTimeMillis() < deadline) {
+      latest = service.currentState(roomCode);
+      if (latest != null && latest.getChainState() == null) return latest;
+      Thread.sleep(25);
+    }
+    return latest;
+  }
+
+  private LiveGameState waitUntilChainFocus(GameService service, String roomCode, String playerId) throws Exception {
+    long deadline = System.currentTimeMillis() + 5_000;
+    LiveGameState latest = service.currentState(roomCode);
+    while (System.currentTimeMillis() < deadline) {
+      latest = service.currentState(roomCode);
+      if (latest != null
+          && latest.getChainState() != null
+          && playerId.equals(latest.getChainState().focusedPlayerId())) return latest;
+      Thread.sleep(25);
+    }
+    return latest;
+  }
+
+  private LiveGameState.ChainState chain(boolean readyToResolve, String focusedPlayerId) {
+    return new LiveGameState.ChainState(
+        "chain-1",
+        List.of(new LiveGameState.ChainItem(
+            "item-1",
+            BOT_ID,
+            "source-1",
+            "source-card",
+            "Source Card",
+            LiveGameState.ChainItem.EFFECT_NO_OP_TEST,
+            List.of(),
+            1,
+            "bot test chain item")),
+        List.of(BOT_ID, "human"),
+        focusedPlayerId,
+        readyToResolve ? 2 : 0,
+        readyToResolve,
+        "TEST");
+  }
+
+  private LiveGameState waitUntilAssigningPlayer(GameService service, String roomCode, String playerId) throws Exception {
+    long deadline = System.currentTimeMillis() + 5_000;
+    LiveGameState latest = service.currentState(roomCode);
+    while (System.currentTimeMillis() < deadline) {
+      latest = service.currentState(roomCode);
+      if (latest != null
+          && latest.getActiveShowdown() != null
+          && playerId.equals(latest.getActiveShowdown().assigningPlayerId())) return latest;
       Thread.sleep(25);
     }
     return latest;

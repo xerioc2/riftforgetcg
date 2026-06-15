@@ -78,6 +78,10 @@ export type LegalAction =
   | 'PLAY_CARD'
   | 'MOVE_TO_BATTLEFIELD'
   | 'REPOSITION_CARD'
+  | 'PASS_CHAIN_FOCUS'
+  | 'RESOLVE_CHAIN_TOP'
+  | 'PASS_SHOWDOWN_FOCUS'
+  | 'ASSIGN_COMBAT_DAMAGE'
   | 'RESOLVE_SHOWDOWN'
   | 'TAP_RUNE'
   | 'DISCARD_RUNE'
@@ -185,6 +189,7 @@ export type LiveGameState = {
   currentPhase?: string;
   gameMode?: GameMode;
   activeShowdown?: ShowdownState | null;
+  chainState?: ChainState | null;
   activePlayerId?: string;
   firstPlayerId?: string;
   turnNumber?: number;
@@ -246,6 +251,42 @@ export type ShowdownState = {
   attackerInstanceIds: string[];
   gankingBonuses?: Record<string, number>;
   step?: 'STAGED' | 'ACTION_WINDOW' | 'ASSIGN_DAMAGE' | 'RESOLVE_DAMAGE' | 'CLEANUP' | 'COMPLETE';
+  relevantPlayerIds?: string[];
+  focusedPlayerId?: string;
+  consecutivePasses?: number;
+  readyToResolve?: boolean;
+  assigningPlayerId?: string | null;
+  attackerAssignments?: CombatDamageAssignment[];
+  defenderAssignments?: CombatDamageAssignment[];
+};
+
+export type ChainItem = {
+  itemId: string;
+  controllerPlayerId: string;
+  sourceCardInstanceId?: string;
+  sourceCardId?: string;
+  sourceCardName?: string;
+  effectKey?: string;
+  targetInstanceIds?: string[];
+  order?: number;
+  publicDescription?: string;
+  visibility?: 'PUBLIC' | 'CONTROLLER_ONLY' | string;
+};
+
+export type ChainState = {
+  chainId: string;
+  chainItems: ChainItem[];
+  relevantPlayerIds: string[];
+  focusedPlayerId?: string;
+  consecutivePasses?: number;
+  readyToResolveTop?: boolean;
+  sourceContext?: string;
+};
+
+export type CombatDamageAssignment = {
+  sourceInstanceId: string;
+  targetInstanceId: string;
+  amount: number;
 };
 
 export type RevealedHandSnapshot = {

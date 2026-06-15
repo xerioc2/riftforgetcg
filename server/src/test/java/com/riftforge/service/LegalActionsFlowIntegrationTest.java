@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.riftforge.model.CardInstance;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.Phase;
+import com.riftforge.model.ShowdownStep;
 import com.riftforge.model.ZoneName;
 import com.riftforge.model.move.MoveToBattlefieldMove;
 import com.riftforge.model.move.MulliganMove;
@@ -163,7 +164,7 @@ class LegalActionsFlowIntegrationTest {
   }
 
   @Test
-  void contestedBattlefieldExposesOnlyResolveShowdownToTheAttacker() {
+  void contestedBattlefieldExposesPassFocusToTheFocusedAttacker() {
     completeMulligans();
     advanceToMain(active);
 
@@ -177,7 +178,7 @@ class LegalActionsFlowIntegrationTest {
     LiveGameState state = fx.gameService.currentState(ROOM);
     assertThat(state.getActiveShowdown()).isNotNull();
     assertThat(state.getActiveShowdown().attackingPlayerId()).isEqualTo(idle);
-    assertThat(legalActionsFor(idle)).containsExactly(LegalAction.RESOLVE_SHOWDOWN);
+    assertThat(legalActionsFor(idle)).containsExactly(LegalAction.PASS_SHOWDOWN_FOCUS);
     assertThat(legalActionsFor(active)).isEmpty();
     assertThat(fx.gameService.currentStateFor(ROOM, null).getLegalActions()).isEmpty();
   }
@@ -190,9 +191,17 @@ class LegalActionsFlowIntegrationTest {
     fx.addCard("action-draw", "Action Draw", "Spell", "[Action] Draw 1.", List.of());
     state.getCards().add(card("action-instance", "action-draw", idle, ZoneName.HAND));
     state.getCards().add(card("idle-battlefield", "unit-0", idle, ZoneName.BATTLEFIELD));
-    state.setActiveShowdown(new LiveGameState.ShowdownState(active, List.of(championOf(active)), Map.of()));
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        active,
+        List.of(championOf(active)),
+        Map.of(),
+        ShowdownStep.ACTION_WINDOW,
+        List.of(active, idle),
+        idle,
+        0,
+        false));
 
-    assertThat(legalActionsFor(idle)).containsExactly(LegalAction.PLAY_CARD);
+    assertThat(legalActionsFor(idle)).containsExactlyInAnyOrder(LegalAction.PASS_SHOWDOWN_FOCUS, LegalAction.PLAY_CARD);
     assertThat(fx.gameService.currentStateFor(ROOM, null).getLegalActions()).isEmpty();
   }
 

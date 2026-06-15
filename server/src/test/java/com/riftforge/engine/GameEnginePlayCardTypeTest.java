@@ -15,13 +15,18 @@ import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
 import com.riftforge.model.RevealedHandSnapshot;
 import com.riftforge.model.RuneState;
+import com.riftforge.model.ShowdownStep;
 import com.riftforge.model.ZoneName;
+import com.riftforge.model.move.AssignCombatDamageMove;
 import com.riftforge.model.move.EquipGearMove;
 import com.riftforge.model.move.HideCardMove;
 import com.riftforge.model.move.MoveToBattlefieldMove;
+import com.riftforge.model.move.PassChainFocusMove;
 import com.riftforge.model.move.PassPhaseMove;
+import com.riftforge.model.move.PassShowdownFocusMove;
 import com.riftforge.model.move.PlayCardMove;
 import com.riftforge.model.move.RepositionCardMove;
+import com.riftforge.model.move.ResolveChainTopMove;
 import com.riftforge.model.move.ResolveChoiceMove;
 import com.riftforge.model.move.ResolveShowdownMove;
 import com.riftforge.rules.LegalActionsService;
@@ -63,6 +68,15 @@ class GameEnginePlayCardTypeTest {
     when(cardDataService.isReactionCard(any(CardDefinition.class))).thenAnswer(invocation -> {
       CardDefinition def = invocation.getArgument(0);
       return def != null && def.rulesText() != null && def.rulesText().toLowerCase().contains("[reaction]");
+    });
+    when(cardDataService.isStackedDeckEffect(any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      String text = def == null || def.rulesText() == null ? "" : def.rulesText().toLowerCase();
+      return def != null && "Stacked Deck".equalsIgnoreCase(def.name())
+          && text.contains("look at the top 3")
+          && text.contains("put 1")
+          && text.contains("hand")
+          && text.contains("recycle");
     });
     when(cardDataService.isHiddenCard(any(CardDefinition.class))).thenAnswer(invocation -> {
       CardDefinition def = invocation.getArgument(0);
@@ -829,7 +843,7 @@ class GameEnginePlayCardTypeTest {
     CardInstance hidden = card("loyal", "p1", ZoneName.HIDDEN);
     CardInstance enemy = card("enemy", "p2", ZoneName.BATTLEFIELD);
     LiveGameState state = state(hidden, enemy);
-    state.setActiveShowdown(new LiveGameState.ShowdownState("p1", List.of("loyal"), Map.of()));
+    state.setActiveShowdown(readyShowdown("p1"));
     stubCard("loyal", "Loyal Poro", "Unit", 0, 1, 1, "[Hidden] [Deathknell] Draw 1.");
     stubCard("enemy", "Enemy Unit", "Unit", 0, 1, 1, null);
     when(cardDataService.hasKeyword("loyal", "DEATHKNELL")).thenReturn(true);
@@ -879,10 +893,11 @@ class GameEnginePlayCardTypeTest {
     CardInstance action = card("ride", "p1", ZoneName.HAND);
     CardInstance friendly = card("friendly", "p1", ZoneName.BATTLEFIELD);
     friendly.setTapped(true);
-    LiveGameState state = state(action, friendly);
-    state.setActiveShowdown(new LiveGameState.ShowdownState("p1", List.of("attacker"), Map.of()));
+    LiveGameState state = state(action, friendly, card("enemy", "p2", ZoneName.BATTLEFIELD));
+    state.setActiveShowdown(focusedShowdown("p1", 1, false));
     stubCard("ride", "Ride The Wind", "Spell", 0, 0, 0, "[Action] Choose a friendly unit. Ready it.");
     stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    stubCard("enemy", "Enemy Unit", "Unit", 0, 2, 2, null);
     when(cardDataService.requiresBattlefieldTarget("ride")).thenReturn(true);
     when(cardDataService.requiresFriendlyTarget("ride")).thenReturn(true);
 
@@ -891,7 +906,54 @@ class GameEnginePlayCardTypeTest {
     assertThat(friendly.isTapped()).isFalse();
     assertThat(action.getZone()).isEqualTo(ZoneName.DISCARD);
     assertThat(state.getActiveShowdown()).isNotNull();
+    assertThat(state.getActiveShowdown().focusedPlayerId()).isEqualTo("p2");
+    assertThat(state.getActiveShowdown().consecutivePasses()).isZero();
+    assertThat(state.getActiveShowdown().readyToResolve()).isFalse();
     assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Played Ride The Wind during the showdown."));
+  }
+
+  @Test
+  void actionCreatedPendingChoiceDuringShowdownBlocksOtherMovesAndKeepsFocusCoherent() {
+    CardInstance action = card("stacked", "p1", ZoneName.HAND);
+    LiveGameState state = state(action, card("attacker", "p1", ZoneName.BATTLEFIELD), card("defender", "p2", ZoneName.BATTLEFIELD));
+    state.setActiveShowdown(focusedShowdown("p1", 1, false));
+    state.getPlayers().stream()
+        .filter(player -> player.getUserId().equals("p1"))
+        .findFirst()
+        .orElseThrow()
+        .getDeckPool()
+        .addAll(List.of("top-1", "top-2", "top-3"));
+    stubCard("stacked", "Stacked Deck", "Spell", 0, 0, 0, "[Action] Look at the top 3 cards of your Main Deck. Put 1 of them into your hand and recycle the rest.");
+    stubCard("attacker", "Attacker Unit", "Unit", 0, 2, 2, null);
+    stubCard("defender", "Defender Unit", "Unit", 0, 2, 2, null);
+    stubCard("top-1", "Top One", "Unit", 0, 1, 1, null);
+    stubCard("top-2", "Top Two", "Unit", 0, 1, 1, null);
+    stubCard("top-3", "Top Three", "Unit", 0, 1, 1, null);
+    when(cardDataService.isActionCard(cardDataService.getCard("stacked"))).thenReturn(true);
+    when(cardDataService.isReactionCard(cardDataService.getCard("stacked"))).thenReturn(false);
+
+    engine.applyMove(state, play("stacked", ZoneName.BASE));
+    assertThat(state.getPendingChoice()).isNull();
+    assertThat(state.getChainState()).isNotNull();
+    assertThat(state.getChainState().focusedPlayerId()).isEqualTo("p2");
+
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new ResolveChainTopMove("p1"));
+
+    assertThat(state.getPendingChoice()).isNotNull();
+    assertThat(state.getPendingChoice().getPlayerId()).isEqualTo("p1");
+    assertThat(state.getActiveShowdown()).isNotNull();
+    assertThat(state.getActiveShowdown().focusedPlayerId()).isEqualTo("p2");
+    assertThat(state.getActiveShowdown().consecutivePasses()).isZero();
+
+    assertThatThrownBy(() -> engine.applyMove(state, new PassShowdownFocusMove("p2")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Resolve the pending choice before taking another action.");
+
+    GameStateProjectionService projectionService = new GameStateProjectionService(new LegalActionsService(cardDataService));
+    assertThat(projectionService.toPublicView(state, "p2").getPendingChoice()).isNull();
+    assertThat(projectionService.toPublicView(state, "p1").getPendingChoice()).isNotNull();
   }
 
   @Test
@@ -900,7 +962,7 @@ class GameEnginePlayCardTypeTest {
     CardInstance defender = card("defender", "p2", ZoneName.BATTLEFIELD);
     defender.setTapped(true);
     LiveGameState state = state(action, defender, card("attacker", "p1", ZoneName.BATTLEFIELD));
-    state.setActiveShowdown(new LiveGameState.ShowdownState("p1", List.of("attacker"), Map.of()));
+    state.setActiveShowdown(focusedShowdown("p2", false));
     stubCard("ride", "Ride The Wind", "Spell", 0, 0, 0, "[Action] Choose a friendly unit. Ready it.");
     stubCard("defender", "Defender Unit", "Unit", 0, 2, 2, null);
     stubCard("attacker", "Attacker Unit", "Unit", 0, 2, 2, null);
@@ -1533,7 +1595,10 @@ class GameEnginePlayCardTypeTest {
     stubCard("remaining", "Remaining", "Unit", 0, 1, 1, null);
 
     engine.applyMove(state, new MoveToBattlefieldMove("p1", "herder"));
+    passShowdownFocusCycle(state);
     engine.applyMove(state, new ResolveShowdownMove("p1"));
+    engine.applyMove(state, assign("p1", "herder", "defender", 2));
+    engine.applyMove(state, new AssignCombatDamageMove("p2", List.of()));
 
     assertThat(herder.getZone()).isEqualTo(ZoneName.BASE);
     assertThat(state.getCards()).anyMatch(card -> card.getCardId().equals("battlefield-draw") && card.getZone() == ZoneName.HAND);
@@ -1841,6 +1906,35 @@ class GameEnginePlayCardTypeTest {
 
   private ResolveChoiceMove resolveTarget(PendingChoice choice, String targetInstanceId) {
     return new ResolveChoiceMove("p1", choice.getChoiceId(), null, null, null, targetInstanceId, List.of());
+  }
+
+  private LiveGameState.ShowdownState focusedShowdown(String focusedPlayerId, boolean readyToResolve) {
+    return focusedShowdown(focusedPlayerId, readyToResolve ? 2 : 0, readyToResolve);
+  }
+
+  private LiveGameState.ShowdownState focusedShowdown(String focusedPlayerId, int consecutivePasses, boolean readyToResolve) {
+    return new LiveGameState.ShowdownState(
+        "p1",
+        List.of("attacker"),
+        Map.of(),
+        ShowdownStep.ACTION_WINDOW,
+        List.of("p1", "p2"),
+        focusedPlayerId,
+        consecutivePasses,
+        readyToResolve);
+  }
+
+  private LiveGameState.ShowdownState readyShowdown(String focusedPlayerId) {
+    return focusedShowdown(focusedPlayerId, true);
+  }
+
+  private void passShowdownFocusCycle(LiveGameState state) {
+    engine.applyMove(state, new PassShowdownFocusMove("p1"));
+    engine.applyMove(state, new PassShowdownFocusMove("p2"));
+  }
+
+  private AssignCombatDamageMove assign(String playerId, String sourceId, String targetId, int amount) {
+    return new AssignCombatDamageMove(playerId, List.of(new LiveGameState.CombatDamageAssignment(sourceId, targetId, amount)));
   }
 
   private CardInstance card(String id, String ownerId, ZoneName zone) {

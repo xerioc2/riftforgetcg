@@ -25,7 +25,8 @@ const PARTIAL_REASONS = new Map<string, string>([
   ['ABANDONED HALL', 'Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.'],
   ['ADAPTATRON', 'Partial: conquer trigger, optional gear kill, and official Buff state are not implemented yet.'],
   ['EN GARDE', 'Partial: selected friendly +Might is helper-backed, but Reaction timing remains incomplete.'],
-  ['GUST', 'Partial: selected return-to-hand is helper-backed, but Reaction timing and the 3-or-less-Might target filter remain incomplete.'],
+  ['GUST', 'Partial: alpha chain-window Reaction support exists through Stacked Deck for returning a battlefield Unit/Champion with 3 Might or less, but full official any-time Reaction timing remains incomplete.'],
+  ['STACKED DECK', 'Partial: opens the narrow alpha chain, then resolves into a private top-3 choice; official ordering and broader timing remain incomplete.'],
 ]);
 
 export type DeckSupportEntry = {

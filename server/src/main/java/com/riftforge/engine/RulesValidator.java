@@ -12,9 +12,13 @@ import com.riftforge.model.ZoneName;
 import com.riftforge.model.move.*;
 import com.riftforge.rules.ShowdownParticipantRules;
 import com.riftforge.service.CardDataService;
+import com.riftforge.engine.CombatStatsService.CombatContext;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -22,15 +26,23 @@ import org.springframework.stereotype.Component;
 public class RulesValidator {
   private final CardDataService cardDataService;
   private final ShowdownParticipantRules showdownParticipantRules;
+  private final CombatStatsService combatStatsService;
+  private final CombatDamageRules combatDamageRules;
 
   public RulesValidator(CardDataService cardDataService) {
-    this(cardDataService, new ShowdownParticipantRules());
+    this(cardDataService, new ShowdownParticipantRules(), new CombatStatsService(cardDataService), new CombatDamageRules(cardDataService));
+  }
+
+  public RulesValidator(CardDataService cardDataService, ShowdownParticipantRules showdownParticipantRules) {
+    this(cardDataService, showdownParticipantRules, new CombatStatsService(cardDataService), new CombatDamageRules(cardDataService));
   }
 
   @Autowired
-  public RulesValidator(CardDataService cardDataService, ShowdownParticipantRules showdownParticipantRules) {
+  public RulesValidator(CardDataService cardDataService, ShowdownParticipantRules showdownParticipantRules, CombatStatsService combatStatsService, CombatDamageRules combatDamageRules) {
     this.cardDataService = cardDataService;
     this.showdownParticipantRules = showdownParticipantRules;
+    this.combatStatsService = combatStatsService;
+    this.combatDamageRules = combatDamageRules;
   }
 
   public void validate(LiveGameState state, MoveRequest move) {
@@ -41,6 +53,21 @@ public class RulesValidator {
     }
     if (state.getPendingChoice() != null) {
       throw new IllegalMoveException("Resolve the pending choice before taking another action.");
+    }
+    if (move instanceof PassChainFocusMove pass) {
+      validatePassChainFocus(state, pass);
+      return;
+    }
+    if (move instanceof ResolveChainTopMove resolve) {
+      validateResolveChainTop(state, resolve);
+      return;
+    }
+    if (state.getChainState() != null) {
+      if (move instanceof PlayCardMove play) {
+        validatePlayCard(state, play);
+        return;
+      }
+      throw new IllegalMoveException("Resolve the chain before taking another action.");
     }
     if (state.getCurrentPhase() == Phase.SELECT_BATTLEFIELD) {
       if (move instanceof SelectBattlefieldMove select) {
@@ -58,6 +85,13 @@ public class RulesValidator {
       throw new IllegalMoveException("Complete your mulligan before making other moves.");
     }
     if (move instanceof MulliganMove) throw new IllegalMoveException("Mulligans are already complete.");
+    if (state.getActiveShowdown() != null) {
+      if (move instanceof AssignCombatDamageMove assign) { validateAssignCombatDamage(state, assign); return; }
+      if (move instanceof PassShowdownFocusMove pass) { validatePassShowdownFocus(state, pass); return; }
+      if (move instanceof ResolveShowdownMove resolve) { validateResolveShowdown(state, resolve); return; }
+      if (move instanceof PlayCardMove play) { validatePlayCard(state, play); return; }
+      throw new IllegalMoveException("Resolve the active showdown first.");
+    }
     if (move instanceof AdjustScoreMove
         || move instanceof DealCardMove
         || move instanceof TapCardMove
@@ -65,11 +99,6 @@ public class RulesValidator {
         || move instanceof MoveCardMove) {
       validateSandboxOnly(state, move);
       return;
-    }
-    if (state.getActiveShowdown() != null) {
-      if (move instanceof ResolveShowdownMove resolve) { validateResolveShowdown(state, resolve); return; }
-      if (move instanceof PlayCardMove play) { validatePlayCard(state, play); return; }
-      throw new IllegalMoveException("Resolve the active showdown first.");
     }
     if (!move.playerId().equals(state.getActivePlayerId())) {
       throw new IllegalMoveException("Not your turn.");
@@ -243,6 +272,10 @@ public class RulesValidator {
       return;
     }
     if (hasStructuredTargets) throw new IllegalMoveException("That card does not use multiple targets.");
+    if (spell && cardDataService.isGustReaction(def)) {
+      validateGustTarget(state, move);
+      return;
+    }
     if (spell && (cardDataService.requiresBattlefieldTarget(card.getCardId()) || hasExplicitTarget)) {
       validateTarget(state, move, card);
     }
@@ -253,7 +286,23 @@ public class RulesValidator {
       throw new IllegalMoveException("Ambush reaction timing is not implemented yet.");
     }
     requireMain(state);
+    if (state.getChainState() != null) {
+      if (!cardDataService.isReactionCard(def)) {
+        throw new IllegalMoveException("Only supported Reaction cards can be played while the chain is active.");
+      }
+      if (!cardDataService.isGustReaction(def)) {
+        throw new IllegalMoveException("That Reaction is not supported yet.");
+      }
+      if (state.getChainState().readyToResolveTop()) {
+        throw new IllegalMoveException("Resolve the chain item before playing more Reactions.");
+      }
+      if (!move.playerId().equals(state.getChainState().focusedPlayerId())) {
+        throw new IllegalMoveException("Wait for your chain focus.");
+      }
+      return;
+    }
     if (state.getActiveShowdown() == null) {
+      if (cardDataService.isReactionCard(def)) throw new IllegalMoveException("Reaction timing is not implemented yet.");
       if (!move.playerId().equals(state.getActivePlayerId())) throw new IllegalMoveException("Not your turn.");
       return;
     }
@@ -265,6 +314,12 @@ public class RulesValidator {
     }
     if (!cardDataService.isActionCard(def)) {
       throw new IllegalMoveException("Only supported Action cards can be played during this showdown window.");
+    }
+    if (!showdownParticipantRules.isFocusedPlayer(state, move.playerId())) {
+      throw new IllegalMoveException("Wait for your showdown focus.");
+    }
+    if (state.getActiveShowdown().readyToResolve()) {
+      throw new IllegalMoveException("Resolve the showdown before playing more Actions.");
     }
   }
 
@@ -370,6 +425,23 @@ public class RulesValidator {
     if (cardDataService.requiresEnemyTarget(card.getCardId()) && target.getOwnerId().equals(move.playerId())) {
       throw new IllegalMoveException("That card requires an enemy unit.");
     }
+  }
+
+  private void validateGustTarget(LiveGameState state, PlayCardMove move) {
+    if (move.targetInstanceId() == null || move.targetInstanceId().isBlank()) {
+      throw new IllegalMoveException("Gust requires a battlefield Unit or Champion with 3 Might or less.");
+    }
+    CardInstance target = findCard(state, move.targetInstanceId());
+    if (!isLegalGustTarget(target)) {
+      throw new IllegalMoveException("Gust can only target a battlefield Unit or Champion with 3 Might or less.");
+    }
+  }
+
+  private boolean isLegalGustTarget(CardInstance target) {
+    if (target.getZone() != ZoneName.BATTLEFIELD || target.isFaceDown()) return false;
+    CardDefinition targetDef = cardDataService.getCard(target.getCardId());
+    if (!isType(targetDef, "Unit") && !isType(targetDef, "Champion")) return false;
+    return combatStatsService.effectiveMight(target, CombatContext.IDLE) <= 3;
   }
 
   private void validateFriendlyAndEnemyTargets(LiveGameState state, PlayCardMove move) {
@@ -550,9 +622,158 @@ public class RulesValidator {
   private void validateResolveShowdown(LiveGameState state, ResolveShowdownMove move) {
     requireMain(state);
     if (state.getActiveShowdown() == null) throw new IllegalMoveException("No showdown is active.");
+    if (state.getActiveShowdown().step() == com.riftforge.model.ShowdownStep.ASSIGN_DAMAGE) {
+      throw new IllegalMoveException("Assign combat damage before resolving.");
+    }
     if (!move.playerId().equals(state.getActiveShowdown().attackingPlayerId())) {
       throw new IllegalMoveException("Only the attacking player can resolve this showdown.");
     }
+    if (!state.getActiveShowdown().readyToResolve()) {
+      throw new IllegalMoveException("Both players must pass showdown focus before resolving.");
+    }
+  }
+
+  private void validatePassChainFocus(LiveGameState state, PassChainFocusMove move) {
+    requireMain(state);
+    LiveGameState.ChainState chain = state.getChainState();
+    if (chain == null) throw new IllegalMoveException("No chain is active.");
+    if (chain.topItem() == null) throw new IllegalMoveException("No chain item is active.");
+    if (chain.readyToResolveTop()) throw new IllegalMoveException("Resolve the chain item before passing.");
+    if (!move.playerId().equals(chain.focusedPlayerId())) {
+      throw new IllegalMoveException("Only the focused player can pass chain focus.");
+    }
+  }
+
+  private void validateResolveChainTop(LiveGameState state, ResolveChainTopMove move) {
+    requireMain(state);
+    LiveGameState.ChainState chain = state.getChainState();
+    if (chain == null) throw new IllegalMoveException("No chain is active.");
+    if (chain.topItem() == null) throw new IllegalMoveException("No chain item is active.");
+    if (!chain.readyToResolveTop()) throw new IllegalMoveException("All relevant players must pass before resolving the chain item.");
+    if (!move.playerId().equals(chain.focusedPlayerId())) {
+      throw new IllegalMoveException("Only the focused player can resolve the chain item.");
+    }
+  }
+
+  private void validatePassShowdownFocus(LiveGameState state, PassShowdownFocusMove move) {
+    requireMain(state);
+    if (state.getActiveShowdown() == null) throw new IllegalMoveException("No showdown is active.");
+    if (state.getActiveShowdown().step() == com.riftforge.model.ShowdownStep.ASSIGN_DAMAGE) {
+      throw new IllegalMoveException("Assign combat damage before taking more showdown actions.");
+    }
+    if (state.getActiveShowdown().readyToResolve()) {
+      throw new IllegalMoveException("Showdown is ready to resolve.");
+    }
+    if (!showdownParticipantRules.isFocusedPlayer(state, move.playerId())) {
+      throw new IllegalMoveException("Only the focused player can pass showdown focus.");
+    }
+  }
+
+  private void validateAssignCombatDamage(LiveGameState state, AssignCombatDamageMove move) {
+    requireMain(state);
+    LiveGameState.ShowdownState showdown = state.getActiveShowdown();
+    if (showdown == null || showdown.step() != com.riftforge.model.ShowdownStep.ASSIGN_DAMAGE) {
+      throw new IllegalMoveException("No combat damage assignment is pending.");
+    }
+    if (!move.playerId().equals(showdown.assigningPlayerId())) {
+      throw new IllegalMoveException("Wait for your combat damage assignment.");
+    }
+    boolean attackingAssignment = move.playerId().equals(showdown.attackingPlayerId());
+    validateDamageAssignments(state, move.assignments(), move.playerId(), attackingAssignment);
+  }
+
+  private void validateDamageAssignments(
+      LiveGameState state,
+      List<LiveGameState.CombatDamageAssignment> assignments,
+      String sourceOwnerId,
+      boolean attackingAssignment) {
+    List<CardInstance> sources = combatantsFor(state, sourceOwnerId);
+    List<CardInstance> targets = state.getCards().stream()
+        .filter(this::isCombatant)
+        .filter(card -> !sourceOwnerId.equals(card.getOwnerId()))
+        .toList();
+    Map<String, CardInstance> sourceById = sources.stream().collect(Collectors.toMap(CardInstance::getInstanceId, card -> card));
+    Map<String, CardInstance> targetById = targets.stream().collect(Collectors.toMap(CardInstance::getInstanceId, card -> card));
+    Set<String> pairs = new HashSet<>();
+    Map<String, Integer> assignedBySource = new HashMap<>();
+    Map<String, Integer> assignedByTarget = new HashMap<>();
+    for (LiveGameState.CombatDamageAssignment assignment : assignments) {
+      if (assignment.amount() <= 0) throw new IllegalMoveException("Combat damage assignments must be positive.");
+      CardInstance source = sourceById.get(assignment.sourceInstanceId());
+      CardInstance target = targetById.get(assignment.targetInstanceId());
+      if (source == null) throw new IllegalMoveException("Damage source is not a valid combatant.");
+      if (target == null) throw new IllegalMoveException("Damage target is not a valid opposing combatant.");
+      String pair = assignment.sourceInstanceId() + "->" + assignment.targetInstanceId();
+      if (!pairs.add(pair)) throw new IllegalMoveException("Duplicate damage assignment.");
+      assignedBySource.merge(source.getInstanceId(), assignment.amount(), Integer::sum);
+      assignedByTarget.merge(target.getInstanceId(), assignment.amount(), Integer::sum);
+    }
+    CombatContext context = attackingAssignment ? CombatContext.ATTACKING : CombatContext.DEFENDING;
+    int totalMight = 0;
+    for (CardInstance source : sources) {
+      int might = combatStatsService.effectiveMight(source, context);
+      totalMight += might;
+      int assigned = assignedBySource.getOrDefault(source.getInstanceId(), 0);
+      if (assigned > might) throw new IllegalMoveException("A unit cannot assign more damage than its Might.");
+    }
+    int totalAssigned = assignedBySource.values().stream().mapToInt(Integer::intValue).sum();
+    if (totalAssigned != totalMight) throw new IllegalMoveException("Assign all available combat damage.");
+    enforceTankAndLethal(targets, assignedByTarget);
+  }
+
+  private void enforceTankAndLethal(List<CardInstance> targets, Map<String, Integer> assignedByTarget) {
+    List<CardInstance> tanks = targets.stream()
+        .filter(card -> cardDataService.hasKeyword(card, "TANK"))
+        .toList();
+    boolean nonTankDamaged = targets.stream()
+        .filter(card -> !cardDataService.hasKeyword(card, "TANK"))
+        .anyMatch(card -> assignedByTarget.getOrDefault(card.getInstanceId(), 0) > 0);
+    if (nonTankDamaged) {
+      for (CardInstance tank : tanks) {
+        if (assignedByTarget.getOrDefault(tank.getInstanceId(), 0) < lethalDamage(tank)) {
+          throw new IllegalMoveException("Assign lethal damage to Tank units before non-Tank units.");
+        }
+      }
+    }
+    long overAssigned = targets.stream()
+        .filter(card -> assignedByTarget.getOrDefault(card.getInstanceId(), 0) > lethalDamage(card))
+        .count();
+    if (overAssigned > 1) throw new IllegalMoveException("Excess damage can only be assigned to one final target.");
+    if (overAssigned == 1) {
+      for (CardInstance target : targets) {
+        int assigned = assignedByTarget.getOrDefault(target.getInstanceId(), 0);
+        if (assigned == 0) throw new IllegalMoveException("Assign lethal damage before assigning excess damage.");
+        if (assigned < lethalDamage(target)) throw new IllegalMoveException("Assign lethal damage before assigning excess damage.");
+      }
+    }
+    long damagedTargets = targets.stream()
+        .filter(card -> assignedByTarget.getOrDefault(card.getInstanceId(), 0) > 0)
+        .count();
+    if (damagedTargets > 1) {
+      for (CardInstance target : targets) {
+        int assigned = assignedByTarget.getOrDefault(target.getInstanceId(), 0);
+        if (assigned > 0 && assigned < lethalDamage(target)) {
+          throw new IllegalMoveException("Assign lethal damage before spreading damage.");
+        }
+      }
+    }
+  }
+
+  private List<CardInstance> combatantsFor(LiveGameState state, String playerId) {
+    return state.getCards().stream()
+        .filter(this::isCombatant)
+        .filter(card -> playerId.equals(card.getOwnerId()))
+        .toList();
+  }
+
+  private boolean isCombatant(CardInstance card) {
+    if (card.getZone() != ZoneName.BATTLEFIELD || card.isFaceDown()) return false;
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    return def != null && ("Unit".equalsIgnoreCase(def.type()) || "Champion".equalsIgnoreCase(def.type()));
+  }
+
+  private int lethalDamage(CardInstance card) {
+    return combatDamageRules.lethalDamage(card);
   }
 
   private void validateUndoRunes(LiveGameState state, UndoRunesMove move) {

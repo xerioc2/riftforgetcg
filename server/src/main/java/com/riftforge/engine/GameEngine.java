@@ -3,6 +3,7 @@ package com.riftforge.engine;
 import com.riftforge.effect.CardEffectRegistry;
 import com.riftforge.model.*;
 import com.riftforge.model.move.*;
+import com.riftforge.rules.ShowdownParticipantRules;
 import com.riftforge.service.CardDataService;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ public class GameEngine {
   private final DeathTriggerService deathTriggerService;
   private final TokenFactory tokenFactory;
   private final TriggerDispatcher triggerDispatcher;
+  private final ShowdownParticipantRules showdownParticipantRules = new ShowdownParticipantRules();
   private final int targetScore;
 
   public GameEngine(RulesValidator rulesValidator, CombatResolver combatResolver, CardZoneService cardZoneService, CardDataService cardDataService, CardEffectRegistry effects, DeathTriggerService deathTriggerService, TokenFactory tokenFactory, int targetScore) {
@@ -78,9 +80,13 @@ public class GameEngine {
       case MoveToBattlefieldMove m -> applyMoveToBattlefield(state, m);
       case SelectBattlefieldMove m -> applySelectBattlefield(state, m);
       case ResolveShowdownMove m -> applyResolveShowdown(state, m);
+      case AssignCombatDamageMove m -> applyAssignCombatDamage(state, m);
       case MulliganMove m -> applyMulligan(state, m);
       case UndoRunesMove m -> applyUndoRunes(state, m);
       case PassPhaseMove m -> applyPassPhase(state);
+      case PassChainFocusMove m -> applyPassChainFocus(state, m);
+      case ResolveChainTopMove m -> applyResolveChainTop(state, m);
+      case PassShowdownFocusMove m -> applyPassShowdownFocus(state, m);
       case AdjustScoreMove m -> applyAdjustScore(state, m);
       case VisionChoiceMove m -> applyVisionChoice(state, m);
       case DismissRevealedMove m -> applyDismissRevealed(state, m);
@@ -156,6 +162,15 @@ public class GameEngine {
       card.setTapped(false);
       card.setHasSummoningSickness(false);
     }
+    if (state.getChainState() == null && cardDataService.isStackedDeckEffect(def)) {
+      state.setCardPlayedThisTurn(true);
+      openChain(state, move, card, def, LiveGameState.ChainItem.EFFECT_STACKED_DECK_PICK_ONE, playedDuringShowdown ? "SHOWDOWN_ACTION" : "MAIN_ACTION");
+      return state;
+    }
+    if (cardDataService.isGustReaction(def)) {
+      addGustToChain(state, move, card, def);
+      return state;
+    }
     applyLegion(state, card, cardPlayedEarlierThisTurn);
     applyPlayedCardTokenScripts(state, card, cardPlayedEarlierThisTurn);
     state.setCardPlayedThisTurn(true);
@@ -193,6 +208,7 @@ public class GameEngine {
           : playedDuringShowdown ? "Played " + def.name() + " during the showdown." : "Played " + def.name();
       log(state, move.playerId(), message);
     }
+    if (playedDuringShowdown && state.getActiveShowdown() != null) advanceShowdownFocusAfterAction(state, move.playerId());
     return state;
   }
 
@@ -344,11 +360,11 @@ public class GameEngine {
       state.getBattlefieldController().put("BATTLEFIELD", move.playerId());
       return state;
     }
-    state.setActiveShowdown(new LiveGameState.ShowdownState(
+    state.setActiveShowdown(showdownState(
+        state,
         move.playerId(),
         List.of(card.getInstanceId()),
-        gankingBonus > 0 ? new HashMap<>(Map.of(card.getInstanceId(), gankingBonus)) : new HashMap<>(),
-        ShowdownStep.ACTION_WINDOW));
+        gankingBonus > 0 ? new HashMap<>(Map.of(card.getInstanceId(), gankingBonus)) : new HashMap<>()));
     log(state, move.playerId(), "Showdown started at the battlefield.");
     return state;
   }
@@ -385,27 +401,53 @@ public class GameEngine {
       state.getBattlefieldController().put("BATTLEFIELD", playerId);
       return;
     }
-    state.setActiveShowdown(new LiveGameState.ShowdownState(
+    state.setActiveShowdown(showdownState(
+        state,
         playerId,
         List.of(card.getInstanceId()),
-        new HashMap<>(),
-        ShowdownStep.ACTION_WINDOW));
+        new HashMap<>()));
     log(state, playerId, "Showdown started at the battlefield.");
   }
 
   private LiveGameState applyResolveShowdown(LiveGameState state, ResolveShowdownMove move) {
     LiveGameState.ShowdownState showdown = state.getActiveShowdown();
+    List<CardInstance> attackers = combatResolver.battlefieldCombatants(state, showdown.attackingPlayerId());
+    List<CardInstance> defenders = combatResolver.opposingBattlefieldCombatants(state, showdown.attackingPlayerId());
+    if (!attackers.isEmpty() && !defenders.isEmpty()) {
+      state.setActiveShowdown(new LiveGameState.ShowdownState(
+          showdown.attackingPlayerId(),
+          showdown.attackerInstanceIds(),
+          showdown.gankingBonuses(),
+          ShowdownStep.ASSIGN_DAMAGE,
+          showdown.relevantPlayerIds(),
+          showdown.focusedPlayerId(),
+          showdown.consecutivePasses(),
+          true,
+          showdown.attackingPlayerId(),
+          List.of(),
+          List.of()));
+      log(state, move.playerId(), "Combat damage assignment started.");
+      return state;
+    }
     state.setActiveShowdown(new LiveGameState.ShowdownState(
         showdown.attackingPlayerId(),
         showdown.attackerInstanceIds(),
         showdown.gankingBonuses(),
-        ShowdownStep.ASSIGN_DAMAGE));
+        ShowdownStep.ASSIGN_DAMAGE,
+        showdown.relevantPlayerIds(),
+        showdown.focusedPlayerId(),
+        showdown.consecutivePasses(),
+        true));
     CombatResolver.CombatResult result = combatResolver.resolve(state, showdown.attackingPlayerId());
     state.setActiveShowdown(new LiveGameState.ShowdownState(
         showdown.attackingPlayerId(),
         showdown.attackerInstanceIds(),
         showdown.gankingBonuses(),
-        ShowdownStep.CLEANUP));
+        ShowdownStep.CLEANUP,
+        showdown.relevantPlayerIds(),
+        showdown.focusedPlayerId(),
+        showdown.consecutivePasses(),
+        true));
     showdown.gankingBonuses().forEach((instanceId, bonus) -> state.getCards().stream()
         .filter(card -> card.getInstanceId().equals(instanceId))
         .findFirst()
@@ -416,6 +458,332 @@ public class GameEngine {
     state.setCurrentPhase(Phase.MAIN);
     log(state, move.playerId(), "Showdown resolved.");
     return state;
+  }
+
+  private LiveGameState applyAssignCombatDamage(LiveGameState state, AssignCombatDamageMove move) {
+    LiveGameState.ShowdownState showdown = state.getActiveShowdown();
+    boolean attackerAssigning = move.playerId().equals(showdown.attackingPlayerId());
+    if (attackerAssigning) {
+      String defenderId = showdown.relevantPlayerIds().stream()
+          .filter(playerId -> !playerId.equals(showdown.attackingPlayerId()))
+          .findFirst()
+          .orElse(null);
+      state.setActiveShowdown(new LiveGameState.ShowdownState(
+          showdown.attackingPlayerId(),
+          showdown.attackerInstanceIds(),
+          showdown.gankingBonuses(),
+          ShowdownStep.ASSIGN_DAMAGE,
+          showdown.relevantPlayerIds(),
+          showdown.focusedPlayerId(),
+          showdown.consecutivePasses(),
+          true,
+          defenderId,
+          move.assignments(),
+          showdown.defenderAssignments()));
+      log(state, move.playerId(), "Assigned attacking combat damage.");
+      return state;
+    }
+    LiveGameState.ShowdownState assigned = new LiveGameState.ShowdownState(
+        showdown.attackingPlayerId(),
+        showdown.attackerInstanceIds(),
+        showdown.gankingBonuses(),
+        ShowdownStep.CLEANUP,
+        showdown.relevantPlayerIds(),
+        showdown.focusedPlayerId(),
+        showdown.consecutivePasses(),
+        true,
+        null,
+        showdown.attackerAssignments(),
+        move.assignments());
+    state.setActiveShowdown(assigned);
+    CombatResolver.CombatResult result = combatResolver.resolveAssigned(
+        state,
+        assigned.attackingPlayerId(),
+        assigned.attackerAssignments(),
+        assigned.defenderAssignments());
+    assigned.gankingBonuses().forEach((instanceId, bonus) -> state.getCards().stream()
+        .filter(card -> card.getInstanceId().equals(instanceId))
+        .findFirst()
+        .ifPresent(card -> card.setTemporaryPowerModifier(Math.max(0, card.getTemporaryPowerModifier() - bonus))));
+    if (result.attackersRemain() && result.defendersEliminated()) conquerBattlefield(state, assigned.attackingPlayerId());
+    else if (!result.defendersEliminated()) returnBattlefieldCardsToBase(state, assigned.attackingPlayerId());
+    state.setActiveShowdown(null);
+    state.setCurrentPhase(Phase.MAIN);
+    log(state, move.playerId(), "Combat damage assigned. Showdown resolved.");
+    return state;
+  }
+
+  private LiveGameState applyPassShowdownFocus(LiveGameState state, PassShowdownFocusMove move) {
+    LiveGameState.ShowdownState showdown = state.getActiveShowdown();
+    List<String> relevant = showdownParticipantRules.relevantPlayerIds(state);
+    String nextFocus = showdownParticipantRules.nextFocusedPlayerId(state);
+    int consecutivePasses = Math.min(relevant.size(), showdown.consecutivePasses() + 1);
+    boolean readyToResolve = consecutivePasses >= relevant.size();
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        showdown.attackingPlayerId(),
+        showdown.attackerInstanceIds(),
+        showdown.gankingBonuses(),
+        ShowdownStep.ACTION_WINDOW,
+        relevant,
+        readyToResolve ? showdown.attackingPlayerId() : nextFocus,
+        consecutivePasses,
+        readyToResolve));
+    log(state, move.playerId(), readyToResolve
+        ? "Passed showdown focus. Showdown is ready to resolve."
+        : "Passed showdown focus.");
+    return state;
+  }
+
+  private LiveGameState applyPassChainFocus(LiveGameState state, PassChainFocusMove move) {
+    LiveGameState.ChainState chain = state.getChainState();
+    List<String> relevant = chainRelevantPlayers(state, chain);
+    int consecutivePasses = Math.min(relevant.size(), chain.consecutivePasses() + 1);
+    boolean readyToResolve = consecutivePasses >= relevant.size();
+    LiveGameState.ChainItem topItem = chain.topItem();
+    String nextFocus = readyToResolve
+        ? topItem.controllerPlayerId()
+        : nextFocusedPlayerId(relevant, move.playerId());
+    state.setChainState(new LiveGameState.ChainState(
+        chain.chainId(),
+        chain.chainItems(),
+        relevant,
+        nextFocus,
+        consecutivePasses,
+        readyToResolve,
+        chain.sourceContext()));
+    log(state, move.playerId(), readyToResolve
+        ? "Passed chain focus. The chain item is ready to resolve."
+        : "Passed chain focus.");
+    return state;
+  }
+
+  private LiveGameState applyResolveChainTop(LiveGameState state, ResolveChainTopMove move) {
+    LiveGameState.ChainState chain = state.getChainState();
+    LiveGameState.ChainItem item = chain.topItem();
+    resolveChainItem(state, item);
+    List<LiveGameState.ChainItem> remaining = new ArrayList<>(chain.chainItems());
+    remaining.remove(remaining.size() - 1);
+    if (remaining.isEmpty()) {
+      state.setChainState(null);
+      log(state, move.playerId(), "Chain resolved.");
+      return state;
+    }
+    LiveGameState.ChainItem nextTop = remaining.get(remaining.size() - 1);
+    state.setChainState(new LiveGameState.ChainState(
+        chain.chainId(),
+        remaining,
+        chainRelevantPlayers(state, chain),
+        nextTop.controllerPlayerId(),
+        0,
+        false,
+        chain.sourceContext()));
+    log(state, move.playerId(), "Resolved the top chain item.");
+    return state;
+  }
+
+  private void resolveChainItem(LiveGameState state, LiveGameState.ChainItem item) {
+    String description = item.publicDescription() == null || item.publicDescription().isBlank()
+        ? "chain item"
+        : item.publicDescription();
+    if (LiveGameState.ChainItem.EFFECT_GUST_RETURN.equals(item.effectKey())) {
+      resolveGustChainItem(state, item, description);
+      moveChainSourceToTrash(state, item);
+      return;
+    }
+    if (LiveGameState.ChainItem.EFFECT_STACKED_DECK_PICK_ONE.equals(item.effectKey())) {
+      resolveStackedDeckChainItem(state, item, description);
+      moveChainSourceToTrash(state, item);
+      return;
+    }
+    if (LiveGameState.ChainItem.EFFECT_DRAW_1_TEST.equals(item.effectKey())) {
+      applyDraw(state, item.controllerPlayerId(), 1);
+      log(state, item.controllerPlayerId(), "Resolved " + description + ": drew 1.");
+      moveChainSourceToTrash(state, item);
+      return;
+    }
+    log(state, item.controllerPlayerId(), "Resolved " + description + ".");
+    moveChainSourceToTrash(state, item);
+  }
+
+  private void openChain(
+      LiveGameState state,
+      PlayCardMove move,
+      CardInstance card,
+      CardDefinition def,
+      String effectKey,
+      String sourceContext) {
+    List<String> relevant = chainRelevantPlayers(state, null);
+    int order = 1;
+    card.setZone(ZoneName.LIMBO);
+    card.setTapped(false);
+    card.setHasSummoningSickness(false);
+    LiveGameState.ChainItem item = new LiveGameState.ChainItem(
+        UUID.randomUUID().toString(),
+        move.playerId(),
+        card.getInstanceId(),
+        card.getCardId(),
+        def.name(),
+        effectKey,
+        List.of(),
+        order,
+        def.name(),
+        LiveGameState.ChainItem.VISIBILITY_PUBLIC);
+    state.setChainState(new LiveGameState.ChainState(
+        UUID.randomUUID().toString(),
+        List.of(item),
+        relevant,
+        nextFocusedPlayerId(relevant, move.playerId()),
+        0,
+        false,
+        sourceContext));
+    log(state, move.playerId(), "Played " + def.name() + " onto the chain.");
+  }
+
+  private void addGustToChain(LiveGameState state, PlayCardMove move, CardInstance card, CardDefinition def) {
+    LiveGameState.ChainState chain = state.getChainState();
+    List<String> relevant = chainRelevantPlayers(state, chain);
+    int order = chain.chainItems().size() + 1;
+    card.setZone(ZoneName.LIMBO);
+    card.setTapped(false);
+    card.setHasSummoningSickness(false);
+    LiveGameState.ChainItem item = new LiveGameState.ChainItem(
+        UUID.randomUUID().toString(),
+        move.playerId(),
+        card.getInstanceId(),
+        card.getCardId(),
+        def.name(),
+        LiveGameState.ChainItem.EFFECT_GUST_RETURN,
+        List.of(move.targetInstanceId()),
+        order,
+        def.name(),
+        LiveGameState.ChainItem.VISIBILITY_PUBLIC);
+    List<LiveGameState.ChainItem> items = new ArrayList<>(chain.chainItems());
+    items.add(item);
+    state.setChainState(new LiveGameState.ChainState(
+        chain.chainId(),
+        items,
+        relevant,
+        nextFocusedPlayerId(relevant, move.playerId()),
+        0,
+        false,
+        chain.sourceContext()));
+    log(state, move.playerId(), "Played " + def.name() + " onto the chain.");
+  }
+
+  private void resolveStackedDeckChainItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
+    CardInstance source = item.sourceCardInstanceId() == null || item.sourceCardInstanceId().isBlank()
+        ? null
+        : state.getCards().stream()
+            .filter(card -> card.getInstanceId().equals(item.sourceCardInstanceId()))
+            .findFirst()
+            .orElse(null);
+    if (source == null) {
+      log(state, item.controllerPlayerId(), "Resolved " + description + ": source was no longer available.");
+      return;
+    }
+    CardDefinition sourceDef = cardDataService.getCard(source.getCardId());
+    applyRulesTextEffect(source, null, state, sourceDef);
+    log(state, item.controllerPlayerId(), "Resolved " + description + ".");
+    if ("SHOWDOWN_ACTION".equalsIgnoreCase(state.getChainState() == null ? null : state.getChainState().sourceContext())
+        && state.getActiveShowdown() != null) {
+      advanceShowdownFocusAfterAction(state, item.controllerPlayerId());
+    }
+  }
+
+  private void resolveGustChainItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
+    CardInstance target = item.targetInstanceIds().stream()
+        .findFirst()
+        .flatMap(targetId -> state.getCards().stream()
+            .filter(card -> card.getInstanceId().equals(targetId))
+            .findFirst())
+        .orElse(null);
+    if (target == null || !isLegalGustTarget(target)) {
+      log(state, item.controllerPlayerId(), "Resolved " + description + ": target was no longer legal.");
+      return;
+    }
+    CardDefinition targetDef = cardDataService.getCard(target.getCardId());
+    returnAttachmentsToBase(state, target);
+    target.setZone(ZoneName.HAND);
+    target.setTapped(false);
+    target.setHasSummoningSickness(false);
+    target.setX(0);
+    target.setY(0);
+    log(state, item.controllerPlayerId(), "Resolved " + description + ": returned " + targetDef.name() + " to its owner's hand.");
+  }
+
+  private boolean isLegalGustTarget(CardInstance target) {
+    if (target.getZone() != ZoneName.BATTLEFIELD || target.isFaceDown()) return false;
+    CardDefinition targetDef = cardDataService.getCard(target.getCardId());
+    if (targetDef == null || (!"Unit".equalsIgnoreCase(targetDef.type()) && !"Champion".equalsIgnoreCase(targetDef.type()))) return false;
+    return effectiveMight(target) <= 3;
+  }
+
+  private void moveChainSourceToTrash(LiveGameState state, LiveGameState.ChainItem item) {
+    if (item.sourceCardInstanceId() == null || item.sourceCardInstanceId().isBlank()) return;
+    state.getCards().stream()
+        .filter(card -> card.getInstanceId().equals(item.sourceCardInstanceId()))
+        .findFirst()
+        .filter(card -> card.getZone() == ZoneName.LIMBO)
+        .ifPresent(cardZoneService::moveToGraveyard);
+  }
+
+  private List<String> chainRelevantPlayers(LiveGameState state, LiveGameState.ChainState chain) {
+    if (chain != null && chain.relevantPlayerIds() != null && !chain.relevantPlayerIds().isEmpty()) {
+      return chain.relevantPlayerIds();
+    }
+    return state.getPlayers().stream()
+        .map(PlayerState::getUserId)
+        .filter(id -> id != null && !id.isBlank())
+        .sorted(String.CASE_INSENSITIVE_ORDER)
+        .toList();
+  }
+
+  private String nextFocusedPlayerId(List<String> relevant, String currentFocus) {
+    if (relevant.isEmpty()) return currentFocus;
+    int index = relevant.indexOf(currentFocus);
+    return relevant.get((index < 0 ? 0 : index + 1) % relevant.size());
+  }
+
+  private void advanceShowdownFocusAfterAction(LiveGameState state, String playerId) {
+    LiveGameState.ShowdownState showdown = state.getActiveShowdown();
+    List<String> relevant = showdownParticipantRules.relevantPlayerIds(state);
+    String nextFocus = showdownParticipantRules.nextFocusedPlayerId(state);
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        showdown.attackingPlayerId(),
+        showdown.attackerInstanceIds(),
+        showdown.gankingBonuses(),
+        ShowdownStep.ACTION_WINDOW,
+        relevant,
+        nextFocus == null ? playerId : nextFocus,
+        0,
+        false));
+    log(state, playerId, "Showdown focus passed to the next player.");
+  }
+
+  private LiveGameState.ShowdownState showdownState(
+      LiveGameState state,
+      String attackingPlayerId,
+      List<String> attackerInstanceIds,
+      Map<String, Integer> gankingBonuses) {
+    List<String> relevant = new ArrayList<>();
+    relevant.add(attackingPlayerId);
+    state.getCards().stream()
+        .filter(card -> card.getZone() == ZoneName.BATTLEFIELD)
+        .map(CardInstance::getOwnerId)
+        .filter(owner -> owner != null && !owner.isBlank())
+        .filter(owner -> !owner.equals(attackingPlayerId))
+        .distinct()
+        .sorted(String.CASE_INSENSITIVE_ORDER)
+        .forEach(relevant::add);
+    return new LiveGameState.ShowdownState(
+        attackingPlayerId,
+        attackerInstanceIds,
+        gankingBonuses,
+        ShowdownStep.ACTION_WINDOW,
+        relevant,
+        attackingPlayerId,
+        0,
+        false);
   }
 
   private LiveGameState applyUndoRunes(LiveGameState state, UndoRunesMove move) {

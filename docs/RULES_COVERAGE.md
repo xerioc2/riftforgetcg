@@ -112,7 +112,7 @@ Current implementation notes:
 - Phase passing is server-authoritative.
 - Early phases do not expose normal main actions through `LegalActionsService`.
 - Server-computed legal actions are included in player-specific projected state so the client can hide or disable actions using the same conservative action matrix.
-- Current action windows include Battlefield selection, mulligan, basic phase pass, active-player Main Phase actions, a lightweight active-showdown Action window, active showdown resolution, and sandbox actions only in SANDBOX mode.
+- Current action windows include Battlefield selection, mulligan, basic phase pass, active-player Main Phase actions, a lightweight active-showdown focus/pass Action window, a narrow chain focus/pass/resolve foundation, gated active showdown resolution, and sandbox actions only in SANDBOX mode.
 - Pending choices pause normal actions and expose `RESOLVE_CHOICE` only to the prompted player through player-specific projections.
 - Private card-selection choices can show top-deck card options only to the owner; opponent and spectator projections omit those identities.
 
@@ -120,11 +120,55 @@ Known gaps:
 - Official cleanup/HOT FEPR sequencing is not fully modeled.
 - The engine still uses `END` while current official terminology uses Ending/expiration details.
 - Trigger and chain timing is highly simplified.
-- Full Reaction timing and priority/chain timing are not represented in the legal-action projection yet.
+- Full Reaction timing, counterspell targeting, and official priority/chain timing are not represented yet.
 - Choice support covers private yes/no, generic optional-payment prompts, Stacked Deck-style top-3 pick-one, and a Predict-style top/bottom ordering foundation; required two-target spell selection has a narrow paired friendly/enemy foundation, while optional targets, linked choices, and full timing windows remain incomplete.
 
 Test coverage:
 - `LegalActionsServiceTest`
+- `BotServicePhaseFlowTest`
+
+Priority: P1.
+
+## Priority / Chain Foundation
+
+Status: Partial
+
+Current implementation notes:
+- `LiveGameState.chainState` can represent a public-safe stack of chain items, relevant players, current focus, consecutive passes, and a `readyToResolveTop` gate.
+- `PASS_CHAIN_FOCUS` and `RESOLVE_CHAIN_TOP` are server-validated moves.
+- Pending choices still take priority over chain actions. While a chain is active, normal phase/showdown actions are blocked until the chain item is resolved.
+- `LegalActionsService` exposes `PASS_CHAIN_FOCUS`, `RESOLVE_CHAIN_TOP`,
+  and narrowly supported focused Reaction play to the focused player.
+  Spectators and non-focused players receive no chain actions.
+- RiftBot can pass chain focus or resolve a ready top item through the same server legal-action contract.
+- Current effect resolution is deliberately limited to deterministic test/no-op
+  and draw-one harness items, Stacked Deck as the first real chain opener, and
+  Gust as the first real chain-backed Reaction.
+- Stacked Deck opens the narrow alpha chain when played in supported gameplay,
+  becomes a public chain item, and creates its existing owner-only private
+  top-card choice only after that chain item resolves.
+- Gust can be played only while the controller is focused during an active
+  chain. It creates a public chain item and, when resolved, returns a
+  battlefield Unit/Champion with 3 Might or less to its owner's hand. If the
+  target is no longer legal at resolution, Gust fizzles safely.
+- Chain item projection is viewer-aware. Public chain items can expose source and
+  target metadata, while controller-only/private chain items mask source card
+  IDs, source names, effect keys, and target instance IDs from opponents and
+  spectator/public views.
+
+Known gaps:
+- Gust is the only real Reaction card connected to the chain. Counterspells,
+  Ambush-as-Reaction, hidden play windows, and ability-counter targets are not
+  connected yet.
+- No official priority, invitation, trigger-ordering, replacement/prevention, or multiplayer focus policy is implemented.
+- Private/hidden chain objects have a projection policy, but real hidden
+  Reaction timing and counterspell cards are still deferred until future
+  sprints.
+
+Test coverage:
+- `GameEngineChainTest`
+- `LegalActionsServiceTest`
+- `GameStateProjectionServiceTest`
 - `BotServicePhaseFlowTest`
 
 Priority: P1.
@@ -202,7 +246,7 @@ Current implementation notes:
 
 Known gaps:
 - Chain timing, Reaction timing, countering spells, optional/three-plus/conditional multi-target spells, full optional trigger ordering, replacement/prevention, and many spell-specific effects are not complete.
-- Active-showdown `[Action]` play is lightweight: showdown participants can play supported Action cards, the attacker can resolve, and no chain/response system exists yet.
+- Active-showdown `[Action]` play is lightweight: focused showdown participants can play supported Action cards or pass focus. Once both relevant players pass in succession, the showdown becomes ready for the attacker to resolve. A narrow chain-state foundation exists, with Gust as the only connected Reaction card; counterspell and broader response-card support remain deferred.
 
 Test coverage:
 - Rules validator keyword/target tests.
@@ -305,13 +349,23 @@ Current implementation notes:
 - Showdown is modeled as `activeShowdown` while `currentPhase` remains MAIN.
 - `activeShowdown.step` exposes the current simplified showdown step to the
   client; contested movement opens at ACTION_WINDOW.
+- `activeShowdown` now tracks the two-player alpha relevant players, current
+  focused player, consecutive focus passes, and a `readyToResolve` gate.
+- Focus starts with the attacker. The focused player may play a supported
+  `[Action]` card or pass focus; playing an Action resets consecutive passes
+  and advances focus. When both relevant players pass in succession, the
+  attacker may resolve the simplified combat.
 - Nested showdowns are blocked.
 - Resolving clears `activeShowdown` and returns to normal MAIN actions.
-- Legal-action visibility pauses normal main actions during an active showdown, but may expose `PLAY_CARD` for a showdown participant when a supported `[Action]` card is in hand.
+- Legal-action visibility pauses normal main actions during an active showdown,
+  exposes `PASS_SHOWDOWN_FOCUS` and supported Action `PLAY_CARD` only to the
+  focused participant, and exposes `RESOLVE_SHOWDOWN` only after focus/pass is
+  complete.
 
 Known gaps:
-- Non-combat showdowns, formal priority between participants, staged combat conversion,
-  and chain/reaction timing permissions are simplified.
+- Non-combat showdowns, full priority/chain timing, staged combat conversion,
+  initial attack/defend trigger chain, invitations, and reaction timing
+  permissions remain simplified or deferred.
 - Multiple battlefield showdowns are deferred until the post-alpha location
   model.
 
@@ -326,8 +380,16 @@ Priority: P1.
 Status: Partial
 
 Current implementation notes:
-- `CombatResolver` resolves simplified attacker/defender combat.
-- Damage is assigned deterministically with Tank-priority lethal assignment.
+- After showdown focus/pass is complete, `RESOLVE_SHOWDOWN` enters an
+  `ASSIGN_DAMAGE` step instead of resolving combat immediately.
+- The assigning player submits `ASSIGN_COMBAT_DAMAGE`; attacker assignments are
+  stored first, then defender assignments resolve simultaneous damage.
+- Server validation requires each side to assign all available combat Might,
+  enforces Tank-priority lethal assignment, rejects duplicate source-target
+  assignments, and allows excess damage on only one target after legal targets
+  have lethal.
+- The current client and RiftBot use deterministic Tank-first assignment
+  helpers; full manual damage-splitting UI is deferred.
 - Damage is simultaneous; killed units move to trash after both sides assign
   damage.
 - Survivors heal during combat cleanup.
@@ -336,12 +398,14 @@ Current implementation notes:
 - SHIELD, TANK priority, and STUN have partial support.
 
 Known gaps:
-- Player-chosen damage assignment, prevention/replacement, combat designation
-  cleanup, and many multi-unit edge cases are incomplete.
+- Fine-grained player-chosen damage UI, prevention/replacement, combat
+  designation cleanup, and many official multi-unit edge cases are incomplete.
 - Multiple battlefield combat is intentionally post-alpha work.
 
 Test coverage:
 - `CombatResolverTest`
+- `GameEngineShowdownTest`
+- `LegalActionsServiceTest`
 - `RulesValidatorKeywordTest`
 
 Priority: P0.
@@ -454,8 +518,9 @@ Known gaps:
   dedicated handlers before they can be called fully supported.
 - The complete official keyword list, dependent keywords, inactive text, conditional permissions, XP/Hunt/Level, and full action/reaction behavior are incomplete.
 - Some legacy placeholder keywords remain in early hard-coded effects and should be audited against current official names.
-- The trigger framework does not create a chain, priority window, optional
-  trigger ordering flow, or multiple simultaneous chain items yet.
+- The trigger framework does not create official priority windows, optional
+  trigger ordering flows, or broad simultaneous chain items yet. A narrow
+  chain-state foundation exists for future integration.
 - Scuttle Crab's Deathknell reveal/facedown/XP text, general token definitions,
   official token cleanup, and broad non-Recruit token creation effects remain
   incomplete.
@@ -495,7 +560,7 @@ Known gaps:
   when timing, choices, or extra clauses are incomplete.
 - Optional triggers and may choices are partial: private yes/no,
   optional-payment, and narrow follow-up board-target prompts exist, but complex
-  targeting decisions, linked choices, trigger ordering, and chain items are
+  targeting decisions, linked choices, trigger ordering, and real card chain items are
   incomplete.
 
 Test coverage:
@@ -552,17 +617,17 @@ Current implementation notes:
 - `LegalActionsService` returns conservative high-level actions for the current player.
 - Player-specific `GameStateProjectionService` output now includes `legalActions` for the viewer.
 - Spectator/public projections receive an empty legal-action set.
-- The frontend consumes `state.legalActions` to gate Battlefield selection, mulligan/keep, pass phase, play card, move to battlefield, rune actions, active showdown resolution, and sandbox-only controls.
+- The frontend consumes `state.legalActions` to gate Battlefield selection, mulligan/keep, pass phase, play card, move to battlefield, rune actions, chain focus passing/resolution, showdown focus passing, gated active showdown resolution, and sandbox-only controls.
 - `RulesValidator` remains the source of enforcement.
 - The service intentionally does not claim support for card-specific or reaction windows that are not implemented.
-- Currently modeled windows: Battlefield selection, mulligan, basic phase pass, Main Phase active-player actions, participant supported Action play during active showdowns, active showdown resolution, and SANDBOX-only developer actions.
+- Currently modeled windows: Battlefield selection, mulligan, basic phase pass, Main Phase active-player actions, Stacked Deck's narrow chain opener, chain focus/pass/resolve, focused participant supported Action play/pass during active showdowns, gated active showdown resolution, and SANDBOX-only developer actions.
 
 Known gaps:
 - Actions are not card-instance-specific.
-- Full Reaction windows and chain priority are future work.
+- Full Reaction windows and official chain priority remain future work.
 - Card-specific legal action prompts are not generated.
 - Target-specific and payment-specific legal action generation is incomplete.
-- Chain/timing permissions and full priority handling are future work.
+- Chain/timing permissions for real card responses and full priority handling are future work.
 
 Test coverage:
 - `LegalActionsServiceTest`
@@ -576,7 +641,7 @@ Status: Partial
 
 Current implementation notes:
 - The client uses projected `legalActions` for major game-action affordances instead of relying only on local phase guesses.
-- Unavailable phase/showdown controls are hidden.
+- Unavailable phase/showdown/chain controls are hidden.
 - Mulligan and Keep buttons require `MULLIGAN` or `KEEP_HAND`.
 - Normal Main Phase controls require `PLAY_CARD`, `MOVE_TO_BATTLEFIELD`, rune actions, or sandbox-specific actions as appropriate.
 - Same-zone card organization uses `REPOSITION_CARD`; cross-zone `MOVE_CARD` is

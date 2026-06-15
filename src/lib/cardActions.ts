@@ -1,6 +1,6 @@
 import type { RiftCard } from '../types';
 
-export type TargetMode = 'NONE' | 'FRIENDLY_UNIT' | 'ENEMY_UNIT' | 'ANY_BATTLEFIELD_UNIT' | 'FRIENDLY_PUBLIC_UNIT' | 'ENEMY_PUBLIC_UNIT' | 'FRIENDLY_UNIT_FOR_EQUIP' | 'ANY_PUBLIC_GEAR' | 'UNSUPPORTED';
+export type TargetMode = 'NONE' | 'FRIENDLY_UNIT' | 'ENEMY_UNIT' | 'ANY_BATTLEFIELD_UNIT' | 'GUST_BATTLEFIELD_UNIT' | 'FRIENDLY_PUBLIC_UNIT' | 'ENEMY_PUBLIC_UNIT' | 'FRIENDLY_UNIT_FOR_EQUIP' | 'ANY_PUBLIC_GEAR' | 'UNSUPPORTED';
 export type TargetRole = 'friendlyUnit' | 'enemyUnit';
 export type TargetRequirement = {
   role: TargetRole;
@@ -13,6 +13,7 @@ export function targetModeForCard(card: RiftCard | undefined): TargetMode {
   const text = (card.rulesText ?? '').toLowerCase();
   if (card.type?.toLowerCase() === 'gear') return text.includes('[equip]') ? 'NONE' : 'UNSUPPORTED';
   if (multiTargetRequirementsForCard(card).length > 0) return 'NONE';
+  if (isGustReactionCard(card)) return 'GUST_BATTLEFIELD_UNIT';
   if (text.includes('another unit')) return 'UNSUPPORTED';
   if (text.includes('counter a spell')
     || text.includes('counter an enemy spell')
@@ -66,6 +67,17 @@ export function isReactionCard(card: RiftCard | undefined) {
   return bracketedTiming(card, 'reaction');
 }
 
+export function isGustReactionCard(card: RiftCard | undefined) {
+  const text = (card?.rulesText ?? '').toLowerCase();
+  return card?.type?.toLowerCase() === 'spell'
+    && isReactionCard(card)
+    && card.name?.trim().toLowerCase() === 'gust'
+    && text.includes('return a unit')
+    && text.includes('battlefield')
+    && text.includes('owner')
+    && (text.includes('3') || text.includes('three'));
+}
+
 export function isAmbushCard(card: RiftCard | undefined) {
   return bracketedTiming(card, 'ambush')
     || (card?.keywords ?? []).some((keyword) => keyword.toUpperCase().startsWith('AMBUSH'));
@@ -95,6 +107,8 @@ export function targetPromptForMode(mode: TargetMode) {
       return 'Choose an enemy unit.';
     case 'ANY_BATTLEFIELD_UNIT':
       return 'Choose a unit at a battlefield.';
+    case 'GUST_BATTLEFIELD_UNIT':
+      return 'Choose a Unit or Champion at a battlefield with 3 Might or less.';
     case 'FRIENDLY_PUBLIC_UNIT':
       return 'Choose a friendly Unit or Champion.';
     case 'ENEMY_PUBLIC_UNIT':
@@ -123,6 +137,8 @@ export function noLegalTargetsMessage(mode: TargetMode) {
       return 'No legal enemy targets.';
     case 'ANY_BATTLEFIELD_UNIT':
       return 'No legal battlefield targets.';
+    case 'GUST_BATTLEFIELD_UNIT':
+      return 'No battlefield Unit or Champion with 3 Might or less can be targeted.';
     case 'FRIENDLY_PUBLIC_UNIT':
       return 'No legal friendly Unit or Champion targets.';
     case 'ENEMY_PUBLIC_UNIT':
@@ -135,7 +151,7 @@ export function noLegalTargetsMessage(mode: TargetMode) {
   }
 }
 
-export function isLegalTargetForMode(card: { ownerId: string; zone: string; faceDown?: boolean } | undefined, cardDef: RiftCard | undefined, mode: TargetMode, playerId: string) {
+export function isLegalTargetForMode(card: { ownerId: string; zone: string; faceDown?: boolean; mightBonus?: number; temporaryPowerModifier?: number } | undefined, cardDef: RiftCard | undefined, mode: TargetMode, playerId: string) {
   if (!card || !cardDef) return false;
   const type = cardDef.type?.toLowerCase();
   const isUnitLike = type === 'unit' || type === 'champion';
@@ -152,6 +168,10 @@ export function isLegalTargetForMode(card: { ownerId: string; zone: string; face
   if (zone !== 'battlefield') return false;
   if (mode === 'FRIENDLY_UNIT') return card.ownerId === playerId;
   if (mode === 'ENEMY_UNIT') return card.ownerId !== playerId;
+  if (mode === 'GUST_BATTLEFIELD_UNIT') {
+    const might = Math.max(0, (cardDef.power ?? 0) + (card.mightBonus ?? 0) + (card.temporaryPowerModifier ?? 0));
+    return might <= 3;
+  }
   if (mode === 'ANY_BATTLEFIELD_UNIT') return true;
   return false;
 }

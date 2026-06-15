@@ -30,7 +30,7 @@ public class RiftforgeServerApplication {
           DealCardMove.class, TapCardMove.class, FlipCardMove.class,
           PlayCardMove.class, MoveCardMove.class, RepositionCardMove.class, TapRuneMove.class,
           DiscardRuneMove.class, MoveToBattlefieldMove.class, SelectBattlefieldMove.class,
-          MulliganMove.class, UndoRunesMove.class, PassPhaseMove.class, ResolveShowdownMove.class, AdjustScoreMove.class, VisionChoiceMove.class,
+          MulliganMove.class, UndoRunesMove.class, PassPhaseMove.class, PassChainFocusMove.class, ResolveChainTopMove.class, PassShowdownFocusMove.class, ResolveShowdownMove.class, AssignCombatDamageMove.class, AdjustScoreMove.class, VisionChoiceMove.class,
           DismissRevealedMove.class, HideCardMove.class, EquipGearMove.class, ResolveChoiceMove.class,
           PendingChoice.class, PendingChoice.ChoiceOption.class, PendingChoice.CardChoiceOption.class, PendingChoice.CardChoiceAssignment.class,
           MatchRecord.class, MatchRecord.PlayerSummary.class

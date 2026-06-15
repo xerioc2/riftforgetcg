@@ -1,7 +1,7 @@
 import { Client } from '@stomp/stompjs';
 import { getGameServerUrl } from './env';
 import type { LocalPlayer } from './localPlayer';
-import type { LiveGameState, PresenceSummary, RoomState } from '../types';
+import type { CombatDamageAssignment, LiveGameState, PresenceSummary, RoomState } from '../types';
 
 export type MoveRequest =
   | { type: 'DEAL_CARD'; playerId: string; cardId: string; targetZone: string; x: number; y: number }
@@ -17,6 +17,10 @@ export type MoveRequest =
   | { type: 'MULLIGAN'; playerId: string; discardInstanceIds: string[] }
   | { type: 'UNDO_RUNES'; playerId: string }
   | { type: 'PASS_PHASE'; playerId: string }
+  | { type: 'PASS_CHAIN_FOCUS'; playerId: string }
+  | { type: 'RESOLVE_CHAIN_TOP'; playerId: string }
+  | { type: 'PASS_SHOWDOWN_FOCUS'; playerId: string }
+  | { type: 'ASSIGN_COMBAT_DAMAGE'; playerId: string; assignments: CombatDamageAssignment[] }
   | { type: 'RESOLVE_SHOWDOWN'; playerId: string }
   | { type: 'ADJUST_SCORE'; playerId: string; targetPlayerId: string; delta: number }
   | { type: 'VISION_CHOICE'; playerId: string; recycle: boolean }

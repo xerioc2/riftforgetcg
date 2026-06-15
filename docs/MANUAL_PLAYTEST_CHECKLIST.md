@@ -28,8 +28,8 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Hide a card if you draw a `[Hidden]` card.
 - Try Ambush if the UI says it is available.
 - Move a Unit to the battlefield.
-- Play a supported `[Action]` card during a showdown if one appears.
-- Resolve a showdown.
+- During a showdown, confirm the focused player can either play a supported `[Action]` card or click `Pass Focus`.
+- After both relevant players pass focus, resolve the showdown, then use `Assign Damage` when prompted.
 - Trigger or inspect an unsupported-card message.
 - Check support badges in the deck builder, hand, hover preview, and inspect modal.
 - Use Report issue or Copy debug info if anything looks stuck or confusing. Include the build version from Alpha limits or copied debug info.
@@ -58,8 +58,12 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - If a Champion is destroyed in combat, confirm it returns to the Champion zone and any attached Gear returns to Base.
 - Move a Unit to the battlefield.
 - If you have a clean Ambush Unit and already control a battlefield unit, use the Ambush button and confirm it enters the battlefield ready.
-- If a showdown starts and you have a supported `[Action]` card, try it during the showdown window.
-- Resolve a showdown if one starts.
+- If a showdown starts and you have focus, try a supported `[Action]` card or click `Pass Focus`.
+- Confirm the attacker cannot resolve until both relevant players pass focus.
+- If a chain prompt/status appears in a dev/test build, confirm only the focused player sees `Pass Chain` or `Resolve Chain` and normal game actions stay paused until it clears.
+- Resolve a showdown after the focus/pass cycle completes, then assign combat damage when prompted.
+- In human vs RiftBot, create a multi-unit combat where RiftBot has more combatants than the opposing side; confirm RiftBot assigns all damage, the showdown resolves, and the game does not freeze.
+- If practical, smoke both paths: RiftBot attacking with multiple units and RiftBot defending with multiple units.
 - If Deathknell/token cards appear, confirm the log and board state update clearly.
 - Check your hand remains visible to you and opponent hands remain masked.
 - Trigger one invalid action and confirm the visible error is understandable.
@@ -86,8 +90,14 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Pass through the turn and confirm the phase guidance updates.
 - Move a Unit to the battlefield.
 - If an Ambush card appears, confirm it either shows a clear Ambush option with a friendly battlefield unit or explains why Ambush/additional cost is unavailable.
-- If a showdown starts and you have a supported `[Action]` card, confirm the UI says you may play it or resolve the showdown.
-- Resolve a showdown if one starts.
+- If a showdown starts and you have a supported `[Action]` card, confirm the UI says you may play it or pass focus only while you are focused.
+- Confirm `Resolve Showdown` appears only after both relevant players pass focus.
+- Play Stacked Deck to open the narrow alpha chain. If the opponent has Gust in
+  hand, confirm Gust shows as a `Respond` option only while that player has
+  chain focus, highlights only battlefield Units/Champions with 3 Might or
+  less, resolves before Stacked Deck, and returns the target to hand after
+  chain passes/resolution.
+- Resolve a showdown after the focus/pass cycle completes, then confirm `Assign Damage` appears before cleanup.
 - Confirm attached Gear returns to Base if its host leaves play in a supported path.
 - Confirm the game log shows readable entries for play, move, target, showdown, scoring, and unsupported-effect messages.
 

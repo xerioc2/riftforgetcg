@@ -5,7 +5,10 @@ import com.riftforge.model.CardInstance;
 import com.riftforge.model.GameMode;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.Phase;
+import com.riftforge.model.ShowdownStep;
 import com.riftforge.model.ZoneName;
+import com.riftforge.engine.CombatStatsService;
+import com.riftforge.engine.CombatStatsService.CombatContext;
 import com.riftforge.service.CardDataService;
 import java.util.EnumSet;
 import java.util.Set;
@@ -16,19 +19,21 @@ import org.springframework.stereotype.Service;
 public class LegalActionsService {
   private final CardDataService cardDataService;
   private final ShowdownParticipantRules showdownParticipantRules;
+  private final CombatStatsService combatStatsService;
 
   public LegalActionsService() {
-    this(null, new ShowdownParticipantRules());
+    this(null, new ShowdownParticipantRules(), null);
   }
 
   public LegalActionsService(CardDataService cardDataService) {
-    this(cardDataService, new ShowdownParticipantRules());
+    this(cardDataService, new ShowdownParticipantRules(), cardDataService == null ? null : new CombatStatsService(cardDataService));
   }
 
   @Autowired
-  public LegalActionsService(CardDataService cardDataService, ShowdownParticipantRules showdownParticipantRules) {
+  public LegalActionsService(CardDataService cardDataService, ShowdownParticipantRules showdownParticipantRules, CombatStatsService combatStatsService) {
     this.cardDataService = cardDataService;
     this.showdownParticipantRules = showdownParticipantRules;
+    this.combatStatsService = combatStatsService;
   }
 
   public Set<LegalAction> legalActionsFor(LiveGameState state, String playerId) {
@@ -43,6 +48,17 @@ public class LegalActionsService {
     EnumSet<LegalAction> actions = EnumSet.noneOf(LegalAction.class);
     if (state.getPendingChoice() != null) {
       if (playerId.equals(state.getPendingChoice().getPlayerId())) actions.add(LegalAction.RESOLVE_CHOICE);
+      return actions;
+    }
+
+    if (state.getChainState() != null) {
+      if (!playerId.equals(state.getChainState().focusedPlayerId())) return actions;
+      if (state.getChainState().readyToResolveTop()) {
+        actions.add(LegalAction.RESOLVE_CHAIN_TOP);
+      } else {
+        actions.add(LegalAction.PASS_CHAIN_FOCUS);
+        if (hasPlayableGustInHand(state, playerId)) actions.add(LegalAction.PLAY_CARD);
+      }
       return actions;
     }
 
@@ -64,15 +80,22 @@ public class LegalActionsService {
       return actions;
     }
 
-    addSandboxActions(state, actions);
-
     if (state.getActiveShowdown() != null) {
-      if (showdownParticipantRules.isShowdownAttacker(state, playerId)) {
-        actions.add(LegalAction.RESOLVE_SHOWDOWN);
+      if (state.getActiveShowdown().step() == ShowdownStep.ASSIGN_DAMAGE) {
+        if (playerId.equals(state.getActiveShowdown().assigningPlayerId())) actions.add(LegalAction.ASSIGN_COMBAT_DAMAGE);
+        return actions;
       }
-      if (showdownParticipantRules.isShowdownParticipant(state, playerId) && hasSupportedActionCardInHand(state, playerId)) actions.add(LegalAction.PLAY_CARD);
+      if (!showdownParticipantRules.isFocusedPlayer(state, playerId)) return actions;
+      if (state.getActiveShowdown().readyToResolve() && showdownParticipantRules.isShowdownAttacker(state, playerId)) {
+        actions.add(LegalAction.RESOLVE_SHOWDOWN);
+        return actions;
+      }
+      actions.add(LegalAction.PASS_SHOWDOWN_FOCUS);
+      if (!state.getActiveShowdown().readyToResolve() && hasSupportedActionCardInHand(state, playerId)) actions.add(LegalAction.PLAY_CARD);
       return actions;
     }
+
+    addSandboxActions(state, actions);
 
     if (!playerId.equals(state.getActivePlayerId())) {
       // TODO: Add Reaction/Action windows once the chain and timing permissions are modeled.
@@ -121,6 +144,39 @@ public class LegalActionsService {
             && cardDataService.isActionCard(def)
             && !cardDataService.isReactionCard(def)
             && !cardDataService.isUnsupportedAction(def.id()));
+  }
+
+  private boolean hasPlayableGustInHand(LiveGameState state, String playerId) {
+    if (cardDataService == null || combatStatsService == null) return false;
+    boolean legalTarget = state.getCards().stream().anyMatch(this::isLegalGustTarget);
+    if (!legalTarget) return false;
+    return state.getCards().stream()
+        .filter(card -> playerId.equals(card.getOwnerId()) && card.getZone() == ZoneName.HAND)
+        .map(card -> cardDataService.getCard(card.getCardId()))
+        .anyMatch(def -> def != null
+            && cardDataService.isGustReaction(def)
+            && !cardDataService.isUnsupportedAction(def.id())
+            && canPay(state, playerId, def));
+  }
+
+  private boolean isLegalGustTarget(CardInstance target) {
+    if (target.getZone() != ZoneName.BATTLEFIELD || target.isFaceDown()) return false;
+    CardDefinition targetDef = cardDataService.getCard(target.getCardId());
+    if (targetDef == null || (!"Unit".equalsIgnoreCase(targetDef.type()) && !"Champion".equalsIgnoreCase(targetDef.type()))) return false;
+    return combatStatsService.effectiveMight(target, CombatContext.IDLE) <= 3;
+  }
+
+  private boolean canPay(LiveGameState state, String playerId, CardDefinition def) {
+    int availableEnergy = state.getPlayers().stream()
+        .filter(player -> playerId.equals(player.getUserId()))
+        .findFirst()
+        .map(player -> player.getAvailableEnergy())
+        .orElse(0);
+    int readyRuneEnergy = state.getRunes().stream()
+        .filter(rune -> playerId.equals(rune.getOwnerId()) && !rune.isTapped())
+        .mapToInt(rune -> Math.max(0, rune.getNormalEnergy()))
+        .sum();
+    return availableEnergy + readyRuneEnergy >= Math.max(0, def.cost());
   }
 
   private boolean hasHideableCardInHand(LiveGameState state, String playerId) {

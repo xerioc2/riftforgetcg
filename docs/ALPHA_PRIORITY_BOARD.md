@@ -33,9 +33,11 @@ will raise regression risk faster than playtest value.
 | Champion deployment payment | High | Medium | Pre-playtest | Done | Makes chosen Champions usable without treating them as normal hand cards. |
 | Equipment lifecycle | High | Medium | Pre-playtest | Done | Gear can be played to Base, equipped, cleaned up from hosts, and tested with starter decks. |
 | Illegal drag snapback | High | Low | Pre-playtest | Done | Prevents UI confusion when server rejects a move. |
-| Pending choice prompts | High | Medium | Pre-playtest | Done | Owner-only yes/no, optional payment, Stacked Deck top-card choice, and Predict-style ordering prompts exist without a full chain system. |
+| Pending choice prompts | High | Medium | Pre-playtest | Done | Owner-only yes/no, optional payment, Stacked Deck top-card choice, and Predict-style ordering prompts exist; Stacked Deck now creates its private choice after resolving from the narrow alpha chain. |
 | Target selection | High | Medium | Pre-playtest | Done | Required for simple spells, Equip, and many bug reports to be meaningful. |
-| Action / Defender Action windows | High | Medium | Pre-playtest | Done | Provides a limited showdown action window while keeping Reaction/chain deferred. |
+| Showdown focus/pass Action window | High | Medium | Pre-playtest | Done | Focused participants can play supported Action cards or pass; attacker resolution is gated until both relevant players pass in succession. Full Reaction/chain remains deferred. |
+| Combat damage assignment v1 | High | Medium | Post-playtest | Done | Showdowns now enter an assignment step after focus/pass; server validates all-damage, Tank, lethal, duplicate, and excess policies. Client/bot use deterministic Tank-first assignment until manual damage UI is worth the risk. |
+| Chain focus/pass foundation | High | Medium | Post-playtest | In progress | Public-safe chain state, focus passing, ready-to-resolve gating, projection, bot handling, UI affordance, Stacked Deck as the first opener, and Gust as the first real Reaction exist. Broader Reaction/counterspell card support remains deferred. |
 | Hidden foundation | Medium | Medium | Pre-playtest | Done | Establishes masking and zones without later play-from-hidden timing. |
 | Ambush foundation | Medium | Medium | Pre-playtest | Done | Narrow Main-phase battlefield play path; Ambush-as-Reaction remains deferred. |
 | Deathknell / tokens | Medium | Medium | Pre-playtest | Done | Supports safe starter-unit scripts, token plumbing, and Scuttle Crab's 1v1 private hand reveal while XP/facedown remain deferred. |
@@ -56,7 +58,7 @@ will raise regression risk faster than playtest value.
 | Charm / enemy movement | High | High | Post-playtest | Deferred | Needs precise legal destinations, ownership, battlefield/control rules, and UI affordances. |
 | Hidden play-from-hidden | High | High | Post-playtest | Deferred | Requires timing windows, payment, reveal/masking transitions, and target legality. |
 | Ambush-as-Reaction | High | High | Post-playtest | Deferred | Depends on chain/reaction windows and correct response priority. |
-| Reaction / chain / counterspells | High | High | Post-playtest | Deferred | Required for many cards but likely the largest rules-system risk. |
+| Reaction / counterspells on real cards | High | High | Post-playtest | Deferred | Required for many cards but likely the largest rules-system risk; build on the narrow chain foundation one card/pattern at a time. |
 | Multiple battlefields | High | High | Later | Deferred | Officially important, intentionally post-alpha because it touches movement, targeting, showdown, scoring, bot decisions, and layout. |
 | Sideboard / tournament match structure | Medium | High | Later | Deferred | Valuable for organized play after single-game alpha flow is stable. |
 
@@ -86,7 +88,9 @@ The alpha should be described as:
 - Single-battlefield playtest model.
 - Constructed deck setup enforced, with role-separated Legend, chosen Champion, and pre-mulligan Battlefield selection.
 - Starter-deck-oriented card support, with badges and warnings.
-- Partial Action/showdown support, not full Reaction/chain.
+- Partial Action/showdown support with focus/pass v1 and a narrow chain-state foundation, not full Reaction/counterspell priority.
+- Combat damage assignment v1 with server legality checks and deterministic
+  alpha UI/bot assignment, not full manual damage splitting.
 - Strong privacy regression coverage for current hidden-information surfaces.
 - Installer/release flow through GitHub Releases rather than tracked binaries.
 

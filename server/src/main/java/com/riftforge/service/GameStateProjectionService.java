@@ -38,6 +38,7 @@ public class GameStateProjectionService {
     view.setBattlefieldController(new HashMap<>(state.getBattlefieldController()));
     view.setScoredBattlefieldsThisTurn(new HashSet<>(state.getScoredBattlefieldsThisTurn()));
     view.setActiveShowdown(copyShowdown(state.getActiveShowdown()));
+    view.setChainState(copyChain(state.getChainState(), viewerPlayerId));
     view.setGameMode(state.getGameMode());
     view.setPendingChoice(copyChoiceForViewer(state.getPendingChoice(), viewerPlayerId));
     view.setLegalActions(viewerPlayerId == null ? Set.of() : legalActionsService.legalActionsFor(state, viewerPlayerId));
@@ -118,7 +119,41 @@ public class GameStateProjectionService {
         showdown.attackingPlayerId(),
         new ArrayList<>(showdown.attackerInstanceIds()),
         new HashMap<>(showdown.gankingBonuses()),
-        showdown.step());
+        showdown.step(),
+        new ArrayList<>(showdown.relevantPlayerIds()),
+        showdown.focusedPlayerId(),
+        showdown.consecutivePasses(),
+        showdown.readyToResolve(),
+        showdown.assigningPlayerId(),
+        new ArrayList<>(showdown.attackerAssignments()),
+        new ArrayList<>(showdown.defenderAssignments()));
+  }
+
+  private LiveGameState.ChainState copyChain(LiveGameState.ChainState chain, String viewerPlayerId) {
+    if (chain == null) return null;
+    return new LiveGameState.ChainState(
+        chain.chainId(),
+        chain.chainItems().stream().map(item -> copyChainItem(item, viewerPlayerId)).toList(),
+        new ArrayList<>(chain.relevantPlayerIds()),
+        chain.focusedPlayerId(),
+        chain.consecutivePasses(),
+        chain.readyToResolveTop(),
+        chain.sourceContext());
+  }
+
+  private LiveGameState.ChainItem copyChainItem(LiveGameState.ChainItem item, String viewerPlayerId) {
+    boolean canSeePrivateSource = item.isPubliclyVisible() || Objects.equals(item.controllerPlayerId(), viewerPlayerId);
+    return new LiveGameState.ChainItem(
+        item.itemId(),
+        item.controllerPlayerId(),
+        canSeePrivateSource ? item.sourceCardInstanceId() : null,
+        canSeePrivateSource ? item.sourceCardId() : HIDDEN_CARD_ID,
+        canSeePrivateSource ? item.sourceCardName() : "Hidden chain item",
+        canSeePrivateSource ? item.effectKey() : null,
+        canSeePrivateSource ? new ArrayList<>(item.targetInstanceIds()) : new ArrayList<>(),
+        item.order(),
+        item.publicDescription(),
+        item.visibility());
   }
 
   private PendingChoice copyChoiceForViewer(PendingChoice choice, String viewerPlayerId) {

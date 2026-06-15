@@ -13,7 +13,7 @@ const PHASE_GUIDANCE: Record<string, string> = {
 
 const SHOWDOWN_GUIDANCE: Record<string, string> = {
   STAGED: 'Showdown in progress. Resolve showdown to continue.',
-  ACTION_WINDOW: 'Showdown action window. Participants may play supported Action cards. The attacker may resolve the showdown.',
+  ACTION_WINDOW: 'Showdown focus window. The focused player may play supported Action cards or pass focus.',
   ASSIGN_DAMAGE: 'Showdown damage assignment is resolving.',
   RESOLVE_DAMAGE: 'Showdown damage is resolving.',
   CLEANUP: 'Showdown cleanup is resolving.',
@@ -24,7 +24,12 @@ export function isBotPlayer(playerId?: string | null, playerName?: string | null
   return Boolean(playerId?.startsWith('bot-player-') || playerName?.toLowerCase().includes('riftbot'));
 }
 
-export function phaseGuidance(currentPhase?: string, activeShowdown?: boolean, showdownStep?: string) {
+export function phaseGuidance(currentPhase?: string, activeShowdown?: boolean, showdownStep?: string, activeChain?: boolean, chainReady?: boolean) {
+  if (activeChain) {
+    return chainReady
+      ? 'The top chain item is ready to resolve.'
+      : 'Chain focus window. The focused player may pass chain focus.';
+  }
   if (activeShowdown) return SHOWDOWN_GUIDANCE[showdownStep ?? 'STAGED'] ?? 'Showdown in progress. Resolve showdown to continue.';
   return PHASE_GUIDANCE[currentPhase ?? 'MAIN'] ?? 'Follow the available actions shown by the server.';
 }
@@ -42,6 +47,11 @@ export function legalActionHint(
   if (actions.has('SELECT_BATTLEFIELD')) return 'Choose one Battlefield.';
   if (actions.has('KEEP_HAND') || actions.has('MULLIGAN')) return 'You can keep or mulligan.';
   if (actions.has('RESOLVE_CHOICE')) return 'Choose an option to continue.';
+  if (actions.has('RESOLVE_CHAIN_TOP')) return 'You can resolve the top chain item.';
+  if (actions.has('PASS_CHAIN_FOCUS')) return 'You can pass chain focus.';
+  if (actions.has('ASSIGN_COMBAT_DAMAGE')) return 'Assign combat damage to continue the showdown.';
+  if (actions.has('PASS_SHOWDOWN_FOCUS') && actions.has('PLAY_CARD')) return 'You may play a supported Action card or pass showdown focus.';
+  if (actions.has('PASS_SHOWDOWN_FOCUS')) return 'You can pass showdown focus.';
   if (actions.has('RESOLVE_SHOWDOWN') && actions.has('PLAY_CARD')) return 'You may play supported Action cards or resolve the showdown.';
   if (actions.has('RESOLVE_SHOWDOWN')) return 'You can resolve this showdown.';
   if (actions.has('PLAY_CARD') && actions.size === 1) return 'You may play supported Action cards.';

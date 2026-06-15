@@ -26,7 +26,7 @@ import { createGameClient, joinGame, sendMove } from '../lib/stompGame';
 import { useCardStore } from '../store/cards';
 import { useGameStore } from '../store/game';
 import { notifyError, notifySuccess, notifyWarning, useToastStore } from '../store/toasts';
-import type { CardInstance, LegalAction, LiveGameState, PendingCardChoiceAssignment, RevealedHandSnapshot, RiftCard, ZoneName } from '../types';
+import type { CardInstance, CombatDamageAssignment, LegalAction, LiveGameState, PendingCardChoiceAssignment, RevealedHandSnapshot, RiftCard, ZoneName } from '../types';
 
 const NAV_HEIGHT = 73;
 const SIDEBAR_WIDTH = 280;
@@ -55,6 +55,13 @@ function sameZone(zone: string, expected: ZoneName | string) {
 
 function hasKeyword(card: RiftCard | undefined, keyword: string) {
   return card?.keywords?.some((value) => value.toUpperCase().startsWith(keyword.toUpperCase())) ?? false;
+}
+
+function keywordValue(card: RiftCard | undefined, keyword: string) {
+  const match = card?.keywords?.find((value) => value.toUpperCase().startsWith(keyword.toUpperCase()));
+  if (!match) return 0;
+  const numeric = match.match(/\d+/);
+  return numeric ? Number(numeric[0]) : 1;
 }
 
 function hasHidden(card: RiftCard | undefined) {
@@ -372,6 +379,78 @@ export function GameBoard() {
     window.setTimeout(fetchProjectedState, 300);
   };
 
+  const isCombatant = (instance: CardInstance) => {
+    const def = cardsById.get(instance.cardId);
+    const type = def?.type?.toLowerCase();
+    return !instance.faceDown && (type === 'unit' || type === 'champion');
+  };
+
+  const combatMight = (instance: CardInstance, attacking: boolean) => {
+    const def = cardsById.get(instance.cardId);
+    if (!def) return 0;
+    if (hasKeyword(def, 'STUN') || hasKeyword(def, 'STUNNED')) return 0;
+    const situational = attacking ? keywordValue(def, 'ASSAULT') : keywordValue(def, 'SHIELD');
+    return Math.max(0, (def.power ?? 0) + (instance.mightBonus ?? 0) + (instance.temporaryPowerModifier ?? 0) + situational);
+  };
+
+  const lethalDamageFor = (instance: CardInstance) => {
+    const def = cardsById.get(instance.cardId);
+    return Math.max(1, instance.currentHealth && instance.currentHealth > 0 ? instance.currentHealth : def?.health ?? 0);
+  };
+
+  const buildCombatDamageAssignments = (): CombatDamageAssignment[] => {
+    if (!state?.activeShowdown) return [];
+    const attacking = state.activeShowdown.attackingPlayerId === player.id;
+    const sources = state.cards
+      .filter((instance) => instance.ownerId === player.id && sameZone(instance.zone, 'battlefield') && isCombatant(instance));
+    const targets = state.cards
+      .filter((instance) => instance.ownerId !== player.id && sameZone(instance.zone, 'battlefield') && isCombatant(instance))
+      .sort((a, b) => {
+        const aTank = hasKeyword(cardsById.get(a.cardId), 'TANK');
+        const bTank = hasKeyword(cardsById.get(b.cardId), 'TANK');
+        if (aTank !== bTank) return aTank ? -1 : 1;
+        return a.instanceId.localeCompare(b.instanceId);
+      });
+    if (sources.length === 0 || targets.length === 0) return [];
+
+    const assignments: CombatDamageAssignment[] = [];
+    let targetIndex = 0;
+    let assignedToTarget = 0;
+    for (const source of sources) {
+      let remaining = combatMight(source, attacking);
+      while (remaining > 0) {
+        const target = targets[Math.min(targetIndex, targets.length - 1)];
+        const lethal = lethalDamageFor(target);
+        const needed = lethal - assignedToTarget;
+        if (needed <= 0) {
+          targetIndex = Math.min(targetIndex + 1, targets.length - 1);
+          assignedToTarget = 0;
+          continue;
+        }
+        const amount = targetIndex === targets.length - 1 ? remaining : Math.min(remaining, needed);
+        assignments.push({ sourceInstanceId: source.instanceId, targetInstanceId: target.instanceId, amount });
+        remaining -= amount;
+        assignedToTarget += amount;
+        if (assignedToTarget >= lethal) {
+          if (targetIndex < targets.length - 1) {
+            targetIndex += 1;
+            assignedToTarget = 0;
+          }
+        }
+      }
+    }
+    return assignments;
+  };
+
+  const assignCombatDamage = () => {
+    if (!canTakeAction(state, 'ASSIGN_COMBAT_DAMAGE')) {
+      notifyWarning('Action unavailable', 'The server has no combat damage assignment action available right now.');
+      return;
+    }
+    const assignments = buildCombatDamageAssignments();
+    publishMove({ type: 'ASSIGN_COMBAT_DAMAGE', playerId: player.id, assignments });
+  };
+
   useEffect(() => {
     if (!state?.pendingChoice) setChoiceSubmitting(false);
   }, [state?.pendingChoice]);
@@ -573,7 +652,16 @@ export function GameBoard() {
   const playFromHand = (instanceId: string) => {
     const cardDef = cardsById.get(state?.cards.find((c) => c.instanceId === instanceId)?.cardId ?? '');
     const type = cardDef?.type?.toLowerCase();
-    if (showdownActive) {
+    if (chainActive) {
+      if (!isReactionCard(cardDef)) {
+        notifyWarning('Chain active', 'Only supported Reaction cards can be played while the chain is active.');
+        return;
+      }
+      if (!canTakeAction(state, 'PLAY_CARD')) {
+        notifyWarning('Reaction unavailable', 'Wait for your chain focus before playing a Reaction.');
+        return;
+      }
+    } else if (showdownActive) {
       if (isReactionCard(cardDef)) {
         notifyWarning('Reaction timing unavailable', 'Reaction timing is not implemented yet.');
         return;
@@ -808,8 +896,24 @@ export function GameBoard() {
   };
 
   const handlePassPhase = () => {
+    if (canTakeAction(state, 'RESOLVE_CHAIN_TOP')) {
+      publishMove({ type: 'RESOLVE_CHAIN_TOP', playerId: player.id });
+      return;
+    }
+    if (canTakeAction(state, 'PASS_CHAIN_FOCUS')) {
+      publishMove({ type: 'PASS_CHAIN_FOCUS', playerId: player.id });
+      return;
+    }
+    if (canTakeAction(state, 'ASSIGN_COMBAT_DAMAGE')) {
+      assignCombatDamage();
+      return;
+    }
     if (canTakeAction(state, 'RESOLVE_SHOWDOWN')) {
       publishMove({ type: 'RESOLVE_SHOWDOWN', playerId: player.id });
+      return;
+    }
+    if (canTakeAction(state, 'PASS_SHOWDOWN_FOCUS')) {
+      publishMove({ type: 'PASS_SHOWDOWN_FOCUS', playerId: player.id });
       return;
     }
     if (!canTakeAction(state, 'PASS_PHASE')) {
@@ -894,6 +998,18 @@ export function GameBoard() {
   const opponentName = opponent?.name?.trim() || opponent?.userId || 'Opponent';
   const activePlayerName = activePlayer?.userId === player.id ? 'you' : activePlayer?.name?.trim() || activePlayer?.userId || opponentName;
   const activePlayerIsBot = isBotPlayer(activePlayer?.userId, activePlayer?.name);
+  const showdownFocusPlayer = state.activeShowdown?.focusedPlayerId
+    ? state.players.find((statePlayer) => statePlayer.userId === state.activeShowdown?.focusedPlayerId)
+    : undefined;
+  const showdownFocusName = state.activeShowdown?.focusedPlayerId === player.id
+    ? 'you'
+    : showdownFocusPlayer?.name?.trim() || showdownFocusPlayer?.userId;
+  const chainFocusPlayer = state.chainState?.focusedPlayerId
+    ? state.players.find((statePlayer) => statePlayer.userId === state.chainState?.focusedPlayerId)
+    : undefined;
+  const chainFocusName = state.chainState?.focusedPlayerId === player.id
+    ? 'you'
+    : chainFocusPlayer?.name?.trim() || chainFocusPlayer?.userId;
   const opponentHand = state.cards.filter((card) => card.ownerId === opponent?.userId && sameZone(card.zone, 'hand')).length;
   const visibleCardsFor = (ownerId: string | undefined, zone: string) =>
     state.cards
@@ -928,16 +1044,22 @@ export function GameBoard() {
   const opponentUntappedRunes = (state.runes ?? []).filter((rune) => rune.ownerId === opponent?.userId && !rune.tapped).length;
   const isMyTurn = state.activePlayerId === player.id;
   const showdownActive = Boolean(state.activeShowdown);
+  const chainActive = Boolean(state.chainState);
   const canPlayCards = canTakeAction(state, 'PLAY_CARD');
   const canResolveChoice = canTakeAction(state, 'RESOLVE_CHOICE');
   const canMoveToBattlefield = canTakeAction(state, 'MOVE_TO_BATTLEFIELD');
+  const canResolveChainTop = canTakeAction(state, 'RESOLVE_CHAIN_TOP');
+  const canPassChainFocus = canTakeAction(state, 'PASS_CHAIN_FOCUS');
+  const canAssignCombatDamage = canTakeAction(state, 'ASSIGN_COMBAT_DAMAGE');
   const canResolveShowdown = canTakeAction(state, 'RESOLVE_SHOWDOWN');
-  const canPlayReactions = false;
+  const canPassShowdownFocus = canTakeAction(state, 'PASS_SHOWDOWN_FOCUS');
+  const canPlayReactions = chainActive && canPlayCards;
   const hasSpellReaction = hand.some((instance) => cardsById.get(instance.cardId)?.type?.toLowerCase() === 'spell');
   const ownRuneZone = zones.find((zone) => zone.zoneName === 'rune' && zone.ownerId === player.id);
   const hasTappedOwnRune = (state.runes ?? []).some((rune) => rune.ownerId === player.id && rune.tapped);
   const canUndoRunes = canTakeAction(state, 'UNDO_RUNES') && hasTappedOwnRune;
-  const canPass = canTakeAction(state, 'PASS_PHASE') || canResolveShowdown;
+  const canPass = canTakeAction(state, 'PASS_PHASE') || canResolveChainTop || canPassChainFocus || canAssignCombatDamage || canResolveShowdown || canPassShowdownFocus;
+  const passLabel = canResolveChainTop ? 'Resolve Chain' : canPassChainFocus ? 'Pass Chain' : canAssignCombatDamage ? 'Assign Damage' : canResolveShowdown ? 'Resolve Showdown' : canPassShowdownFocus ? 'Pass Focus' : 'Pass';
   const canSelectBattlefield = canTakeAction(state, 'SELECT_BATTLEFIELD');
   const canMulligan = canTakeAction(state, 'MULLIGAN');
   const canKeepHand = canTakeAction(state, 'KEEP_HAND');
@@ -962,7 +1084,7 @@ export function GameBoard() {
   );
   const battlefieldChoices = me?.battlefieldChoices ?? [];
   const selectedBattlefield = me?.selectedBattlefieldId ?? null;
-  const guidanceText = phaseGuidance(state.currentPhase, showdownActive, state.activeShowdown?.step);
+  const guidanceText = phaseGuidance(state.currentPhase, showdownActive, state.activeShowdown?.step, chainActive, state.chainState?.readyToResolveTop);
   const actionHintText = legalActionHint(state.legalActions, { isPlayer: Boolean(me), isMyTurn, activePlayerName, activePlayerIsBot });
   const waitingText = waitingStatusText({ isMyTurn, activePlayerName, activePlayerIsBot, waitingLong: waitingTooLong });
   const connectionText = wsConnected ? 'Connected.' : 'Reconnecting to player-specific updates...';
@@ -1223,10 +1345,17 @@ export function GameBoard() {
         currentPhase={state.currentPhase ?? 'MAIN'}
         isMyTurn={isMyTurn}
         canPass={canPass}
+        passLabel={passLabel}
         opponentName={opponentName}
         onPassPhase={handlePassPhase}
         activeShowdown={showdownActive}
         showdownStep={state.activeShowdown?.step}
+        showdownFocusName={showdownFocusName}
+        showdownReadyToResolve={state.activeShowdown?.readyToResolve}
+        activeChain={chainActive}
+        chainFocusName={chainFocusName}
+        chainReadyToResolve={state.chainState?.readyToResolveTop}
+        chainItemCount={state.chainState?.chainItems?.length ?? 0}
         guidance={guidanceText}
         legalActionHint={actionHintText}
         waitingStatus={waitingText}
@@ -1236,6 +1365,17 @@ export function GameBoard() {
       {canPlayReactions && hasSpellReaction ? (
         <div className="pointer-events-none absolute left-0 z-20 flex justify-center text-xs font-medium text-forge" style={{ right: `${SIDEBAR_WIDTH}px`, bottom: handHeight + PHASE_BAR_HEIGHT + 6 }}>
           Supported Action window available
+        </div>
+      ) : null}
+
+      {canAssignCombatDamage ? (
+        <div className="pointer-events-auto absolute left-1/2 z-30 w-80 -translate-x-1/2 border border-forge/60 bg-[#05080d] p-3 text-sm text-slate-100 shadow-[0_14px_44px_rgba(0,0,0,0.7)]" style={{ bottom: handHeight + PHASE_BAR_HEIGHT + 12 }}>
+          <p className="text-xs uppercase text-slate-500">Combat damage</p>
+          <p className="mt-1 font-semibold text-forge">Assign your combat damage</p>
+          <p className="mt-1 text-xs text-slate-400">RiftForge will assign lethal damage first, respecting Tank, then put any excess on one target.</p>
+          <button className="btn-primary mt-3 w-full" onClick={assignCombatDamage}>
+            Assign Damage
+          </button>
         </div>
       ) : null}
 
@@ -1308,7 +1448,7 @@ export function GameBoard() {
           cardScale={cardScale}
           onHover={handleCardHover}
           effectiveEnergy={spendableEnergy}
-          canPlayCards={canPlayCards}
+          canPlayCards={canPlayCards && !chainActive}
           canAmbushCards={canAmbushCards}
           canHideCards={canHideCards}
           canPlayReactions={canPlayReactions}

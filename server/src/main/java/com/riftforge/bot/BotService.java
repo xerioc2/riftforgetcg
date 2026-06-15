@@ -11,11 +11,15 @@ import com.riftforge.model.PlayerState;
 import com.riftforge.model.RuneState;
 import com.riftforge.model.ZoneName;
 import com.riftforge.model.move.PassPhaseMove;
+import com.riftforge.model.move.PassChainFocusMove;
+import com.riftforge.model.move.PassShowdownFocusMove;
 import com.riftforge.model.move.PlayCardMove;
+import com.riftforge.model.move.AssignCombatDamageMove;
 import com.riftforge.model.move.MoveToBattlefieldMove;
 import com.riftforge.model.move.MulliganMove;
 import com.riftforge.model.move.MoveRequest;
 import com.riftforge.model.move.ResolveChoiceMove;
+import com.riftforge.model.move.ResolveChainTopMove;
 import com.riftforge.model.move.ResolveShowdownMove;
 import com.riftforge.model.move.SelectBattlefieldMove;
 import com.riftforge.model.move.TapRuneMove;
@@ -185,9 +189,23 @@ public class BotService {
     if (state.getPendingChoice() != null) {
       return resolvePendingChoiceIfPossible(roomCode, state, botId, legalActions);
     }
+    if (state.getChainState() != null) {
+      if (legalActions.contains(LegalAction.RESOLVE_CHAIN_TOP)) {
+        return processBotMove(roomCode, state, botId, new ResolveChainTopMove(botId));
+      } else if (legalActions.contains(LegalAction.PASS_CHAIN_FOCUS)) {
+        return processBotMove(roomCode, state, botId, new PassChainFocusMove(botId));
+      } else {
+        log.debug("Bot waiting during chain: room={}, bot={}, legalActions={}", roomCode, botId, legalActions);
+      }
+      return false;
+    }
     if (state.getActiveShowdown() != null) {
-      if (legalActions.contains(LegalAction.RESOLVE_SHOWDOWN)) {
+      if (legalActions.contains(LegalAction.ASSIGN_COMBAT_DAMAGE)) {
+        return processBotMove(roomCode, state, botId, new AssignCombatDamageMove(botId, botDamageAssignments(state, botId)));
+      } else if (legalActions.contains(LegalAction.RESOLVE_SHOWDOWN)) {
         return processBotMove(roomCode, state, botId, new ResolveShowdownMove(botId));
+      } else if (legalActions.contains(LegalAction.PASS_SHOWDOWN_FOCUS)) {
+        return processBotMove(roomCode, state, botId, new PassShowdownFocusMove(botId));
       } else {
         log.debug("Bot waiting during showdown: room={}, bot={}, legalActions={}", roomCode, botId, legalActions);
       }
@@ -460,6 +478,74 @@ public class BotService {
     return targetForCard(state, def, botId).isPresent();
   }
 
+  private List<LiveGameState.CombatDamageAssignment> botDamageAssignments(LiveGameState state, String botId) {
+    boolean attacking = state.getActiveShowdown() != null && botId.equals(state.getActiveShowdown().attackingPlayerId());
+    List<CardInstance> sources = state.getCards().stream()
+        .filter(card -> botId.equals(card.getOwnerId()) && card.getZone() == ZoneName.BATTLEFIELD)
+        .filter(this::isCombatant)
+        .toList();
+    List<CardInstance> targets = state.getCards().stream()
+        .filter(card -> !botId.equals(card.getOwnerId()) && card.getZone() == ZoneName.BATTLEFIELD)
+        .filter(this::isCombatant)
+        .sorted(Comparator
+            .comparing((CardInstance card) -> !cardDataService.hasKeyword(card, "TANK"))
+            .thenComparing(CardInstance::getInstanceId))
+        .toList();
+    if (sources.isEmpty() || targets.isEmpty()) return List.of();
+
+    List<LiveGameState.CombatDamageAssignment> assignments = new java.util.ArrayList<>();
+    int targetIndex = 0;
+    int assignedToCurrentTarget = 0;
+    for (CardInstance source : sources) {
+      int remaining = botMight(source, attacking);
+      while (remaining > 0) {
+        CardInstance target = targets.get(Math.min(targetIndex, targets.size() - 1));
+        int lethal = lethal(target);
+        int needed = lethal - assignedToCurrentTarget;
+        if (needed <= 0) {
+          targetIndex = Math.min(targetIndex + 1, targets.size() - 1);
+          assignedToCurrentTarget = 0;
+          continue;
+        }
+        int amount = targetIndex == targets.size() - 1 ? remaining : Math.min(remaining, needed);
+        assignments.add(new LiveGameState.CombatDamageAssignment(
+            source.getInstanceId(),
+            target.getInstanceId(),
+            amount));
+        remaining -= amount;
+        assignedToCurrentTarget += amount;
+        if (assignedToCurrentTarget >= lethal) {
+          if (targetIndex < targets.size() - 1) {
+            targetIndex++;
+            assignedToCurrentTarget = 0;
+          }
+        }
+      }
+    }
+    return assignments;
+  }
+
+  private int botMight(CardInstance card, boolean attacking) {
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    if (def == null) return 0;
+    if (cardDataService.hasKeyword(card, "STUN") || cardDataService.hasKeyword(card, "STUNNED")) return 0;
+    int situational = attacking
+        ? cardDataService.getKeywordValue(card, "ASSAULT")
+        : cardDataService.getKeywordValue(card, "SHIELD");
+    return Math.max(0, def.power() + card.getMightBonus() + card.getTemporaryPowerModifier() + situational);
+  }
+
+  private int lethal(CardInstance card) {
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    int health = card.getCurrentHealth() > 0 ? card.getCurrentHealth() : def == null ? 0 : def.health();
+    return Math.max(1, health);
+  }
+
+  private boolean isCombatant(CardInstance card) {
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    return def != null && ("Unit".equalsIgnoreCase(def.type()) || "Champion".equalsIgnoreCase(def.type()));
+  }
+
   private List<PlayCardMove.TargetSelection> targetsForCard(LiveGameState state, CardDefinition def, String botId) {
     if (!cardDataService.requiresFriendlyAndEnemyTargets(def.id())) return List.of();
     Optional<CardInstance> friendly = publicUnitTarget(state, botId, true);
@@ -521,7 +607,16 @@ public class BotService {
           && actions.contains(LegalAction.RESOLVE_CHOICE)
           && botChoiceMove(botId, state.getPendingChoice()).isPresent();
     }
-    if (state.getActiveShowdown() != null) return actions.contains(LegalAction.RESOLVE_SHOWDOWN);
+    if (state.getChainState() != null) {
+      return actions.contains(LegalAction.RESOLVE_CHAIN_TOP)
+          || actions.contains(LegalAction.PASS_CHAIN_FOCUS);
+    }
+    if (state.getActiveShowdown() != null) {
+      return actions.contains(LegalAction.RESOLVE_SHOWDOWN)
+          || actions.contains(LegalAction.PASS_SHOWDOWN_FOCUS)
+          || actions.contains(LegalAction.ASSIGN_COMBAT_DAMAGE)
+          || actions.contains(LegalAction.PLAY_CARD);
+    }
     return switch (state.getCurrentPhase()) {
       case SELECT_BATTLEFIELD -> actions.contains(LegalAction.SELECT_BATTLEFIELD);
       case MULLIGAN -> actions.contains(LegalAction.MULLIGAN) || actions.contains(LegalAction.KEEP_HAND);
@@ -556,6 +651,13 @@ public class BotService {
   private String actingBotId(LiveGameState state) {
     if (state.getPendingChoice() != null && isBotId(state.getPendingChoice().getPlayerId())) {
       return state.getPendingChoice().getPlayerId();
+    }
+    if (state.getChainState() != null && isBotId(state.getChainState().focusedPlayerId())) {
+      return state.getChainState().focusedPlayerId();
+    }
+    if (state.getActiveShowdown() != null) {
+      if (isBotId(state.getActiveShowdown().assigningPlayerId())) return state.getActiveShowdown().assigningPlayerId();
+      if (isBotId(state.getActiveShowdown().focusedPlayerId())) return state.getActiveShowdown().focusedPlayerId();
     }
     if (state.getCurrentPhase() == Phase.MULLIGAN) {
       return state.getPlayers().stream()

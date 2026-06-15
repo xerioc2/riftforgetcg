@@ -12,8 +12,10 @@ import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
 import com.riftforge.model.RoomState;
 import com.riftforge.model.ZoneName;
+import com.riftforge.model.move.AssignCombatDamageMove;
 import com.riftforge.model.move.EquipGearMove;
 import com.riftforge.model.move.MoveToBattlefieldMove;
+import com.riftforge.model.move.PassShowdownFocusMove;
 import com.riftforge.model.move.PlayCardMove;
 import com.riftforge.model.move.ResolveShowdownMove;
 import com.riftforge.rules.LegalAction;
@@ -104,7 +106,11 @@ class AlphaPlaytestRegressionTest {
     fx.gameService.processMove(roomCode, new PlayCardMove("host", "gear", ZoneName.BASE, 0, 0, null));
     fx.gameService.processMove(roomCode, new EquipGearMove("host", "gear", "host-unit"));
     fx.gameService.processMove(roomCode, new MoveToBattlefieldMove("host", "host-unit"));
+    fx.gameService.processMove(roomCode, new PassShowdownFocusMove("host"));
+    fx.gameService.processMove(roomCode, new PassShowdownFocusMove("guest"));
     fx.gameService.processMove(roomCode, new ResolveShowdownMove("host"));
+    fx.gameService.processMove(roomCode, assign("host", "host-unit", "enemy-unit", 1));
+    fx.gameService.processMove(roomCode, assign("guest", "enemy-unit", "host-unit", 2));
 
     LiveGameState authoritative = fx.gameService.currentState(roomCode);
     assertThat(authoritative.getCards()).anySatisfy(card -> {
@@ -186,5 +192,9 @@ class AlphaPlaytestRegressionTest {
   private int health(String cardId) {
     CardDefinition def = fx.cards.get(cardId);
     return def == null ? 1 : def.health();
+  }
+
+  private AssignCombatDamageMove assign(String playerId, String sourceId, String targetId, int amount) {
+    return new AssignCombatDamageMove(playerId, List.of(new LiveGameState.CombatDamageAssignment(sourceId, targetId, amount)));
   }
 }
