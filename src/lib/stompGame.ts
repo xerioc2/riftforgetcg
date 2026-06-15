@@ -7,7 +7,7 @@ export type MoveRequest =
   | { type: 'DEAL_CARD'; playerId: string; cardId: string; targetZone: string; x: number; y: number }
   | { type: 'TAP_CARD'; playerId: string; instanceId: string }
   | { type: 'FLIP_CARD'; playerId: string; instanceId: string }
-  | { type: 'PLAY_CARD'; playerId: string; instanceId: string; targetZone: string; x: number; y: number; targetInstanceId?: string; targets?: { role: 'friendlyUnit' | 'enemyUnit'; instanceId: string }[]; accelerate?: boolean; paymentRuneIds?: string[]; premiumRuneIds?: string[] }
+  | { type: 'PLAY_CARD'; playerId: string; instanceId: string; targetZone: string; x: number; y: number; targetInstanceId?: string; targetChainItemId?: string; targets?: { role: 'friendlyUnit' | 'enemyUnit'; instanceId: string }[]; accelerate?: boolean; paymentRuneIds?: string[]; premiumRuneIds?: string[] }
   | { type: 'MOVE_CARD'; playerId: string; instanceId: string; targetZone: string; x: number; y: number }
   | { type: 'REPOSITION_CARD'; playerId: string; instanceId: string; x: number; y: number }
   | { type: 'MOVE_TO_BATTLEFIELD'; playerId: string; instanceId: string; paymentRuneIds?: string[]; premiumRuneIds?: string[] }

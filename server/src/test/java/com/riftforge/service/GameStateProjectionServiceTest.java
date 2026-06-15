@@ -463,6 +463,9 @@ class GameStateProjectionServiceTest {
       assertThat(item.sourceCardName()).isEqualTo("Public Card");
       assertThat(item.effectKey()).isEqualTo(LiveGameState.ChainItem.EFFECT_NO_OP_TEST);
       assertThat(item.targetInstanceIds()).containsExactly("public-target");
+      assertThat(item.status()).isEqualTo(LiveGameState.ChainItem.STATUS_PENDING);
+      assertThat(item.counterable()).isTrue();
+      assertThat(item.targetableOnChain()).isTrue();
     }
 
     LiveGameState.ChainItem spectatorItem = projectionService.toPublicView(state, null)
@@ -505,6 +508,41 @@ class GameStateProjectionServiceTest {
         .doesNotContain("private-source-instance", "private-hidden-card", "Private Hidden Card", "PRIVATE_HIDDEN_EFFECT", "private-hidden-target");
     assertThat(objectMapper.writeValueAsString(spectatorView))
         .doesNotContain("private-source-instance", "private-hidden-card", "Private Hidden Card", "PRIVATE_HIDDEN_EFFECT", "private-hidden-target");
+  }
+
+  @Test
+  void maskedChainItemStatusProjectsWithoutPrivateCounterTargetMetadata() throws Exception {
+    LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.ENFORCED);
+    state.setChainState(chainState(new LiveGameState.ChainItem(
+        "item-1",
+        "p1",
+        "private-source-instance",
+        "private-hidden-card",
+        "Private Hidden Card",
+        "PRIVATE_HIDDEN_EFFECT",
+        List.of("private-hidden-target"),
+        1,
+        "A hidden effect",
+        LiveGameState.ChainItem.VISIBILITY_CONTROLLER_ONLY,
+        LiveGameState.ChainItem.STATUS_FIZZLED,
+        true,
+        true,
+        LiveGameState.ChainItem.TYPE_SPELL,
+        ZoneName.HIDDEN)));
+
+    LiveGameState.ChainItem opponentItem = projectionService.toPublicView(state, "p2")
+        .getChainState()
+        .chainItems()
+        .getFirst();
+
+    assertMaskedChainItem(opponentItem);
+    assertThat(opponentItem.status()).isEqualTo(LiveGameState.ChainItem.STATUS_FIZZLED);
+    assertThat(opponentItem.counterable()).isFalse();
+    assertThat(opponentItem.targetableOnChain()).isFalse();
+    assertThat(opponentItem.chainItemType()).isEqualTo("MASKED");
+    assertThat(opponentItem.sourceZoneBeforeChain()).isNull();
+    assertThat(objectMapper.writeValueAsString(opponentItem))
+        .doesNotContain("private-source-instance", "private-hidden-card", "Private Hidden Card", "PRIVATE_HIDDEN_EFFECT", "private-hidden-target", "HIDDEN");
   }
 
   @Test
@@ -704,5 +742,9 @@ class GameStateProjectionServiceTest {
     assertThat(item.effectKey()).isNull();
     assertThat(item.targetInstanceIds()).isEmpty();
     assertThat(item.publicDescription()).isEqualTo("A hidden effect");
+    assertThat(item.counterable()).isFalse();
+    assertThat(item.targetableOnChain()).isFalse();
+    assertThat(item.chainItemType()).isEqualTo("MASKED");
+    assertThat(item.sourceZoneBeforeChain()).isNull();
   }
 }

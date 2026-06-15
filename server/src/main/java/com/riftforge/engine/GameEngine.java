@@ -167,6 +167,10 @@ public class GameEngine {
       openChain(state, move, card, def, LiveGameState.ChainItem.EFFECT_STACKED_DECK_PICK_ONE, playedDuringShowdown ? "SHOWDOWN_ACTION" : "MAIN_ACTION");
       return state;
     }
+    if (cardDataService.isDefyCounterReaction(def)) {
+      addDefyToChain(state, move, card, def);
+      return state;
+    }
     if (cardDataService.isGustReaction(def)) {
       addGustToChain(state, move, card, def);
       return state;
@@ -560,8 +564,9 @@ public class GameEngine {
   private LiveGameState applyResolveChainTop(LiveGameState state, ResolveChainTopMove move) {
     LiveGameState.ChainState chain = state.getChainState();
     LiveGameState.ChainItem item = chain.topItem();
-    resolveChainItem(state, item);
-    List<LiveGameState.ChainItem> remaining = new ArrayList<>(chain.chainItems());
+    String finishedStatus = finishTopChainItem(state, item);
+    LiveGameState.ChainState latestChain = state.getChainState() == null ? chain : state.getChainState();
+    List<LiveGameState.ChainItem> remaining = new ArrayList<>(latestChain.chainItems());
     remaining.remove(remaining.size() - 1);
     if (remaining.isEmpty()) {
       state.setChainState(null);
@@ -570,39 +575,62 @@ public class GameEngine {
     }
     LiveGameState.ChainItem nextTop = remaining.get(remaining.size() - 1);
     state.setChainState(new LiveGameState.ChainState(
-        chain.chainId(),
+        latestChain.chainId(),
         remaining,
-        chainRelevantPlayers(state, chain),
+        chainRelevantPlayers(state, latestChain),
         nextTop.controllerPlayerId(),
         0,
         false,
-        chain.sourceContext()));
-    log(state, move.playerId(), "Resolved the top chain item.");
+        latestChain.sourceContext()));
+    log(state, move.playerId(), LiveGameState.ChainItem.STATUS_FIZZLED.equals(finishedStatus)
+        ? "The top chain item fizzled."
+        : "Resolved the top chain item.");
     return state;
   }
 
-  private void resolveChainItem(LiveGameState state, LiveGameState.ChainItem item) {
+  private String finishTopChainItem(LiveGameState state, LiveGameState.ChainItem item) {
+    if (item == null) return LiveGameState.ChainItem.STATUS_RESOLVED;
+    if (!item.isPending()) {
+      log(state, item.controllerPlayerId(), chainItemDescription(item) + " was already " + item.status().toLowerCase() + ".");
+      return item.status();
+    }
+    return resolveChainItem(state, item);
+  }
+
+  private String resolveChainItem(LiveGameState state, LiveGameState.ChainItem item) {
     String description = item.publicDescription() == null || item.publicDescription().isBlank()
         ? "chain item"
         : item.publicDescription();
     if (LiveGameState.ChainItem.EFFECT_GUST_RETURN.equals(item.effectKey())) {
-      resolveGustChainItem(state, item, description);
+      boolean resolved = resolveGustChainItem(state, item, description);
       moveChainSourceToTrash(state, item);
-      return;
+      return resolved ? LiveGameState.ChainItem.STATUS_RESOLVED : LiveGameState.ChainItem.STATUS_FIZZLED;
+    }
+    if (LiveGameState.ChainItem.EFFECT_DEFY_COUNTER.equals(item.effectKey())) {
+      boolean resolved = resolveDefyCounterItem(state, item, description);
+      moveChainSourceToTrash(state, item);
+      return resolved ? LiveGameState.ChainItem.STATUS_RESOLVED : LiveGameState.ChainItem.STATUS_FIZZLED;
     }
     if (LiveGameState.ChainItem.EFFECT_STACKED_DECK_PICK_ONE.equals(item.effectKey())) {
       resolveStackedDeckChainItem(state, item, description);
       moveChainSourceToTrash(state, item);
-      return;
+      return LiveGameState.ChainItem.STATUS_RESOLVED;
     }
     if (LiveGameState.ChainItem.EFFECT_DRAW_1_TEST.equals(item.effectKey())) {
       applyDraw(state, item.controllerPlayerId(), 1);
       log(state, item.controllerPlayerId(), "Resolved " + description + ": drew 1.");
       moveChainSourceToTrash(state, item);
-      return;
+      return LiveGameState.ChainItem.STATUS_RESOLVED;
     }
     log(state, item.controllerPlayerId(), "Resolved " + description + ".");
     moveChainSourceToTrash(state, item);
+    return LiveGameState.ChainItem.STATUS_RESOLVED;
+  }
+
+  private String chainItemDescription(LiveGameState.ChainItem item) {
+    if (item.publicDescription() != null && !item.publicDescription().isBlank()) return item.publicDescription();
+    if (item.sourceCardName() != null && !item.sourceCardName().isBlank()) return item.sourceCardName();
+    return "Chain item";
   }
 
   private void openChain(
@@ -627,7 +655,12 @@ public class GameEngine {
         List.of(),
         order,
         def.name(),
-        LiveGameState.ChainItem.VISIBILITY_PUBLIC);
+        LiveGameState.ChainItem.VISIBILITY_PUBLIC,
+        LiveGameState.ChainItem.STATUS_PENDING,
+        true,
+        true,
+        LiveGameState.ChainItem.TYPE_SPELL,
+        ZoneName.HAND);
     state.setChainState(new LiveGameState.ChainState(
         UUID.randomUUID().toString(),
         List.of(item),
@@ -656,7 +689,48 @@ public class GameEngine {
         List.of(move.targetInstanceId()),
         order,
         def.name(),
-        LiveGameState.ChainItem.VISIBILITY_PUBLIC);
+        LiveGameState.ChainItem.VISIBILITY_PUBLIC,
+        LiveGameState.ChainItem.STATUS_PENDING,
+        true,
+        true,
+        LiveGameState.ChainItem.TYPE_SPELL,
+        ZoneName.HAND);
+    List<LiveGameState.ChainItem> items = new ArrayList<>(chain.chainItems());
+    items.add(item);
+    state.setChainState(new LiveGameState.ChainState(
+        chain.chainId(),
+        items,
+        relevant,
+        nextFocusedPlayerId(relevant, move.playerId()),
+        0,
+        false,
+        chain.sourceContext()));
+    log(state, move.playerId(), "Played " + def.name() + " onto the chain.");
+  }
+
+  private void addDefyToChain(LiveGameState state, PlayCardMove move, CardInstance card, CardDefinition def) {
+    LiveGameState.ChainState chain = state.getChainState();
+    List<String> relevant = chainRelevantPlayers(state, chain);
+    int order = chain.chainItems().size() + 1;
+    card.setZone(ZoneName.LIMBO);
+    card.setTapped(false);
+    card.setHasSummoningSickness(false);
+    LiveGameState.ChainItem item = new LiveGameState.ChainItem(
+        UUID.randomUUID().toString(),
+        move.playerId(),
+        card.getInstanceId(),
+        card.getCardId(),
+        def.name(),
+        LiveGameState.ChainItem.EFFECT_DEFY_COUNTER,
+        List.of(move.targetChainItemId()),
+        order,
+        def.name(),
+        LiveGameState.ChainItem.VISIBILITY_PUBLIC,
+        LiveGameState.ChainItem.STATUS_PENDING,
+        false,
+        false,
+        LiveGameState.ChainItem.TYPE_SPELL,
+        ZoneName.HAND);
     List<LiveGameState.ChainItem> items = new ArrayList<>(chain.chainItems());
     items.add(item);
     state.setChainState(new LiveGameState.ChainState(
@@ -690,7 +764,7 @@ public class GameEngine {
     }
   }
 
-  private void resolveGustChainItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
+  private boolean resolveGustChainItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
     CardInstance target = item.targetInstanceIds().stream()
         .findFirst()
         .flatMap(targetId -> state.getCards().stream()
@@ -699,7 +773,7 @@ public class GameEngine {
         .orElse(null);
     if (target == null || !isLegalGustTarget(target)) {
       log(state, item.controllerPlayerId(), "Resolved " + description + ": target was no longer legal.");
-      return;
+      return false;
     }
     CardDefinition targetDef = cardDataService.getCard(target.getCardId());
     returnAttachmentsToBase(state, target);
@@ -709,6 +783,47 @@ public class GameEngine {
     target.setX(0);
     target.setY(0);
     log(state, item.controllerPlayerId(), "Resolved " + description + ": returned " + targetDef.name() + " to its owner's hand.");
+    return true;
+  }
+
+  private boolean resolveDefyCounterItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
+    String targetItemId = item.targetInstanceIds().stream().findFirst().orElse("");
+    LiveGameState.ChainState chain = state.getChainState();
+    if (chain == null || targetItemId.isBlank()) {
+      log(state, item.controllerPlayerId(), "Resolved " + description + ": target was no longer available.");
+      return false;
+    }
+    List<LiveGameState.ChainItem> updatedItems = new ArrayList<>();
+    boolean countered = false;
+    LiveGameState.ChainItem counteredItem = null;
+    for (LiveGameState.ChainItem candidate : chain.chainItems()) {
+      if (targetItemId.equals(candidate.itemId())
+          && candidate.isPending()
+          && candidate.counterable()
+          && candidate.targetableOnChain()) {
+        LiveGameState.ChainItem marked = candidate.withStatus(LiveGameState.ChainItem.STATUS_COUNTERED);
+        updatedItems.add(marked);
+        countered = true;
+        counteredItem = marked;
+      } else {
+        updatedItems.add(candidate);
+      }
+    }
+    if (!countered) {
+      log(state, item.controllerPlayerId(), "Resolved " + description + ": target was no longer legal.");
+      return false;
+    }
+    state.setChainState(new LiveGameState.ChainState(
+        chain.chainId(),
+        updatedItems,
+        chain.relevantPlayerIds(),
+        chain.focusedPlayerId(),
+        chain.consecutivePasses(),
+        chain.readyToResolveTop(),
+        chain.sourceContext()));
+    moveChainSourceToTrash(state, counteredItem);
+    log(state, item.controllerPlayerId(), "Resolved " + description + ": countered " + chainItemDescription(counteredItem) + ".");
+    return true;
   }
 
   private boolean isLegalGustTarget(CardInstance target) {

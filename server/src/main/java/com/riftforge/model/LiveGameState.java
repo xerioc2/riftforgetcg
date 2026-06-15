@@ -95,13 +95,55 @@ public class LiveGameState {
       List<String> targetInstanceIds,
       int order,
       String publicDescription,
-      String visibility) {
+      String visibility,
+      String status,
+      boolean counterable,
+      boolean targetableOnChain,
+      String chainItemType,
+      ZoneName sourceZoneBeforeChain) {
     public static final String VISIBILITY_PUBLIC = "PUBLIC";
     public static final String VISIBILITY_CONTROLLER_ONLY = "CONTROLLER_ONLY";
+    public static final String STATUS_PENDING = "PENDING";
+    public static final String STATUS_RESOLVED = "RESOLVED";
+    public static final String STATUS_COUNTERED = "COUNTERED";
+    public static final String STATUS_FIZZLED = "FIZZLED";
+    public static final String TYPE_SPELL = "SPELL";
+    public static final String TYPE_ABILITY = "ABILITY";
+    public static final String TYPE_TEST = "TEST";
     public static final String EFFECT_NO_OP_TEST = "NO_OP_TEST";
     public static final String EFFECT_DRAW_1_TEST = "DRAW_1_TEST";
     public static final String EFFECT_GUST_RETURN = "GUST_RETURN";
     public static final String EFFECT_STACKED_DECK_PICK_ONE = "STACKED_DECK_PICK_ONE";
+    public static final String EFFECT_DEFY_COUNTER = "DEFY_COUNTER";
+
+    public ChainItem(
+        String itemId,
+        String controllerPlayerId,
+        String sourceCardInstanceId,
+        String sourceCardId,
+        String sourceCardName,
+        String effectKey,
+        List<String> targetInstanceIds,
+        int order,
+        String publicDescription,
+        String visibility) {
+      this(
+          itemId,
+          controllerPlayerId,
+          sourceCardInstanceId,
+          sourceCardId,
+          sourceCardName,
+          effectKey,
+          targetInstanceIds,
+          order,
+          publicDescription,
+          visibility,
+          STATUS_PENDING,
+          true,
+          true,
+          TYPE_SPELL,
+          null);
+    }
 
     public ChainItem(
         String itemId,
@@ -129,10 +171,35 @@ public class LiveGameState {
     public ChainItem {
       targetInstanceIds = targetInstanceIds == null ? List.of() : List.copyOf(targetInstanceIds);
       visibility = visibility == null || visibility.isBlank() ? VISIBILITY_PUBLIC : visibility;
+      status = status == null || status.isBlank() ? STATUS_PENDING : status;
+      chainItemType = chainItemType == null || chainItemType.isBlank() ? TYPE_SPELL : chainItemType;
     }
 
     public boolean isPubliclyVisible() {
       return VISIBILITY_PUBLIC.equalsIgnoreCase(visibility);
+    }
+
+    public boolean isPending() {
+      return STATUS_PENDING.equalsIgnoreCase(status);
+    }
+
+    public ChainItem withStatus(String newStatus) {
+      return new ChainItem(
+          itemId,
+          controllerPlayerId,
+          sourceCardInstanceId,
+          sourceCardId,
+          sourceCardName,
+          effectKey,
+          targetInstanceIds,
+          order,
+          publicDescription,
+          visibility,
+          newStatus,
+          counterable,
+          targetableOnChain,
+          chainItemType,
+          sourceZoneBeforeChain);
     }
   }
 

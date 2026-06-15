@@ -289,6 +289,16 @@ public class CardDataService {
         && text.contains("owner");
   }
 
+  public boolean isDefyCounterReaction(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().toLowerCase();
+    boolean defyName = def.name() != null && def.name().trim().equalsIgnoreCase("Defy");
+    return "Spell".equalsIgnoreCase(def.type())
+        && isReactionCard(def)
+        && defyName
+        && text.contains("counter a spell");
+  }
+
   public boolean isHiddenCard(CardDefinition def) {
     if (def == null) return false;
     boolean keyword = def.keywords() != null
@@ -334,8 +344,9 @@ public class CardDataService {
         || supportedFriendlyEnemyReturn
         || normalized.contains("ready it")
         || normalized.contains("draw 1")
+        || isDefyCounterReaction(def)
         || isStackedDeckEffectText(normalized);
-    return normalized.contains("counter a spell")
+    return (normalized.contains("counter a spell") && !isDefyCounterReaction(def))
         || normalized.contains("counter an enemy spell")
         || requiresMultipleTargets
         || !supportedEffect;

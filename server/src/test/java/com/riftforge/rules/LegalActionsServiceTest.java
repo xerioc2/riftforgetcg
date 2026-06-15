@@ -112,6 +112,71 @@ class LegalActionsServiceTest {
   }
 
   @Test
+  void focusedPlayerWithDefySeesPlayCardOnlyWhenLegalCounterTargetExists() {
+    when(cardDataService.getCard("defy")).thenReturn(new CardDefinition("defy", "Defy", "Spell", null, List.of(), 1, 0, null, null, null, "[Reaction] Counter a spell.", 0, 0, List.of()));
+    when(cardDataService.getCard("source-card")).thenReturn(new CardDefinition("source-card", "Stacked Deck", "Spell", null, List.of(), 2, 0, null, null, null, "Draw 1.", 0, 0, List.of()));
+    when(cardDataService.isReactionCard(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      return def != null && def.rulesText() != null && def.rulesText().toLowerCase().contains("[reaction]");
+    });
+    when(cardDataService.isDefyCounterReaction(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      return def != null && "Defy".equalsIgnoreCase(def.name());
+    });
+    when(cardDataService.isUnsupportedAction("defy")).thenReturn(false);
+    LegalActionsService legalActions = new LegalActionsService(cardDataService);
+    RulesValidator validator = new RulesValidator(cardDataService, new ShowdownParticipantRules());
+    LiveGameState state = state(Phase.MAIN, "p1");
+    state.setChainState(chain(false, "p2"));
+    state.getPlayers().stream().filter(player -> "p2".equals(player.getUserId())).findFirst().orElseThrow().setAvailableEnergy(3);
+    state.getCards().add(card("defy-1", "p2", "defy", ZoneName.HAND));
+
+    assertThat(legalActions.legalActionsFor(state, "p2"))
+        .containsExactlyInAnyOrder(LegalAction.PASS_CHAIN_FOCUS, LegalAction.PLAY_CARD);
+    assertThatCode(() -> validator.validate(state, new PlayCardMove("p2", "defy-1", ZoneName.BASE, 0, 0, null, "item-1", List.of(), false, List.of(), List.of())))
+        .doesNotThrowAnyException();
+    assertThat(legalActions.legalActionsFor(state, "p1")).isEmpty();
+    assertThatThrownBy(() -> validator.validate(state, new PlayCardMove("p1", "defy-1", ZoneName.BASE, 0, 0, null, "item-1", List.of(), false, List.of(), List.of())))
+        .isInstanceOf(IllegalMoveException.class);
+
+    state.setChainState(nonCounterableChain(false, "p2"));
+    assertThat(legalActions.legalActionsFor(state, "p2"))
+        .containsExactly(LegalAction.PASS_CHAIN_FOCUS);
+  }
+
+  @Test
+  void defyLegalActionsRespectCounterTargetCostLimits() {
+    when(cardDataService.getCard("defy")).thenReturn(new CardDefinition("defy", "Defy", "Spell", null, List.of(), 1, 0, null, null, null, "[Reaction] Counter a spell.", 0, 0, List.of()));
+    when(cardDataService.isReactionCard(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      return def != null && def.rulesText() != null && def.rulesText().toLowerCase().contains("[reaction]");
+    });
+    when(cardDataService.isDefyCounterReaction(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      return def != null && "Defy".equalsIgnoreCase(def.name());
+    });
+    when(cardDataService.isUnsupportedAction("defy")).thenReturn(false);
+    LegalActionsService legalActions = new LegalActionsService(cardDataService);
+    RulesValidator validator = new RulesValidator(cardDataService, new ShowdownParticipantRules());
+
+    for (CardDefinition invalidTarget : List.of(
+        new CardDefinition("source-card", "Expensive Spell", "Spell", null, List.of(), 5, 1, null, null, null, "Draw 1.", 0, 0, List.of()),
+        new CardDefinition("source-card", "Premium Spell", "Spell", null, List.of(), 4, 2, null, null, null, "Draw 1.", 0, 0, List.of()))) {
+      when(cardDataService.getCard("source-card")).thenReturn(invalidTarget);
+      LiveGameState state = state(Phase.MAIN, "p1");
+      state.setChainState(chain(false, "p2"));
+      state.getPlayers().stream().filter(player -> "p2".equals(player.getUserId())).findFirst().orElseThrow().setAvailableEnergy(3);
+      state.getCards().add(card("defy-1", "p2", "defy", ZoneName.HAND));
+
+      assertThat(legalActions.legalActionsFor(state, "p2"))
+          .containsExactly(LegalAction.PASS_CHAIN_FOCUS);
+      assertThatThrownBy(() -> validator.validate(state, new PlayCardMove("p2", "defy-1", ZoneName.BASE, 0, 0, null, "item-1", List.of(), false, List.of(), List.of())))
+          .isInstanceOf(IllegalMoveException.class)
+          .hasMessage("Defy can only counter a spell that costs no more than 4 and no more than 1 power.");
+    }
+  }
+
+  @Test
   void validatorAndLegalActionsAgreeForChainPassAndResolve() {
     RulesValidator validator = new RulesValidator(cardDataService, new ShowdownParticipantRules());
     LiveGameState state = state(Phase.MAIN, "p1");
@@ -134,6 +199,23 @@ class LegalActionsServiceTest {
     assertThatThrownBy(() -> validator.validate(state, new ResolveChainTopMove("p2")))
         .isInstanceOf(IllegalMoveException.class)
         .hasMessage("Only the focused player can resolve the chain item.");
+  }
+
+  @Test
+  void pendingChoiceTakesPrecedenceOverChainLegalActionsAndValidation() {
+    RulesValidator validator = new RulesValidator(cardDataService, new ShowdownParticipantRules());
+    LiveGameState state = state(Phase.MAIN, "p1");
+    state.setChainState(chain(true, "p1"));
+    state.setPendingChoice(PendingChoice.optionalDrawOne("choice-1", "p1", "source", "Draw a card?"));
+
+    assertThat(service.legalActions(state, "p1")).containsExactly(LegalAction.RESOLVE_CHOICE);
+    assertThat(service.legalActions(state, "p2")).isEmpty();
+    assertThatThrownBy(() -> validator.validate(state, new PassChainFocusMove("p1")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Resolve the pending choice before taking another action.");
+    assertThatThrownBy(() -> validator.validate(state, new ResolveChainTopMove("p1")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Resolve the pending choice before taking another action.");
   }
 
   @Test
@@ -477,6 +559,12 @@ class LegalActionsServiceTest {
     return card;
   }
 
+  private CardInstance card(String instanceId, String ownerId, String cardId, ZoneName zone) {
+    CardInstance card = card(instanceId, ownerId, zone);
+    card.setCardId(cardId);
+    return card;
+  }
+
   private CardDefinition cardDef(String id, String type, String rulesText) {
     return new CardDefinition(id, id, type, null, List.of(), 0, 0, null, null, null, rulesText, 0, 0, List.of());
   }
@@ -510,6 +598,32 @@ class LegalActionsServiceTest {
             List.of(),
             1,
             "test chain item")),
+        List.of("p1", "p2"),
+        focusedPlayerId,
+        readyToResolve ? 2 : 0,
+        readyToResolve,
+        "TEST");
+  }
+
+  private LiveGameState.ChainState nonCounterableChain(boolean readyToResolve, String focusedPlayerId) {
+    return new LiveGameState.ChainState(
+        "chain-1",
+        List.of(new LiveGameState.ChainItem(
+            "item-1",
+            "p1",
+            "source-1",
+            "source-card",
+            "Source Card",
+            LiveGameState.ChainItem.EFFECT_NO_OP_TEST,
+            List.of(),
+            1,
+            "test chain item",
+            LiveGameState.ChainItem.VISIBILITY_PUBLIC,
+            LiveGameState.ChainItem.STATUS_PENDING,
+            false,
+            false,
+            LiveGameState.ChainItem.TYPE_SPELL,
+            ZoneName.HAND)),
         List.of("p1", "p2"),
         focusedPlayerId,
         readyToResolve ? 2 : 0,

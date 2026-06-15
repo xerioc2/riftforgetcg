@@ -135,6 +135,13 @@ Status: Partial
 
 Current implementation notes:
 - `LiveGameState.chainState` can represent a public-safe stack of chain items, relevant players, current focus, consecutive passes, and a `readyToResolveTop` gate.
+- Chain items now carry explicit lifecycle status: `PENDING`, `RESOLVED`,
+  `COUNTERED`, or `FIZZLED`. The current engine cleans non-pending/fizzled
+  items safely and will not resolve the same item twice.
+- Chain items also carry counter-ready metadata such as counterability,
+  targetability, item type, stable item ID, public description, controller, and
+  source zone before the chain. This metadata is for future counterspell work
+  only; no countering move or counter card is connected yet.
 - `PASS_CHAIN_FOCUS` and `RESOLVE_CHAIN_TOP` are server-validated moves.
 - Pending choices still take priority over chain actions. While a chain is active, normal phase/showdown actions are blocked until the chain item is resolved.
 - `LegalActionsService` exposes `PASS_CHAIN_FOCUS`, `RESOLVE_CHAIN_TOP`,
@@ -143,7 +150,7 @@ Current implementation notes:
 - RiftBot can pass chain focus or resolve a ready top item through the same server legal-action contract.
 - Current effect resolution is deliberately limited to deterministic test/no-op
   and draw-one harness items, Stacked Deck as the first real chain opener, and
-  Gust as the first real chain-backed Reaction.
+  Gust and Defy as the first real chain-backed Reactions.
 - Stacked Deck opens the narrow alpha chain when played in supported gameplay,
   becomes a public chain item, and creates its existing owner-only private
   top-card choice only after that chain item resolves.
@@ -151,15 +158,26 @@ Current implementation notes:
   chain. It creates a public chain item and, when resolved, returns a
   battlefield Unit/Champion with 3 Might or less to its owner's hand. If the
   target is no longer legal at resolution, Gust fizzles safely.
+- Defy can be played only while the controller is focused during an active
+  chain and can target a pending, public, counterable spell chain item whose
+  source card cost is within Defy's alpha limits. Defy itself is not
+  counterable in v1. When Defy resolves, the target item is marked
+  `COUNTERED`, its source card moves from LIMBO to Trash, and the target item
+  later cleans up without resolving.
 - Chain item projection is viewer-aware. Public chain items can expose source and
   target metadata, while controller-only/private chain items mask source card
   IDs, source names, effect keys, and target instance IDs from opponents and
-  spectator/public views.
+  spectator/public views. Private/masked chain items also suppress
+  counter-target metadata and source-zone details for non-owners.
+- The client shows a compact chain panel when `chainState` exists, ordered
+  top-to-bottom with public-safe item descriptions, focus state, and
+  non-pending item status. It still exposes chain buttons only through
+  server-provided legal actions.
 
 Known gaps:
-- Gust is the only real Reaction card connected to the chain. Counterspells,
-  Ambush-as-Reaction, hidden play windows, and ability-counter targets are not
-  connected yet.
+- Gust and Defy are the only real Reaction cards connected to the chain. Not So
+  Fast, Riposte counter behavior, Ambush-as-Reaction, hidden play windows, and
+  ability-counter targets are not connected yet.
 - No official priority, invitation, trigger-ordering, replacement/prevention, or multiplayer focus policy is implemented.
 - Private/hidden chain objects have a projection policy, but real hidden
   Reaction timing and counterspell cards are still deferred until future

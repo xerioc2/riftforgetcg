@@ -20,7 +20,16 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - If an optional payment prompt appears, try Decline and confirm the prompt clears without applying the effect.
 - If you play Disarming Rake while Gear is in play, confirm Yes asks you to
   choose a Gear, Cancel/No leaves Gear alone, and a selected Gear goes to Trash.
-- If you play Stacked Deck, confirm only you see the top-card options, one card goes to hand, and the rest recycle without appearing in the public log.
+- If you play Stacked Deck, confirm it opens a chain before the top-card
+  choice appears; after players pass/resolve the chain, only you see the
+  top-card options, one card goes to hand, and the rest recycle without
+  appearing in the public log.
+- If the chain panel appears, confirm it lists public-safe chain items
+  top-to-bottom, shows focus/ready status clearly, and does not expose hidden
+  or private card names.
+- If Defy is in hand during chain focus, confirm it can target a supported
+  public spell chain item such as Stacked Deck, counters that item, and prevents
+  the Stacked Deck top-card choice from appearing.
 - Play Gear to Base, then equip it to a friendly Unit or Champion if you draw one.
 - Confirm attached Gear stays with a host that moves from Base to battlefield.
 - Confirm attached Gear returns to Base, not Trash, if its host dies or leaves
@@ -51,7 +60,9 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - If a private choice prompt appears, confirm only the prompted player sees the options.
 - If Disarming Rake appears in the sideboard/playtest pool, try both declining
   and destroying a friendly or enemy Gear.
-- If Stacked Deck appears, resolve the top-3 private prompt and confirm opponent/spectator views do not reveal those card names.
+- If Stacked Deck appears, confirm it first waits on the chain, then resolve
+  the top-3 private prompt and confirm opponent/spectator views do not reveal
+  those card names.
 - Play Gear to Base, equip it to a valid friendly Unit/Champion, and confirm the log says what was equipped.
 - Confirm Gear cannot target the Champion while it is still in the Champion zone; it can target a Champion only after the Champion has moved into Base or the battlefield.
 - Try an illegal Champion/Legend drag and confirm it snaps back to the zone with a readable warning.
@@ -61,6 +72,9 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - If a showdown starts and you have focus, try a supported `[Action]` card or click `Pass Focus`.
 - Confirm the attacker cannot resolve until both relevant players pass focus.
 - If a chain prompt/status appears in a dev/test build, confirm only the focused player sees `Pass Chain` or `Resolve Chain` and normal game actions stay paused until it clears.
+- Confirm the chain panel status updates do not imply counterspells are
+  broadly supported yet; Gust and Defy are the only real alpha Reaction
+  responses.
 - Resolve a showdown after the focus/pass cycle completes, then assign combat damage when prompted.
 - In human vs RiftBot, create a multi-unit combat where RiftBot has more combatants than the opposing side; confirm RiftBot assigns all damage, the showdown resolves, and the game does not freeze.
 - If practical, smoke both paths: RiftBot attacking with multiple units and RiftBot defending with multiple units.
@@ -97,6 +111,9 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
   chain focus, highlights only battlefield Units/Champions with 3 Might or
   less, resolves before Stacked Deck, and returns the target to hand after
   chain passes/resolution.
+- If the opponent has Defy in hand, confirm it can select the Stacked Deck
+  chain item from the chain panel, resolves above Stacked Deck, marks Stacked
+  Deck countered, and no private Stacked Deck choice appears.
 - Resolve a showdown after the focus/pass cycle completes, then confirm `Assign Damage` appears before cleanup.
 - Confirm attached Gear returns to Base if its host leaves play in a supported path.
 - Confirm the game log shows readable entries for play, move, target, showdown, scoring, and unsupported-effect messages.

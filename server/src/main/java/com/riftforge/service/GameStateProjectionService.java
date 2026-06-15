@@ -153,7 +153,12 @@ public class GameStateProjectionService {
         canSeePrivateSource ? new ArrayList<>(item.targetInstanceIds()) : new ArrayList<>(),
         item.order(),
         item.publicDescription(),
-        item.visibility());
+        item.visibility(),
+        item.status(),
+        canSeePrivateSource && item.counterable(),
+        canSeePrivateSource && item.targetableOnChain(),
+        canSeePrivateSource ? item.chainItemType() : "MASKED",
+        canSeePrivateSource ? item.sourceZoneBeforeChain() : null);
   }
 
   private PendingChoice copyChoiceForViewer(PendingChoice choice, String viewerPlayerId) {

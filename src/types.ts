@@ -271,6 +271,11 @@ export type ChainItem = {
   order?: number;
   publicDescription?: string;
   visibility?: 'PUBLIC' | 'CONTROLLER_ONLY' | string;
+  status?: 'PENDING' | 'RESOLVED' | 'COUNTERED' | 'FIZZLED' | string;
+  counterable?: boolean;
+  targetableOnChain?: boolean;
+  chainItemType?: 'SPELL' | 'ABILITY' | 'TEST' | 'MASKED' | string;
+  sourceZoneBeforeChain?: ZoneName | null;
 };
 
 export type ChainState = {

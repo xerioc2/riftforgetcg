@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { isReactionCard } from '../lib/cardActions';
+import { isSupportedChainReactionCard } from '../lib/cardActions';
 import { cardSupportStatus } from '../lib/deckSupport';
 import type { CardInstance, RiftCard } from '../types';
 
@@ -81,7 +81,7 @@ export function HandRack({
   const canAffordSelected = selectedCost <= effectiveEnergy;
   const selectedType = selectedCard?.type?.toLowerCase();
   const selectedCanPlayFromHand = selectedType !== 'legend' && selectedType !== 'battlefield';
-  const selectedIsReaction = canPlayReactions && isReactionCard(selectedCard);
+  const selectedIsReaction = canPlayReactions && isSupportedChainReactionCard(selectedCard);
   const canPlaySelected = selectedCanPlayFromHand && (canPlayCards || selectedIsReaction);
   const selectedHasHidden = (selectedCard?.rulesText ?? '').toLowerCase().includes('[hidden]')
     || (selectedCard?.keywords ?? []).some((keyword) => keyword.toUpperCase().startsWith('HIDDEN'));
@@ -170,7 +170,7 @@ export function HandRack({
           const isSelected = selected === instance.instanceId;
           const type = card?.type?.toLowerCase();
           const canPlayFromHand = type !== 'legend' && type !== 'battlefield';
-          const isReaction = canPlayReactions && isReactionCard(card);
+          const isReaction = canPlayReactions && isSupportedChainReactionCard(card);
           const isPlayable = canPlayFromHand && (canPlayCards || isReaction);
           return (
             <button

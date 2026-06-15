@@ -13,7 +13,7 @@ export function targetModeForCard(card: RiftCard | undefined): TargetMode {
   const text = (card.rulesText ?? '').toLowerCase();
   if (card.type?.toLowerCase() === 'gear') return text.includes('[equip]') ? 'NONE' : 'UNSUPPORTED';
   if (multiTargetRequirementsForCard(card).length > 0) return 'NONE';
-  if (isGustReactionCard(card)) return 'GUST_BATTLEFIELD_UNIT';
+  if (isGustReactionCard(card) || isDefyCounterCard(card)) return 'NONE';
   if (text.includes('another unit')) return 'UNSUPPORTED';
   if (text.includes('counter a spell')
     || text.includes('counter an enemy spell')
@@ -76,6 +76,18 @@ export function isGustReactionCard(card: RiftCard | undefined) {
     && text.includes('battlefield')
     && text.includes('owner')
     && (text.includes('3') || text.includes('three'));
+}
+
+export function isDefyCounterCard(card: RiftCard | undefined) {
+  const text = (card?.rulesText ?? '').toLowerCase();
+  return card?.type?.toLowerCase() === 'spell'
+    && isReactionCard(card)
+    && card.name?.trim().toLowerCase() === 'defy'
+    && text.includes('counter a spell');
+}
+
+export function isSupportedChainReactionCard(card: RiftCard | undefined) {
+  return isGustReactionCard(card) || isDefyCounterCard(card);
 }
 
 export function isAmbushCard(card: RiftCard | undefined) {
@@ -188,8 +200,9 @@ export function unsupportedCardReason(card: RiftCard | undefined): string | null
     || (text.includes('friendly unit') && text.includes('enemy unit') && text.includes('return'))
     || text.includes('ready it')
     || text.includes('draw 1')
+    || isDefyCounterCard(card)
     || isStackedDeckEffectText(text);
-  if (text.includes('counter a spell') || text.includes('counter an enemy spell')) return 'Counter spells need the future reaction stack.';
+  if ((text.includes('counter a spell') && !isDefyCounterCard(card)) || text.includes('counter an enemy spell')) return 'Counter spells need the future reaction stack.';
   if (text.includes('another unit')) return 'That targeting pattern is not supported yet.';
   return supported ? null : 'That spell effect is not supported yet.';
 }

@@ -85,11 +85,20 @@ public class EffectHandlerRegistry {
         || supportedFriendlyEnemyReturn
         || normalized.contains("ready it")
         || normalized.contains("draw 1")
+        || isDefyCounterEffect(card, normalized)
         || isStackedDeckEffect(normalized);
-    return !normalized.contains("counter a spell")
+    return !(normalized.contains("counter a spell") && !isDefyCounterEffect(card, normalized))
         && !normalized.contains("counter an enemy spell")
         && !requiresMultipleTargets
         && supportedEffect;
+  }
+
+  private boolean isDefyCounterEffect(CardDefinition card, String normalized) {
+    return "Spell".equalsIgnoreCase(card.type())
+        && card.name() != null
+        && card.name().trim().equalsIgnoreCase("Defy")
+        && normalized.contains("[reaction]")
+        && normalized.contains("counter a spell");
   }
 
   private boolean isStackedDeckEffect(String normalized) {

@@ -15,7 +15,7 @@ import { autoPlaceInZone, computeLayout, runeSlotPositions, type ZoneRect } from
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
 import { readableHttpError } from '../lib/http';
-import { hasUnsupportedAdditionalCost, isActionCard, isAmbushCard, isEquipCard, isLegalTargetForMode, isReactionCard, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
+import { hasUnsupportedAdditionalCost, isActionCard, isAmbushCard, isDefyCounterCard, isEquipCard, isLegalTargetForMode, isReactionCard, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
 import { appBuildLabel, APP_VERSION, BUILD_DATE, BUILD_TAG } from '../lib/appMetadata';
 import { buildDebugInfo } from '../lib/debugInfo';
 import { isBotPlayer, legalActionHint, phaseGuidance, waitingStatusText } from '../lib/gameGuidance';
@@ -26,7 +26,7 @@ import { createGameClient, joinGame, sendMove } from '../lib/stompGame';
 import { useCardStore } from '../store/cards';
 import { useGameStore } from '../store/game';
 import { notifyError, notifySuccess, notifyWarning, useToastStore } from '../store/toasts';
-import type { CardInstance, CombatDamageAssignment, LegalAction, LiveGameState, PendingCardChoiceAssignment, RevealedHandSnapshot, RiftCard, ZoneName } from '../types';
+import type { CardInstance, ChainItem, CombatDamageAssignment, LegalAction, LiveGameState, PendingCardChoiceAssignment, RevealedHandSnapshot, RiftCard, ZoneName } from '../types';
 
 const NAV_HEIGHT = 73;
 const SIDEBAR_WIDTH = 280;
@@ -116,6 +116,7 @@ export function GameBoard() {
   const [hoveredInstance, setHoveredInstance] = useState<CardInstance | undefined>();
   const [inspectCard, setInspectCard] = useState<CardInstance | null>(null);
   const [pendingTargetSelection, setPendingTargetSelection] = useState<{ instanceId: string; mode: TargetMode } | null>(null);
+  const [pendingChainTargetSelection, setPendingChainTargetSelection] = useState<{ instanceId: string } | null>(null);
   const [pendingMultiTargetSelection, setPendingMultiTargetSelection] = useState<{ instanceId: string; requirements: TargetRequirement[]; selected: { role: TargetRole; instanceId: string }[] } | null>(null);
   const [pendingAccelerate, setPendingAccelerate] = useState<{ instanceId: string; card: RiftCard } | null>(null);
   const [pendingVision, setPendingVision] = useState<{ logId: string; cardId: string; cardName: string } | null>(null);
@@ -455,6 +456,10 @@ export function GameBoard() {
     if (!state?.pendingChoice) setChoiceSubmitting(false);
   }, [state?.pendingChoice]);
 
+  useEffect(() => {
+    if (!state?.chainState) setPendingChainTargetSelection(null);
+  }, [state?.chainState]);
+
   const handleCardHover = (card: RiftCard | null, instance?: CardInstance) => {
     if (previewShowTimer.current != null) window.clearTimeout(previewShowTimer.current);
     if (previewClearTimer.current != null) window.clearTimeout(previewClearTimer.current);
@@ -517,12 +522,36 @@ export function GameBoard() {
       return isLegalTargetForMode(instance, targetDef, mode, player.id);
     });
 
+  const isLegalDefyChainTarget = (item: ChainItem) => {
+    if (item.status && item.status !== 'PENDING') return false;
+    if (!item.counterable || !item.targetableOnChain) return false;
+    if (item.chainItemType && item.chainItemType !== 'SPELL') return false;
+    if (item.sourceCardName === 'Hidden chain item') return false;
+    const sourceCard = item.sourceCardId ? cardsById.get(item.sourceCardId) : undefined;
+    if (!sourceCard || sourceCard.type?.toLowerCase() !== 'spell') return false;
+    return (sourceCard.cost ?? 0) <= 4 && (sourceCard.premiumCost ?? 0) <= 1;
+  };
+
+  const legalDefyChainTargets = () => (state?.chainState?.chainItems ?? []).filter(isLegalDefyChainTarget);
+
+  const beginChainTargetSelection = (instanceId: string) => {
+    if (legalDefyChainTargets().length === 0) {
+      notifyWarning('No legal chain targets', 'Defy needs a pending public spell chain item it can counter.');
+      return false;
+    }
+    setPendingTargetSelection(null);
+    setPendingMultiTargetSelection(null);
+    setPendingChainTargetSelection({ instanceId });
+    return true;
+  };
+
   const beginTargetSelection = (instanceId: string, mode: TargetMode) => {
     if (legalTargetsForMode(mode).length === 0) {
       notifyWarning('No legal targets', noLegalTargetsMessage(mode));
       return false;
     }
     setPendingMultiTargetSelection(null);
+    setPendingChainTargetSelection(null);
     setPendingTargetSelection({ instanceId, mode });
     return true;
   };
@@ -534,8 +563,27 @@ export function GameBoard() {
       return false;
     }
     setPendingTargetSelection(null);
+    setPendingChainTargetSelection(null);
     setPendingMultiTargetSelection({ instanceId, requirements, selected: [] });
     return true;
+  };
+
+  const playCounterReaction = (instanceId: string, targetChainItemId: string) => {
+    const instance = state?.cards.find((card) => card.instanceId === instanceId);
+    const cardDef = instance ? cardsById.get(instance.cardId) : undefined;
+    const payment = selectPaymentRunesForCard(cardDef);
+    if (!payment) return;
+    publishMove({
+      type: 'PLAY_CARD',
+      playerId: player.id,
+      instanceId,
+      targetZone: 'BASE',
+      x: 0,
+      y: 0,
+      targetChainItemId,
+      ...payment,
+    });
+    setPendingChainTargetSelection(null);
   };
 
   const playCardToBase = (
@@ -659,6 +707,10 @@ export function GameBoard() {
       }
       if (!canTakeAction(state, 'PLAY_CARD')) {
         notifyWarning('Reaction unavailable', 'Wait for your chain focus before playing a Reaction.');
+        return;
+      }
+      if (isDefyCounterCard(cardDef)) {
+        beginChainTargetSelection(instanceId);
         return;
       }
     } else if (showdownActive) {
@@ -1084,7 +1136,16 @@ export function GameBoard() {
   );
   const battlefieldChoices = me?.battlefieldChoices ?? [];
   const selectedBattlefield = me?.selectedBattlefieldId ?? null;
-  const guidanceText = phaseGuidance(state.currentPhase, showdownActive, state.activeShowdown?.step, chainActive, state.chainState?.readyToResolveTop);
+  const chainItems = state.chainState?.chainItems ?? [];
+  const topChainItem = chainItems.length > 0 ? chainItems[chainItems.length - 1] : undefined;
+  const guidanceText = phaseGuidance(
+    state.currentPhase,
+    showdownActive,
+    state.activeShowdown?.step,
+    chainActive,
+    state.chainState?.readyToResolveTop,
+    topChainItem,
+  );
   const actionHintText = legalActionHint(state.legalActions, { isPlayer: Boolean(me), isMyTurn, activePlayerName, activePlayerIsBot });
   const waitingText = waitingStatusText({ isMyTurn, activePlayerName, activePlayerIsBot, waitingLong: waitingTooLong });
   const connectionText = wsConnected ? 'Connected.' : 'Reconnecting to player-specific updates...';
@@ -1356,6 +1417,13 @@ export function GameBoard() {
         chainFocusName={chainFocusName}
         chainReadyToResolve={state.chainState?.readyToResolveTop}
         chainItemCount={state.chainState?.chainItems?.length ?? 0}
+        chainItems={state.chainState?.chainItems ?? []}
+        chainTargetSelectionActive={Boolean(pendingChainTargetSelection)}
+        isChainItemTargetable={isLegalDefyChainTarget}
+        onChainItemTarget={(itemId) => {
+          if (pendingChainTargetSelection) playCounterReaction(pendingChainTargetSelection.instanceId, itemId);
+        }}
+        onCancelChainTargetSelection={() => setPendingChainTargetSelection(null)}
         guidance={guidanceText}
         legalActionHint={actionHintText}
         waitingStatus={waitingText}
@@ -1364,7 +1432,7 @@ export function GameBoard() {
       />
       {canPlayReactions && hasSpellReaction ? (
         <div className="pointer-events-none absolute left-0 z-20 flex justify-center text-xs font-medium text-forge" style={{ right: `${SIDEBAR_WIDTH}px`, bottom: handHeight + PHASE_BAR_HEIGHT + 6 }}>
-          Supported Action window available
+          {chainActive ? 'Supported chain response available' : 'Supported Action window available'}
         </div>
       ) : null}
 

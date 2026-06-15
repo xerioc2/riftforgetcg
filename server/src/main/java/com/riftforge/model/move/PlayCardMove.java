@@ -10,6 +10,7 @@ public record PlayCardMove(
     int x,
     int y,
     String targetInstanceId,
+    String targetChainItemId,
     List<TargetSelection> targets,
     boolean accelerate,
     List<String> paymentRuneIds,
@@ -22,15 +23,19 @@ public record PlayCardMove(
   }
 
   public PlayCardMove(String playerId, String instanceId, ZoneName targetZone, int x, int y, String targetInstanceId) {
-    this(playerId, instanceId, targetZone, x, y, targetInstanceId, List.of(), false, List.of(), List.of());
+    this(playerId, instanceId, targetZone, x, y, targetInstanceId, null, List.of(), false, List.of(), List.of());
   }
 
   public PlayCardMove(String playerId, String instanceId, ZoneName targetZone, int x, int y, String targetInstanceId, boolean accelerate) {
-    this(playerId, instanceId, targetZone, x, y, targetInstanceId, List.of(), accelerate, List.of(), List.of());
+    this(playerId, instanceId, targetZone, x, y, targetInstanceId, null, List.of(), accelerate, List.of(), List.of());
   }
 
   public PlayCardMove(String playerId, String instanceId, ZoneName targetZone, int x, int y, String targetInstanceId, boolean accelerate, List<String> paymentRuneIds, List<String> premiumRuneIds) {
-    this(playerId, instanceId, targetZone, x, y, targetInstanceId, List.of(), accelerate, paymentRuneIds, premiumRuneIds);
+    this(playerId, instanceId, targetZone, x, y, targetInstanceId, null, List.of(), accelerate, paymentRuneIds, premiumRuneIds);
+  }
+
+  public PlayCardMove(String playerId, String instanceId, ZoneName targetZone, int x, int y, String targetInstanceId, List<TargetSelection> targets, boolean accelerate, List<String> paymentRuneIds, List<String> premiumRuneIds) {
+    this(playerId, instanceId, targetZone, x, y, targetInstanceId, null, targets, accelerate, paymentRuneIds, premiumRuneIds);
   }
 
   public record TargetSelection(String role, String instanceId) {

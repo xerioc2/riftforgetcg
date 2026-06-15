@@ -1,4 +1,4 @@
-import type { LegalAction } from '../types';
+import type { ChainItem, LegalAction } from '../types';
 
 const PHASE_GUIDANCE: Record<string, string> = {
   SELECT_BATTLEFIELD: 'Choose one Battlefield. After both players lock in, mulligans begin.',
@@ -24,8 +24,20 @@ export function isBotPlayer(playerId?: string | null, playerName?: string | null
   return Boolean(playerId?.startsWith('bot-player-') || playerName?.toLowerCase().includes('riftbot'));
 }
 
-export function phaseGuidance(currentPhase?: string, activeShowdown?: boolean, showdownStep?: string, activeChain?: boolean, chainReady?: boolean) {
+export function phaseGuidance(
+  currentPhase?: string,
+  activeShowdown?: boolean,
+  showdownStep?: string,
+  activeChain?: boolean,
+  chainReady?: boolean,
+  topChainItem?: ChainItem,
+) {
   if (activeChain) {
+    if (isStackedDeckChainItem(topChainItem)) {
+      return chainReady
+        ? 'Resolve Stacked Deck on the chain to choose from the top cards.'
+        : 'Stacked Deck is waiting on chain responses. Resolve the chain to choose from the top cards.';
+    }
     return chainReady
       ? 'The top chain item is ready to resolve.'
       : 'Chain focus window. The focused player may pass chain focus.';
@@ -81,4 +93,11 @@ function joinActionParts(parts: string[]) {
   if (parts.length <= 1) return parts[0] ?? '';
   if (parts.length === 2) return `${parts[0]} or ${parts[1]}`;
   return `${parts.slice(0, -1).join(', ')}, or ${parts[parts.length - 1]}`;
+}
+
+function isStackedDeckChainItem(item?: ChainItem) {
+  if (!item) return false;
+  return item.effectKey === 'STACKED_DECK_PICK_ONE'
+    || item.sourceCardName?.toLowerCase() === 'stacked deck'
+    || item.publicDescription?.toLowerCase() === 'stacked deck';
 }

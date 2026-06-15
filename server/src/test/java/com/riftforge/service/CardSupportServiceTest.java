@@ -57,6 +57,10 @@ class CardSupportServiceTest {
         .contains("conquer trigger").contains("Buff state");
     assertThat(service.summarize(card("gust", "Gust", "Spell", "[Reaction] Return a unit at a battlefield with 3 Might or less.")).reason())
         .contains("Reaction timing").contains("3-or-less-Might");
+    assertThat(service.summarize(card("defy", "Defy", "Spell", "[Reaction] Counter a spell.")).reason())
+        .contains("no more than 4 energy")
+        .contains("no more than 1 premium rune")
+        .contains("countering counters remain deferred");
   }
 
   private CardDefinition card(String id, String name, String type, String rulesText) {
