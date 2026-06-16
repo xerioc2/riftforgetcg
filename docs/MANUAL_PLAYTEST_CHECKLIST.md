@@ -9,7 +9,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Select a deck in the lobby, review support warnings, then Ready and Start.
 - Start a human vs RiftBot or human vs human game.
 - Choose one Battlefield before mulligan and confirm the opponent's unchosen Battlefield pool is not visible.
-- After both players choose, confirm each selected Battlefield appears in its board Battlefield slot and cannot be targeted, moved, tapped, or fought.
+- After both players choose, confirm each selected Battlefield appears in its board Battlefield slot, can be hovered/read like a card, and cannot be targeted, moved, tapped, or fought.
 - Keep your opening hand or mulligan at least one card.
 - Play a Unit and confirm it stays visible in Base.
 - Confirm your Legend starts in the Legend zone and your chosen Champion starts in the Champion zone.
@@ -21,19 +21,22 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - If an optional payment prompt appears, try Decline and confirm the prompt clears without applying the effect.
 - If you play Disarming Rake while Gear is in play, confirm Yes asks you to
   choose a Gear, Cancel/No leaves Gear alone, and a selected Gear goes to Trash.
-- If you play Stacked Deck, confirm it opens a chain before the top-card
-  choice appears; after players pass/resolve the chain, only you see the
+- If you play Stacked Deck, confirm it opens the narrow priority/chain window
+  before the top-card choice appears; after players pass/resolve the chain, only you see the
   top-card options, one card goes to hand, and the rest recycle without
   appearing in the public log.
 - If the chain panel appears, confirm it lists public-safe chain items
   top-to-bottom, shows focus/ready status clearly, and does not expose hidden
   or private card names.
-- If neither player has a legal Gust/Defy response, confirm the chain skips
+- If neither player has a legal Gust/Defy/Not So Fast response, confirm the chain skips
   dead response windows and leaves the top item ready to resolve instead of
   requiring extra Pass Chain clicks.
 - If Defy is in hand during chain focus, confirm it can target a supported
   public spell chain item such as Stacked Deck, counters that item, and prevents
   the Stacked Deck top-card choice from appearing.
+- If Not So Fast is in hand during chain focus, confirm it stays unavailable
+  against untargeted Stacked Deck, but can counter an enemy Gust only when that
+  Gust chooses your friendly Unit/Champion Unit or Gear.
 - Play Gear to Base, then equip it to a friendly Unit or Champion if you draw one.
 - Confirm attached Gear stays with a host that moves from Base to battlefield.
 - Confirm attached Gear returns to Base, not Trash, if its host dies or leaves
@@ -75,14 +78,14 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - If you have a clean Ambush Unit and already control a battlefield unit, use the Ambush button and confirm it enters the battlefield ready.
 - If a showdown starts and you have focus, try a supported `[Action]` card or click `Pass Focus`.
 - Confirm the attacker cannot resolve until both relevant players pass focus.
-- If a chain prompt/status appears in a dev/test build, confirm only the focused player sees `Pass Chain` or `Resolve Chain` and normal game actions stay paused until it clears.
+- If a chain prompt/status appears, confirm only the focused player sees `Pass Chain` or `Resolve Chain` and normal game actions stay paused until it clears.
 - Confirm the chain panel status updates do not imply counterspells are
-  broadly supported yet; Gust and Defy are the only real alpha Reaction
-  responses.
-- Confirm unsupported Reactions such as Not So Fast do not appear playable,
+  broadly supported yet; Gust, Defy, and narrow Not So Fast are the only real
+  alpha Reaction responses.
+- Confirm unsupported Reactions such as Defiant Dance do not appear playable,
   even while the chain panel is active.
-- During human vs RiftBot, try clicking an unsupported Reaction such as Not So
-  Fast during a no-chain or opponent-turn window; confirm a local warning
+- During human vs RiftBot, try clicking an unsupported Reaction such as Defiant
+  Dance during a no-chain or opponent-turn window; confirm a local warning
   appears, the UI does not stay stuck waiting for a server update, and RiftBot
   continues or ends its turn.
 - Resolve a showdown after the focus/pass cycle completes, then assign combat damage when prompted.
@@ -100,7 +103,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Load or select a constructed deck.
 - Ready up, start the game, and confirm the opening mulligan appears.
 - Confirm the Battlefield selection prompt appears before mulligan, then choose one Battlefield.
-- Confirm your selected Battlefield and the opponent/RiftBot selected Battlefield appear on the board after setup and remain non-interactive location displays.
+- Confirm your selected Battlefield and the opponent/RiftBot selected Battlefield appear on the board after setup, show a hover preview, and remain non-interactive location displays.
 - Keep the opening hand or mulligan at least one card.
 - Confirm your hand cards are visible to you after mulligan.
 - Confirm RiftBot advances through its turn steps without manual help.
@@ -125,7 +128,10 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - If the opponent has Defy in hand, confirm it can select the Stacked Deck
   chain item from the chain panel, resolves above Stacked Deck, marks Stacked
   Deck countered, and no private Stacked Deck choice appears.
-- If no player has Gust or Defy available, confirm the chain advances directly
+- If the opponent has Not So Fast in hand, confirm it cannot select untargeted
+  Stacked Deck but can select an enemy Gust chain item that chooses that
+  opponent's friendly Unit/Champion Unit or Gear.
+- If no player has Gust, Defy, or Not So Fast available, confirm the chain advances directly
   to `Resolve Chain` without making players click through empty response
   windows.
 - While RiftBot is active in Main, click an unsupported Reaction card in your

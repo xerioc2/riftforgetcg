@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { battlefieldDisplayForPlayer, battlefieldDisplayFrame, selectedBattlefieldIsInteractiveTarget } from './battlefieldDisplay';
+import { battlefieldDisplayForPlayer, battlefieldDisplayFrame, selectedBattlefieldIsInteractiveTarget, selectedBattlefieldSupportsPreview } from './battlefieldDisplay';
 import type { RiftCard } from '../types';
 import type { ZoneRect } from '../components/board/BoardLayout';
 
@@ -9,6 +9,7 @@ const sunkenTemple: RiftCard = {
   type: 'Battlefield',
   domains: [],
   imageUrl: 'https://example.test/sunken-temple.png',
+  rulesText: 'When you conquer here with one or more [Mighty] units, you may pay 1 to draw 1.',
 };
 
 describe('battlefieldDisplay', () => {
@@ -63,5 +64,15 @@ describe('battlefieldDisplay', () => {
 
   it('marks selected battlefield visuals as non-targetable and non-interactive', () => {
     expect(selectedBattlefieldIsInteractiveTarget()).toBe(false);
+  });
+
+  it('keeps selected battlefield card text available for hover preview', () => {
+    const display = battlefieldDisplayForPlayer(
+      { userId: 'p1', name: 'Player', score: 0, selectedBattlefieldId: 'sunken-temple' },
+      new Map([[sunkenTemple.id, sunkenTemple]]),
+    );
+
+    expect(selectedBattlefieldSupportsPreview()).toBe(true);
+    expect(display?.card?.rulesText).toContain('Mighty');
   });
 });

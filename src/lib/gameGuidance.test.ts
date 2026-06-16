@@ -8,7 +8,7 @@ describe('gameGuidance', () => {
       controllerPlayerId: 'p1',
       sourceCardName: 'Stacked Deck',
       effectKey: 'STACKED_DECK_PICK_ONE',
-    })).toBe('Stacked Deck is waiting on chain responses. Resolve the chain to choose from the top cards.');
+    })).toBe('Stacked Deck is waiting on priority/chain responses. Resolve the chain to choose from the top cards.');
   });
 
   it('explains ready Stacked Deck chain resolution without implying the choice exists yet', () => {

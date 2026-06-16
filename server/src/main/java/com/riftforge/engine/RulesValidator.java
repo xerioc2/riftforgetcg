@@ -280,6 +280,10 @@ public class RulesValidator {
       validateDefyCounterTarget(state, move);
       return;
     }
+    if (spell && cardDataService.isNotSoFastCounterReaction(def)) {
+      validateNotSoFastCounterTarget(state, move);
+      return;
+    }
     if (spell && (cardDataService.requiresBattlefieldTarget(card.getCardId()) || hasExplicitTarget)) {
       validateTarget(state, move, card);
     }
@@ -294,7 +298,7 @@ public class RulesValidator {
       if (!cardDataService.isReactionCard(def)) {
         throw new IllegalMoveException("Only supported Reaction cards can be played while the chain is active.");
       }
-      if (!cardDataService.isGustReaction(def) && !cardDataService.isDefyCounterReaction(def)) {
+      if (!cardDataService.isGustReaction(def) && !cardDataService.isDefyCounterReaction(def) && !cardDataService.isNotSoFastCounterReaction(def)) {
         throw new IllegalMoveException("That Reaction is not supported yet.");
       }
       if (state.getChainState().readyToResolveTop()) {
@@ -357,6 +361,39 @@ public class RulesValidator {
     if (Math.max(0, targetDef.cost()) > 4 || Math.max(0, targetDef.premiumCost()) > 1) {
       throw new IllegalMoveException("Defy can only counter a spell that costs no more than 4 and no more than 1 power.");
     }
+  }
+
+  private void validateNotSoFastCounterTarget(LiveGameState state, PlayCardMove move) {
+    LiveGameState.ChainState chain = state.getChainState();
+    if (chain == null) throw new IllegalMoveException("No chain item can be countered.");
+    String targetChainItemId = move.targetChainItemId();
+    if (targetChainItemId == null || targetChainItemId.isBlank()) {
+      throw new IllegalMoveException("Choose a chain item to counter.");
+    }
+    LiveGameState.ChainItem target = chain.chainItems().stream()
+        .filter(item -> targetChainItemId.equals(item.itemId()))
+        .findFirst()
+        .orElseThrow(() -> new IllegalMoveException("That chain item is no longer available."));
+    if (!isLegalNotSoFastTarget(target, move.playerId())) {
+      throw new IllegalMoveException("Not So Fast can only counter an enemy spell that chooses a friendly Unit or Gear.");
+    }
+  }
+
+  private boolean isLegalNotSoFastTarget(LiveGameState.ChainItem target, String playerId) {
+    if (target == null || !target.isPending() || !target.counterable() || !target.targetableOnChain()) return false;
+    if (!target.isPubliclyVisible()) return false;
+    if (playerId.equals(target.controllerPlayerId())) return false;
+    if (!LiveGameState.ChainItem.TYPE_SPELL.equalsIgnoreCase(target.chainItemType())) return false;
+    CardDefinition targetDef = target.sourceCardId() == null || target.sourceCardId().isBlank()
+        ? null
+        : cardDataService.getCard(target.sourceCardId());
+    if (targetDef == null || !"Spell".equalsIgnoreCase(targetDef.type())) return false;
+    return target.chainTargets().stream().anyMatch(summary ->
+        summary.publicSafe()
+            && playerId.equals(summary.targetControllerPlayerId())
+            && ("UNIT".equalsIgnoreCase(summary.targetKind())
+                || "CHAMPION_UNIT".equalsIgnoreCase(summary.targetKind())
+                || "GEAR".equalsIgnoreCase(summary.targetKind())));
   }
 
   private void validateAmbushBattlefieldPlay(LiveGameState state, PlayCardMove move, CardDefinition def, boolean unit) {

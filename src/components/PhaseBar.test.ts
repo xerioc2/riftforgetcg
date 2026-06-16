@@ -20,14 +20,20 @@ describe('PhaseBar chain helpers', () => {
     expect(chainItemDisplayLabel({ itemId: 'masked', controllerPlayerId: 'p1' })).toBe('Hidden chain item');
   });
 
-  it('summarizes Stacked Deck, Gust, and Defy targets without needing private fields', () => {
+  it('summarizes Stacked Deck, Gust, Defy, and Not So Fast targets without needing private fields', () => {
     const stacked = item('item-1', 'Stacked Deck', 'STACKED_DECK_PICK_ONE');
-    const gust = { ...item('item-2', 'Gust', 'GUST_RETURN'), targetInstanceIds: ['unit-1'] };
+    const gust: ChainItem = {
+      ...item('item-2', 'Gust', 'GUST_RETURN'),
+      targetInstanceIds: ['unit-1'],
+      chainTargets: [{ role: 'target', targetInstanceId: 'unit-1', targetControllerPlayerId: 'p2', targetKind: 'UNIT', targetZone: 'battlefield', publicLabel: 'Friendly Unit', publicSafe: true }],
+    };
     const defy = { ...item('item-3', 'Defy', 'DEFY_COUNTER'), targetInstanceIds: ['item-1'] };
+    const notSoFast: ChainItem = { ...item('item-4', 'Not So Fast', 'NOT_SO_FAST_COUNTER'), chainTargets: [{ role: 'counterTarget', targetChainItemId: 'item-2', targetControllerPlayerId: 'p1', targetKind: 'CHAIN_ITEM', publicLabel: 'Gust', publicSafe: true }] };
 
     expect(chainItemTargetSummary(stacked, [stacked], {})).toBe('Target: none');
-    expect(chainItemTargetSummary(gust, [stacked, gust], { 'unit-1': 'Target Unit' })).toBe('Target: Target Unit');
+    expect(chainItemTargetSummary(gust, [stacked, gust], { 'unit-1': 'Target Unit' })).toBe('Target: Friendly Unit');
     expect(chainItemTargetSummary(defy, [stacked, gust, defy], {})).toBe('Target: Stacked Deck');
+    expect(chainItemTargetSummary(notSoFast, [stacked, gust, defy, notSoFast], {})).toBe('Target: Gust');
   });
 
   it('shows lifecycle status only for non-pending items', () => {

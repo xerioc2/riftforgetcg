@@ -86,6 +86,7 @@ Status: Partial
 Current implementation notes:
 - `SELECT_BATTLEFIELD` phase exists before `MULLIGAN` for constructed decks with Battlefield choices.
 - Player-specific projections include only that player's own Battlefield choices. Selected Battlefields are public once chosen.
+- Selected Battlefields render in the board Battlefield slot and can be hovered for card text, but they remain inert location displays rather than targetable/movable cards.
 - Legal-action visibility exposes `SELECT_BATTLEFIELD` only to players who still need to choose.
 - MULLIGAN phase exists.
 - Players may keep or recycle up to 2 cards, then draw replacements.
@@ -95,6 +96,7 @@ Known gaps:
 - Multiplayer turn-order mulligan nuance is not deeply modeled.
 - UI/engine language should stay aligned with official "recycle up to 2" wording.
 - Full official multiple-Battlefield location setup remains post-alpha.
+- Printed Battlefield abilities remain card-specific Partial unless explicitly scripted and tested; current local texts include delayed/optional conquer, defend, spell-play, and score-modification effects that are not safe to auto-enable from display-only selection.
 
 Test coverage:
 - `LegalActionsServiceTest`
@@ -139,21 +141,28 @@ Current implementation notes:
   `COUNTERED`, or `FIZZLED`. The current engine cleans non-pending/fizzled
   items safely and will not resolve the same item twice.
 - Chain items also carry counter-ready metadata such as counterability,
-  targetability, item type, stable item ID, public description, controller, and
-  source zone before the chain. This metadata powers Defy's narrow alpha
-  counter path and remains the foundation for future counterspell work.
+  targetability, item type, stable item ID, public description, controller,
+  source zone before the chain, and public-safe target summaries. This metadata
+  powers Defy's narrow alpha counter path, Not So Fast's targeted-spell counter
+  path, and remains the foundation for future counterspell work.
 - `PASS_CHAIN_FOCUS` and `RESOLVE_CHAIN_TOP` are server-validated moves.
 - Pending choices still take priority over chain actions. While a chain is active, normal phase/showdown actions are blocked until the chain item is resolved.
+- `PriorityWindowService` now centralizes the narrow alpha timing decision for
+  whether a played card/effect opens a response window and what chain metadata
+  it receives. Production opt-ins remain conservative: Stacked Deck is the only
+  real opener, while Gust, Defy, and Not So Fast are the only real
+  chain-backed Reactions.
 - `LegalActionsService` exposes `PASS_CHAIN_FOCUS`, `RESOLVE_CHAIN_TOP`,
   and narrowly supported focused Reaction play to the focused player.
   Spectators and non-focused players receive no chain actions.
 - Chain focus can fast-pass only when the focused player's only legal chain
   action is `PASS_CHAIN_FOCUS`. It does not auto-pass pending choices, ready
-  top-item resolution, or windows where Gust/Defy is a legal response.
+  top-item resolution, or windows where Gust/Defy/Not So Fast is a legal
+  response.
 - RiftBot can pass chain focus or resolve a ready top item through the same server legal-action contract.
 - Current effect resolution is deliberately limited to deterministic test/no-op
   and draw-one harness items, Stacked Deck as the first real chain opener, and
-  Gust and Defy as the first real chain-backed Reactions.
+  Gust, Defy, and Not So Fast as the first real chain-backed Reactions.
 - Stacked Deck opens the narrow alpha chain when played in supported gameplay,
   becomes a public chain item, and creates its existing owner-only private
   top-card choice only after that chain item resolves.
@@ -167,6 +176,11 @@ Current implementation notes:
   counterable in v1. When Defy resolves, the target item is marked
   `COUNTERED`, its source card moves from LIMBO to Trash, and the target item
   later cleans up without resolving.
+- Not So Fast can be played only while the controller is focused during an
+  active chain and can target a pending, public, counterable enemy spell chain
+  item that chooses the Not So Fast player's friendly Unit/Champion Unit or
+  Gear. Not So Fast itself is not counterable in v1. Ability-chain targets,
+  countering counters, and broad official Reaction timing remain deferred.
 - Chain item projection is viewer-aware. Public chain items can expose source and
   target metadata, while controller-only/private chain items mask source card
   IDs, source names, effect keys, and target instance IDs from opponents and
@@ -174,15 +188,18 @@ Current implementation notes:
   counter-target metadata and source-zone details for non-owners.
 - The client shows a compact chain panel when `chainState` exists, ordered
   top-to-bottom with public-safe item descriptions, focus state, target
-  summaries for Stacked Deck/Gust/Defy, disabled illegal counter targets, and
+  summaries for Stacked Deck/Gust/Defy/Not So Fast, disabled illegal counter targets, and
   non-pending item status. It still exposes chain buttons only through
   server-provided legal actions.
 
 Known gaps:
-- Gust and Defy are the only real Reaction cards connected to the chain. Not So
-  Fast, Riposte counter behavior, Ambush-as-Reaction, hidden play windows, and
+- Gust, Defy, and Not So Fast are the only real Reaction cards connected to the
+  chain. Riposte counter behavior, Ambush-as-Reaction, hidden play windows, and
   ability-counter targets are not connected yet.
 - No official priority, invitation, trigger-ordering, replacement/prevention, or multiplayer focus policy is implemented.
+- Unsupported, unreviewed, and ordinary cards do not automatically open
+  priority windows; future cards must opt in through the priority service and
+  server validation.
 - Private/hidden chain objects have a projection policy, but real hidden
   Reaction timing and counterspell cards are still deferred until future
   sprints.
@@ -267,8 +284,8 @@ Current implementation notes:
   returned to Base, and this does not run Deathknell.
 
 Known gaps:
-- Chain timing, Reaction timing, countering spells, optional/three-plus/conditional multi-target spells, full optional trigger ordering, replacement/prevention, and many spell-specific effects are not complete.
-- Active-showdown `[Action]` play is lightweight: focused showdown participants can play supported Action cards or pass focus. Once both relevant players pass in succession, the showdown becomes ready for the attacker to resolve. A narrow chain-state foundation exists, with Gust as the only connected Reaction card; counterspell and broader response-card support remain deferred.
+- Chain timing, Reaction timing, broad countering spells/abilities, optional/three-plus/conditional multi-target spells, full optional trigger ordering, replacement/prevention, and many spell-specific effects are not complete.
+- Active-showdown `[Action]` play is lightweight: focused showdown participants can play supported Action cards or pass focus. Once both relevant players pass in succession, the showdown becomes ready for the attacker to resolve. A narrow priority/chain foundation exists, with Stacked Deck as the only real opener and Gust/Defy/Not So Fast as the only connected Reactions; broader response-card support remains deferred.
 
 Test coverage:
 - Rules validator keyword/target tests.
@@ -642,7 +659,7 @@ Current implementation notes:
 - The frontend consumes `state.legalActions` to gate Battlefield selection, mulligan/keep, pass phase, play card, move to battlefield, rune actions, chain focus passing/resolution, showdown focus passing, gated active showdown resolution, and sandbox-only controls.
 - `RulesValidator` remains the source of enforcement.
 - The service intentionally does not claim support for card-specific or reaction windows that are not implemented.
-- Currently modeled windows: Battlefield selection, mulligan, basic phase pass, Main Phase active-player actions, Stacked Deck's narrow chain opener, chain focus/pass/resolve, focused participant supported Action play/pass during active showdowns, gated active showdown resolution, and SANDBOX-only developer actions.
+- Currently modeled windows: Battlefield selection, mulligan, basic phase pass, Main Phase active-player actions, Stacked Deck's narrow priority-window opener, chain focus/pass/resolve, focused participant supported Action play/pass during active showdowns, gated active showdown resolution, and SANDBOX-only developer actions.
 
 Known gaps:
 - Actions are not card-instance-specific.
@@ -650,7 +667,9 @@ Known gaps:
   support remain future work.
 - Card-specific legal action prompts are not generated.
 - Target-specific and payment-specific legal action generation is incomplete.
-- Chain/timing permissions for real card responses and full priority handling are future work.
+- Broad chain/timing permissions for real card responses and full official
+  priority handling are future work; current production opt-ins are Stacked
+  Deck, Gust, Defy, and Not So Fast only.
 
 Test coverage:
 - `LegalActionsServiceTest`
@@ -667,6 +686,7 @@ Current implementation notes:
 - Unavailable phase/showdown/chain controls are hidden.
 - Mulligan and Keep buttons require `MULLIGAN` or `KEEP_HAND`.
 - Normal Main Phase controls require `PLAY_CARD`, `MOVE_TO_BATTLEFIELD`, rune actions, or sandbox-specific actions as appropriate.
+- Supported chain Reactions such as Gust, Defy, and Not So Fast require a legal chain response window; unsupported/no-window Reaction cards are kept out of normal play affordances instead of leaving the client waiting on an impossible action.
 - Same-zone card organization uses `REPOSITION_CARD`; cross-zone `MOVE_CARD` is
   sandbox-only.
 

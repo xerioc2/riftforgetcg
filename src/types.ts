@@ -268,6 +268,7 @@ export type ChainItem = {
   sourceCardName?: string;
   effectKey?: string;
   targetInstanceIds?: string[];
+  chainTargets?: ChainTarget[];
   order?: number;
   publicDescription?: string;
   visibility?: 'PUBLIC' | 'CONTROLLER_ONLY' | string;
@@ -276,6 +277,17 @@ export type ChainItem = {
   targetableOnChain?: boolean;
   chainItemType?: 'SPELL' | 'ABILITY' | 'TEST' | 'MASKED' | string;
   sourceZoneBeforeChain?: ZoneName | null;
+};
+
+export type ChainTarget = {
+  role?: string;
+  targetInstanceId?: string | null;
+  targetChainItemId?: string | null;
+  targetControllerPlayerId?: string | null;
+  targetKind?: 'UNIT' | 'CHAMPION_UNIT' | 'GEAR' | 'CHAIN_ITEM' | 'MASKED' | 'UNKNOWN' | string;
+  targetZone?: ZoneName | null;
+  publicLabel?: string;
+  publicSafe?: boolean;
 };
 
 export type ChainState = {

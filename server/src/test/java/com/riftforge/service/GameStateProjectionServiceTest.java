@@ -520,6 +520,56 @@ class GameStateProjectionServiceTest {
   }
 
   @Test
+  void publicChainTargetMetadataProjectsButPrivateTargetMetadataIsMasked() throws Exception {
+    LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.ENFORCED);
+    state.setChainState(chainState(new LiveGameState.ChainItem(
+        "item-1",
+        "p1",
+        "source-1",
+        "public-card",
+        "Public Card",
+        LiveGameState.ChainItem.EFFECT_GUST_RETURN,
+        List.of("public-target", "private-target"),
+        1,
+        "public card effect",
+        LiveGameState.ChainItem.VISIBILITY_PUBLIC,
+        LiveGameState.ChainItem.STATUS_PENDING,
+        true,
+        true,
+        LiveGameState.ChainItem.TYPE_SPELL,
+        ZoneName.HAND,
+        List.of(
+            new LiveGameState.ChainTarget("target", "public-target", null, "p2", "UNIT", ZoneName.BATTLEFIELD, "Public Unit", true),
+            new LiveGameState.ChainTarget("target", "private-target", null, "p2", "UNIT", ZoneName.HIDDEN, "Private Unit", false)))));
+
+    LiveGameState.ChainItem opponentItem = projectionService.toPublicView(state, "p2")
+        .getChainState()
+        .chainItems()
+        .getFirst();
+    LiveGameState.ChainItem controllerItem = projectionService.toPublicView(state, "p1")
+        .getChainState()
+        .chainItems()
+        .getFirst();
+    LiveGameState.ChainItem spectatorItem = projectionService.toPublicView(state, null)
+        .getChainState()
+        .chainItems()
+        .getFirst();
+
+    assertThat(opponentItem.chainTargets()).hasSize(2);
+    assertThat(opponentItem.chainTargets().get(0).publicLabel()).isEqualTo("Public Unit");
+    assertThat(opponentItem.chainTargets().get(0).targetInstanceId()).isEqualTo("public-target");
+    assertThat(opponentItem.chainTargets().get(1).publicLabel()).isEqualTo("Hidden target");
+    assertThat(opponentItem.chainTargets().get(1).targetInstanceId()).isNull();
+    assertThat(opponentItem.chainTargets().get(1).targetKind()).isEqualTo("MASKED");
+    assertThat(spectatorItem.chainTargets().get(1).publicLabel()).isEqualTo("Hidden target");
+    assertThat(spectatorItem.chainTargets().get(1).targetInstanceId()).isNull();
+    assertThat(spectatorItem.chainTargets().get(1).targetKind()).isEqualTo("MASKED");
+    assertThat(controllerItem.chainTargets().get(1).publicLabel()).isEqualTo("Private Unit");
+    assertThat(objectMapper.writeValueAsString(opponentItem)).doesNotContain("Private Unit", "private-target");
+    assertThat(objectMapper.writeValueAsString(spectatorItem)).doesNotContain("Private Unit", "private-target");
+  }
+
+  @Test
   void controllerOnlyChainItemMasksSourceEffectAndTargetsFromOpponentAndSpectator() throws Exception {
     LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.ENFORCED);
     state.setChainState(chainState(new LiveGameState.ChainItem(
@@ -789,5 +839,11 @@ class GameStateProjectionServiceTest {
     assertThat(item.targetableOnChain()).isFalse();
     assertThat(item.chainItemType()).isEqualTo("MASKED");
     assertThat(item.sourceZoneBeforeChain()).isNull();
+    assertThat(item.chainTargets()).allSatisfy(target -> {
+      assertThat(target.publicLabel()).isEqualTo("Hidden target");
+      assertThat(target.targetInstanceId()).isNull();
+      assertThat(target.targetChainItemId()).isNull();
+      assertThat(target.targetKind()).isEqualTo("MASKED");
+    });
   }
 }

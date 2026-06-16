@@ -28,6 +28,7 @@ import com.riftforge.rules.LegalActionsService;
 import com.riftforge.service.CardDataService;
 import com.riftforge.service.GameService;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -360,10 +361,11 @@ public class BotService {
     if (!playableActions.contains(LegalAction.PLAY_CARD)) {
       return passIfLegal(roomCode, playableState, botId, playableActions) || acted;
     }
+    Set<String> rejectedCardInstanceIds = new HashSet<>();
     boolean anyPlayable = playableState != null && playableState.getCards().stream()
         .anyMatch(c -> botId.equals(c.getOwnerId())
             && c.getZone() == ZoneName.HAND
-            && cardDataService.getCard(c.getCardId()).cost() <= botEnergy(playableState, botId));
+            && isBotPlayableFromHand(playableState, c, botId, rejectedCardInstanceIds));
     if (!anyPlayable) {
       return passIfLegal(roomCode, playableState, botId, playableActions) || acted;
     }
@@ -377,7 +379,8 @@ public class BotService {
       int energy = botEnergy(current, botId);
       Optional<CardInstance> pick = current.getCards().stream()
           .filter(c -> botId.equals(c.getOwnerId()) && c.getZone() == ZoneName.HAND)
-          .filter(c -> hasValidSpellTarget(current, c, botId))
+          .filter(c -> !rejectedCardInstanceIds.contains(c.getInstanceId()))
+          .filter(c -> isBotPlayableFromHand(current, c, botId, rejectedCardInstanceIds))
           .filter(c -> cardDataService.getCard(c.getCardId()).cost() <= energy)
           .max(Comparator.comparingInt(c -> cardDataService.getCard(c.getCardId()).cost()));
 
@@ -390,7 +393,11 @@ public class BotService {
         int boardCount = (int) current.getCards().stream()
             .filter(c -> botId.equals(c.getOwnerId()) && (c.getZone() == ZoneName.BASE || c.getZone() == ZoneName.BATTLEFIELD))
             .count();
-        acted |= processBotMove(roomCode, current, botId, new PlayCardMove(botId, pick.get().getInstanceId(), ZoneName.BASE, 60 + boardCount * 100, 220, targetInstanceId, targets, false, List.of(), List.of()));
+        boolean accepted = processBotMove(roomCode, current, botId, new PlayCardMove(botId, pick.get().getInstanceId(), ZoneName.BASE, 60 + boardCount * 100, 220, targetInstanceId, targets, false, List.of(), List.of()));
+        acted |= accepted;
+        if (!accepted) {
+          rejectedCardInstanceIds.add(pick.get().getInstanceId());
+        }
         sleepBriefly(300);
         played = true;
       }
@@ -431,6 +438,12 @@ public class BotService {
   private boolean processBotMove(String roomCode, LiveGameState state, String botId, MoveRequest move) {
     Phase beforePhase = state == null ? null : state.getCurrentPhase();
     String beforeActivePlayer = state == null ? null : state.getActivePlayerId();
+    String beforeWinner = state == null ? null : state.getWinnerId();
+    int beforeLogSize = state == null || state.getLog() == null ? 0 : state.getLog().size();
+    String beforeChain = chainSnapshot(state);
+    String beforeShowdown = showdownSnapshot(state);
+    String beforePendingChoice = pendingChoiceSnapshot(state);
+    String beforeMovedCard = move instanceof PlayCardMove play ? cardSnapshot(state, play.instanceId()) : null;
     log.debug(
         "Bot move before: room={}, bot={}, move={}, phaseBefore={}, activePlayerBefore={}, activeShowdown={}, gameMode={}",
         roomCode,
@@ -444,8 +457,17 @@ public class BotService {
     LiveGameState latest = gameService.currentState(roomCode);
     boolean phaseChanged = latest != null && beforePhase != latest.getCurrentPhase();
     boolean activePlayerChanged = latest != null && beforeActivePlayer != null && !beforeActivePlayer.equals(latest.getActivePlayerId());
+    boolean stateChanged = latest != null && (
+        phaseChanged
+            || activePlayerChanged
+            || !java.util.Objects.equals(beforeWinner, latest.getWinnerId())
+            || beforeLogSize != (latest.getLog() == null ? 0 : latest.getLog().size())
+            || !java.util.Objects.equals(beforeChain, chainSnapshot(latest))
+            || !java.util.Objects.equals(beforeShowdown, showdownSnapshot(latest))
+            || !java.util.Objects.equals(beforePendingChoice, pendingChoiceSnapshot(latest))
+            || (beforeMovedCard != null && !java.util.Objects.equals(beforeMovedCard, cardSnapshot(latest, ((PlayCardMove) move).instanceId()))));
     log.debug(
-        "Bot move after: room={}, bot={}, move={}, latestPhase={}, latestActivePlayer={}, phaseChanged={}, activePlayerChanged={}, winner={}, activeShowdown={}",
+        "Bot move after: room={}, bot={}, move={}, latestPhase={}, latestActivePlayer={}, phaseChanged={}, activePlayerChanged={}, stateChanged={}, winner={}, activeShowdown={}",
         roomCode,
         botId,
         move.getClass().getSimpleName(),
@@ -453,6 +475,7 @@ public class BotService {
         latest == null ? null : latest.getActivePlayerId(),
         phaseChanged,
         activePlayerChanged,
+        stateChanged,
         latest == null ? null : latest.getWinnerId(),
         latest != null && latest.getActiveShowdown() != null);
     if (move instanceof PassPhaseMove
@@ -467,7 +490,31 @@ public class BotService {
           latest.getCurrentPhase(),
           latest.getActivePlayerId());
     }
-    return true;
+    if (!stateChanged) {
+      log.warn(
+          "Bot move produced no state change and will not be retried in this decision cycle: room={}, bot={}, move={}",
+          roomCode,
+          botId,
+          move.getClass().getSimpleName());
+    }
+    return stateChanged;
+  }
+
+  private boolean isBotPlayableFromHand(LiveGameState state, CardInstance card, String botId, Set<String> rejectedCardInstanceIds) {
+    if (state == null || card == null || rejectedCardInstanceIds.contains(card.getInstanceId())) return false;
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    if (def == null) return false;
+    if (cardDataService.isUnsupportedAction(def.id())) return false;
+    if (cardDataService.hasUnsupportedAdditionalCost(def)) return false;
+    if (cardDataService.isReactionCard(def)) {
+      return state.getChainState() != null
+          && botId.equals(state.getChainState().focusedPlayerId())
+          && !state.getChainState().readyToResolveTop()
+          && (cardDataService.isGustReaction(def) || cardDataService.isDefyCounterReaction(def));
+    }
+    if (Math.max(0, def.premiumCost()) > 0) return false;
+    if (def.cost() > botEnergy(state, botId)) return false;
+    return hasValidSpellTarget(state, card, botId);
   }
 
   private boolean hasValidSpellTarget(LiveGameState state, CardInstance card, String botId) {
@@ -679,6 +726,36 @@ public class BotService {
     }
     if (isBotId(state.getActivePlayerId())) return state.getActivePlayerId();
     return null;
+  }
+
+  private String chainSnapshot(LiveGameState state) {
+    LiveGameState.ChainState chain = state == null ? null : state.getChainState();
+    if (chain == null) return "none";
+    return chain.chainId() + "|" + chain.focusedPlayerId() + "|" + chain.consecutivePasses() + "|" + chain.readyToResolveTop()
+        + "|" + chain.chainItems().stream()
+            .map(item -> item.itemId() + ":" + item.status())
+            .toList();
+  }
+
+  private String showdownSnapshot(LiveGameState state) {
+    LiveGameState.ShowdownState showdown = state == null ? null : state.getActiveShowdown();
+    if (showdown == null) return "none";
+    return showdown.step() + "|" + showdown.focusedPlayerId() + "|" + showdown.consecutivePasses() + "|" + showdown.readyToResolve()
+        + "|" + showdown.assigningPlayerId();
+  }
+
+  private String pendingChoiceSnapshot(LiveGameState state) {
+    PendingChoice choice = state == null ? null : state.getPendingChoice();
+    return choice == null ? "none" : choice.getChoiceId() + "|" + choice.getPlayerId() + "|" + choice.getType();
+  }
+
+  private String cardSnapshot(LiveGameState state, String instanceId) {
+    if (state == null || instanceId == null) return "none";
+    return state.getCards().stream()
+        .filter(card -> instanceId.equals(card.getInstanceId()))
+        .findFirst()
+        .map(card -> card.getInstanceId() + "|" + card.getCardId() + "|" + card.getZone() + "|" + card.isTapped())
+        .orElse("missing");
   }
 
   private String normalizeRoomCode(String roomCode) {

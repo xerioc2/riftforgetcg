@@ -57,7 +57,9 @@ public class LegalActionsService {
         actions.add(LegalAction.RESOLVE_CHAIN_TOP);
       } else {
         actions.add(LegalAction.PASS_CHAIN_FOCUS);
-        if (hasPlayableGustInHand(state, playerId) || hasPlayableDefyInHand(state, playerId)) actions.add(LegalAction.PLAY_CARD);
+        if (hasPlayableGustInHand(state, playerId)
+            || hasPlayableDefyInHand(state, playerId)
+            || hasPlayableNotSoFastInHand(state, playerId)) actions.add(LegalAction.PLAY_CARD);
       }
       return actions;
     }
@@ -171,6 +173,18 @@ public class LegalActionsService {
             && canPay(state, playerId, def));
   }
 
+  private boolean hasPlayableNotSoFastInHand(LiveGameState state, String playerId) {
+    if (cardDataService == null) return false;
+    if (state.getChainState() == null || !hasLegalNotSoFastTarget(state, playerId)) return false;
+    return state.getCards().stream()
+        .filter(card -> playerId.equals(card.getOwnerId()) && card.getZone() == ZoneName.HAND)
+        .map(card -> cardDataService.getCard(card.getCardId()))
+        .anyMatch(def -> def != null
+            && cardDataService.isNotSoFastCounterReaction(def)
+            && !cardDataService.isUnsupportedAction(def.id())
+            && canPay(state, playerId, def));
+  }
+
   private boolean hasLegalDefyTarget(LiveGameState state, String playerId) {
     LiveGameState.ChainState chain = state.getChainState();
     if (chain == null) return false;
@@ -188,6 +202,29 @@ public class LegalActionsService {
         && "Spell".equalsIgnoreCase(def.type())
         && Math.max(0, def.cost()) <= 4
         && Math.max(0, def.premiumCost()) <= 1;
+  }
+
+  private boolean hasLegalNotSoFastTarget(LiveGameState state, String playerId) {
+    LiveGameState.ChainState chain = state.getChainState();
+    if (chain == null) return false;
+    return chain.chainItems().stream().anyMatch(item -> isLegalNotSoFastTarget(item, playerId));
+  }
+
+  private boolean isLegalNotSoFastTarget(LiveGameState.ChainItem item, String playerId) {
+    if (item == null || !item.isPending() || !item.counterable() || !item.targetableOnChain()) return false;
+    if (!item.isPubliclyVisible()) return false;
+    if (playerId.equals(item.controllerPlayerId())) return false;
+    if (!LiveGameState.ChainItem.TYPE_SPELL.equalsIgnoreCase(item.chainItemType())) return false;
+    CardDefinition def = item.sourceCardId() == null || item.sourceCardId().isBlank()
+        ? null
+        : cardDataService.getCard(item.sourceCardId());
+    if (def == null || !"Spell".equalsIgnoreCase(def.type())) return false;
+    return item.chainTargets().stream().anyMatch(target ->
+        target.publicSafe()
+            && playerId.equals(target.targetControllerPlayerId())
+            && ("UNIT".equalsIgnoreCase(target.targetKind())
+                || "CHAMPION_UNIT".equalsIgnoreCase(target.targetKind())
+                || "GEAR".equalsIgnoreCase(target.targetKind())));
   }
 
   private boolean isLegalGustTarget(CardInstance target) {

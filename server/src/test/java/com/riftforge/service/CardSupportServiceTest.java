@@ -43,8 +43,8 @@ class CardSupportServiceTest {
 
   @Test
   void unsupportedSpellsRemainBlockedEvenIfNamedDifferently() {
-    CardDefinition spell = card("not-so-fast", "Not So Fast", "Spell", "Counter an enemy spell.");
-    when(cardDataService.isUnsupportedAction("not-so-fast")).thenReturn(true);
+    CardDefinition spell = card("counter-trick", "Counter Trick", "Spell", "Counter an enemy spell.");
+    when(cardDataService.isUnsupportedAction("counter-trick")).thenReturn(true);
 
     assertThat(service.statusFor(spell)).isEqualTo(CardSupportStatus.UNSUPPORTED);
   }
@@ -60,6 +60,14 @@ class CardSupportServiceTest {
     assertThat(service.summarize(card("defy", "Defy", "Spell", "[Reaction] Counter a spell.")).reason())
         .contains("no more than 4 energy")
         .contains("no more than 1 premium rune")
+        .contains("countering counters remain deferred");
+    assertThat(service.summarize(card(
+            "not-so-fast",
+            "Not So Fast",
+            "Spell",
+            "[Reaction] Counter an enemy spell or ability that chooses a friendly unit or gear.")).reason())
+        .contains("friendly Unit/Champion Unit or Gear")
+        .contains("Ability-chain targets")
         .contains("countering counters remain deferred");
   }
 

@@ -945,7 +945,157 @@ class BotServicePhaseFlowTest {
         .anySatisfy(card -> {
           assertThat(card.getInstanceId()).isEqualTo("not-so-fast-1");
           assertThat(card.getZone()).isEqualTo(ZoneName.HAND);
+    });
+    waitForNoActingRooms();
+  }
+
+  @Test
+  void botSkipsSupportedReactionOutsideChainAndPassesInsteadOfLooping() throws Exception {
+    BotService gatedBot = new BotService(
+        gameService,
+        cardDataService,
+        new FixedLegalActionsService((state, playerId) -> Set.of(LegalAction.PLAY_CARD, LegalAction.PASS_PHASE)));
+    String roomCode = "GUST";
+    CardDefinition gust = new CardDefinition(
+        "gust",
+        "Gust",
+        "Spell",
+        null,
+        List.of(),
+        0,
+        0,
+        null,
+        null,
+        null,
+        "[Reaction] Return a unit at a battlefield with 3 Might or less to its owner's hand.",
+        0,
+        0,
+        List.of());
+    cards.put("gust", gust);
+    when(cardDataService.isReactionCard(gust)).thenReturn(true);
+    when(cardDataService.isGustReaction(gust)).thenReturn(true);
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setActivePlayerId(BOT_ID);
+    state.setCurrentPhase(Phase.MAIN);
+    state.getCards().removeIf(card -> BOT_ID.equals(card.getOwnerId()));
+    CardInstance reaction = testCard("gust-1", BOT_ID, ZoneName.HAND);
+    reaction.setCardId("gust");
+    state.getCards().add(reaction);
+
+    gatedBot.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+    LiveGameState latest = waitUntilPhase(gameService, roomCode, Phase.END);
+    latest.setWinnerId("test-complete");
+
+    assertThat(latest.getCards())
+        .anySatisfy(card -> {
+          assertThat(card.getInstanceId()).isEqualTo("gust-1");
+          assertThat(card.getZone()).isEqualTo(ZoneName.HAND);
         });
+    assertThat(latest.getLog()).noneMatch(entry -> entry.text().contains("Gust"));
+    waitForNoActingRooms();
+  }
+
+  @Test
+  void botSkipsUnsupportedAdditionalCostSpellAndPassesMain() throws Exception {
+    BotService gatedBot = new BotService(
+        gameService,
+        cardDataService,
+        new FixedLegalActionsService((state, playerId) -> Set.of(LegalAction.PLAY_CARD, LegalAction.PASS_PHASE)));
+    String roomCode = "COST";
+    CardDefinition unsupportedCost = new CardDefinition(
+        "unsupported-cost",
+        "Fussy Spell",
+        "Spell",
+        null,
+        List.of(),
+        0,
+        0,
+        null,
+        null,
+        null,
+        "As an additional cost, do something unsupported. Draw 1.",
+        0,
+        0,
+        List.of());
+    cards.put("unsupported-cost", unsupportedCost);
+    when(cardDataService.hasUnsupportedAdditionalCost(unsupportedCost)).thenReturn(true);
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setActivePlayerId(BOT_ID);
+    state.setCurrentPhase(Phase.MAIN);
+    state.getCards().removeIf(card -> BOT_ID.equals(card.getOwnerId()));
+    CardInstance spell = testCard("unsupported-cost-1", BOT_ID, ZoneName.HAND);
+    spell.setCardId("unsupported-cost");
+    state.getCards().add(spell);
+
+    gatedBot.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+    LiveGameState latest = waitUntilPhase(gameService, roomCode, Phase.END);
+    latest.setWinnerId("test-complete");
+
+    assertThat(latest.getCards())
+        .anySatisfy(card -> {
+          assertThat(card.getInstanceId()).isEqualTo("unsupported-cost-1");
+          assertThat(card.getZone()).isEqualTo(ZoneName.HAND);
+        });
+    assertThat(latest.getLog()).noneMatch(entry -> entry.text().contains("Fussy Spell"));
+    waitForNoActingRooms();
+  }
+
+  @Test
+  void botDropsRejectedPlayCandidateAndPassesInsteadOfLooping() throws Exception {
+    BotService gatedBot = new BotService(
+        gameService,
+        cardDataService,
+        new FixedLegalActionsService((state, playerId) -> Set.of(LegalAction.PLAY_CARD, LegalAction.PASS_PHASE)));
+    String roomCode = "RJCT";
+    CardDefinition rune = new CardDefinition(
+        "bad-rune",
+        "Misplaced Rune",
+        "Rune",
+        null,
+        List.of(),
+        0,
+        0,
+        null,
+        null,
+        null,
+        "",
+        0,
+        0,
+        List.of());
+    cards.put("bad-rune", rune);
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setActivePlayerId(BOT_ID);
+    state.setCurrentPhase(Phase.MAIN);
+    state.getCards().removeIf(card -> BOT_ID.equals(card.getOwnerId()));
+    CardInstance rejected = testCard("bad-rune-1", BOT_ID, ZoneName.HAND);
+    rejected.setCardId("bad-rune");
+    state.getCards().add(rejected);
+
+    gatedBot.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+    LiveGameState latest = waitUntilPhase(gameService, roomCode, Phase.END);
+    latest.setWinnerId("test-complete");
+
+    assertThat(latest.getCards())
+        .anySatisfy(card -> {
+          assertThat(card.getInstanceId()).isEqualTo("bad-rune-1");
+          assertThat(card.getZone()).isEqualTo(ZoneName.HAND);
+        });
+    assertThat(latest.getLog()).noneMatch(entry -> entry.text().contains("Misplaced Rune"));
     waitForNoActingRooms();
   }
 
@@ -982,6 +1132,68 @@ class BotServicePhaseFlowTest {
           assertThat(card.getCardId()).isEqualTo("top-a");
           assertThat(card.getZone()).isEqualTo(ZoneName.HAND);
         });
+    assertThat(latest.getPlayers().stream()
+        .filter(player -> BOT_ID.equals(player.getUserId()))
+        .findFirst()
+        .orElseThrow()
+        .getDeckPool())
+        .containsExactly("rest", "top-b", "top-c");
+    waitForNoActingRooms();
+  }
+
+  @Test
+  void botOpensStackedDeckPriorityAndCompletesFastPassResolveAndChoice() throws Exception {
+    String roomCode = "BSTK";
+    CardDefinition stackedDeck = new CardDefinition(
+        "stacked-deck",
+        "Stacked Deck",
+        "Spell",
+        null,
+        List.of(),
+        0,
+        0,
+        null,
+        null,
+        null,
+        "[Action] Look at the top 3 cards of your Main Deck. Put 1 of them into your hand and recycle the rest.",
+        0,
+        0,
+        List.of());
+    cards.put("stacked-deck", stackedDeck);
+    when(cardDataService.isStackedDeckEffect(stackedDeck)).thenReturn(true);
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setCurrentPhase(Phase.MAIN);
+    state.setActivePlayerId(BOT_ID);
+    state.getPlayers().stream()
+        .filter(player -> BOT_ID.equals(player.getUserId()))
+        .findFirst()
+        .orElseThrow()
+        .setDeckPool(new ArrayList<>(List.of("top-a", "top-b", "top-c", "rest")));
+    state.getCards().removeIf(card -> BOT_ID.equals(card.getOwnerId()));
+    CardInstance stackedDeckInstance = testCard("stacked-deck-1", BOT_ID, ZoneName.HAND);
+    stackedDeckInstance.setCardId("stacked-deck");
+    state.getCards().add(stackedDeckInstance);
+
+    botService.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+
+    LiveGameState latest = waitUntilBotStackedDeckFlowResolved(gameService, roomCode);
+    latest.setWinnerId("test-complete");
+    assertThat(latest.getChainState()).isNull();
+    assertThat(latest.getPendingChoice()).isNull();
+    assertThat(latest.getCards()).anySatisfy(card -> {
+      assertThat(card.getOwnerId()).isEqualTo(BOT_ID);
+      assertThat(card.getCardId()).isEqualTo("top-a");
+      assertThat(card.getZone()).isEqualTo(ZoneName.HAND);
+    });
+    assertThat(latest.getCards()).anySatisfy(card -> {
+      assertThat(card.getInstanceId()).isEqualTo("stacked-deck-1");
+      assertThat(card.getZone()).isEqualTo(ZoneName.DISCARD);
+    });
     assertThat(latest.getPlayers().stream()
         .filter(player -> BOT_ID.equals(player.getUserId()))
         .findFirst()
@@ -1138,6 +1350,28 @@ class BotServicePhaseFlowTest {
     while (System.currentTimeMillis() < deadline) {
       latest = service.currentState(roomCode);
       if (latest != null && latest.getPendingChoice() == null) return latest;
+      Thread.sleep(25);
+    }
+    return latest;
+  }
+
+  private LiveGameState waitUntilBotStackedDeckFlowResolved(GameService service, String roomCode) throws Exception {
+    long deadline = System.currentTimeMillis() + 6_000;
+    LiveGameState latest = service.currentState(roomCode);
+    while (System.currentTimeMillis() < deadline) {
+      latest = service.currentState(roomCode);
+      if (latest != null
+          && latest.getChainState() == null
+          && latest.getPendingChoice() == null
+          && latest.getCards().stream().anyMatch(card ->
+              BOT_ID.equals(card.getOwnerId())
+                  && "top-a".equals(card.getCardId())
+                  && card.getZone() == ZoneName.HAND)
+          && latest.getCards().stream().anyMatch(card ->
+              "stacked-deck-1".equals(card.getInstanceId())
+                  && card.getZone() == ZoneName.DISCARD)) {
+        return latest;
+      }
       Thread.sleep(25);
     }
     return latest;

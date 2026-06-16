@@ -299,6 +299,17 @@ public class CardDataService {
         && text.contains("counter a spell");
   }
 
+  public boolean isNotSoFastCounterReaction(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().toLowerCase();
+    boolean notSoFastName = def.name() != null && def.name().trim().equalsIgnoreCase("Not So Fast");
+    return "Spell".equalsIgnoreCase(def.type())
+        && isReactionCard(def)
+        && notSoFastName
+        && text.contains("counter an enemy spell or ability")
+        && text.contains("friendly unit or gear");
+  }
+
   public boolean isHiddenCard(CardDefinition def) {
     if (def == null) return false;
     boolean keyword = def.keywords() != null
@@ -345,9 +356,10 @@ public class CardDataService {
         || normalized.contains("ready it")
         || normalized.contains("draw 1")
         || isDefyCounterReaction(def)
+        || isNotSoFastCounterReaction(def)
         || isStackedDeckEffectText(normalized);
     return (normalized.contains("counter a spell") && !isDefyCounterReaction(def))
-        || normalized.contains("counter an enemy spell")
+        || (normalized.contains("counter an enemy spell") && !isNotSoFastCounterReaction(def))
         || requiresMultipleTargets
         || !supportedEffect;
   }

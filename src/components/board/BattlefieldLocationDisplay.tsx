@@ -36,7 +36,6 @@ export function BattlefieldLocationDisplay({
         shadowColor="black"
         shadowBlur={10}
         shadowOpacity={0.35}
-        listening={false}
       />
       {image ? (
         <Image

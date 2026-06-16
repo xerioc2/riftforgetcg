@@ -102,6 +102,29 @@ class EffectHandlerRegistryTest {
   }
 
   @Test
+  void exactNotSoFastEffectIsSupportedAsNarrowCounterPattern() {
+    EffectHandlerRegistry registry = new EffectHandlerRegistry(List.of(new TankHandler()));
+
+    EffectSupportStatus status = registry.supportStatus(new CardDefinition(
+        "not-so-fast",
+        "Not So Fast",
+        "Spell",
+        null,
+        List.of(),
+        0,
+        0,
+        null,
+        null,
+        null,
+        "[Reaction] Counter an enemy spell or ability that chooses a friendly unit or gear.",
+        1,
+        1,
+        List.of()));
+
+    assertThat(status.implemented()).isTrue();
+  }
+
+  @Test
   void incompleteTopDeckEffectIsStillUnsupported() {
     EffectHandlerRegistry registry = new EffectHandlerRegistry(List.of(new TankHandler()));
 

@@ -38,6 +38,7 @@ public class CardSupportService {
       Map.entry("ADAPTATRON", "Partial: conquer trigger, optional gear kill, and official Buff state are not implemented yet."),
       Map.entry("SCUTTLE CRAB", "Partial: on-play draw and 1v1 private hand reveal Deathknell are implemented, but XP and facedown-card viewing are deferred."),
       Map.entry("DEFY", "Partial: Defy can counter supported public pending spell chain items that cost no more than 4 energy and no more than 1 premium rune during the current alpha chain window. Full official Reaction timing, broad spell/ability targets, and countering counters remain deferred."),
+      Map.entry("NOT SO FAST", "Partial: Not So Fast can counter a supported public pending enemy spell chain item only when that item chooses your friendly Unit/Champion Unit or Gear. Ability-chain targets, broad official Reaction timing, and countering counters remain deferred."),
       Map.entry("EN GARDE", "Partial: selected friendly +Might is helper-backed, but Reaction timing remains incomplete."),
       Map.entry("GUST", "Partial: selected return-to-hand is helper-backed, but Reaction timing and the 3-or-less-Might target filter remain incomplete."));
 

@@ -153,7 +153,7 @@ public class GameStateProjectionService {
         canSeePrivateSource ? item.sourceCardId() : HIDDEN_CARD_ID,
         canSeePrivateSource ? item.sourceCardName() : "Hidden chain item",
         canSeePrivateSource ? item.effectKey() : null,
-        canSeePrivateSource ? new ArrayList<>(item.targetInstanceIds()) : new ArrayList<>(),
+        copyChainTargetIds(item, canSeePrivateSource, Objects.equals(item.controllerPlayerId(), viewerPlayerId)),
         item.order(),
         item.publicDescription(),
         item.visibility(),
@@ -161,7 +161,33 @@ public class GameStateProjectionService {
         canSeePrivateSource && item.counterable(),
         canSeePrivateSource && item.targetableOnChain(),
         canSeePrivateSource ? item.chainItemType() : "MASKED",
-        canSeePrivateSource ? item.sourceZoneBeforeChain() : null);
+        canSeePrivateSource ? item.sourceZoneBeforeChain() : null,
+        item.chainTargets().stream()
+            .map(target -> copyChainTarget(target, canSeePrivateSource, Objects.equals(item.controllerPlayerId(), viewerPlayerId)))
+            .toList());
+  }
+
+  private LiveGameState.ChainTarget copyChainTarget(LiveGameState.ChainTarget target, boolean canSeePrivateSource, boolean isController) {
+    boolean canSeeTarget = canSeePrivateSource && (target.publicSafe() || isController);
+    return new LiveGameState.ChainTarget(
+        target.role(),
+        canSeeTarget ? target.targetInstanceId() : null,
+        canSeeTarget ? target.targetChainItemId() : null,
+        canSeeTarget ? target.targetControllerPlayerId() : null,
+        canSeeTarget ? target.targetKind() : "MASKED",
+        canSeeTarget ? target.targetZone() : null,
+        canSeeTarget ? target.publicLabel() : "Hidden target",
+        canSeeTarget);
+  }
+
+  private ArrayList<String> copyChainTargetIds(LiveGameState.ChainItem item, boolean canSeePrivateSource, boolean isController) {
+    if (!canSeePrivateSource) return new ArrayList<>();
+    if (item.chainTargets().isEmpty()) return new ArrayList<>(item.targetInstanceIds());
+    return item.chainTargets().stream()
+        .filter(target -> target.publicSafe() || isController)
+        .map(target -> target.targetInstanceId() != null ? target.targetInstanceId() : target.targetChainItemId())
+        .filter(Objects::nonNull)
+        .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
   }
 
   private PendingChoice copyChoiceForViewer(PendingChoice choice, String viewerPlayerId) {

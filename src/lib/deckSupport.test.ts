@@ -22,10 +22,12 @@ describe('deckSupport', () => {
     expect(status.reason).toContain('countering counters remain deferred');
   });
 
-  it('keeps Not So Fast unsupported', () => {
+  it('uses a Not So Fast-specific Partial reason for the narrow alpha counter path', () => {
     const status = cardSupportStatus(spell('Not So Fast', '[Reaction] Counter an enemy spell or ability that chooses a friendly unit or gear.'));
 
-    expect(status.status).toBe('UNSUPPORTED');
-    expect(status.reason).toContain('Counter spells');
+    expect(status.status).toBe('PARTIAL');
+    expect(status.reason).toContain('chooses your friendly Unit');
+    expect(status.reason).toContain('Ability-chain targets');
+    expect(status.reason).toContain('countering counters remain deferred');
   });
 });

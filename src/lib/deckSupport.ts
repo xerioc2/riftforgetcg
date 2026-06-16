@@ -26,6 +26,7 @@ const PARTIAL_REASONS = new Map<string, string>([
   ['ADAPTATRON', 'Partial: conquer trigger, optional gear kill, and official Buff state are not implemented yet.'],
   ['EN GARDE', 'Partial: selected friendly +Might is helper-backed, but Reaction timing remains incomplete.'],
   ['DEFY', 'Partial: Defy can counter supported public pending spell chain items that cost no more than 4 energy and no more than 1 premium rune during the current alpha chain window. Full official Reaction timing, broad spell/ability targets, and countering counters remain deferred.'],
+  ['NOT SO FAST', 'Partial: Not So Fast can counter a supported public pending enemy spell chain item only when that item chooses your friendly Unit/Champion Unit or Gear. Ability-chain targets, broad official Reaction timing, and countering counters remain deferred.'],
   ['GUST', 'Partial: alpha chain-window Reaction support exists through Stacked Deck for returning a battlefield Unit/Champion with 3 Might or less, but full official any-time Reaction timing remains incomplete.'],
   ['STACKED DECK', 'Partial: opens the narrow alpha chain, then resolves into a private top-3 choice; official ordering and broader timing remain incomplete.'],
 ]);

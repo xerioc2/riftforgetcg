@@ -100,7 +100,8 @@ public class LiveGameState {
       boolean counterable,
       boolean targetableOnChain,
       String chainItemType,
-      ZoneName sourceZoneBeforeChain) {
+      ZoneName sourceZoneBeforeChain,
+      List<ChainTarget> chainTargets) {
     public static final String VISIBILITY_PUBLIC = "PUBLIC";
     public static final String VISIBILITY_CONTROLLER_ONLY = "CONTROLLER_ONLY";
     public static final String STATUS_PENDING = "PENDING";
@@ -115,6 +116,42 @@ public class LiveGameState {
     public static final String EFFECT_GUST_RETURN = "GUST_RETURN";
     public static final String EFFECT_STACKED_DECK_PICK_ONE = "STACKED_DECK_PICK_ONE";
     public static final String EFFECT_DEFY_COUNTER = "DEFY_COUNTER";
+    public static final String EFFECT_NOT_SO_FAST_COUNTER = "NOT_SO_FAST_COUNTER";
+
+    public ChainItem(
+        String itemId,
+        String controllerPlayerId,
+        String sourceCardInstanceId,
+        String sourceCardId,
+        String sourceCardName,
+        String effectKey,
+        List<String> targetInstanceIds,
+        int order,
+        String publicDescription,
+        String visibility,
+        String status,
+        boolean counterable,
+        boolean targetableOnChain,
+        String chainItemType,
+        ZoneName sourceZoneBeforeChain) {
+      this(
+          itemId,
+          controllerPlayerId,
+          sourceCardInstanceId,
+          sourceCardId,
+          sourceCardName,
+          effectKey,
+          targetInstanceIds,
+          order,
+          publicDescription,
+          visibility,
+          status,
+          counterable,
+          targetableOnChain,
+          chainItemType,
+          sourceZoneBeforeChain,
+          List.of());
+    }
 
     public ChainItem(
         String itemId,
@@ -170,6 +207,7 @@ public class LiveGameState {
 
     public ChainItem {
       targetInstanceIds = targetInstanceIds == null ? List.of() : List.copyOf(targetInstanceIds);
+      chainTargets = chainTargets == null ? List.of() : List.copyOf(chainTargets);
       visibility = visibility == null || visibility.isBlank() ? VISIBILITY_PUBLIC : visibility;
       status = status == null || status.isBlank() ? STATUS_PENDING : status;
       chainItemType = chainItemType == null || chainItemType.isBlank() ? TYPE_SPELL : chainItemType;
@@ -199,9 +237,20 @@ public class LiveGameState {
           counterable,
           targetableOnChain,
           chainItemType,
-          sourceZoneBeforeChain);
+          sourceZoneBeforeChain,
+          chainTargets);
     }
   }
+
+  public record ChainTarget(
+      String role,
+      String targetInstanceId,
+      String targetChainItemId,
+      String targetControllerPlayerId,
+      String targetKind,
+      ZoneName targetZone,
+      String publicLabel,
+      boolean publicSafe) {}
 
   public String getRoomCode() { return roomCode; }
   public void setRoomCode(String roomCode) { this.roomCode = roomCode; }

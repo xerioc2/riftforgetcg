@@ -42,7 +42,7 @@ export function phaseGuidance(
     if (isStackedDeckChainItem(topChainItem)) {
       return chainReady
         ? 'Resolve Stacked Deck on the chain to choose from the top cards.'
-        : 'Stacked Deck is waiting on chain responses. Resolve the chain to choose from the top cards.';
+        : 'Stacked Deck is waiting on priority/chain responses. Resolve the chain to choose from the top cards.';
     }
     return chainReady
       ? 'The top chain item is ready to resolve.'

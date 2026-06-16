@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canUseSupportedChainResponse, isDefyCounterCard, isGustReactionCard, isReactionCard, isSupportedChainReactionCard, unsupportedCardReason } from './cardActions';
+import { canUseSupportedChainResponse, isDefyCounterCard, isGustReactionCard, isNotSoFastCounterCard, isReactionCard, isSupportedChainReactionCard, unsupportedCardReason } from './cardActions';
 import type { RiftCard } from '../types';
 
 describe('cardActions', () => {
@@ -29,7 +29,7 @@ describe('cardActions', () => {
     expect(isGustReactionCard(defy)).toBe(false);
   });
 
-  it('recognizes Defy as the only currently supported counterspell response helper', () => {
+  it('recognizes Defy and Not So Fast as the current supported counterspell response helpers', () => {
     const defy: RiftCard = {
       id: 'defy',
       name: 'Defy',
@@ -49,8 +49,9 @@ describe('cardActions', () => {
     expect(isSupportedChainReactionCard(defy)).toBe(true);
     expect(unsupportedCardReason(defy)).toBeNull();
     expect(isDefyCounterCard(notSoFast)).toBe(false);
-    expect(isSupportedChainReactionCard(notSoFast)).toBe(false);
-    expect(unsupportedCardReason(notSoFast)).toContain('Counter spells');
+    expect(isNotSoFastCounterCard(notSoFast)).toBe(true);
+    expect(isSupportedChainReactionCard(notSoFast)).toBe(true);
+    expect(unsupportedCardReason(notSoFast)).toBeNull();
   });
 
   it('marks Gust playable only when chain play and a legal Gust target are available', () => {
@@ -70,6 +71,11 @@ describe('cardActions', () => {
     expect(canUseSupportedChainResponse(gust, {
       canPlayCard: true,
       hasLegalGustTarget: false,
+      hasLegalDefyTarget: true,
+    })).toBe(false);
+    expect(canUseSupportedChainResponse(gust, {
+      canPlayCard: false,
+      hasLegalGustTarget: true,
       hasLegalDefyTarget: true,
     })).toBe(false);
   });
@@ -104,6 +110,30 @@ describe('cardActions', () => {
       canPlayCard: true,
       hasLegalGustTarget: true,
       hasLegalDefyTarget: true,
+      hasLegalNotSoFastTarget: false,
+    })).toBe(false);
+  });
+
+  it('marks Not So Fast playable only when chain play and a friendly-targeted enemy spell exist', () => {
+    const notSoFast: RiftCard = {
+      id: 'not-so-fast',
+      name: 'Not So Fast',
+      type: 'Spell',
+      domains: [],
+      rulesText: '[Reaction] Counter an enemy spell or ability that chooses a friendly unit or gear.',
+    };
+
+    expect(canUseSupportedChainResponse(notSoFast, {
+      canPlayCard: true,
+      hasLegalGustTarget: false,
+      hasLegalDefyTarget: false,
+      hasLegalNotSoFastTarget: true,
+    })).toBe(true);
+    expect(canUseSupportedChainResponse(notSoFast, {
+      canPlayCard: true,
+      hasLegalGustTarget: false,
+      hasLegalDefyTarget: false,
+      hasLegalNotSoFastTarget: false,
     })).toBe(false);
   });
 });

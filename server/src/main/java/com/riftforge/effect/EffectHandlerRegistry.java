@@ -86,9 +86,10 @@ public class EffectHandlerRegistry {
         || normalized.contains("ready it")
         || normalized.contains("draw 1")
         || isDefyCounterEffect(card, normalized)
+        || isNotSoFastCounterEffect(card, normalized)
         || isStackedDeckEffect(normalized);
     return !(normalized.contains("counter a spell") && !isDefyCounterEffect(card, normalized))
-        && !normalized.contains("counter an enemy spell")
+        && !(normalized.contains("counter an enemy spell") && !isNotSoFastCounterEffect(card, normalized))
         && !requiresMultipleTargets
         && supportedEffect;
   }
@@ -99,6 +100,15 @@ public class EffectHandlerRegistry {
         && card.name().trim().equalsIgnoreCase("Defy")
         && normalized.contains("[reaction]")
         && normalized.contains("counter a spell");
+  }
+
+  private boolean isNotSoFastCounterEffect(CardDefinition card, String normalized) {
+    return "Spell".equalsIgnoreCase(card.type())
+        && card.name() != null
+        && card.name().trim().equalsIgnoreCase("Not So Fast")
+        && normalized.contains("[reaction]")
+        && normalized.contains("counter an enemy spell or ability")
+        && normalized.contains("friendly unit or gear");
   }
 
   private boolean isStackedDeckEffect(String normalized) {

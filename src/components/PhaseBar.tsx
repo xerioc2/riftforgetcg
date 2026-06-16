@@ -43,14 +43,18 @@ export function chainItemTargetSummary(
   cardNameByInstanceId: Record<string, string> = {},
 ) {
   const effect = item.effectKey ?? '';
+  const targetSummaries = item.chainTargets ?? [];
   const targetIds = item.targetInstanceIds ?? [];
   if (effect === 'STACKED_DECK_PICK_ONE') return 'Target: none';
   if (effect === 'GUST_RETURN') {
+    const publicTarget = targetSummaries.find((target) => target.publicSafe && target.publicLabel);
+    if (publicTarget?.publicLabel) return `Target: ${publicTarget.publicLabel}`;
     const target = targetIds[0];
     return target ? `Target: ${cardNameByInstanceId[target] ?? 'unit'}` : 'Target: missing';
   }
-  if (effect === 'DEFY_COUNTER') {
-    const target = chainItems.find((candidate) => candidate.itemId === targetIds[0]);
+  if (effect === 'DEFY_COUNTER' || effect === 'NOT_SO_FAST_COUNTER') {
+    const chainTargetId = targetSummaries.find((target) => target.targetChainItemId)?.targetChainItemId ?? targetIds[0];
+    const target = chainItems.find((candidate) => candidate.itemId === chainTargetId);
     return target ? `Target: ${chainItemDisplayLabel(target)}` : 'Target: chain item';
   }
   return undefined;

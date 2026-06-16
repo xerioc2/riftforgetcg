@@ -45,3 +45,7 @@ export function battlefieldDisplayFrame(zone: ZoneRect): BattlefieldDisplayFrame
 export function selectedBattlefieldIsInteractiveTarget(): false {
   return false;
 }
+
+export function selectedBattlefieldSupportsPreview(): true {
+  return true;
+}

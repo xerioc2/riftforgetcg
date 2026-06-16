@@ -16,7 +16,7 @@ import { autoPlaceInZone, computeLayout, runeSlotPositions, type ZoneRect } from
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
 import { readableHttpError } from '../lib/http';
-import { canUseSupportedChainResponse, hasUnsupportedAdditionalCost, isActionCard, isAmbushCard, isDefyCounterCard, isEquipCard, isGustReactionCard, isLegalTargetForMode, isReactionCard, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
+import { canUseSupportedChainResponse, hasUnsupportedAdditionalCost, isActionCard, isAmbushCard, isDefyCounterCard, isEquipCard, isGustReactionCard, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
 import { appBuildLabel, APP_VERSION, BUILD_DATE, BUILD_TAG } from '../lib/appMetadata';
 import { buildDebugInfo } from '../lib/debugInfo';
 import { battlefieldDisplayForPlayer, battlefieldDisplayFrame } from '../lib/battlefieldDisplay';
@@ -119,7 +119,7 @@ export function GameBoard() {
   const [hoveredInstance, setHoveredInstance] = useState<CardInstance | undefined>();
   const [inspectCard, setInspectCard] = useState<CardInstance | null>(null);
   const [pendingTargetSelection, setPendingTargetSelection] = useState<{ instanceId: string; mode: TargetMode } | null>(null);
-  const [pendingChainTargetSelection, setPendingChainTargetSelection] = useState<{ instanceId: string } | null>(null);
+  const [pendingChainTargetSelection, setPendingChainTargetSelection] = useState<{ instanceId: string; mode: 'DEFY' | 'NOT_SO_FAST' } | null>(null);
   const [pendingMultiTargetSelection, setPendingMultiTargetSelection] = useState<{ instanceId: string; requirements: TargetRequirement[]; selected: { role: TargetRole; instanceId: string }[] } | null>(null);
   const [pendingAccelerate, setPendingAccelerate] = useState<{ instanceId: string; card: RiftCard } | null>(null);
   const [pendingVision, setPendingVision] = useState<{ logId: string; cardId: string; cardName: string } | null>(null);
@@ -575,6 +575,22 @@ export function GameBoard() {
 
   const legalDefyChainTargets = () => (state?.chainState?.chainItems ?? []).filter(isLegalDefyChainTarget);
 
+  const isLegalNotSoFastChainTarget = (item: ChainItem) => {
+    if (item.status && item.status !== 'PENDING') return false;
+    if (!item.counterable || !item.targetableOnChain) return false;
+    if (item.chainItemType && item.chainItemType !== 'SPELL') return false;
+    if (item.sourceCardName === 'Hidden chain item') return false;
+    if (item.controllerPlayerId === player.id) return false;
+    const sourceCard = item.sourceCardId ? cardsById.get(item.sourceCardId) : undefined;
+    if (!sourceCard || sourceCard.type?.toLowerCase() !== 'spell') return false;
+    return (item.chainTargets ?? []).some((target) =>
+      target.publicSafe
+      && target.targetControllerPlayerId === player.id
+      && ['UNIT', 'CHAMPION_UNIT', 'GEAR'].includes(String(target.targetKind ?? '').toUpperCase()));
+  };
+
+  const legalNotSoFastChainTargets = () => (state?.chainState?.chainItems ?? []).filter(isLegalNotSoFastChainTarget);
+
   const hasLegalGustChainTarget = () => legalTargetsForMode('GUST_BATTLEFIELD_UNIT').length > 0;
 
   const canPlayChainReactionCard = (card: RiftCard | undefined) => {
@@ -582,17 +598,23 @@ export function GameBoard() {
       canPlayCard: canTakeAction(state, 'PLAY_CARD'),
       hasLegalGustTarget: hasLegalGustChainTarget(),
       hasLegalDefyTarget: legalDefyChainTargets().length > 0,
+      hasLegalNotSoFastTarget: legalNotSoFastChainTargets().length > 0,
     });
   };
 
-  const beginChainTargetSelection = (instanceId: string) => {
-    if (legalDefyChainTargets().length === 0) {
-      notifyWarning('No legal chain targets', 'Defy needs a pending public spell chain item it can counter.');
+  const beginChainTargetSelection = (instanceId: string, mode: 'DEFY' | 'NOT_SO_FAST') => {
+    const hasTarget = mode === 'DEFY'
+      ? legalDefyChainTargets().length > 0
+      : legalNotSoFastChainTargets().length > 0;
+    if (!hasTarget) {
+      notifyWarning('No legal chain targets', mode === 'DEFY'
+        ? 'Defy needs a pending public spell chain item it can counter.'
+        : 'Not So Fast needs an enemy pending spell that chooses your friendly Unit or Gear.');
       return false;
     }
     setPendingTargetSelection(null);
     setPendingMultiTargetSelection(null);
-    setPendingChainTargetSelection({ instanceId });
+    setPendingChainTargetSelection({ instanceId, mode });
     return true;
   };
 
@@ -765,7 +787,11 @@ export function GameBoard() {
         return;
       }
       if (isDefyCounterCard(cardDef)) {
-        beginChainTargetSelection(instanceId);
+        beginChainTargetSelection(instanceId, 'DEFY');
+        return;
+      }
+      if (isNotSoFastCounterCard(cardDef)) {
+        beginChainTargetSelection(instanceId, 'NOT_SO_FAST');
         return;
       }
     } else if (showdownActive) {
@@ -1323,7 +1349,7 @@ export function GameBoard() {
                 card={display.card}
                 label={display.label}
                 imageUrl={display.imageUrl}
-                onHover={setHoveredCard}
+                onHover={handleCardHover}
               />
             ))}
           </Layer>
@@ -1499,7 +1525,9 @@ export function GameBoard() {
         chainPlayerNames={chainPlayerNames}
         chainTargetNames={chainTargetNames}
         chainTargetSelectionActive={Boolean(pendingChainTargetSelection)}
-        isChainItemTargetable={isLegalDefyChainTarget}
+        isChainItemTargetable={(item) => pendingChainTargetSelection?.mode === 'NOT_SO_FAST'
+          ? isLegalNotSoFastChainTarget(item)
+          : isLegalDefyChainTarget(item)}
         onChainItemTarget={(itemId) => {
           if (pendingChainTargetSelection) playCounterReaction(pendingChainTargetSelection.instanceId, itemId);
         }}

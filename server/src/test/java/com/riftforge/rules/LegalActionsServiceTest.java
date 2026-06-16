@@ -177,6 +177,39 @@ class LegalActionsServiceTest {
   }
 
   @Test
+  void focusedPlayerWithNotSoFastSeesPlayCardOnlyForEnemySpellTargetingFriendlyUnit() {
+    when(cardDataService.getCard("not-so-fast")).thenReturn(new CardDefinition("not-so-fast", "Not So Fast", "Spell", null, List.of(), 1, 0, null, null, null, "[Reaction] Counter an enemy spell or ability that chooses a friendly unit or gear.", 0, 0, List.of()));
+    when(cardDataService.getCard("gust")).thenReturn(new CardDefinition("gust", "Gust", "Spell", null, List.of(), 0, 0, null, null, null, "[Reaction] Return a unit at a battlefield with 3 Might or less to its owner's hand.", 0, 0, List.of()));
+    when(cardDataService.isReactionCard(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      return def != null && def.rulesText() != null && def.rulesText().toLowerCase().contains("[reaction]");
+    });
+    when(cardDataService.isNotSoFastCounterReaction(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      return def != null && "Not So Fast".equalsIgnoreCase(def.name());
+    });
+    when(cardDataService.isUnsupportedAction("not-so-fast")).thenReturn(false);
+    LegalActionsService legalActions = new LegalActionsService(cardDataService);
+    RulesValidator validator = new RulesValidator(cardDataService, new ShowdownParticipantRules());
+    LiveGameState state = state(Phase.MAIN, "p1");
+    state.setChainState(gustTargetingChain("p2", false, "p2"));
+    state.getPlayers().stream().filter(player -> "p2".equals(player.getUserId())).findFirst().orElseThrow().setAvailableEnergy(3);
+    state.getCards().add(card("not-so-fast-1", "p2", "not-so-fast", ZoneName.HAND));
+
+    assertThat(legalActions.legalActionsFor(state, "p2"))
+        .containsExactlyInAnyOrder(LegalAction.PASS_CHAIN_FOCUS, LegalAction.PLAY_CARD);
+    assertThatCode(() -> validator.validate(state, new PlayCardMove("p2", "not-so-fast-1", ZoneName.BASE, 0, 0, null, "item-1", List.of(), false, List.of(), List.of())))
+        .doesNotThrowAnyException();
+
+    state.setChainState(gustTargetingChain("p1", false, "p2"));
+    assertThat(legalActions.legalActionsFor(state, "p2"))
+        .containsExactly(LegalAction.PASS_CHAIN_FOCUS);
+    assertThatThrownBy(() -> validator.validate(state, new PlayCardMove("p2", "not-so-fast-1", ZoneName.BASE, 0, 0, null, "item-1", List.of(), false, List.of(), List.of())))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Not So Fast can only counter an enemy spell that chooses a friendly Unit or Gear.");
+  }
+
+  @Test
   void validatorAndLegalActionsAgreeForChainPassAndResolve() {
     RulesValidator validator = new RulesValidator(cardDataService, new ShowdownParticipantRules());
     LiveGameState state = state(Phase.MAIN, "p1");
@@ -598,6 +631,41 @@ class LegalActionsServiceTest {
             List.of(),
             1,
             "test chain item")),
+        List.of("p1", "p2"),
+        focusedPlayerId,
+        readyToResolve ? 2 : 0,
+        readyToResolve,
+        "TEST");
+  }
+
+  private LiveGameState.ChainState gustTargetingChain(String targetControllerPlayerId, boolean readyToResolve, String focusedPlayerId) {
+    return new LiveGameState.ChainState(
+        "chain-1",
+        List.of(new LiveGameState.ChainItem(
+            "item-1",
+            "p1",
+            "gust-1",
+            "gust",
+            "Gust",
+            LiveGameState.ChainItem.EFFECT_GUST_RETURN,
+            List.of("target-1"),
+            1,
+            "Gust",
+            LiveGameState.ChainItem.VISIBILITY_PUBLIC,
+            LiveGameState.ChainItem.STATUS_PENDING,
+            true,
+            true,
+            LiveGameState.ChainItem.TYPE_SPELL,
+            ZoneName.HAND,
+            List.of(new LiveGameState.ChainTarget(
+                "target",
+                "target-1",
+                null,
+                targetControllerPlayerId,
+                "UNIT",
+                ZoneName.BATTLEFIELD,
+                "Target Unit",
+                true)))),
         List.of("p1", "p2"),
         focusedPlayerId,
         readyToResolve ? 2 : 0,

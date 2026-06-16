@@ -67,6 +67,14 @@ class GameEngineChainTest {
       String text = def == null || def.rulesText() == null ? "" : def.rulesText().toLowerCase();
       return def != null && "Defy".equalsIgnoreCase(def.name()) && text.contains("[reaction]") && text.contains("counter a spell");
     });
+    when(cardDataService.isNotSoFastCounterReaction(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      String text = def == null || def.rulesText() == null ? "" : def.rulesText().toLowerCase();
+      return def != null && "Not So Fast".equalsIgnoreCase(def.name())
+          && text.contains("[reaction]")
+          && text.contains("counter an enemy spell or ability")
+          && text.contains("friendly unit or gear");
+    });
     when(cardDataService.isStackedDeckEffect(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
       CardDefinition def = invocation.getArgument(0);
       String text = def == null || def.rulesText() == null ? "" : def.rulesText().toLowerCase();
@@ -286,6 +294,61 @@ class GameEngineChainTest {
       assertThat(item.chainItemType()).isEqualTo(LiveGameState.ChainItem.TYPE_SPELL);
       assertThat(item.sourceZoneBeforeChain()).isEqualTo(ZoneName.HAND);
     });
+  }
+
+  @Test
+  void stackedDeckChainItemMetadataMatchesPriorityWindowService() {
+    stubCard("stacked", "Stacked Deck", "Spell", 0, 0, 0, stackedDeckText());
+    LiveGameState state = state(null);
+    state.getCards().add(cardInstance("stacked-1", "p1", "stacked", ZoneName.HAND));
+    CardDefinition def = cardDataService.getCard("stacked");
+    PriorityWindowService priorityWindowService = new PriorityWindowService(cardDataService);
+    PriorityWindowService.PriorityWindow expected = priorityWindowService
+        .openingWindowForPlayedCard(state, def, false)
+        .orElseThrow();
+
+    engine.applyMove(state, play("p1", "stacked-1"));
+
+    assertThat(state.getCards()).filteredOn(card -> card.getInstanceId().equals("stacked-1")).singleElement()
+        .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.LIMBO));
+    assertThat(state.getPendingChoice()).isNull();
+    assertThat(state.getChainState()).isNotNull();
+    assertThat(state.getChainState().sourceContext()).isEqualTo(expected.sourceContext());
+    assertThat(state.getChainState().topItem()).satisfies(item -> {
+      assertThat(item.controllerPlayerId()).isEqualTo("p1");
+      assertThat(item.sourceCardInstanceId()).isEqualTo("stacked-1");
+      assertThat(item.sourceCardId()).isEqualTo(def.id());
+      assertThat(item.sourceCardName()).isEqualTo(def.name());
+      assertThat(item.effectKey()).isEqualTo(expected.effectKey());
+      assertThat(item.chainItemType()).isEqualTo(expected.chainItemType());
+      assertThat(item.visibility()).isEqualTo(expected.visibility());
+      assertThat(item.counterable()).isEqualTo(expected.counterable());
+      assertThat(item.targetableOnChain()).isEqualTo(expected.targetableOnChain());
+      assertThat(item.sourceZoneBeforeChain()).isEqualTo(expected.sourceZoneBeforeChain());
+      assertThat(item.publicDescription()).isEqualTo(expected.publicDescription());
+    });
+  }
+
+  @Test
+  void normalDrawSpellResolvesWithoutOpeningChainState() {
+    stubCard("draw-spell", "Simple Insight", "Spell", 0, 0, 0, "Draw 1.");
+    LiveGameState state = state(null);
+    player(state, "p1").setDeckPool(new ArrayList<>(List.of("drawn-card")));
+    state.getCards().add(cardInstance("draw-spell-1", "p1", "draw-spell", ZoneName.HAND));
+
+    engine.applyMove(state, play("p1", "draw-spell-1"));
+
+    assertThat(state.getChainState()).isNull();
+    assertThat(state.getPendingChoice()).isNull();
+    assertThat(state.getCards()).filteredOn(card -> card.getInstanceId().equals("draw-spell-1")).singleElement()
+        .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.DISCARD));
+    assertThat(state.getCards()).anySatisfy(card -> {
+      assertThat(card.getOwnerId()).isEqualTo("p1");
+      assertThat(card.getCardId()).isEqualTo("drawn-card");
+      assertThat(card.getZone()).isEqualTo(ZoneName.HAND);
+    });
+    assertThat(player(state, "p1").getDeckPool()).isEmpty();
+    assertThat(state.getLog()).anySatisfy(entry -> assertThat(entry.text()).isEqualTo("Played Simple Insight"));
   }
 
   @Test
@@ -625,8 +688,187 @@ class GameEngineChainTest {
       assertThat(item.sourceCardName()).isEqualTo("Gust");
       assertThat(item.effectKey()).isEqualTo(LiveGameState.ChainItem.EFFECT_GUST_RETURN);
       assertThat(item.targetInstanceIds()).containsExactly("target-1");
+      assertThat(item.chainTargets()).singleElement().satisfies(targetSummary -> {
+        assertThat(targetSummary.targetInstanceId()).isEqualTo("target-1");
+        assertThat(targetSummary.targetControllerPlayerId()).isEqualTo("p2");
+        assertThat(targetSummary.targetKind()).isEqualTo("UNIT");
+        assertThat(targetSummary.targetZone()).isEqualTo(ZoneName.BATTLEFIELD);
+        assertThat(targetSummary.publicLabel()).isEqualTo("Target Unit");
+        assertThat(targetSummary.publicSafe()).isTrue();
+      });
       assertThat(item.visibility()).isEqualTo(LiveGameState.ChainItem.VISIBILITY_PUBLIC);
     });
+  }
+
+  @Test
+  void stackedDeckChainItemHasNoTargetMetadata() {
+    stubCard("stacked", "Stacked Deck", "Spell", 0, 0, 0, stackedDeckText());
+    LiveGameState state = state(null);
+    state.getCards().add(cardInstance("stacked-1", "p1", "stacked", ZoneName.HAND));
+
+    engine.applyMove(state, play("p1", "stacked-1"));
+
+    assertThat(state.getChainState().topItem().chainTargets()).isEmpty();
+  }
+
+  @Test
+  void defyChainItemRecordsPublicChainTargetMetadata() {
+    stubCard("stacked", "Stacked Deck", "Spell", 0, 0, 0, stackedDeckText());
+    stubCard("defy", "Defy", "Spell", 0, 0, 0, defyText());
+    LiveGameState state = state(stackedDeckChain(false, "p2"));
+    state.getCards().add(cardInstance("stacked-1", "p1", "stacked", ZoneName.LIMBO));
+    state.getCards().add(cardInstance("defy-1", "p2", "defy", ZoneName.HAND));
+
+    engine.applyMove(state, counter("p2", "defy-1", "item-1"));
+
+    assertThat(state.getChainState().topItem().chainTargets()).singleElement().satisfies(targetSummary -> {
+      assertThat(targetSummary.targetChainItemId()).isEqualTo("item-1");
+      assertThat(targetSummary.targetControllerPlayerId()).isEqualTo("p1");
+      assertThat(targetSummary.targetKind()).isEqualTo("CHAIN_ITEM");
+      assertThat(targetSummary.publicLabel()).isEqualTo("Stacked Deck");
+      assertThat(targetSummary.publicSafe()).isTrue();
+    });
+  }
+
+  @Test
+  void notSoFastIsRejectedOutsideChainState() {
+    stubCard("not-so-fast", "Not So Fast", "Spell", 0, 0, 0, notSoFastText());
+    LiveGameState state = state(null);
+    state.getCards().add(cardInstance("not-so-fast-1", "p1", "not-so-fast", ZoneName.HAND));
+
+    assertThatThrownBy(() -> engine.applyMove(state, counter("p1", "not-so-fast-1", "item-1")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Reaction timing is not implemented yet.");
+
+    assertThat(state.getCards()).filteredOn(card -> card.getInstanceId().equals("not-so-fast-1")).singleElement()
+        .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.HAND));
+  }
+
+  @Test
+  void notSoFastCannotCounterUntargetedStackedDeck() {
+    stubCard("stacked", "Stacked Deck", "Spell", 0, 0, 0, stackedDeckText());
+    stubCard("not-so-fast", "Not So Fast", "Spell", 0, 0, 0, notSoFastText());
+    LiveGameState state = state(stackedDeckChain(false, "p2"));
+    state.getCards().add(cardInstance("stacked-1", "p1", "stacked", ZoneName.LIMBO));
+    state.getCards().add(cardInstance("not-so-fast-1", "p2", "not-so-fast", ZoneName.HAND));
+
+    assertThatThrownBy(() -> engine.applyMove(state, counter("p2", "not-so-fast-1", "item-1")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Not So Fast can only counter an enemy spell that chooses a friendly Unit or Gear.");
+
+    assertThat(state.getCards()).filteredOn(card -> card.getInstanceId().equals("not-so-fast-1")).singleElement()
+        .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.HAND));
+  }
+
+  @Test
+  void notSoFastCanCounterGustTargetingPlayersFriendlyUnit() {
+    LiveGameState state = state(gustTargetingChain("p2", false, "p2"));
+    stubCard("gust", "Gust", "Spell", 0, 0, 0, "[Reaction] Return a unit at a battlefield with 3 Might or less to its owner's hand.");
+    stubCard("not-so-fast", "Not So Fast", "Spell", 0, 0, 0, notSoFastText());
+    state.getCards().add(cardInstance("gust-1", "p1", "gust", ZoneName.LIMBO));
+    state.getCards().add(cardInstance("not-so-fast-1", "p2", "not-so-fast", ZoneName.HAND));
+    state.getCards().add(cardInstance("target-1", "p2", "target", ZoneName.BATTLEFIELD));
+
+    engine.applyMove(state, counter("p2", "not-so-fast-1", "item-1"));
+
+    assertThat(state.getChainState().topItem()).satisfies(item -> {
+      assertThat(item.effectKey()).isEqualTo(LiveGameState.ChainItem.EFFECT_NOT_SO_FAST_COUNTER);
+      assertThat(item.counterable()).isFalse();
+      assertThat(item.targetableOnChain()).isFalse();
+      assertThat(item.chainTargets()).singleElement()
+          .satisfies(targetSummary -> assertThat(targetSummary.targetChainItemId()).isEqualTo("item-1"));
+    });
+  }
+
+  @Test
+  void notSoFastCannotCounterGustTargetingOpponentUnit() {
+    LiveGameState state = state(gustTargetingChain("p1", false, "p2"));
+    stubCard("gust", "Gust", "Spell", 0, 0, 0, "[Reaction] Return a unit at a battlefield with 3 Might or less to its owner's hand.");
+    stubCard("not-so-fast", "Not So Fast", "Spell", 0, 0, 0, notSoFastText());
+    state.getCards().add(cardInstance("gust-1", "p1", "gust", ZoneName.LIMBO));
+    state.getCards().add(cardInstance("not-so-fast-1", "p2", "not-so-fast", ZoneName.HAND));
+    state.getCards().add(cardInstance("target-1", "p1", "target", ZoneName.BATTLEFIELD));
+
+    assertThatThrownBy(() -> engine.applyMove(state, counter("p2", "not-so-fast-1", "item-1")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Not So Fast can only counter an enemy spell that chooses a friendly Unit or Gear.");
+
+    assertThat(state.getCards()).filteredOn(card -> card.getInstanceId().equals("not-so-fast-1")).singleElement()
+        .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.HAND));
+  }
+
+  @Test
+  void notSoFastCannotCounterDefyBecauseCounteringCountersIsDeferred() {
+    LiveGameState state = state(defyChain(false, "p2"));
+    stubCard("defy", "Defy", "Spell", 0, 0, 0, defyText());
+    stubCard("not-so-fast", "Not So Fast", "Spell", 0, 0, 0, notSoFastText());
+    state.getCards().add(cardInstance("defy-1", "p1", "defy", ZoneName.LIMBO));
+    state.getCards().add(cardInstance("not-so-fast-1", "p2", "not-so-fast", ZoneName.HAND));
+
+    assertThatThrownBy(() -> engine.applyMove(state, counter("p2", "not-so-fast-1", "item-1")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Not So Fast can only counter an enemy spell that chooses a friendly Unit or Gear.");
+
+    assertThat(state.getCards()).filteredOn(card -> card.getInstanceId().equals("not-so-fast-1")).singleElement()
+        .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.HAND));
+    assertThat(state.getChainState().topItem().effectKey()).isEqualTo(LiveGameState.ChainItem.EFFECT_DEFY_COUNTER);
+  }
+
+  @Test
+  void notSoFastResolutionCountersGustAndPreventsBounce() {
+    LiveGameState state = state(gustTargetingChain("p2", false, "p2"));
+    stubCard("gust", "Gust", "Spell", 0, 0, 0, "[Reaction] Return a unit at a battlefield with 3 Might or less to its owner's hand.");
+    stubCard("not-so-fast", "Not So Fast", "Spell", 0, 0, 0, notSoFastText());
+    stubCard("target", "Target Unit", "Unit", 0, 3, 3, null);
+    CardInstance gust = cardInstance("gust-1", "p1", "gust", ZoneName.LIMBO);
+    CardInstance notSoFast = cardInstance("not-so-fast-1", "p2", "not-so-fast", ZoneName.HAND);
+    CardInstance target = cardInstance("target-1", "p2", "target", ZoneName.BATTLEFIELD);
+    state.getCards().addAll(List.of(gust, notSoFast, target));
+
+    engine.applyMove(state, counter("p2", "not-so-fast-1", "item-1"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new ResolveChainTopMove("p2"));
+
+    assertThat(target.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(gust.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(notSoFast.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(state.getCards())
+        .filteredOn(card -> "gust".equals(card.getCardId()) && card.getZone() == ZoneName.DISCARD)
+        .hasSize(1);
+    assertThat(state.getChainState()).isNotNull();
+    assertThat(state.getChainState().topItem().status()).isEqualTo(LiveGameState.ChainItem.STATUS_COUNTERED);
+    assertThat(state.getLog()).anySatisfy(entry -> assertThat(entry.text()).contains("countered Gust"));
+
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new ResolveChainTopMove("p1"));
+
+    assertThat(target.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(state.getChainState()).isNull();
+  }
+
+  @Test
+  void notSoFastFizzlesSafelyIfTargetIsNoLongerPending() {
+    LiveGameState state = state(gustTargetingChain("p2", false, "p2"));
+    stubCard("gust", "Gust", "Spell", 0, 0, 0, "[Reaction] Return a unit at a battlefield with 3 Might or less to its owner's hand.");
+    stubCard("not-so-fast", "Not So Fast", "Spell", 0, 0, 0, notSoFastText());
+    state.getCards().add(cardInstance("gust-1", "p1", "gust", ZoneName.LIMBO));
+    state.getCards().add(cardInstance("not-so-fast-1", "p2", "not-so-fast", ZoneName.HAND));
+    state.getCards().add(cardInstance("target-1", "p2", "target", ZoneName.BATTLEFIELD));
+
+    engine.applyMove(state, counter("p2", "not-so-fast-1", "item-1"));
+    List<LiveGameState.ChainItem> items = new ArrayList<>(state.getChainState().chainItems());
+    items.set(0, items.get(0).withStatus(LiveGameState.ChainItem.STATUS_COUNTERED));
+    state.setChainState(new LiveGameState.ChainState("chain-1", items, List.of("p1", "p2"), "p2", 2, true, "TEST"));
+
+    engine.applyMove(state, new ResolveChainTopMove("p2"));
+
+    assertThat(state.getCards()).filteredOn(card -> card.getInstanceId().equals("gust-1")).singleElement()
+        .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.LIMBO));
+    assertThat(state.getCards()).filteredOn(card -> card.getInstanceId().equals("not-so-fast-1")).singleElement()
+        .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.DISCARD));
+    assertThat(state.getLog()).anySatisfy(entry -> assertThat(entry.text()).contains("target was no longer legal"));
   }
 
   @Test
@@ -976,6 +1218,76 @@ class GameEngineChainTest {
         "TEST");
   }
 
+  private LiveGameState.ChainState gustTargetingChain(String targetController, boolean ready, String focus) {
+    return new LiveGameState.ChainState(
+        "chain-1",
+        List.of(new LiveGameState.ChainItem(
+            "item-1",
+            "p1",
+            "gust-1",
+            "gust",
+            "Gust",
+            LiveGameState.ChainItem.EFFECT_GUST_RETURN,
+            List.of("target-1"),
+            1,
+            "Gust",
+            LiveGameState.ChainItem.VISIBILITY_PUBLIC,
+            LiveGameState.ChainItem.STATUS_PENDING,
+            true,
+            true,
+            LiveGameState.ChainItem.TYPE_SPELL,
+            ZoneName.HAND,
+            List.of(new LiveGameState.ChainTarget(
+                "target",
+                "target-1",
+                null,
+                targetController,
+                "UNIT",
+                ZoneName.BATTLEFIELD,
+                "Target Unit",
+                true)))),
+        List.of("p1", "p2"),
+        focus,
+        ready ? 2 : 0,
+        ready,
+        "TEST");
+  }
+
+  private LiveGameState.ChainState defyChain(boolean ready, String focus) {
+    return new LiveGameState.ChainState(
+        "chain-1",
+        List.of(new LiveGameState.ChainItem(
+            "item-1",
+            "p1",
+            "defy-1",
+            "defy",
+            "Defy",
+            LiveGameState.ChainItem.EFFECT_DEFY_COUNTER,
+            List.of("item-0"),
+            1,
+            "Defy",
+            LiveGameState.ChainItem.VISIBILITY_PUBLIC,
+            LiveGameState.ChainItem.STATUS_PENDING,
+            false,
+            false,
+            LiveGameState.ChainItem.TYPE_SPELL,
+            ZoneName.HAND,
+            List.of(new LiveGameState.ChainTarget(
+                "counterTarget",
+                null,
+                "item-0",
+                "p2",
+                "CHAIN_ITEM",
+                null,
+                "Stacked Deck",
+                true)))),
+        List.of("p1", "p2"),
+        focus,
+        ready ? 2 : 0,
+        ready,
+        "TEST");
+  }
+
   private CardDefinition card(String id) {
     if (definitions.containsKey(id)) return definitions.get(id);
     String name = "drawn-card".equals(id) ? "Drawn Card" : id;
@@ -1020,6 +1332,10 @@ class GameEngineChainTest {
 
   private String defyText() {
     return "[Reaction] (Play any time, even before spells and abilities resolve.) Counter a spell that costs no more than 4 and no more than 1.";
+  }
+
+  private String notSoFastText() {
+    return "[Reaction] (Play any time, even before spells and abilities resolve.) Counter an enemy spell or ability that chooses a friendly unit or gear.";
   }
 
   private PlayCardMove play(String playerId, String instanceId) {
