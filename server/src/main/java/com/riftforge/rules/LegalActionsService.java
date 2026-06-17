@@ -58,6 +58,8 @@ public class LegalActionsService {
       } else {
         actions.add(LegalAction.PASS_CHAIN_FOCUS);
         if (hasPlayableGustInHand(state, playerId)
+            || hasPlayableDisciplineInHand(state, playerId)
+            || hasPlayableEnGardeInHand(state, playerId)
             || hasPlayableDefyInHand(state, playerId)
             || hasPlayableNotSoFastInHand(state, playerId)) actions.add(LegalAction.PLAY_CARD);
       }
@@ -161,6 +163,32 @@ public class LegalActionsService {
             && canPay(state, playerId, def));
   }
 
+  private boolean hasPlayableDisciplineInHand(LiveGameState state, String playerId) {
+    if (cardDataService == null) return false;
+    boolean legalTarget = state.getCards().stream().anyMatch(this::isPublicBattlefieldUnit);
+    if (!legalTarget) return false;
+    return state.getCards().stream()
+        .filter(card -> playerId.equals(card.getOwnerId()) && card.getZone() == ZoneName.HAND)
+        .map(card -> cardDataService.getCard(card.getCardId()))
+        .anyMatch(def -> def != null
+            && cardDataService.isDisciplineReaction(def)
+            && !cardDataService.isUnsupportedAction(def.id())
+            && canPay(state, playerId, def));
+  }
+
+  private boolean hasPlayableEnGardeInHand(LiveGameState state, String playerId) {
+    if (cardDataService == null) return false;
+    boolean legalTarget = state.getCards().stream().anyMatch(card -> isFriendlyPublicBattlefieldUnit(card, playerId));
+    if (!legalTarget) return false;
+    return state.getCards().stream()
+        .filter(card -> playerId.equals(card.getOwnerId()) && card.getZone() == ZoneName.HAND)
+        .map(card -> cardDataService.getCard(card.getCardId()))
+        .anyMatch(def -> def != null
+            && cardDataService.isEnGardeReaction(def)
+            && !cardDataService.isUnsupportedAction(def.id())
+            && canPay(state, playerId, def));
+  }
+
   private boolean hasPlayableDefyInHand(LiveGameState state, String playerId) {
     if (cardDataService == null) return false;
     if (state.getChainState() == null || !hasLegalDefyTarget(state, playerId)) return false;
@@ -232,6 +260,16 @@ public class LegalActionsService {
     CardDefinition targetDef = cardDataService.getCard(target.getCardId());
     if (targetDef == null || (!"Unit".equalsIgnoreCase(targetDef.type()) && !"Champion".equalsIgnoreCase(targetDef.type()))) return false;
     return combatStatsService.effectiveMight(target, CombatContext.IDLE) <= 3;
+  }
+
+  private boolean isFriendlyPublicBattlefieldUnit(CardInstance target, String playerId) {
+    return playerId.equals(target.getOwnerId()) && isPublicBattlefieldUnit(target);
+  }
+
+  private boolean isPublicBattlefieldUnit(CardInstance target) {
+    if (target.getZone() != ZoneName.BATTLEFIELD || target.isFaceDown()) return false;
+    CardDefinition targetDef = cardDataService.getCard(target.getCardId());
+    return targetDef != null && ("Unit".equalsIgnoreCase(targetDef.type()) || "Champion".equalsIgnoreCase(targetDef.type()));
   }
 
   private boolean canPay(LiveGameState state, String playerId, CardDefinition def) {

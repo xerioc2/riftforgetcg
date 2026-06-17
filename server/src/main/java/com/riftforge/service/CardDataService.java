@@ -289,6 +289,31 @@ public class CardDataService {
         && text.contains("owner");
   }
 
+  public boolean isDisciplineReaction(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().toLowerCase();
+    boolean disciplineName = def.name() != null && def.name().trim().equalsIgnoreCase("Discipline");
+    return "Spell".equalsIgnoreCase(def.type())
+        && isReactionCard(def)
+        && disciplineName
+        && text.contains("give a unit")
+        && text.contains("+2")
+        && text.contains("draw 1");
+  }
+
+  public boolean isEnGardeReaction(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().toLowerCase();
+    boolean enGardeName = def.name() != null && def.name().trim().equalsIgnoreCase("En Garde");
+    return "Spell".equalsIgnoreCase(def.type())
+        && isReactionCard(def)
+        && enGardeName
+        && text.contains("friendly unit")
+        && text.contains("+1")
+        && text.contains("additional +1")
+        && text.contains("only unit you control");
+  }
+
   public boolean isDefyCounterReaction(CardDefinition def) {
     if (def == null || def.rulesText() == null) return false;
     String text = def.rulesText().toLowerCase();
@@ -357,6 +382,8 @@ public class CardDataService {
         || normalized.contains("draw 1")
         || isDefyCounterReaction(def)
         || isNotSoFastCounterReaction(def)
+        || isDisciplineReaction(def)
+        || isEnGardeReaction(def)
         || isStackedDeckEffectText(normalized);
     return (normalized.contains("counter a spell") && !isDefyCounterReaction(def))
         || (normalized.contains("counter an enemy spell") && !isNotSoFastCounterReaction(def))

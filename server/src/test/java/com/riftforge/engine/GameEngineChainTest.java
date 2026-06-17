@@ -62,6 +62,16 @@ class GameEngineChainTest {
       String text = def == null || def.rulesText() == null ? "" : def.rulesText().toLowerCase();
       return def != null && "Gust".equalsIgnoreCase(def.name()) && text.contains("[reaction]") && text.contains("return a unit") && text.contains("battlefield");
     });
+    when(cardDataService.isDisciplineReaction(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      String text = def == null || def.rulesText() == null ? "" : def.rulesText().toLowerCase();
+      return def != null && "Discipline".equalsIgnoreCase(def.name()) && text.contains("[reaction]") && text.contains("give a unit") && text.contains("+2") && text.contains("draw 1");
+    });
+    when(cardDataService.isEnGardeReaction(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      String text = def == null || def.rulesText() == null ? "" : def.rulesText().toLowerCase();
+      return def != null && "En Garde".equalsIgnoreCase(def.name()) && text.contains("[reaction]") && text.contains("friendly unit") && text.contains("additional +1");
+    });
     when(cardDataService.isDefyCounterReaction(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
       CardDefinition def = invocation.getArgument(0);
       String text = def == null || def.rulesText() == null ? "" : def.rulesText().toLowerCase();
@@ -1015,6 +1025,89 @@ class GameEngineChainTest {
     assertThat(state.getLog()).anyMatch(entry -> entry.text().contains("top chain item fizzled"));
   }
 
+  @Test
+  void disciplineResolvesFromChainToBoostSelectedUnitAndDrawPrivately() {
+    stubCard("discipline", "Discipline", "Spell", 0, 0, 0, disciplineText());
+    stubCard("target", "Target Unit", "Unit", 0, 2, 3, null);
+    LiveGameState state = state(chain(false, "p1"));
+    player(state, "p1").setDeckPool(new ArrayList<>(List.of("drawn-card")));
+    CardInstance discipline = cardInstance("discipline-1", "p1", "discipline", ZoneName.HAND);
+    CardInstance target = cardInstance("target-1", "p2", "target", ZoneName.BATTLEFIELD);
+    state.getCards().addAll(List.of(discipline, target));
+
+    engine.applyMove(state, new PlayCardMove("p1", "discipline-1", ZoneName.BASE, 0, 0, "target-1"));
+
+    assertThat(discipline.getZone()).isEqualTo(ZoneName.LIMBO);
+    assertThat(state.getChainState().topItem()).satisfies(item -> {
+      assertThat(item.effectKey()).isEqualTo(LiveGameState.ChainItem.EFFECT_DISCIPLINE_BOOST_DRAW);
+      assertThat(item.targetInstanceIds()).containsExactly("target-1");
+      assertThat(item.chainTargets()).singleElement()
+          .satisfies(targetSummary -> assertThat(targetSummary.publicLabel()).isEqualTo("Target Unit"));
+    });
+
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new ResolveChainTopMove("p1"));
+
+    assertThat(target.getTemporaryPowerModifier()).isEqualTo(2);
+    assertThat(discipline.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(state.getCards()).anySatisfy(card -> {
+      assertThat(card.getOwnerId()).isEqualTo("p1");
+      assertThat(card.getCardId()).isEqualTo("drawn-card");
+      assertThat(card.getZone()).isEqualTo(ZoneName.HAND);
+    });
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("Drawn Card"));
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().contains("Resolved Discipline: gave +2 Might and drew a card."));
+  }
+
+  @Test
+  void enGardeResolvesFromChainWithLoneFriendlyBonusOnlyWhenAlone() {
+    stubCard("en-garde", "En Garde", "Spell", 0, 0, 0, enGardeText());
+    stubCard("target", "Target Unit", "Unit", 0, 2, 3, null);
+    LiveGameState lone = state(chain(false, "p1"));
+    CardInstance enGarde = cardInstance("en-garde-1", "p1", "en-garde", ZoneName.HAND);
+    CardInstance target = cardInstance("target-1", "p1", "target", ZoneName.BATTLEFIELD);
+    lone.getCards().addAll(List.of(enGarde, target));
+
+    engine.applyMove(lone, new PlayCardMove("p1", "en-garde-1", ZoneName.BASE, 0, 0, "target-1"));
+    engine.applyMove(lone, new PassChainFocusMove("p2"));
+    engine.applyMove(lone, new PassChainFocusMove("p1"));
+    engine.applyMove(lone, new ResolveChainTopMove("p1"));
+
+    assertThat(target.getTemporaryPowerModifier()).isEqualTo(2);
+
+    LiveGameState crowded = state(chain(false, "p1"));
+    CardInstance secondEnGarde = cardInstance("en-garde-2", "p1", "en-garde", ZoneName.HAND);
+    CardInstance crowdedTarget = cardInstance("target-2", "p1", "target", ZoneName.BATTLEFIELD);
+    CardInstance otherFriendly = cardInstance("target-3", "p1", "target", ZoneName.BATTLEFIELD);
+    crowded.getCards().addAll(List.of(secondEnGarde, crowdedTarget, otherFriendly));
+
+    engine.applyMove(crowded, new PlayCardMove("p1", "en-garde-2", ZoneName.BASE, 0, 0, "target-2"));
+    engine.applyMove(crowded, new PassChainFocusMove("p2"));
+    engine.applyMove(crowded, new PassChainFocusMove("p1"));
+    engine.applyMove(crowded, new ResolveChainTopMove("p1"));
+
+    assertThat(crowdedTarget.getTemporaryPowerModifier()).isEqualTo(1);
+  }
+
+  @Test
+  void enGardeRejectsEnemyTargetWithoutMovingOrSpending() {
+    stubCard("en-garde", "En Garde", "Spell", 0, 0, 0, enGardeText());
+    stubCard("target", "Target Unit", "Unit", 0, 2, 3, null);
+    LiveGameState state = state(chain(false, "p1"));
+    CardInstance enGarde = cardInstance("en-garde-1", "p1", "en-garde", ZoneName.HAND);
+    CardInstance enemy = cardInstance("target-1", "p2", "target", ZoneName.BATTLEFIELD);
+    state.getCards().addAll(List.of(enGarde, enemy));
+
+    assertThatThrownBy(() -> engine.applyMove(state, new PlayCardMove("p1", "en-garde-1", ZoneName.BASE, 0, 0, "target-1")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("En Garde requires a friendly public Unit or Champion target.");
+
+    assertThat(enGarde.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(enemy.getTemporaryPowerModifier()).isZero();
+    assertThat(state.getChainState().chainItems()).hasSize(1);
+  }
+
   private LiveGameState state(LiveGameState.ChainState chain) {
     PlayerState p1 = new PlayerState();
     p1.setUserId("p1");
@@ -1336,6 +1429,14 @@ class GameEngineChainTest {
 
   private String notSoFastText() {
     return "[Reaction] (Play any time, even before spells and abilities resolve.) Counter an enemy spell or ability that chooses a friendly unit or gear.";
+  }
+
+  private String disciplineText() {
+    return "[Reaction] (Play any time, even before spells and abilities resolve.) Give a unit +2 :rb_might: this turn. Draw 1.";
+  }
+
+  private String enGardeText() {
+    return "[Reaction] (Play any time, even before spells and abilities resolve.) Give a friendly unit +1 :rb_might: this turn, then an additional +1 :rb_might: this turn if it is the only unit you control there.";
   }
 
   private PlayCardMove play(String playerId, String instanceId) {

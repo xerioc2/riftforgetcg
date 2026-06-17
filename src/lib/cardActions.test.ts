@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { canUseSupportedChainResponse, isDefyCounterCard, isGustReactionCard, isNotSoFastCounterCard, isReactionCard, isSupportedChainReactionCard, unsupportedCardReason } from './cardActions';
+import { canUseSupportedChainResponse, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isGustReactionCard, isNotSoFastCounterCard, isReactionCard, isSupportedChainReactionCard, unsupportedCardReason } from './cardActions';
 import type { RiftCard } from '../types';
 
 describe('cardActions', () => {
-  it('recognizes Gust as the only currently supported chain-backed Reaction helper', () => {
+  it('recognizes Gust as a supported chain-backed Reaction helper', () => {
     const gust: RiftCard = {
       id: 'gust',
       name: 'Gust',
@@ -14,6 +14,28 @@ describe('cardActions', () => {
 
     expect(isReactionCard(gust)).toBe(true);
     expect(isGustReactionCard(gust)).toBe(true);
+  });
+
+  it('recognizes Discipline and En Garde as supported alpha chain-backed Reaction helpers', () => {
+    const discipline: RiftCard = {
+      id: 'discipline',
+      name: 'Discipline',
+      type: 'Spell',
+      domains: [],
+      rulesText: '[Reaction] Give a unit +2 Might this turn. Draw 1.',
+    };
+    const enGarde: RiftCard = {
+      id: 'en-garde',
+      name: 'En Garde',
+      type: 'Spell',
+      domains: [],
+      rulesText: '[Reaction] Give a friendly unit +1 Might this turn, then an additional +1 Might this turn if it is the only unit you control there.',
+    };
+
+    expect(isDisciplineReactionCard(discipline)).toBe(true);
+    expect(isSupportedChainReactionCard(discipline)).toBe(true);
+    expect(isEnGardeReactionCard(enGarde)).toBe(true);
+    expect(isSupportedChainReactionCard(enGarde)).toBe(true);
   });
 
   it('does not treat unsupported Reaction cards as Gust-playable responses', () => {
@@ -134,6 +156,48 @@ describe('cardActions', () => {
       hasLegalGustTarget: false,
       hasLegalDefyTarget: false,
       hasLegalNotSoFastTarget: false,
+    })).toBe(false);
+  });
+
+  it('marks Discipline and En Garde playable only when chain play and legal board targets exist', () => {
+    const discipline: RiftCard = {
+      id: 'discipline',
+      name: 'Discipline',
+      type: 'Spell',
+      domains: [],
+      rulesText: '[Reaction] Give a unit +2 Might this turn. Draw 1.',
+    };
+    const enGarde: RiftCard = {
+      id: 'en-garde',
+      name: 'En Garde',
+      type: 'Spell',
+      domains: [],
+      rulesText: '[Reaction] Give a friendly unit +1 Might this turn, then an additional +1 Might this turn if it is the only unit you control there.',
+    };
+
+    expect(canUseSupportedChainResponse(discipline, {
+      canPlayCard: true,
+      hasLegalGustTarget: false,
+      hasLegalDisciplineTarget: true,
+      hasLegalDefyTarget: false,
+    })).toBe(true);
+    expect(canUseSupportedChainResponse(discipline, {
+      canPlayCard: true,
+      hasLegalGustTarget: false,
+      hasLegalDisciplineTarget: false,
+      hasLegalDefyTarget: false,
+    })).toBe(false);
+    expect(canUseSupportedChainResponse(enGarde, {
+      canPlayCard: true,
+      hasLegalGustTarget: false,
+      hasLegalEnGardeTarget: true,
+      hasLegalDefyTarget: false,
+    })).toBe(true);
+    expect(canUseSupportedChainResponse(enGarde, {
+      canPlayCard: false,
+      hasLegalGustTarget: false,
+      hasLegalEnGardeTarget: true,
+      hasLegalDefyTarget: false,
     })).toBe(false);
   });
 });

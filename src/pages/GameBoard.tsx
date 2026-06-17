@@ -16,7 +16,7 @@ import { autoPlaceInZone, computeLayout, runeSlotPositions, type ZoneRect } from
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
 import { readableHttpError } from '../lib/http';
-import { canUseSupportedChainResponse, hasUnsupportedAdditionalCost, isActionCard, isAmbushCard, isDefyCounterCard, isEquipCard, isGustReactionCard, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
+import { canUseSupportedChainResponse, hasUnsupportedAdditionalCost, isActionCard, isAmbushCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isEquipCard, isGustReactionCard, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
 import { appBuildLabel, APP_VERSION, BUILD_DATE, BUILD_TAG } from '../lib/appMetadata';
 import { buildDebugInfo } from '../lib/debugInfo';
 import { battlefieldDisplayForPlayer, battlefieldDisplayFrame } from '../lib/battlefieldDisplay';
@@ -592,11 +592,15 @@ export function GameBoard() {
   const legalNotSoFastChainTargets = () => (state?.chainState?.chainItems ?? []).filter(isLegalNotSoFastChainTarget);
 
   const hasLegalGustChainTarget = () => legalTargetsForMode('GUST_BATTLEFIELD_UNIT').length > 0;
+  const hasLegalDisciplineChainTarget = () => legalTargetsForMode('ANY_BATTLEFIELD_UNIT').length > 0;
+  const hasLegalEnGardeChainTarget = () => legalTargetsForMode('FRIENDLY_UNIT').length > 0;
 
   const canPlayChainReactionCard = (card: RiftCard | undefined) => {
     return chainActive && canUseSupportedChainResponse(card, {
       canPlayCard: canTakeAction(state, 'PLAY_CARD'),
       hasLegalGustTarget: hasLegalGustChainTarget(),
+      hasLegalDisciplineTarget: hasLegalDisciplineChainTarget(),
+      hasLegalEnGardeTarget: hasLegalEnGardeChainTarget(),
       hasLegalDefyTarget: legalDefyChainTargets().length > 0,
       hasLegalNotSoFastTarget: legalNotSoFastChainTargets().length > 0,
     });
@@ -786,6 +790,14 @@ export function GameBoard() {
         beginTargetSelection(instanceId, 'GUST_BATTLEFIELD_UNIT');
         return;
       }
+      if (isDisciplineReactionCard(cardDef)) {
+        beginTargetSelection(instanceId, 'ANY_BATTLEFIELD_UNIT');
+        return;
+      }
+      if (isEnGardeReactionCard(cardDef)) {
+        beginTargetSelection(instanceId, 'FRIENDLY_UNIT');
+        return;
+      }
       if (isDefyCounterCard(cardDef)) {
         beginChainTargetSelection(instanceId, 'DEFY');
         return;
@@ -807,6 +819,10 @@ export function GameBoard() {
         notifyWarning('Action unavailable', 'Only showdown participants can play Action cards here.');
         return;
       }
+    }
+    if (isReactionCard(cardDef)) {
+      notifyWarning('Reaction timing unavailable', 'Supported Reactions can only be played during an active chain window in this alpha.');
+      return;
     }
     if (!canTakeAction(state, 'PLAY_CARD')) {
       notifyWarning(

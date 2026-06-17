@@ -13,7 +13,7 @@ export function targetModeForCard(card: RiftCard | undefined): TargetMode {
   const text = (card.rulesText ?? '').toLowerCase();
   if (card.type?.toLowerCase() === 'gear') return text.includes('[equip]') ? 'NONE' : 'UNSUPPORTED';
   if (multiTargetRequirementsForCard(card).length > 0) return 'NONE';
-  if (isGustReactionCard(card) || isDefyCounterCard(card) || isNotSoFastCounterCard(card)) return 'NONE';
+  if (isSupportedChainReactionCard(card)) return 'NONE';
   if (text.includes('another unit')) return 'UNSUPPORTED';
   if (text.includes('counter a spell')
     || text.includes('counter an enemy spell')
@@ -95,16 +95,50 @@ export function isNotSoFastCounterCard(card: RiftCard | undefined) {
     && text.includes('friendly unit or gear');
 }
 
+export function isDisciplineReactionCard(card: RiftCard | undefined) {
+  const text = (card?.rulesText ?? '').toLowerCase();
+  return card?.type?.toLowerCase() === 'spell'
+    && isReactionCard(card)
+    && card.name?.trim().toLowerCase() === 'discipline'
+    && text.includes('give a unit')
+    && text.includes('+2')
+    && text.includes('draw 1');
+}
+
+export function isEnGardeReactionCard(card: RiftCard | undefined) {
+  const text = (card?.rulesText ?? '').toLowerCase();
+  return card?.type?.toLowerCase() === 'spell'
+    && isReactionCard(card)
+    && card.name?.trim().toLowerCase() === 'en garde'
+    && text.includes('friendly unit')
+    && text.includes('+1')
+    && text.includes('additional +1')
+    && text.includes('only unit you control');
+}
+
 export function isSupportedChainReactionCard(card: RiftCard | undefined) {
-  return isGustReactionCard(card) || isDefyCounterCard(card) || isNotSoFastCounterCard(card);
+  return isGustReactionCard(card)
+    || isDisciplineReactionCard(card)
+    || isEnGardeReactionCard(card)
+    || isDefyCounterCard(card)
+    || isNotSoFastCounterCard(card);
 }
 
 export function canUseSupportedChainResponse(
   card: RiftCard | undefined,
-  options: { canPlayCard: boolean; hasLegalGustTarget: boolean; hasLegalDefyTarget: boolean; hasLegalNotSoFastTarget?: boolean },
+  options: {
+    canPlayCard: boolean;
+    hasLegalGustTarget: boolean;
+    hasLegalDisciplineTarget?: boolean;
+    hasLegalEnGardeTarget?: boolean;
+    hasLegalDefyTarget: boolean;
+    hasLegalNotSoFastTarget?: boolean;
+  },
 ) {
   if (!options.canPlayCard) return false;
   if (isGustReactionCard(card)) return options.hasLegalGustTarget;
+  if (isDisciplineReactionCard(card)) return Boolean(options.hasLegalDisciplineTarget);
+  if (isEnGardeReactionCard(card)) return Boolean(options.hasLegalEnGardeTarget);
   if (isDefyCounterCard(card)) return options.hasLegalDefyTarget;
   if (isNotSoFastCounterCard(card)) return Boolean(options.hasLegalNotSoFastTarget);
   return false;
@@ -222,6 +256,8 @@ export function unsupportedCardReason(card: RiftCard | undefined): string | null
     || text.includes('draw 1')
     || isDefyCounterCard(card)
     || isNotSoFastCounterCard(card)
+    || isDisciplineReactionCard(card)
+    || isEnGardeReactionCard(card)
     || isStackedDeckEffectText(text);
   if ((text.includes('counter a spell') && !isDefyCounterCard(card)) || (text.includes('counter an enemy spell') && !isNotSoFastCounterCard(card))) return 'Counter spells need the future reaction stack.';
   if (text.includes('another unit')) return 'That targeting pattern is not supported yet.';

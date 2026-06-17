@@ -74,6 +74,19 @@ class ChainFastPassServiceTest {
   }
 
   @Test
+  void focusedPlayerWithLegalNotSoFastResponseIsNotAutoPassed() {
+    CardDefinition gust = def("gust", "Gust", "Spell", 0, 0, "[Reaction] Return a unit at a battlefield with 3 Might or less to its owner's hand.");
+    CardDefinition notSoFast = def("not-so-fast", "Not So Fast", "Spell", 0, 0, "[Reaction] Counter an enemy spell targeting your unit.");
+    when(cardDataService.getCard("gust")).thenReturn(gust);
+    when(cardDataService.getCard("not-so-fast")).thenReturn(notSoFast);
+    when(cardDataService.isNotSoFastCounterReaction(notSoFast)).thenReturn(true);
+    LiveGameState state = state(notSoFastTargetableGustChain("p1"));
+    state.getCards().add(card("not-so-fast-1", "p1", "not-so-fast", ZoneName.HAND));
+
+    assertThat(service.shouldAutoPass(state)).isFalse();
+  }
+
+  @Test
   void pendingChoicePreventsAutoPass() {
     LiveGameState state = state(chain(false, "p1"));
     state.setPendingChoice(PendingChoice.yesNo("choice-1", "p1", "source", "Choose?", PendingChoice.EFFECT_NONE));
@@ -175,6 +188,41 @@ class ChainFastPassServiceTest {
 
   private LiveGameState.ChainState stackedDeckChain(boolean ready, String focus) {
     return chain(ready, focus);
+  }
+
+  private LiveGameState.ChainState notSoFastTargetableGustChain(String focus) {
+    return new LiveGameState.ChainState(
+        "chain-1",
+        List.of(new LiveGameState.ChainItem(
+            "gust-item-1",
+            "p2",
+            "gust-source-1",
+            "gust",
+            "Gust",
+            LiveGameState.ChainItem.EFFECT_GUST_RETURN,
+            List.of("p1-unit-1"),
+            1,
+            "Gust",
+            LiveGameState.ChainItem.VISIBILITY_PUBLIC,
+            LiveGameState.ChainItem.STATUS_PENDING,
+            true,
+            true,
+            LiveGameState.ChainItem.TYPE_SPELL,
+            ZoneName.HAND,
+            List.of(new LiveGameState.ChainTarget(
+                "target",
+                "p1-unit-1",
+                null,
+                "p1",
+                "UNIT",
+                ZoneName.BATTLEFIELD,
+                "Target Unit",
+                true)))),
+        List.of("p2", "p1"),
+        focus,
+        0,
+        false,
+        "MAIN");
   }
 
   private CardInstance card(String instanceId, String ownerId, String cardId, ZoneName zone) {

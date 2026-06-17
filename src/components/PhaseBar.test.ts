@@ -20,7 +20,7 @@ describe('PhaseBar chain helpers', () => {
     expect(chainItemDisplayLabel({ itemId: 'masked', controllerPlayerId: 'p1' })).toBe('Hidden chain item');
   });
 
-  it('summarizes Stacked Deck, Gust, Defy, and Not So Fast targets without needing private fields', () => {
+  it('summarizes Stacked Deck, board-target Reactions, and counters without needing private fields', () => {
     const stacked = item('item-1', 'Stacked Deck', 'STACKED_DECK_PICK_ONE');
     const gust: ChainItem = {
       ...item('item-2', 'Gust', 'GUST_RETURN'),

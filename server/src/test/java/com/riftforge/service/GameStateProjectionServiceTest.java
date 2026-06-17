@@ -214,6 +214,39 @@ class GameStateProjectionServiceTest {
   }
 
   @Test
+  void selectedBattlefieldIdsTransitionFromPrivateDuringSelectionToPublicAfterSetup() {
+    LiveGameState state = stateWithPlayers(Phase.SELECT_BATTLEFIELD, "p1", GameMode.ENFORCED);
+    state.getPlayers().get(0).setSelectedBattlefields(List.of("p1-choice-a", "p1-choice-b", "p1-choice-c"));
+    state.getPlayers().get(0).setSelectedBattlefieldId("p1-selected-battlefield");
+    state.getPlayers().get(1).setSelectedBattlefields(List.of("p2-choice-a", "p2-choice-b", "p2-choice-c"));
+    state.getPlayers().get(1).setSelectedBattlefieldId("p2-selected-battlefield");
+
+    LiveGameState p1SelectingView = projectionService.toPublicView(state, "p1");
+    LiveGameState p2SelectingView = projectionService.toPublicView(state, "p2");
+    LiveGameState spectatorSelectingView = projectionService.toPublicView(state, null);
+
+    assertThat(playerView(p1SelectingView, "p1").getSelectedBattlefieldId()).isEqualTo("p1-selected-battlefield");
+    assertThat(playerView(p1SelectingView, "p2").getSelectedBattlefieldId()).isNull();
+    assertThat(playerView(p2SelectingView, "p1").getSelectedBattlefieldId()).isNull();
+    assertThat(playerView(p2SelectingView, "p2").getSelectedBattlefieldId()).isEqualTo("p2-selected-battlefield");
+    assertThat(spectatorSelectingView.getPlayers()).allSatisfy(player -> {
+      assertThat(player.getSelectedBattlefieldId()).isNull();
+      assertThat(player.getBattlefieldChoices()).isEmpty();
+    });
+
+    state.setCurrentPhase(Phase.MULLIGAN);
+    LiveGameState p1PostSetupView = projectionService.toPublicView(state, "p1");
+    LiveGameState spectatorPostSetupView = projectionService.toPublicView(state, null);
+
+    assertThat(p1PostSetupView.getPlayers()).extracting(PlayerState::getSelectedBattlefieldId)
+        .containsExactly("p1-selected-battlefield", "p2-selected-battlefield");
+    assertThat(spectatorPostSetupView.getPlayers()).extracting(PlayerState::getSelectedBattlefieldId)
+        .containsExactly("p1-selected-battlefield", "p2-selected-battlefield");
+    assertThat(playerView(p1PostSetupView, "p2").getBattlefieldChoices()).isEmpty();
+    assertThat(spectatorPostSetupView.getPlayers()).allSatisfy(player -> assertThat(player.getBattlefieldChoices()).isEmpty());
+  }
+
+  @Test
   void serializedPlayerProjectionShowsOwnPrivateCardsButNotOpponentPrivateCards() throws Exception {
     LiveGameState state = state(
         handCard("p1-hand", "p1", "p1-private-hand-card"),
@@ -560,10 +593,14 @@ class GameStateProjectionServiceTest {
     assertThat(opponentItem.chainTargets().get(0).targetInstanceId()).isEqualTo("public-target");
     assertThat(opponentItem.chainTargets().get(1).publicLabel()).isEqualTo("Hidden target");
     assertThat(opponentItem.chainTargets().get(1).targetInstanceId()).isNull();
+    assertThat(opponentItem.chainTargets().get(1).targetControllerPlayerId()).isNull();
     assertThat(opponentItem.chainTargets().get(1).targetKind()).isEqualTo("MASKED");
+    assertThat(opponentItem.chainTargets().get(1).targetZone()).isNull();
     assertThat(spectatorItem.chainTargets().get(1).publicLabel()).isEqualTo("Hidden target");
     assertThat(spectatorItem.chainTargets().get(1).targetInstanceId()).isNull();
+    assertThat(spectatorItem.chainTargets().get(1).targetControllerPlayerId()).isNull();
     assertThat(spectatorItem.chainTargets().get(1).targetKind()).isEqualTo("MASKED");
+    assertThat(spectatorItem.chainTargets().get(1).targetZone()).isNull();
     assertThat(controllerItem.chainTargets().get(1).publicLabel()).isEqualTo("Private Unit");
     assertThat(objectMapper.writeValueAsString(opponentItem)).doesNotContain("Private Unit", "private-target");
     assertThat(objectMapper.writeValueAsString(spectatorItem)).doesNotContain("Private Unit", "private-target");
@@ -636,6 +673,70 @@ class GameStateProjectionServiceTest {
     assertThat(opponentItem.sourceZoneBeforeChain()).isNull();
     assertThat(objectMapper.writeValueAsString(opponentItem))
         .doesNotContain("private-source-instance", "private-hidden-card", "Private Hidden Card", "PRIVATE_HIDDEN_EFFECT", "private-hidden-target", "HIDDEN");
+  }
+
+  @Test
+  void publicChainItemMasksNonPublicSafeChainTargetsFromOpponentAndSpectator() throws Exception {
+    LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.ENFORCED);
+    state.setChainState(chainState(new LiveGameState.ChainItem(
+        "item-1",
+        "p1",
+        "p1-source",
+        "p1-card",
+        "P1 Card",
+        LiveGameState.ChainItem.EFFECT_GUST_RETURN,
+        List.of(),
+        1,
+        "Public chain item",
+        LiveGameState.ChainItem.VISIBILITY_PUBLIC,
+        LiveGameState.ChainItem.STATUS_PENDING,
+        true,
+        true,
+        LiveGameState.ChainItem.TYPE_SPELL,
+        ZoneName.HAND,
+        List.of(
+            new LiveGameState.ChainTarget("publicTarget", "public-unit", null, "p2", "UNIT", ZoneName.BATTLEFIELD, "Public Unit", true),
+            new LiveGameState.ChainTarget("privateTarget", "secret-hand-card", null, "p1", "UNIT", ZoneName.HAND, "Secret Hand Card", false)))));
+
+    LiveGameState.ChainItem controllerItem = projectionService.toPublicView(state, "p1").getChainState().chainItems().getFirst();
+    LiveGameState.ChainItem opponentItem = projectionService.toPublicView(state, "p2").getChainState().chainItems().getFirst();
+    LiveGameState.ChainItem spectatorItem = projectionService.toPublicView(state, null).getChainState().chainItems().getFirst();
+
+    // Controller sees both of its own targets, including the non-public-safe one.
+    assertThat(controllerItem.chainTargets()).hasSize(2);
+    assertThat(controllerItem.chainTargets()).anySatisfy(target -> {
+      assertThat(target.role()).isEqualTo("privateTarget");
+      assertThat(target.targetInstanceId()).isEqualTo("secret-hand-card");
+      assertThat(target.targetKind()).isEqualTo("UNIT");
+      assertThat(target.targetControllerPlayerId()).isEqualTo("p1");
+    });
+
+    // Opponent sees the public-safe target but the non-public-safe target is masked.
+    assertThat(opponentItem.chainTargets()).anySatisfy(target -> {
+      assertThat(target.role()).isEqualTo("publicTarget");
+      assertThat(target.targetInstanceId()).isEqualTo("public-unit");
+      assertThat(target.targetKind()).isEqualTo("UNIT");
+    });
+    assertThat(opponentItem.chainTargets()).anySatisfy(target -> {
+      assertThat(target.role()).isEqualTo("privateTarget");
+      assertThat(target.targetInstanceId()).isNull();
+      assertThat(target.targetChainItemId()).isNull();
+      assertThat(target.targetControllerPlayerId()).isNull();
+      assertThat(target.targetKind()).isEqualTo("MASKED");
+      assertThat(target.targetZone()).isNull();
+      assertThat(target.publicLabel()).isEqualTo("Hidden target");
+    });
+
+    // Spectator/public projection masks the non-public-safe target the same way.
+    assertThat(spectatorItem.chainTargets()).anySatisfy(target -> {
+      assertThat(target.role()).isEqualTo("privateTarget");
+      assertThat(target.targetInstanceId()).isNull();
+      assertThat(target.targetKind()).isEqualTo("MASKED");
+    });
+
+    // Serialized opponent/spectator projections never leak the private target id, name, or zone.
+    assertThat(objectMapper.writeValueAsString(opponentItem)).doesNotContain("secret-hand-card", "Secret Hand Card");
+    assertThat(objectMapper.writeValueAsString(spectatorItem)).doesNotContain("secret-hand-card", "Secret Hand Card");
   }
 
   @Test
@@ -806,6 +907,13 @@ class GameStateProjectionServiceTest {
 
   private CardDefinition cardDef(String id, String name) {
     return new CardDefinition(id, name, "Unit", null, List.of(), 0, 1, null, null, null, "Private rules text", 1, 1, List.of());
+  }
+
+  private PlayerState playerView(LiveGameState view, String playerId) {
+    return view.getPlayers().stream()
+        .filter(player -> playerId.equals(player.getUserId()))
+        .findFirst()
+        .orElseThrow();
   }
 
   private LiveGameState.ChainState chainState(LiveGameState.ChainItem item) {

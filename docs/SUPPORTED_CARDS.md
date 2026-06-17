@@ -49,13 +49,15 @@ Starter decks are curated for legal constructed shape and banned-card avoidance,
 not complete rules coverage. Both starter decks are currently **Experimental**.
 The full code-backed audit, including card IDs, detected keywords, current
 support-gate result, and rules text, lives in `docs/CARD_RULES_BACKLOG.md`.
+Reaction and Equipment exact-text support planning is tracked in
+`docs/REACTION_EQUIPMENT_AUDIT.md`.
 
 | Card name | Starter deck | Type | Current status | Implementation bucket | Actionable note |
 | --- | --- | --- | --- | --- | --- |
 | Irelia - Blade Dancer | Irelia Tempo | Legend | Partial | Legend text | Needs legend activated/triggered readying hooks and payment prompts. |
 | Irelia - Fervent | Irelia Tempo | Champion | Partial | Champion text | Needs Deflect targeting tax and choose/ready might trigger. |
 | Defy | Irelia Tempo | Spell | Partial | Counterspell: alpha chain item counter | Can counter supported public spell chain items such as Stacked Deck in the current alpha chain window; full official Reaction timing and broad counter targets remain deferred. |
-| Discipline | Irelia Tempo | Spell | Partial | Spell: draw/card selection | Draw 1 and selected +2 Might use helper-backed scripts; Reaction timing remains incomplete. |
+| Discipline | Irelia Tempo | Spell | Partial | Chain-backed Reaction boost/draw | Can be played only while focused during the current alpha chain window; creates a public chain item, gives a public battlefield Unit/Champion +2 Might this turn, and draws 1 privately on resolution. Full official "any time" Reaction timing remains incomplete. |
 | Tideturner | Irelia Tempo | Unit | Partial | Unit with triggered ability | Hidden foundation is implemented: it can be hidden from hand and masked from opponents. Later hidden play timing and its play trigger that swaps locations remain incomplete. |
 | Stellacorn Herder | Irelia Tempo | Unit | Supported | Movement draw trigger | Full printed text is implemented and directly tested in the single-battlefield alpha: Base -> battlefield and battlefield -> Base/recall movement draw 1 privately; play from hand, return to hand, trash/death, setup/import, hidden transitions, and same-zone reposition do not trigger. |
 | Guardian Angel | Irelia Tempo | Gear | Partial | Gear/equipment | Alpha Equip lifecycle is covered: play to Base first, then equip from Base to a friendly Unit/Champion in Base or at the battlefield; attached Gear cannot fight, returns to Base when its host leaves public play, and does not trigger Deathknell when returned. Equip payment precision and card-specific edge cases remain incomplete. |
@@ -64,7 +66,7 @@ support-gate result, and rules text, lives in `docs/CARD_RULES_BACKLOG.md`.
 | Scuttle Crab | Irelia Tempo | Unit | Partial | Unit with triggered ability | 0 Might Unit survives normally; on-play draw 1 is helper-backed with private card identity; Deathknell auto-selects the 1v1 opponent and privately reveals their hand to the Crab controller until end phase. XP and facedown viewing remain deferred. |
 | Lonely Poro | Irelia playtest pool | Unit | Supported | Deathknell draw trigger | Full printed text is implemented and directly tested: Deathknell fires on death only, draws exactly once when no other friendly Unit/Champion was at the same location, ignores enemies and Gear for the alone check, and simultaneous friendly deaths do not count as alone. |
 | Charm | Irelia Tempo | Spell | Unsupported | Unsupported/unknown text pattern | Blocked by unsupported move effect; needs enemy-unit movement target rules. |
-| En Garde | Irelia Tempo | Spell | Partial | Spell: stat/might modifier | Selected friendly +Might and lone-location bonus are helper-backed; Reaction timing remains incomplete. |
+| En Garde | Irelia Tempo | Spell | Partial | Chain-backed Reaction boost | Can be played only while focused during the current alpha chain window; creates a public chain item, gives a friendly battlefield Unit/Champion +1 Might this turn, and gives +2 instead if it is your only unit there. Full official "any time" Reaction timing remains incomplete. |
 | Gust | Irelia Tempo | Spell | Partial | Chain-backed Reaction bounce | Can be played only while focused during the current alpha chain window opened by Stacked Deck; creates a public chain item and returns a battlefield Unit/Champion with 3 Might or less to its owner's hand on resolution. Full official "any time" Reaction timing remains incomplete. |
 | Ride The Wind | Irelia Tempo | Spell | Partial | Spell: ready/exhaust | Selected friendly ready is helper-backed and can be played by showdown participants in the simplified Action window; movement choice and full Action timing remain incomplete. |
 | Stacked Deck | Irelia Tempo | Spell | Partial | Chain opener: draw/card selection | Opens the narrow alpha chain as a public item, then creates its private top-3 prompt when the item resolves; selected card goes to hand and the rest recycle to bottom in deterministic alpha order. Keep Partial until official ordering/timing is confirmed. |

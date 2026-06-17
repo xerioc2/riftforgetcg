@@ -11,6 +11,7 @@ import com.riftforge.model.ZoneName;
 import com.riftforge.model.move.MoveToBattlefieldMove;
 import com.riftforge.model.move.MulliganMove;
 import com.riftforge.model.move.PassPhaseMove;
+import com.riftforge.model.move.PlayCardMove;
 import com.riftforge.model.move.SelectBattlefieldMove;
 import com.riftforge.rules.LegalAction;
 import com.riftforge.testsupport.GameStackFixture;
@@ -211,6 +212,49 @@ class LegalActionsFlowIntegrationTest {
 
     assertThat(legalActionsFor(idle)).containsExactlyInAnyOrder(LegalAction.PASS_SHOWDOWN_FOCUS, LegalAction.PLAY_CARD);
     assertThat(fx.gameService.currentStateFor(ROOM, null).getLegalActions()).isEmpty();
+  }
+
+  @Test
+  void stackedDeckWithNoResponseFastPassesToReadyThroughProcessMove() {
+    completeMulligans();
+    advanceToMain(active);
+    fx.addCard("stacked-deck", "Stacked Deck", "Spell",
+        "Look at the top 3 cards of your deck. Put 1 into your hand and recycle the rest.", List.of());
+    fx.gameService.currentState(ROOM).getCards().add(card("stacked-instance", "stacked-deck", active, ZoneName.HAND));
+
+    fx.gameService.processMove(ROOM, new PlayCardMove(active, "stacked-instance", ZoneName.BASE, 0, 0, null));
+
+    LiveGameState afterPlay = fx.gameService.currentState(ROOM);
+    // Neither player can respond, so the dead windows auto-pass server-side and the chain becomes
+    // ready to resolve with focus back on the opener's controller -- no manual passes required.
+    assertThat(afterPlay.getChainState()).isNotNull();
+    assertThat(afterPlay.getChainState().readyToResolveTop()).isTrue();
+    assertThat(afterPlay.getChainState().focusedPlayerId()).isEqualTo(active);
+    assertThat(afterPlay.getPendingChoice()).isNull();
+    assertThat(legalActionsFor(active)).containsExactly(LegalAction.RESOLVE_CHAIN_TOP);
+  }
+
+  @Test
+  void stackedDeckDoesNotFastPassPastFocusedGustResponderThroughProcessMove() {
+    completeMulligans();
+    advanceToMain(active);
+    fx.addCard("stacked-deck", "Stacked Deck", "Spell",
+        "Look at the top 3 cards of your deck. Put 1 into your hand and recycle the rest.", List.of());
+    fx.addCard("gust", "Gust", "Spell",
+        "[Reaction] Return a unit at a battlefield with 3 Might or less to its owner's hand.", List.of());
+    LiveGameState state = fx.gameService.currentState(ROOM);
+    state.getCards().add(card("stacked-instance", "stacked-deck", active, ZoneName.HAND));
+    state.getCards().add(card("gust-instance", "gust", idle, ZoneName.HAND));
+    state.getCards().add(card("idle-unit", "unit-1", idle, ZoneName.BATTLEFIELD));
+
+    fx.gameService.processMove(ROOM, new PlayCardMove(active, "stacked-instance", ZoneName.BASE, 0, 0, null));
+
+    LiveGameState afterPlay = fx.gameService.currentState(ROOM);
+    // Fast-pass must stop at the responder because they hold a legal Gust response.
+    assertThat(afterPlay.getChainState()).isNotNull();
+    assertThat(afterPlay.getChainState().readyToResolveTop()).isFalse();
+    assertThat(afterPlay.getChainState().focusedPlayerId()).isEqualTo(idle);
+    assertThat(legalActionsFor(idle)).contains(LegalAction.PLAY_CARD, LegalAction.PASS_CHAIN_FOCUS);
   }
 
   private Set<LegalAction> legalActionsFor(String playerId) {

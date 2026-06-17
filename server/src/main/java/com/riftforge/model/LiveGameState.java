@@ -114,6 +114,8 @@ public class LiveGameState {
     public static final String EFFECT_NO_OP_TEST = "NO_OP_TEST";
     public static final String EFFECT_DRAW_1_TEST = "DRAW_1_TEST";
     public static final String EFFECT_GUST_RETURN = "GUST_RETURN";
+    public static final String EFFECT_DISCIPLINE_BOOST_DRAW = "DISCIPLINE_BOOST_DRAW";
+    public static final String EFFECT_EN_GARDE_BOOST = "EN_GARDE_BOOST";
     public static final String EFFECT_STACKED_DECK_PICK_ONE = "STACKED_DECK_PICK_ONE";
     public static final String EFFECT_DEFY_COUNTER = "DEFY_COUNTER";
     public static final String EFFECT_NOT_SO_FAST_COUNTER = "NOT_SO_FAST_COUNTER";

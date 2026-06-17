@@ -16,6 +16,7 @@ Sources checked:
 - `docs/RULES_COVERAGE.md`
 - `docs/SUPPORTED_CARDS.md`
 - `docs/CARD_RULES_BACKLOG.md`
+- `docs/REACTION_EQUIPMENT_AUDIT.md`
 - `docs/KEYWORD_BACKLOG.md`
 - `src/lib/starterDecks.ts`
 - `RulesValidator`

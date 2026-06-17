@@ -30,7 +30,7 @@ public class CardSupportService {
 
   private static final Map<String, String> PARTIAL_REASONS = Map.ofEntries(
       Map.entry("IRELIA - FERVENT", "Partial: Deflect targeting tax is heuristic, and the choose/ready +1 Might trigger is not implemented yet."),
-      Map.entry("DISCIPLINE", "Partial: draw 1 and selected +2 Might are helper-backed, but Reaction timing is missing."),
+      Map.entry("DISCIPLINE", "Partial: alpha chain-window Reaction support exists for giving a public battlefield Unit/Champion +2 Might this turn and drawing 1. Full official any-time Reaction timing remains incomplete."),
       Map.entry("TIDETURNER", "Partial: Hidden foundation exists, but later hidden play timing and the on-play location swap are not implemented yet."),
       Map.entry("GUARDIAN ANGEL", "Partial: alpha Equip lifecycle is implemented and tested, but exact Calm power payment and official Equip timing remain incomplete."),
       Map.entry("BOOTS OF SWIFTNESS", "Partial: alpha Equip lifecycle is implemented and tested, but exact Chaos power payment and official Equip timing remain incomplete."),
@@ -39,8 +39,9 @@ public class CardSupportService {
       Map.entry("SCUTTLE CRAB", "Partial: on-play draw and 1v1 private hand reveal Deathknell are implemented, but XP and facedown-card viewing are deferred."),
       Map.entry("DEFY", "Partial: Defy can counter supported public pending spell chain items that cost no more than 4 energy and no more than 1 premium rune during the current alpha chain window. Full official Reaction timing, broad spell/ability targets, and countering counters remain deferred."),
       Map.entry("NOT SO FAST", "Partial: Not So Fast can counter a supported public pending enemy spell chain item only when that item chooses your friendly Unit/Champion Unit or Gear. Ability-chain targets, broad official Reaction timing, and countering counters remain deferred."),
-      Map.entry("EN GARDE", "Partial: selected friendly +Might is helper-backed, but Reaction timing remains incomplete."),
-      Map.entry("GUST", "Partial: selected return-to-hand is helper-backed, but Reaction timing and the 3-or-less-Might target filter remain incomplete."));
+      Map.entry("EN GARDE", "Partial: alpha chain-window Reaction support exists for giving a friendly battlefield Unit/Champion +1 Might, or +2 if it is your only unit there. Full official any-time Reaction timing remains incomplete."),
+      Map.entry("GUST", "Partial: alpha chain-window Reaction support exists through Stacked Deck for returning a battlefield Unit/Champion with 3 Might or less, but full official any-time Reaction timing remains incomplete."),
+      Map.entry("STACKED DECK", "Partial: opens the narrow alpha chain, then resolves into a private top-3 choice; official ordering and broader timing remain incomplete."));
 
   private final CardDataService cardDataService;
 

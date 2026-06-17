@@ -56,7 +56,16 @@ class CardSupportServiceTest {
     assertThat(service.summarize(card("adaptatron", "Adaptatron", "Unit", "When I conquer, you may kill a gear. If you do, buff me.")).reason())
         .contains("conquer trigger").contains("Buff state");
     assertThat(service.summarize(card("gust", "Gust", "Spell", "[Reaction] Return a unit at a battlefield with 3 Might or less.")).reason())
-        .contains("Reaction timing").contains("3-or-less-Might");
+        .contains("3 Might or less")
+        .contains("full official any-time Reaction timing");
+    assertThat(service.summarize(card("discipline", "Discipline", "Spell", "[Reaction] Give a unit +2 Might this turn. Draw 1.")).reason())
+        .contains("alpha chain-window Reaction support")
+        .contains("+2 Might")
+        .contains("drawing 1");
+    assertThat(service.summarize(card("en-garde", "En Garde", "Spell", "[Reaction] Give a friendly unit +1 Might this turn, then an additional +1 Might this turn if it is the only unit you control there.")).reason())
+        .contains("alpha chain-window Reaction support")
+        .contains("+1 Might")
+        .contains("only unit there");
     assertThat(service.summarize(card("defy", "Defy", "Spell", "[Reaction] Counter a spell.")).reason())
         .contains("no more than 4 energy")
         .contains("no more than 1 premium rune")
@@ -69,6 +78,9 @@ class CardSupportServiceTest {
         .contains("friendly Unit/Champion Unit or Gear")
         .contains("Ability-chain targets")
         .contains("countering counters remain deferred");
+    assertThat(service.summarize(card("stacked-deck", "Stacked Deck", "Spell", "Look at the top 3 cards of your deck. Put 1 into hand and recycle the rest.")).reason())
+        .contains("narrow alpha chain")
+        .contains("private top-3 choice");
   }
 
   private CardDefinition card(String id, String name, String type, String rulesText) {

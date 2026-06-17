@@ -183,6 +183,14 @@ public class GameEngine {
       addGustToChain(state, move, card, def);
       return state;
     }
+    if (cardDataService.isDisciplineReaction(def)) {
+      addTargetedReactionToChain(state, move, card, def, LiveGameState.ChainItem.EFFECT_DISCIPLINE_BOOST_DRAW);
+      return state;
+    }
+    if (cardDataService.isEnGardeReaction(def)) {
+      addTargetedReactionToChain(state, move, card, def, LiveGameState.ChainItem.EFFECT_EN_GARDE_BOOST);
+      return state;
+    }
     applyLegion(state, card, cardPlayedEarlierThisTurn);
     applyPlayedCardTokenScripts(state, card, cardPlayedEarlierThisTurn);
     state.setCardPlayedThisTurn(true);
@@ -614,6 +622,16 @@ public class GameEngine {
       moveChainSourceToTrash(state, item);
       return resolved ? LiveGameState.ChainItem.STATUS_RESOLVED : LiveGameState.ChainItem.STATUS_FIZZLED;
     }
+    if (LiveGameState.ChainItem.EFFECT_DISCIPLINE_BOOST_DRAW.equals(item.effectKey())) {
+      boolean resolved = resolveDisciplineChainItem(state, item, description);
+      moveChainSourceToTrash(state, item);
+      return resolved ? LiveGameState.ChainItem.STATUS_RESOLVED : LiveGameState.ChainItem.STATUS_FIZZLED;
+    }
+    if (LiveGameState.ChainItem.EFFECT_EN_GARDE_BOOST.equals(item.effectKey())) {
+      boolean resolved = resolveEnGardeChainItem(state, item, description);
+      moveChainSourceToTrash(state, item);
+      return resolved ? LiveGameState.ChainItem.STATUS_RESOLVED : LiveGameState.ChainItem.STATUS_FIZZLED;
+    }
     if (LiveGameState.ChainItem.EFFECT_DEFY_COUNTER.equals(item.effectKey())) {
       boolean resolved = resolveDefyCounterItem(state, item, description);
       moveChainSourceToTrash(state, item);
@@ -686,6 +704,10 @@ public class GameEngine {
   }
 
   private void addGustToChain(LiveGameState state, PlayCardMove move, CardInstance card, CardDefinition def) {
+    addTargetedReactionToChain(state, move, card, def, LiveGameState.ChainItem.EFFECT_GUST_RETURN);
+  }
+
+  private void addTargetedReactionToChain(LiveGameState state, PlayCardMove move, CardInstance card, CardDefinition def, String effectKey) {
     LiveGameState.ChainState chain = state.getChainState();
     PriorityWindowService.PriorityWindow priorityWindow = priorityWindowService.reactionWindowFor(def).orElseThrow();
     List<String> relevant = priorityWindowService.relevantPlayers(state, chain);
@@ -699,7 +721,7 @@ public class GameEngine {
         card.getInstanceId(),
         card.getCardId(),
         def.name(),
-        priorityWindow.effectKey(),
+        effectKey,
         List.of(move.targetInstanceId()),
         order,
         priorityWindow.publicDescription(),
@@ -886,6 +908,69 @@ public class GameEngine {
     target.setY(0);
     log(state, item.controllerPlayerId(), "Resolved " + description + ": returned " + targetDef.name() + " to its owner's hand.");
     return true;
+  }
+
+  private boolean resolveDisciplineChainItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
+    CardInstance target = firstChainBoardTarget(state, item);
+    if (target == null || !isPublicBattlefieldUnit(target)) {
+      log(state, item.controllerPlayerId(), description + " fizzled because its target was no longer legal.");
+      return false;
+    }
+    CardDefinition sourceDef = cardDataService.getCard(item.sourceCardId());
+    applyTemporaryMight(state, chainSourceOrFallback(state, item), sourceDef, target, 2);
+    applyDraw(state, item.controllerPlayerId(), 1);
+    log(state, item.controllerPlayerId(), "Resolved " + description + ": gave +2 Might and drew a card.");
+    return true;
+  }
+
+  private boolean resolveEnGardeChainItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
+    CardInstance target = firstChainBoardTarget(state, item);
+    if (target == null || !isPublicBattlefieldUnit(target) || !item.controllerPlayerId().equals(target.getOwnerId())) {
+      log(state, item.controllerPlayerId(), description + " fizzled because its target was no longer legal.");
+      return false;
+    }
+    int boost = isOnlyFriendlyUnitAtLocation(state, target) ? 2 : 1;
+    CardDefinition sourceDef = cardDataService.getCard(item.sourceCardId());
+    applyTemporaryMight(state, chainSourceOrFallback(state, item), sourceDef, target, boost);
+    log(state, item.controllerPlayerId(), "Resolved " + description + ": gave +" + boost + " Might.");
+    return true;
+  }
+
+  private CardInstance firstChainBoardTarget(LiveGameState state, LiveGameState.ChainItem item) {
+    return item.targetInstanceIds().stream()
+        .findFirst()
+        .flatMap(targetId -> state.getCards().stream()
+            .filter(card -> card.getInstanceId().equals(targetId))
+            .findFirst())
+        .orElse(null);
+  }
+
+  private CardInstance chainSourceOrFallback(LiveGameState state, LiveGameState.ChainItem item) {
+    return state.getCards().stream()
+        .filter(card -> card.getInstanceId().equals(item.sourceCardInstanceId()))
+        .findFirst()
+        .orElseGet(() -> {
+          CardInstance source = new CardInstance();
+          source.setInstanceId(item.sourceCardInstanceId());
+          source.setCardId(item.sourceCardId());
+          source.setOwnerId(item.controllerPlayerId());
+          source.setZone(ZoneName.LIMBO);
+          return source;
+        });
+  }
+
+  private boolean isPublicBattlefieldUnit(CardInstance target) {
+    if (target.getZone() != ZoneName.BATTLEFIELD || target.isFaceDown()) return false;
+    CardDefinition targetDef = cardDataService.getCard(target.getCardId());
+    return targetDef != null && ("Unit".equalsIgnoreCase(targetDef.type()) || "Champion".equalsIgnoreCase(targetDef.type()));
+  }
+
+  private boolean isOnlyFriendlyUnitAtLocation(LiveGameState state, CardInstance target) {
+    return state.getCards().stream()
+        .filter(card -> card.getZone() == target.getZone())
+        .filter(card -> target.getOwnerId().equals(card.getOwnerId()))
+        .filter(this::isPublicBattlefieldUnit)
+        .count() == 1;
   }
 
   private boolean resolveDefyCounterItem(LiveGameState state, LiveGameState.ChainItem item, String description) {

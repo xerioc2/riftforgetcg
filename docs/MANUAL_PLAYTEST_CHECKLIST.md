@@ -28,7 +28,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - If the chain panel appears, confirm it lists public-safe chain items
   top-to-bottom, shows focus/ready status clearly, and does not expose hidden
   or private card names.
-- If neither player has a legal Gust/Defy/Not So Fast response, confirm the chain skips
+- If neither player has a legal Gust/Discipline/En Garde/Defy/Not So Fast response, confirm the chain skips
   dead response windows and leaves the top item ready to resolve instead of
   requiring extra Pass Chain clicks.
 - If Defy is in hand during chain focus, confirm it can target a supported

@@ -276,6 +276,14 @@ public class RulesValidator {
       validateGustTarget(state, move);
       return;
     }
+    if (spell && cardDataService.isDisciplineReaction(def)) {
+      validatePublicUnitTarget(state, move, "Discipline requires a public Unit or Champion target.");
+      return;
+    }
+    if (spell && cardDataService.isEnGardeReaction(def)) {
+      validateFriendlyPublicUnitTarget(state, move, "En Garde requires a friendly public Unit or Champion target.");
+      return;
+    }
     if (spell && cardDataService.isDefyCounterReaction(def)) {
       validateDefyCounterTarget(state, move);
       return;
@@ -298,7 +306,11 @@ public class RulesValidator {
       if (!cardDataService.isReactionCard(def)) {
         throw new IllegalMoveException("Only supported Reaction cards can be played while the chain is active.");
       }
-      if (!cardDataService.isGustReaction(def) && !cardDataService.isDefyCounterReaction(def) && !cardDataService.isNotSoFastCounterReaction(def)) {
+      if (!cardDataService.isGustReaction(def)
+          && !cardDataService.isDisciplineReaction(def)
+          && !cardDataService.isEnGardeReaction(def)
+          && !cardDataService.isDefyCounterReaction(def)
+          && !cardDataService.isNotSoFastCounterReaction(def)) {
         throw new IllegalMoveException("That Reaction is not supported yet.");
       }
       if (state.getChainState().readyToResolveTop()) {
@@ -515,6 +527,30 @@ public class RulesValidator {
     CardDefinition targetDef = cardDataService.getCard(target.getCardId());
     if (!isType(targetDef, "Unit") && !isType(targetDef, "Champion")) return false;
     return combatStatsService.effectiveMight(target, CombatContext.IDLE) <= 3;
+  }
+
+  private void validatePublicUnitTarget(LiveGameState state, PlayCardMove move, String message) {
+    if (move.targetInstanceId() == null || move.targetInstanceId().isBlank()) {
+      throw new IllegalMoveException(message);
+    }
+    CardInstance target = findCard(state, move.targetInstanceId());
+    if (!isPublicBattlefieldUnit(target)) throw new IllegalMoveException(message);
+  }
+
+  private void validateFriendlyPublicUnitTarget(LiveGameState state, PlayCardMove move, String message) {
+    if (move.targetInstanceId() == null || move.targetInstanceId().isBlank()) {
+      throw new IllegalMoveException(message);
+    }
+    CardInstance target = findCard(state, move.targetInstanceId());
+    if (!isPublicBattlefieldUnit(target) || !move.playerId().equals(target.getOwnerId())) {
+      throw new IllegalMoveException(message);
+    }
+  }
+
+  private boolean isPublicBattlefieldUnit(CardInstance target) {
+    if (target.getZone() != ZoneName.BATTLEFIELD || target.isFaceDown()) return false;
+    CardDefinition targetDef = cardDataService.getCard(target.getCardId());
+    return isType(targetDef, "Unit") || isType(targetDef, "Champion");
   }
 
   private void validateFriendlyAndEnemyTargets(LiveGameState state, PlayCardMove move) {

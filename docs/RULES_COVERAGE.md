@@ -150,19 +150,20 @@ Current implementation notes:
 - `PriorityWindowService` now centralizes the narrow alpha timing decision for
   whether a played card/effect opens a response window and what chain metadata
   it receives. Production opt-ins remain conservative: Stacked Deck is the only
-  real opener, while Gust, Defy, and Not So Fast are the only real
-  chain-backed Reactions.
+  real opener, while Gust, Discipline, En Garde, Defy, and Not So Fast are the
+  only real chain-backed Reactions.
 - `LegalActionsService` exposes `PASS_CHAIN_FOCUS`, `RESOLVE_CHAIN_TOP`,
   and narrowly supported focused Reaction play to the focused player.
   Spectators and non-focused players receive no chain actions.
 - Chain focus can fast-pass only when the focused player's only legal chain
   action is `PASS_CHAIN_FOCUS`. It does not auto-pass pending choices, ready
-  top-item resolution, or windows where Gust/Defy/Not So Fast is a legal
+  top-item resolution, or windows where Gust/Discipline/En Garde/Defy/Not So Fast is a legal
   response.
 - RiftBot can pass chain focus or resolve a ready top item through the same server legal-action contract.
 - Current effect resolution is deliberately limited to deterministic test/no-op
   and draw-one harness items, Stacked Deck as the first real chain opener, and
-  Gust, Defy, and Not So Fast as the first real chain-backed Reactions.
+  Gust, Discipline, En Garde, Defy, and Not So Fast as the first real
+  chain-backed Reactions.
 - Stacked Deck opens the narrow alpha chain when played in supported gameplay,
   becomes a public chain item, and creates its existing owner-only private
   top-card choice only after that chain item resolves.
@@ -170,6 +171,16 @@ Current implementation notes:
   chain. It creates a public chain item and, when resolved, returns a
   battlefield Unit/Champion with 3 Might or less to its owner's hand. If the
   target is no longer legal at resolution, Gust fizzles safely.
+- Discipline can be played only while the controller is focused during an active
+  chain. It creates a public chain item targeting a public battlefield
+  Unit/Champion, gives that target +2 Might this turn, and draws 1 privately on
+  resolution. If the target is no longer legal at resolution, Discipline
+  fizzles safely.
+- En Garde can be played only while the controller is focused during an active
+  chain. It creates a public chain item targeting a friendly battlefield
+  Unit/Champion, gives +1 Might this turn, and gives +2 instead if that target
+  is the controller's only unit at that location in the current single-
+  battlefield alpha.
 - Defy can be played only while the controller is focused during an active
   chain and can target a pending, public, counterable spell chain item whose
   source card cost is within Defy's alpha limits. Defy itself is not
@@ -188,14 +199,15 @@ Current implementation notes:
   counter-target metadata and source-zone details for non-owners.
 - The client shows a compact chain panel when `chainState` exists, ordered
   top-to-bottom with public-safe item descriptions, focus state, target
-  summaries for Stacked Deck/Gust/Defy/Not So Fast, disabled illegal counter targets, and
+  summaries for Stacked Deck/Gust/Discipline/En Garde/Defy/Not So Fast, disabled illegal counter targets, and
   non-pending item status. It still exposes chain buttons only through
   server-provided legal actions.
 
 Known gaps:
-- Gust, Defy, and Not So Fast are the only real Reaction cards connected to the
-  chain. Riposte counter behavior, Ambush-as-Reaction, hidden play windows, and
-  ability-counter targets are not connected yet.
+- Gust, Discipline, En Garde, Defy, and Not So Fast are the only real Reaction
+  cards connected to the chain. Star-Crossed/Defiant Dance multi-target
+  Reactions, Riposte counter behavior, Ambush-as-Reaction, hidden play windows,
+  and ability-counter targets are not connected yet.
 - No official priority, invitation, trigger-ordering, replacement/prevention, or multiplayer focus policy is implemented.
 - Unsupported, unreviewed, and ordinary cards do not automatically open
   priority windows; future cards must opt in through the priority service and
@@ -285,7 +297,7 @@ Current implementation notes:
 
 Known gaps:
 - Chain timing, Reaction timing, broad countering spells/abilities, optional/three-plus/conditional multi-target spells, full optional trigger ordering, replacement/prevention, and many spell-specific effects are not complete.
-- Active-showdown `[Action]` play is lightweight: focused showdown participants can play supported Action cards or pass focus. Once both relevant players pass in succession, the showdown becomes ready for the attacker to resolve. A narrow priority/chain foundation exists, with Stacked Deck as the only real opener and Gust/Defy/Not So Fast as the only connected Reactions; broader response-card support remains deferred.
+- Active-showdown `[Action]` play is lightweight: focused showdown participants can play supported Action cards or pass focus. Once both relevant players pass in succession, the showdown becomes ready for the attacker to resolve. A narrow priority/chain foundation exists, with Stacked Deck as the only real opener and Gust/Discipline/En Garde/Defy/Not So Fast as the only connected Reactions; broader response-card support remains deferred.
 
 Test coverage:
 - Rules validator keyword/target tests.
@@ -669,7 +681,7 @@ Known gaps:
 - Target-specific and payment-specific legal action generation is incomplete.
 - Broad chain/timing permissions for real card responses and full official
   priority handling are future work; current production opt-ins are Stacked
-  Deck, Gust, Defy, and Not So Fast only.
+  Deck, Gust, Discipline, En Garde, Defy, and Not So Fast only.
 
 Test coverage:
 - `LegalActionsServiceTest`
@@ -686,7 +698,7 @@ Current implementation notes:
 - Unavailable phase/showdown/chain controls are hidden.
 - Mulligan and Keep buttons require `MULLIGAN` or `KEEP_HAND`.
 - Normal Main Phase controls require `PLAY_CARD`, `MOVE_TO_BATTLEFIELD`, rune actions, or sandbox-specific actions as appropriate.
-- Supported chain Reactions such as Gust, Defy, and Not So Fast require a legal chain response window; unsupported/no-window Reaction cards are kept out of normal play affordances instead of leaving the client waiting on an impossible action.
+- Supported chain Reactions such as Gust, Discipline, En Garde, Defy, and Not So Fast require a legal chain response window; unsupported/no-window Reaction cards are kept out of normal play affordances instead of leaving the client waiting on an impossible action.
 - Same-zone card organization uses `REPOSITION_CARD`; cross-zone `MOVE_CARD` is
   sandbox-only.
 
