@@ -42,8 +42,9 @@ function Print-FileInfo([string]$Label, [string]$Path) {
 function Run-Step([string]$Label, [scriptblock]$Step) {
   Write-Host ""
   Write-Host "[release] $Label"
+  $global:LASTEXITCODE = 0
   & $Step
-  if ($LASTEXITCODE -ne $null -and $LASTEXITCODE -ne 0) {
+  if ($global:LASTEXITCODE -ne 0) {
     throw "$Label failed with exit code $LASTEXITCODE."
   }
 }
