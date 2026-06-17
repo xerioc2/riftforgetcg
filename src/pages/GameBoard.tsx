@@ -168,9 +168,10 @@ export function GameBoard() {
     return state.players.flatMap((statePlayer) => {
       const display = battlefieldDisplayForPlayer(statePlayer, cardsById);
       const zone = zones.find((candidate) => candidate.zoneName === 'battlefield' && candidate.ownerId === statePlayer.userId);
-      return display && zone ? [{ ...display, frame: battlefieldDisplayFrame(zone) }] : [];
+      const side = statePlayer.userId === player.id ? 'right' : 'left';
+      return display && zone ? [{ ...display, frame: battlefieldDisplayFrame(zone, side) }] : [];
     });
-  }, [cardsById, state, zones]);
+  }, [cardsById, player.id, state, zones]);
   const hand = useMemo(() => (state?.cards ?? []).filter((card) => card.ownerId === player.id && sameZone(card.zone, 'hand')), [player.id, state?.cards]);
   const handInstanceKey = useMemo(() => hand.map((card) => card.instanceId).sort().join(','), [hand]);
   const hasMulliganed = state?.mulligansDone?.includes(player.id) ?? false;

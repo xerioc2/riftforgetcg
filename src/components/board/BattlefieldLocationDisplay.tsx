@@ -29,20 +29,20 @@ export function BattlefieldLocationDisplay({
       <Rect
         width={frame.width}
         height={frame.height}
-        fill="rgba(5, 10, 14, 0.88)"
-        stroke="rgba(216, 176, 93, 0.55)"
+        fill="rgba(6, 12, 17, 0.94)"
+        stroke="rgba(216, 176, 93, 0.68)"
         strokeWidth={1.5}
         cornerRadius={6}
         shadowColor="black"
-        shadowBlur={10}
-        shadowOpacity={0.35}
+        shadowBlur={12}
+        shadowOpacity={0.42}
       />
       {image ? (
         <Image
           image={image}
           x={6}
           y={6}
-          width={Math.min(62, frame.width * 0.32)}
+          width={Math.min(48, frame.width * 0.28)}
           height={frame.height - 12}
           cornerRadius={4}
           opacity={0.92}
@@ -52,7 +52,7 @@ export function BattlefieldLocationDisplay({
         <Rect
           x={6}
           y={6}
-          width={Math.min(62, frame.width * 0.32)}
+          width={Math.min(48, frame.width * 0.28)}
           height={frame.height - 12}
           fill="rgba(21, 30, 38, 0.95)"
           stroke="rgba(148, 163, 184, 0.45)"
@@ -62,20 +62,20 @@ export function BattlefieldLocationDisplay({
         />
       )}
       <Text
-        x={Math.min(76, frame.width * 0.38)}
-        y={10}
-        width={frame.width - Math.min(86, frame.width * 0.42)}
-        text="Selected Battlefield"
+        x={Math.min(62, frame.width * 0.34)}
+        y={8}
+        width={frame.width - Math.min(72, frame.width * 0.38)}
+        text="Battlefield"
         fontSize={9}
         fill="#d8b05d"
         fontStyle="bold"
         listening={false}
       />
       <Text
-        x={Math.min(76, frame.width * 0.38)}
-        y={26}
-        width={frame.width - Math.min(86, frame.width * 0.42)}
-        height={frame.height - 30}
+        x={Math.min(62, frame.width * 0.34)}
+        y={23}
+        width={frame.width - Math.min(72, frame.width * 0.38)}
+        height={frame.height - 26}
         text={label}
         fontSize={12}
         fill="#f8fafc"

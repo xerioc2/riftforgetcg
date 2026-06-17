@@ -62,6 +62,45 @@ describe('battlefieldDisplay', () => {
     expect(frame.y + frame.height).toBeLessThanOrEqual(zone.y + zone.height);
   });
 
+  it('separates opponent and player battlefield plaques on opposite sides', () => {
+    const zone: ZoneRect = {
+      id: 'p0-battlefield',
+      label: 'Battlefield',
+      ownerId: 'p1',
+      zoneName: 'battlefield',
+      x: 240,
+      y: 300,
+      width: 900,
+      height: 210,
+    };
+
+    const opponentFrame = battlefieldDisplayFrame(zone, 'left');
+    const playerFrame = battlefieldDisplayFrame(zone, 'right');
+
+    expect(opponentFrame.x).toBeGreaterThanOrEqual(zone.x);
+    expect(playerFrame.x + playerFrame.width).toBeLessThanOrEqual(zone.x + zone.width);
+    expect(opponentFrame.x + opponentFrame.width).toBeLessThan(playerFrame.x);
+    expect(opponentFrame.y).toBe(playerFrame.y);
+  });
+
+  it('keeps plaques compact so the center lane remains available', () => {
+    const zone: ZoneRect = {
+      id: 'wide-battlefield',
+      label: 'Battlefield',
+      ownerId: 'p1',
+      zoneName: 'battlefield',
+      x: 400,
+      y: 160,
+      width: 1200,
+      height: 240,
+    };
+
+    const frame = battlefieldDisplayFrame(zone, 'left');
+
+    expect(frame.width).toBeLessThanOrEqual(180);
+    expect(frame.width).toBeLessThan(zone.width * 0.2);
+  });
+
   it('marks selected battlefield visuals as non-targetable and non-interactive', () => {
     expect(selectedBattlefieldIsInteractiveTarget()).toBe(false);
   });

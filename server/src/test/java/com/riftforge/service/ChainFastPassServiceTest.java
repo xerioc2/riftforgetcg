@@ -16,6 +16,7 @@ import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
 import com.riftforge.model.ZoneName;
 import com.riftforge.model.move.PassChainFocusMove;
+import com.riftforge.rules.LegalAction;
 import com.riftforge.rules.LegalActionsService;
 import java.util.ArrayList;
 import java.util.List;
@@ -84,6 +85,40 @@ class ChainFastPassServiceTest {
     state.getCards().add(card("not-so-fast-1", "p1", "not-so-fast", ZoneName.HAND));
 
     assertThat(service.shouldAutoPass(state)).isFalse();
+  }
+
+  @Test
+  void focusedPlayerWithLegalDisciplineResponseIsNotAutoPassed() {
+    CardDefinition discipline = def("discipline", "Discipline", "Spell", 0, 0, "[Reaction] Give a unit +2 Might this turn. Draw 1.");
+    CardDefinition target = def("target", "Target Unit", "Unit", 0, 0, "");
+    when(cardDataService.getCard("discipline")).thenReturn(discipline);
+    when(cardDataService.getCard("target")).thenReturn(target);
+    when(cardDataService.isDisciplineReaction(discipline)).thenReturn(true);
+    LiveGameState state = state(chain(false, "p1"));
+    state.getCards().add(card("discipline-1", "p1", "discipline", ZoneName.HAND));
+    state.getCards().add(card("target-1", "p2", "target", ZoneName.BATTLEFIELD));
+
+    assertThat(service.shouldAutoPass(state)).isFalse();
+    assertThat(new LegalActionsService(cardDataService).legalActionsFor(state, "p1")).contains(LegalAction.PLAY_CARD);
+    assertThat(state.getChainState().focusedPlayerId()).isEqualTo("p1");
+    assertThat(state.getChainState().readyToResolveTop()).isFalse();
+  }
+
+  @Test
+  void focusedPlayerWithLegalEnGardeResponseIsNotAutoPassed() {
+    CardDefinition enGarde = def("en-garde", "En Garde", "Spell", 0, 0, "[Reaction] Give a friendly unit +1 Might this turn, then an additional +1 Might this turn if it is the only unit you control there.");
+    CardDefinition target = def("target", "Target Unit", "Unit", 0, 0, "");
+    when(cardDataService.getCard("en-garde")).thenReturn(enGarde);
+    when(cardDataService.getCard("target")).thenReturn(target);
+    when(cardDataService.isEnGardeReaction(enGarde)).thenReturn(true);
+    LiveGameState state = state(chain(false, "p1"));
+    state.getCards().add(card("en-garde-1", "p1", "en-garde", ZoneName.HAND));
+    state.getCards().add(card("target-1", "p1", "target", ZoneName.BATTLEFIELD));
+
+    assertThat(service.shouldAutoPass(state)).isFalse();
+    assertThat(new LegalActionsService(cardDataService).legalActionsFor(state, "p1")).contains(LegalAction.PLAY_CARD);
+    assertThat(state.getChainState().focusedPlayerId()).isEqualTo("p1");
+    assertThat(state.getChainState().readyToResolveTop()).isFalse();
   }
 
   @Test
