@@ -606,6 +606,50 @@ class BotServicePhaseFlowTest {
   }
 
   @Test
+  void botDoesNotSpreadPartialDamageWhenMoreTargetsThanTotalMight() throws Exception {
+    String roomCode = "B2V2";
+    gameService.initGame(
+        roomCode,
+        List.of("human", BOT_ID),
+        Map.of("human", playtestDeck(), BOT_ID, playtestDeck()),
+        Map.of("human", "Human", BOT_ID, "RiftBot"));
+    addStats("bot-one", "Unit", 2, 2);
+    addStats("bot-two", "Unit", 2, 2);
+    addStats("human-small", "Unit", 1, 3);
+    addStats("human-large", "Unit", 1, 5);
+    LiveGameState state = gameService.currentState(roomCode);
+    state.setCurrentPhase(Phase.MAIN);
+    state.setActivePlayerId(BOT_ID);
+    state.getCards().add(testCard("bot-one", BOT_ID, ZoneName.BATTLEFIELD));
+    state.getCards().add(testCard("bot-two", BOT_ID, ZoneName.BATTLEFIELD));
+    state.getCards().add(testCard("human-small", "human", ZoneName.BATTLEFIELD));
+    state.getCards().add(testCard("human-large", "human", ZoneName.BATTLEFIELD));
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        BOT_ID,
+        List.of("bot-one", "bot-two"),
+        Map.of(),
+        ShowdownStep.ASSIGN_DAMAGE,
+        List.of(BOT_ID, "human"),
+        BOT_ID,
+        2,
+        true,
+        BOT_ID,
+        List.of(),
+        List.of()));
+
+    botService.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+    LiveGameState latest = waitUntilAssigningPlayer(gameService, roomCode, "human");
+    latest.setWinnerId("test-complete");
+
+    assertThat(latest.getActiveShowdown()).isNotNull();
+    assertThat(latest.getActiveShowdown().attackerAssignments())
+        .containsExactly(
+            new LiveGameState.CombatDamageAssignment("bot-one", "human-large", 2),
+            new LiveGameState.CombatDamageAssignment("bot-two", "human-large", 2));
+    assertThat(latest.getLog()).anyMatch(entry -> entry.text().equals("Assigned attacking combat damage."));
+  }
+
+  @Test
   void botAssignmentsRespectTankFirstLethalThenExcessToFinalTarget() throws Exception {
     String roomCode = "B3V2";
     gameService.initGame(
@@ -648,8 +692,8 @@ class BotServicePhaseFlowTest {
     assertThat(latest.getActiveShowdown().attackerAssignments())
         .containsExactly(
             new LiveGameState.CombatDamageAssignment("bot-one", "human-tank", 2),
-            new LiveGameState.CombatDamageAssignment("bot-two", "human-other", 2),
-            new LiveGameState.CombatDamageAssignment("bot-three", "human-other", 2));
+            new LiveGameState.CombatDamageAssignment("bot-three", "human-other", 2),
+            new LiveGameState.CombatDamageAssignment("bot-two", "human-other", 2));
   }
 
   @Test

@@ -20,6 +20,7 @@ import { canUseSupportedChainResponse, hasUnsupportedAdditionalCost, isActionCar
 import { appBuildLabel, APP_VERSION, BUILD_DATE, BUILD_TAG } from '../lib/appMetadata';
 import { buildDebugInfo } from '../lib/debugInfo';
 import { battlefieldDisplayForPlayer, battlefieldDisplayFrame } from '../lib/battlefieldDisplay';
+import { buildCombatDamageAssignments } from '../lib/combatDamageAssignments';
 import { isBotPlayer, legalActionHint, phaseGuidance, waitingStatusText } from '../lib/gameGuidance';
 import { useLocalPlayer } from '../lib/playerContext';
 import { getServerBuildInfo } from '../lib/serverBuildInfo';
@@ -29,7 +30,7 @@ import { createGameClient, joinGame, sendMove } from '../lib/stompGame';
 import { useCardStore } from '../store/cards';
 import { useGameStore } from '../store/game';
 import { notifyError, notifySuccess, notifyWarning, useToastStore } from '../store/toasts';
-import type { CardInstance, ChainItem, CombatDamageAssignment, LegalAction, LiveGameState, PendingCardChoiceAssignment, RevealedHandSnapshot, RiftCard, ZoneName } from '../types';
+import type { CardInstance, ChainItem, LegalAction, LiveGameState, PendingCardChoiceAssignment, RevealedHandSnapshot, RiftCard, ZoneName } from '../types';
 
 const NAV_HEIGHT = 73;
 const SIDEBAR_WIDTH = 280;
@@ -58,13 +59,6 @@ function sameZone(zone: string, expected: ZoneName | string) {
 
 function hasKeyword(card: RiftCard | undefined, keyword: string) {
   return card?.keywords?.some((value) => value.toUpperCase().startsWith(keyword.toUpperCase())) ?? false;
-}
-
-function keywordValue(card: RiftCard | undefined, keyword: string) {
-  const match = card?.keywords?.find((value) => value.toUpperCase().startsWith(keyword.toUpperCase()));
-  if (!match) return 0;
-  const numeric = match.match(/\d+/);
-  return numeric ? Number(numeric[0]) : 1;
 }
 
 function hasHidden(card: RiftCard | undefined) {
@@ -449,75 +443,25 @@ export function GameBoard() {
     window.setTimeout(fetchProjectedState, 300);
   };
 
-  const isCombatant = (instance: CardInstance) => {
-    const def = cardsById.get(instance.cardId);
-    const type = def?.type?.toLowerCase();
-    return !instance.faceDown && (type === 'unit' || type === 'champion');
-  };
-
-  const combatMight = (instance: CardInstance, attacking: boolean) => {
-    const def = cardsById.get(instance.cardId);
-    if (!def) return 0;
-    if (hasKeyword(def, 'STUN') || hasKeyword(def, 'STUNNED')) return 0;
-    const situational = attacking ? keywordValue(def, 'ASSAULT') : keywordValue(def, 'SHIELD');
-    return Math.max(0, (def.power ?? 0) + (instance.mightBonus ?? 0) + (instance.temporaryPowerModifier ?? 0) + situational);
-  };
-
-  const lethalDamageFor = (instance: CardInstance) => {
-    const def = cardsById.get(instance.cardId);
-    return Math.max(1, instance.currentHealth && instance.currentHealth > 0 ? instance.currentHealth : def?.health ?? 0);
-  };
-
-  const buildCombatDamageAssignments = (): CombatDamageAssignment[] => {
-    if (!state?.activeShowdown) return [];
-    const attacking = state.activeShowdown.attackingPlayerId === player.id;
-    const sources = state.cards
-      .filter((instance) => instance.ownerId === player.id && sameZone(instance.zone, 'battlefield') && isCombatant(instance));
-    const targets = state.cards
-      .filter((instance) => instance.ownerId !== player.id && sameZone(instance.zone, 'battlefield') && isCombatant(instance))
-      .sort((a, b) => {
-        const aTank = hasKeyword(cardsById.get(a.cardId), 'TANK');
-        const bTank = hasKeyword(cardsById.get(b.cardId), 'TANK');
-        if (aTank !== bTank) return aTank ? -1 : 1;
-        return a.instanceId.localeCompare(b.instanceId);
-      });
-    if (sources.length === 0 || targets.length === 0) return [];
-
-    const assignments: CombatDamageAssignment[] = [];
-    let targetIndex = 0;
-    let assignedToTarget = 0;
-    for (const source of sources) {
-      let remaining = combatMight(source, attacking);
-      while (remaining > 0) {
-        const target = targets[Math.min(targetIndex, targets.length - 1)];
-        const lethal = lethalDamageFor(target);
-        const needed = lethal - assignedToTarget;
-        if (needed <= 0) {
-          targetIndex = Math.min(targetIndex + 1, targets.length - 1);
-          assignedToTarget = 0;
-          continue;
-        }
-        const amount = targetIndex === targets.length - 1 ? remaining : Math.min(remaining, needed);
-        assignments.push({ sourceInstanceId: source.instanceId, targetInstanceId: target.instanceId, amount });
-        remaining -= amount;
-        assignedToTarget += amount;
-        if (assignedToTarget >= lethal) {
-          if (targetIndex < targets.length - 1) {
-            targetIndex += 1;
-            assignedToTarget = 0;
-          }
-        }
-      }
-    }
-    return assignments;
-  };
-
   const assignCombatDamage = () => {
     if (!canTakeAction(state, 'ASSIGN_COMBAT_DAMAGE')) {
       notifyWarning('Action unavailable', 'The server has no combat damage assignment action available right now.');
       return;
     }
-    const assignments = buildCombatDamageAssignments();
+    if (!state?.activeShowdown) return;
+    const assignments = buildCombatDamageAssignments(
+      state.cards,
+      cardsById,
+      player.id,
+      state.activeShowdown.attackingPlayerId === player.id,
+    );
+    if (assignments === null) {
+      notifyWarning(
+        'Cannot auto-assign combat damage',
+        'The current strict alpha combat policy has no valid automatic assignment for this board state.',
+      );
+      return;
+    }
     publishMove({ type: 'ASSIGN_COMBAT_DAMAGE', playerId: player.id, assignments });
   };
 

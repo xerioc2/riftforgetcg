@@ -23,6 +23,10 @@ import com.riftforge.model.move.ResolveChainTopMove;
 import com.riftforge.model.move.ResolveShowdownMove;
 import com.riftforge.model.move.SelectBattlefieldMove;
 import com.riftforge.model.move.TapRuneMove;
+import com.riftforge.engine.CombatDamageAssignmentPlanner;
+import com.riftforge.engine.CombatDamageRules;
+import com.riftforge.engine.CombatStatsService;
+import com.riftforge.engine.IllegalMoveException;
 import com.riftforge.rules.LegalAction;
 import com.riftforge.rules.LegalActionsService;
 import com.riftforge.service.CardDataService;
@@ -38,6 +42,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import jakarta.annotation.PostConstruct;
 import org.springframework.context.event.EventListener;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -50,11 +55,30 @@ public class BotService {
   private final GameService gameService;
   private final CardDataService cardDataService;
   private final LegalActionsService legalActionsService;
+  private final CombatDamageAssignmentPlanner combatDamageAssignmentPlanner;
+  private final Set<String> rejectedCombatAssignmentSignatures = ConcurrentHashMap.newKeySet();
 
   public BotService(@Lazy GameService gameService, CardDataService cardDataService, LegalActionsService legalActionsService) {
+    this(
+        gameService,
+        cardDataService,
+        legalActionsService,
+        new CombatDamageAssignmentPlanner(
+            cardDataService,
+            new CombatStatsService(cardDataService),
+            new CombatDamageRules(cardDataService)));
+  }
+
+  @Autowired
+  public BotService(
+      @Lazy GameService gameService,
+      CardDataService cardDataService,
+      LegalActionsService legalActionsService,
+      CombatDamageAssignmentPlanner combatDamageAssignmentPlanner) {
     this.gameService = gameService;
     this.cardDataService = cardDataService;
     this.legalActionsService = legalActionsService;
+    this.combatDamageAssignmentPlanner = combatDamageAssignmentPlanner;
   }
 
   @PostConstruct
@@ -202,7 +226,7 @@ public class BotService {
     }
     if (state.getActiveShowdown() != null) {
       if (legalActions.contains(LegalAction.ASSIGN_COMBAT_DAMAGE)) {
-        return processBotMove(roomCode, state, botId, new AssignCombatDamageMove(botId, botDamageAssignments(state, botId)));
+        return assignCombatDamageIfPossible(roomCode, state, botId);
       } else if (legalActions.contains(LegalAction.RESOLVE_SHOWDOWN)) {
         return processBotMove(roomCode, state, botId, new ResolveShowdownMove(botId));
       } else if (legalActions.contains(LegalAction.PASS_SHOWDOWN_FOCUS)) {
@@ -526,72 +550,78 @@ public class BotService {
     return targetForCard(state, def, botId).isPresent();
   }
 
-  private List<LiveGameState.CombatDamageAssignment> botDamageAssignments(LiveGameState state, String botId) {
-    boolean attacking = state.getActiveShowdown() != null && botId.equals(state.getActiveShowdown().attackingPlayerId());
-    List<CardInstance> sources = state.getCards().stream()
-        .filter(card -> botId.equals(card.getOwnerId()) && card.getZone() == ZoneName.BATTLEFIELD)
-        .filter(this::isCombatant)
-        .toList();
-    List<CardInstance> targets = state.getCards().stream()
-        .filter(card -> !botId.equals(card.getOwnerId()) && card.getZone() == ZoneName.BATTLEFIELD)
-        .filter(this::isCombatant)
-        .sorted(Comparator
-            .comparing((CardInstance card) -> !cardDataService.hasKeyword(card, "TANK"))
-            .thenComparing(CardInstance::getInstanceId))
-        .toList();
-    if (sources.isEmpty() || targets.isEmpty()) return List.of();
-
-    List<LiveGameState.CombatDamageAssignment> assignments = new java.util.ArrayList<>();
-    int targetIndex = 0;
-    int assignedToCurrentTarget = 0;
-    for (CardInstance source : sources) {
-      int remaining = botMight(source, attacking);
-      while (remaining > 0) {
-        CardInstance target = targets.get(Math.min(targetIndex, targets.size() - 1));
-        int lethal = lethal(target);
-        int needed = lethal - assignedToCurrentTarget;
-        if (needed <= 0) {
-          targetIndex = Math.min(targetIndex + 1, targets.size() - 1);
-          assignedToCurrentTarget = 0;
-          continue;
-        }
-        int amount = targetIndex == targets.size() - 1 ? remaining : Math.min(remaining, needed);
-        assignments.add(new LiveGameState.CombatDamageAssignment(
-            source.getInstanceId(),
-            target.getInstanceId(),
-            amount));
-        remaining -= amount;
-        assignedToCurrentTarget += amount;
-        if (assignedToCurrentTarget >= lethal) {
-          if (targetIndex < targets.size() - 1) {
-            targetIndex++;
-            assignedToCurrentTarget = 0;
-          }
-        }
-      }
+  private boolean assignCombatDamageIfPossible(String roomCode, LiveGameState state, String botId) {
+    Optional<List<LiveGameState.CombatDamageAssignment>> planned =
+        combatDamageAssignmentPlanner.plan(state, botId);
+    if (planned.isEmpty()) {
+      log.warn(
+          "Bot could not build a valid combat damage assignment: room={}, bot={}, assigningPlayer={}, sources={}, targets={}",
+          roomCode,
+          botId,
+          state.getActiveShowdown() == null ? null : state.getActiveShowdown().assigningPlayerId(),
+          combatantSummary(state, botId, true),
+          combatantSummary(state, botId, false));
+      return false;
     }
-    return assignments;
-  }
 
-  private int botMight(CardInstance card, boolean attacking) {
-    CardDefinition def = cardDataService.getCard(card.getCardId());
-    if (def == null) return 0;
-    if (cardDataService.hasKeyword(card, "STUN") || cardDataService.hasKeyword(card, "STUNNED")) return 0;
-    int situational = attacking
-        ? cardDataService.getKeywordValue(card, "ASSAULT")
-        : cardDataService.getKeywordValue(card, "SHIELD");
-    return Math.max(0, def.power() + card.getMightBonus() + card.getTemporaryPowerModifier() + situational);
-  }
+    List<LiveGameState.CombatDamageAssignment> assignments = planned.get();
+    String signature = combatAssignmentSignature(state, botId, assignments);
+    if (rejectedCombatAssignmentSignatures.contains(signature)) {
+      log.warn(
+          "Bot skipping previously rejected combat assignment: room={}, bot={}, assigningPlayer={}, assignments={}",
+          roomCode,
+          botId,
+          state.getActiveShowdown() == null ? null : state.getActiveShowdown().assigningPlayerId(),
+          assignments);
+      return false;
+    }
 
-  private int lethal(CardInstance card) {
-    CardDefinition def = cardDataService.getCard(card.getCardId());
-    int health = card.getCurrentHealth() > 0 ? card.getCurrentHealth() : def == null ? 0 : def.health();
-    return Math.max(1, health);
+    try {
+      return processBotMove(roomCode, state, botId, new AssignCombatDamageMove(botId, assignments));
+    } catch (IllegalMoveException e) {
+      rejectedCombatAssignmentSignatures.add(signature);
+      log.warn(
+          "Bot combat assignment rejected: room={}, bot={}, assigningPlayer={}, sources={}, targets={}, assignments={}, error={}",
+          roomCode,
+          botId,
+          state.getActiveShowdown() == null ? null : state.getActiveShowdown().assigningPlayerId(),
+          combatantSummary(state, botId, true),
+          combatantSummary(state, botId, false),
+          assignments,
+          e.getMessage());
+      return false;
+    }
   }
 
   private boolean isCombatant(CardInstance card) {
     CardDefinition def = cardDataService.getCard(card.getCardId());
     return def != null && ("Unit".equalsIgnoreCase(def.type()) || "Champion".equalsIgnoreCase(def.type()));
+  }
+
+  private String combatAssignmentSignature(
+      LiveGameState state,
+      String botId,
+      List<LiveGameState.CombatDamageAssignment> assignments) {
+    return showdownSnapshot(state)
+        + "|bot=" + botId
+        + "|sources=" + combatantSummary(state, botId, true)
+        + "|targets=" + combatantSummary(state, botId, false)
+        + "|assignments=" + assignments;
+  }
+
+  private List<String> combatantSummary(LiveGameState state, String botId, boolean friendly) {
+    if (state == null) return List.of();
+    return state.getCards().stream()
+        .filter(card -> card.getZone() == ZoneName.BATTLEFIELD)
+        .filter(card -> friendly == botId.equals(card.getOwnerId()))
+        .filter(this::isCombatant)
+        .sorted(Comparator.comparing(CardInstance::getInstanceId))
+        .map(card -> card.getInstanceId()
+            + ":" + card.getCardId()
+            + ":owner=" + card.getOwnerId()
+            + ":health=" + card.getCurrentHealth()
+            + ":tank=" + cardDataService.hasKeyword(card, "TANK"))
+        .toList();
   }
 
   private List<PlayCardMove.TargetSelection> targetsForCard(LiveGameState state, CardDefinition def, String botId) {

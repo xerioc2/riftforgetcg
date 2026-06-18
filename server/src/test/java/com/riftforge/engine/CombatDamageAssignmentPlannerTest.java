@@ -1,0 +1,207 @@
+package com.riftforge.engine;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+
+import com.riftforge.model.CardDefinition;
+import com.riftforge.model.CardInstance;
+import com.riftforge.model.LiveGameState;
+import com.riftforge.model.Phase;
+import com.riftforge.model.PlayerState;
+import com.riftforge.model.ShowdownStep;
+import com.riftforge.model.ZoneName;
+import com.riftforge.model.move.AssignCombatDamageMove;
+import com.riftforge.service.CardDataService;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+class CombatDamageAssignmentPlannerTest {
+  @Mock CardDataService cardDataService;
+
+  private CombatDamageAssignmentPlanner planner;
+  private RulesValidator validator;
+
+  @BeforeEach
+  void setUp() {
+    CombatStatsService stats = new CombatStatsService(cardDataService);
+    CombatDamageRules damageRules = new CombatDamageRules(cardDataService);
+    planner = new CombatDamageAssignmentPlanner(cardDataService, stats, damageRules);
+    validator = new RulesValidator(cardDataService);
+    when(cardDataService.hasKeyword(org.mockito.ArgumentMatchers.any(CardInstance.class), anyString())).thenReturn(false);
+  }
+
+  @Test
+  void insufficientDamageForFirstTargetAssignsAllDamageToThatTarget() {
+    LiveGameState state = assignmentState("bot", "bot",
+        unit("source", "bot", 2, 2),
+        unit("target-one", "human", 1, 3),
+        unit("target-two", "human", 1, 1));
+
+    List<LiveGameState.CombatDamageAssignment> assignments = plan(state, "bot");
+
+    assertThat(assignments).containsExactly(
+        new LiveGameState.CombatDamageAssignment("source", "target-one", 2));
+    assertAccepted(state, "bot", assignments);
+  }
+
+  @Test
+  void enoughDamageKillsFirstTargetBeforeAssigningToSecond() {
+    LiveGameState state = assignmentState("bot", "bot",
+        unit("source-one", "bot", 2, 2),
+        unit("source-two", "bot", 2, 2),
+        unit("target-one", "human", 1, 2),
+        unit("target-two", "human", 1, 2));
+
+    List<LiveGameState.CombatDamageAssignment> assignments = plan(state, "bot");
+
+    assertThat(assignments).containsExactly(
+        new LiveGameState.CombatDamageAssignment("source-one", "target-one", 2),
+        new LiveGameState.CombatDamageAssignment("source-two", "target-two", 2));
+    assertAccepted(state, "bot", assignments);
+  }
+
+  @Test
+  void moreTargetsThanTotalMightDoesNotSpreadPartialDamageIllegally() {
+    LiveGameState state = assignmentState("bot", "bot",
+        unit("source-one", "bot", 2, 2),
+        unit("source-two", "bot", 2, 2),
+        unit("target-one", "human", 1, 3),
+        unit("target-two", "human", 1, 5));
+
+    List<LiveGameState.CombatDamageAssignment> assignments = plan(state, "bot");
+
+    assertThat(assignments).containsExactly(
+        new LiveGameState.CombatDamageAssignment("source-one", "target-two", 2),
+        new LiveGameState.CombatDamageAssignment("source-two", "target-two", 2));
+    assertAccepted(state, "bot", assignments);
+  }
+
+  @Test
+  void tankTargetReceivesLethalBeforeNonTankTarget() {
+    CardInstance tank = unit("tank", "human", 1, 2);
+    LiveGameState state = assignmentState("bot", "bot",
+        unit("source-one", "bot", 2, 2),
+        unit("source-two", "bot", 5, 5),
+        tank,
+        unit("non-tank", "human", 1, 5));
+    when(cardDataService.hasKeyword(eq(tank), eq("TANK"))).thenReturn(true);
+
+    List<LiveGameState.CombatDamageAssignment> assignments = plan(state, "bot");
+
+    assertThat(assignments).containsExactly(
+        new LiveGameState.CombatDamageAssignment("source-one", "tank", 2),
+        new LiveGameState.CombatDamageAssignment("source-two", "non-tank", 5));
+    assertAccepted(state, "bot", assignments);
+  }
+
+  @Test
+  void defenderSideAssignmentUsesDefendingMightAndStillRespectsLethalPolicy() {
+    CardInstance defender = unit("defender", "bot", 2, 2);
+    LiveGameState state = assignmentState("human", "bot",
+        defender,
+        unit("attacker-one", "human", 1, 3),
+        unit("attacker-two", "human", 1, 5));
+    when(cardDataService.getKeywordValue(defender, "SHIELD")).thenReturn(2);
+
+    List<LiveGameState.CombatDamageAssignment> assignments = plan(state, "bot");
+
+    assertThat(assignments).containsExactly(
+        new LiveGameState.CombatDamageAssignment("defender", "attacker-two", 4));
+    assertAccepted(state, "bot", assignments);
+  }
+
+  @Test
+  void moreSourcesThanTargetsAssignsAllMight() {
+    LiveGameState state = assignmentState("bot", "bot",
+        unit("source-one", "bot", 3, 3),
+        unit("source-two", "bot", 3, 3),
+        unit("target", "human", 1, 6));
+
+    List<LiveGameState.CombatDamageAssignment> assignments = plan(state, "bot");
+
+    assertThat(assignments).containsExactly(
+        new LiveGameState.CombatDamageAssignment("source-one", "target", 3),
+        new LiveGameState.CombatDamageAssignment("source-two", "target", 3));
+    assertAccepted(state, "bot", assignments);
+  }
+
+  @Test
+  void returnsEmptyWhenStrictPolicyHasNoValidAssignment() {
+    CardInstance tank = unit("tank", "human", 1, 2);
+    LiveGameState state = assignmentState("bot", "bot",
+        unit("source-one", "bot", 2, 2),
+        unit("source-two", "bot", 2, 2),
+        tank,
+        unit("non-tank", "human", 1, 5));
+    when(cardDataService.hasKeyword(eq(tank), eq("TANK"))).thenReturn(true);
+
+    Optional<List<LiveGameState.CombatDamageAssignment>> assignments = planner.plan(state, "bot");
+
+    assertThat(assignments).isEmpty();
+  }
+
+  private List<LiveGameState.CombatDamageAssignment> plan(LiveGameState state, String playerId) {
+    return planner.plan(state, playerId).orElseThrow();
+  }
+
+  private void assertAccepted(
+      LiveGameState state,
+      String playerId,
+      List<LiveGameState.CombatDamageAssignment> assignments) {
+    assertThatNoException().isThrownBy(() ->
+        validator.validate(state, new AssignCombatDamageMove(playerId, assignments)));
+  }
+
+  private LiveGameState assignmentState(String attackerId, String assigningPlayerId, CardInstance... cards) {
+    LiveGameState state = new LiveGameState();
+    state.setCurrentPhase(Phase.MAIN);
+    state.setActivePlayerId(assigningPlayerId);
+    state.setPlayers(new ArrayList<>(List.of(player("bot"), player("human"))));
+    state.setCards(new ArrayList<>(List.of(cards)));
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        attackerId,
+        List.of(),
+        Map.of(),
+        ShowdownStep.ASSIGN_DAMAGE,
+        List.of("bot", "human"),
+        attackerId,
+        2,
+        true,
+        assigningPlayerId,
+        List.of(),
+        List.of()));
+    return state;
+  }
+
+  private PlayerState player(String id) {
+    PlayerState player = new PlayerState();
+    player.setUserId(id);
+    return player;
+  }
+
+  private CardInstance unit(String id, String ownerId, int might, int health) {
+    CardInstance card = new CardInstance();
+    card.setInstanceId(id);
+    card.setCardId(id);
+    card.setOwnerId(ownerId);
+    card.setZone(ZoneName.BATTLEFIELD);
+    card.setCurrentHealth(health);
+    when(cardDataService.getCard(id)).thenReturn(
+        new CardDefinition(id, id, "Unit", null, List.of(), 0, 0, null, null, null, null, might, health, List.of()));
+    return card;
+  }
+}
