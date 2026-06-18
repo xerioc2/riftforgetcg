@@ -181,7 +181,7 @@ class GameEnginePlayCardTypeTest {
     assertThat(ambusher.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
     assertThat(ambusher.isTapped()).isFalse();
     assertThat(ambusher.isHasSummoningSickness()).isFalse();
-    assertThat(state.getBattlefieldController()).containsEntry("BATTLEFIELD", "p1");
+    assertThat(state.getBattlefieldController()).containsEntry(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID, "p1");
     assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Ambushed Ambush Recruit to the battlefield."));
   }
 
@@ -1194,7 +1194,7 @@ class GameEnginePlayCardTypeTest {
 
     assertThatThrownBy(() -> engine.applyMove(state, equip("equip", "enemy")))
         .isInstanceOf(IllegalMoveException.class)
-        .hasMessage("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
+        .hasMessage("Equipment can only attach to a friendly Unit or Champion.");
     assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
     assertThat(gear.getAttachedToInstanceId()).isNull();
     assertThat(gear.getX()).isZero();
@@ -1213,10 +1213,10 @@ class GameEnginePlayCardTypeTest {
 
     assertThatThrownBy(() -> engine.applyMove(state, equip("equip", "hidden")))
         .isInstanceOf(IllegalMoveException.class)
-        .hasMessage("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
+        .hasMessage("Equipment target must be in Base or at a battlefield.");
     assertThatThrownBy(() -> engine.applyMove(state, equip("equip", "trashed")))
         .isInstanceOf(IllegalMoveException.class)
-        .hasMessage("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
+        .hasMessage("Equipment target must be in Base or at a battlefield.");
   }
 
   @Test
@@ -1230,7 +1230,7 @@ class GameEnginePlayCardTypeTest {
 
     assertThatThrownBy(() -> engine.applyMove(state, equip("equip", "hand-unit")))
         .isInstanceOf(IllegalMoveException.class)
-        .hasMessage("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
+        .hasMessage("Equipment target must be in Base or at a battlefield.");
     assertThatThrownBy(() -> engine.applyMove(state, equip("equip", "deck-unit")))
         .isInstanceOf(IllegalMoveException.class)
         .hasMessage("Card not found.");
@@ -1246,7 +1246,7 @@ class GameEnginePlayCardTypeTest {
 
     assertThatThrownBy(() -> engine.applyMove(state, equip("equip", "champion")))
         .isInstanceOf(IllegalMoveException.class)
-        .hasMessage("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
+        .hasMessage("Equipment target must be in Base or at a battlefield.");
   }
 
   @Test
@@ -1259,7 +1259,56 @@ class GameEnginePlayCardTypeTest {
 
     assertThatThrownBy(() -> engine.applyMove(state, equip("equip", "battlefield")))
         .isInstanceOf(IllegalMoveException.class)
-        .hasMessage("Target must be a Unit or Champion.");
+        .hasMessage("Equipment cannot attach to Battlefields.");
+  }
+
+  @Test
+  void equipRejectsSpecificIllegalTargetTypesWithoutMutation() {
+    CardInstance gearTarget = card("other-gear", "p1", ZoneName.BASE);
+    CardInstance runeTarget = card("rune-card", "p1", ZoneName.BASE);
+    CardInstance legendTarget = card("legend-card", "p1", ZoneName.BASE);
+    CardInstance hiddenTarget = card("hidden-unit", "p1", ZoneName.BASE);
+    hiddenTarget.setFaceDown(true);
+    LiveGameState state = state(
+        card("equip", "p1", ZoneName.BASE),
+        gearTarget,
+        runeTarget,
+        legendTarget,
+        hiddenTarget);
+    stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    stubCard("other-gear", "Other Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    stubCard("rune-card", "Rune Card", "Rune", 0, 0, 0, null);
+    stubCard("legend-card", "Legend Card", "Legend", 0, 0, 0, null);
+    stubCard("hidden-unit", "Hidden Unit", "Unit", 0, 2, 2, null);
+
+    assertThatThrownBy(() -> engine.applyMove(state, equip("equip", "other-gear")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Equipment cannot attach to another Equipment.");
+    assertThatThrownBy(() -> engine.applyMove(state, equip("equip", "rune-card")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Equipment cannot attach to Runes.");
+    assertThatThrownBy(() -> engine.applyMove(state, equip("equip", "legend-card")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Equipment cannot attach to Legends.");
+    assertThatThrownBy(() -> engine.applyMove(state, equip("equip", "hidden-unit")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Equipment cannot attach to hidden or face-down cards.");
+    assertThat(find(state, "equip").getAttachedToInstanceId()).isNull();
+    assertThat(state.getCards()).filteredOn(card -> !"equip".equals(card.getInstanceId()))
+        .allSatisfy(card -> assertThat(card.getAttachedToInstanceId()).isNull());
+  }
+
+  @Test
+  void equipRejectsOpponentTargetWithFriendlyMessage() {
+    CardInstance enemy = card("enemy", "p2", ZoneName.BATTLEFIELD);
+    LiveGameState state = state(card("equip", "p1", ZoneName.BASE), enemy);
+    stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
+    stubCard("enemy", "Enemy Unit", "Unit", 0, 2, 2, null);
+
+    assertThatThrownBy(() -> engine.applyMove(state, equip("equip", "enemy")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Equipment can only attach to a friendly Unit or Champion.");
+    assertThat(find(state, "equip").getAttachedToInstanceId()).isNull();
   }
 
   @Test
@@ -1601,7 +1650,7 @@ class GameEnginePlayCardTypeTest {
     engine.applyMove(state, new MoveToBattlefieldMove("p1", "unit"));
 
     assertThat(state.getCards().getFirst().getZone()).isEqualTo(ZoneName.BATTLEFIELD);
-    assertThat(state.getBattlefieldController()).containsEntry("BATTLEFIELD", "p1");
+    assertThat(state.getBattlefieldController()).containsEntry(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID, "p1");
     assertThat(state.getActiveShowdown()).isNull();
   }
 
@@ -1881,6 +1930,19 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void movingUnitToBattlefieldCanAssignCustomLocationId() {
+    LiveGameState state = state(card("unit", "p1", ZoneName.BASE));
+    stubCard("unit", "Unit", 0);
+
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "unit", "bf-1", List.of(), List.of()));
+
+    CardInstance unit = find(state, "unit");
+    assertThat(unit.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(unit.getBattlefieldLocationId()).isEqualTo("bf-1");
+    assertThat(state.getBattlefieldController()).containsEntry("bf-1", "p1");
+  }
+
+  @Test
   void showdownStartedByMoveStoresDefaultLocationId() {
     LiveGameState state = state(
         card("attacker", "p1", ZoneName.BASE),
@@ -1893,6 +1955,48 @@ class GameEnginePlayCardTypeTest {
     assertThat(find(state, "attacker").getBattlefieldLocationId()).isEqualTo(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID);
     assertThat(state.getActiveShowdown()).isNotNull();
     assertThat(state.getActiveShowdown().locationId()).isEqualTo(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID);
+  }
+
+  @Test
+  void movingToSameLocationAsOpponentStartsShowdownAtThatLocation() {
+    CardInstance defender = atLocation(card("defender", "p2", ZoneName.BATTLEFIELD), "bf-1");
+    LiveGameState state = state(card("attacker", "p1", ZoneName.BASE), defender);
+    stubCard("attacker", "Unit", 0);
+    stubCard("defender", "Unit", 0);
+
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "attacker", "bf-1", List.of(), List.of()));
+
+    assertThat(state.getActiveShowdown()).isNotNull();
+    assertThat(state.getActiveShowdown().locationId()).isEqualTo("bf-1");
+    assertThat(state.getActiveShowdown().relevantPlayerIds()).containsExactly("p1", "p2");
+  }
+
+  @Test
+  void movingToDifferentLocationThanOpponentDoesNotStartShowdown() {
+    CardInstance defender = atLocation(card("defender", "p2", ZoneName.BATTLEFIELD), "bf-1");
+    LiveGameState state = state(card("attacker", "p1", ZoneName.BASE), defender);
+    stubCard("attacker", "Unit", 0);
+    stubCard("defender", "Unit", 0);
+
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "attacker", "bf-2", List.of(), List.of()));
+
+    assertThat(state.getActiveShowdown()).isNull();
+    assertThat(find(state, "attacker").getBattlefieldLocationId()).isEqualTo("bf-2");
+    assertThat(state.getBattlefieldController()).containsEntry("bf-2", "p1");
+  }
+
+  @Test
+  void noxianDrummerRecruitTokenUsesDrummersBattlefieldLocation() {
+    LiveGameState state = state(card("drummer", "p1", ZoneName.BASE));
+    stubCard("drummer", "Noxian Drummer", "Unit", 0, 2, 2, "When I move to battlefield, create a Recruit.");
+    stubCard(TokenFactory.RECRUIT_TOKEN_CARD_ID, "Recruit", "Unit", 0, 1, 1, "Token Unit.");
+
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "drummer", "bf-2", List.of(), List.of()));
+
+    assertThat(state.getCards())
+        .filteredOn(card -> TokenFactory.RECRUIT_TOKEN_CARD_ID.equals(card.getCardId()))
+        .singleElement()
+        .satisfies(token -> assertThat(token.getBattlefieldLocationId()).isEqualTo("bf-2"));
   }
 
   @Test
@@ -2083,6 +2187,11 @@ class GameEnginePlayCardTypeTest {
         .filter(card -> card.getInstanceId().equals(instanceId))
         .findFirst()
         .orElseThrow();
+  }
+
+  private CardInstance atLocation(CardInstance card, String locationId) {
+    card.setBattlefieldLocationId(locationId);
+    return card;
   }
 
   private RuneState findRune(LiveGameState state, String instanceId) {

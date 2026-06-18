@@ -9,8 +9,8 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Select a deck in the lobby, review support warnings, then Ready and Start.
 - Start a human vs RiftBot or human vs human game.
 - Choose one Battlefield before mulligan and confirm the opponent's unchosen Battlefield pool is not visible.
-- After both players choose, confirm the selected Battlefield plaque appears as a shared center location marker, can be hovered/read like a card, and cannot be targeted, moved, tapped, or fought.
-- Remember the current alpha has one shared Battlefield location. Future multi-location Battlefield play is about multiple shared objectives in 1v1 games, not 3+ player multiplayer.
+- After both players choose, confirm selected Battlefield plaques appear in the three-lane Battlefield area, can be hovered/read like cards, and cannot be targeted, moved, tapped, or fought.
+- Remember the current alpha has three visible shared Battlefield lanes for 1v1 testing. Battlefield effects, hidden slots, official "here" targeting, and full location rules remain deferred.
 - Keep your opening hand or mulligan at least one card.
 - Play a Unit and confirm it stays visible in Base.
 - Confirm your Legend starts in the Legend zone and your chosen Champion starts in the Champion zone.
@@ -40,7 +40,8 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
   Gust chooses your friendly Unit/Champion Unit or Gear.
 - Play Gear to Base, then pay its printed Equip cost to equip it to a friendly
   Unit or Champion if you draw one.
-- Confirm attached Gear stays with a host that moves from Base to battlefield.
+- Confirm attached Gear shows a host label, can be inspected by clicking/hovering the Gear, and cannot be dragged independently.
+- Confirm attached Gear stays with a host that moves from Base to a battlefield lane.
 - Confirm attached Gear returns to Base, not Trash, if its host dies or leaves
   public play in a supported path.
 - Hide a card if you draw a `[Hidden]` card.
@@ -59,6 +60,9 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Create a human vs RiftBot room.
 - Load or select a constructed deck, then ready and start.
 - Choose one Battlefield from the three-card setup prompt and confirm it appears on the board after both players choose.
+- Move one Unit into each visible lane across a few turns and confirm the card lands in the lane you dropped it on.
+- Move opposing Units into the same lane and confirm a same-lane showdown starts with that lane highlighted.
+- Move opposing Units into different lanes and confirm no cross-lane showdown starts.
 - Keep the opening hand or mulligan at least one card.
 - Confirm RiftBot updates live after mulligan and during its turn.
 - Play a Unit and confirm it stays in Base.
@@ -73,6 +77,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
   the top-3 private prompt and confirm opponent/spectator views do not reveal
   those card names.
 - Play Gear to Base, equip it to a valid friendly Unit/Champion, and confirm the log says what was equipped.
+- Confirm illegal Equip targets, such as opponent units, Gear, Battlefields, Runes, Legends, hidden cards, and Champion-zone identity cards, show readable warnings/rejections.
 - Confirm Gear cannot target the Champion while it is still in the Champion zone; it can target a Champion only after the Champion has moved into Base or the battlefield.
 - Try an illegal Champion/Legend drag and confirm it snaps back to the zone with a readable warning.
 - If a Champion is destroyed in combat, confirm it returns to the Champion zone and any attached Gear returns to Base.
@@ -105,8 +110,10 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Load or select a constructed deck.
 - Ready up, start the game, and confirm the Battlefield selection prompt appears before mulligan.
 - Choose one Battlefield, then confirm mulligan appears after both players have selected.
-- Confirm the selected Battlefield display appears around the shared Battlefield divider after setup, shows a hover preview, and remains a non-interactive location display.
-- Move units from each player to the Battlefield and confirm they occupy opposite sides of the same shared Battlefield row instead of separate Battlefield lanes.
+- Confirm the selected Battlefield displays appear in the visible Battlefield lanes after setup, show hover previews, and remain non-interactive location displays.
+- Move Units to `Battlefield 1`, `Battlefield 2`, and `Battlefield 3` and confirm each card stays in the lane chosen by the drag/drop.
+- Move units from both players into the same lane and confirm the lane highlight/phase bar identify the active showdown location.
+- Move units from both players into different lanes and confirm they do not start a showdown with each other.
 - Keep the opening hand or mulligan at least one card.
 - Confirm your hand cards are visible to you after mulligan.
 - Confirm RiftBot advances through its turn steps without manual help.
@@ -118,6 +125,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - If you draw Stacked Deck, play it and confirm the private card-selection modal is readable and returns to normal actions after resolving.
 - Play Equip Gear when available and confirm it enters Base first.
 - Click the Gear in Base, choose a friendly Unit/Champion, and confirm it attaches.
+- Confirm the attached Gear appears smaller near its host, the host shows the Gear name, and clicking the attached Gear opens inspect rather than selecting it as a movable combat card.
 - Pass through the turn and confirm the phase guidance updates.
 - Move a Unit to the battlefield.
 - If an Ambush card appears, confirm it either shows a clear Ambush option with a friendly battlefield unit or explains why Ambush/additional cost is unavailable.
@@ -139,8 +147,9 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
   windows.
 - While RiftBot is active in Main, click an unsupported Reaction card in your
   hand and confirm the warning does not freeze the client; Copy debug info
-  should include awaiting update, last submitted action, last failure, chain,
-  choice, and legal-action fields.
+  should include awaiting update, last submitted action, last failure, active
+  showdown location, battlefield controllers, public card locations,
+  attachments, chain, choice, and legal-action fields.
 - Resolve a showdown after the focus/pass cycle completes, then confirm `Assign Damage` appears before cleanup.
 - Confirm attached Gear returns to Base if its host leaves play in a supported path.
 - Confirm the game log shows readable entries for play, move, target, showdown, scoring, and unsupported-effect messages.

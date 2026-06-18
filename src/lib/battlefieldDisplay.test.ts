@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { battlefieldDisplayForPlayer, battlefieldDisplayFrame, selectedBattlefieldIsInteractiveTarget, selectedBattlefieldSupportsPreview } from './battlefieldDisplay';
+import { battlefieldDisplayForPlayer, battlefieldDisplayFrame, battlefieldLaneDisplays, selectedBattlefieldIsInteractiveTarget, selectedBattlefieldSupportsPreview } from './battlefieldDisplay';
 import type { RiftCard } from '../types';
-import { computeLayout, sharedBattlefieldSides, type ZoneRect } from '../components/board/BoardLayout';
+import { computeLayout, type ZoneRect } from '../components/board/BoardLayout';
 
 const sunkenTemple: RiftCard = {
   id: 'sunken-temple',
@@ -101,15 +101,24 @@ describe('battlefieldDisplay', () => {
     expect(frame.width).toBeLessThan(zone.width * 0.2);
   });
 
-  it('positions selected battlefield plaques near the shared divider on split battlefield sides', () => {
-    const sides = sharedBattlefieldSides(computeLayout(1600, 720, ['player', 'opponent']))!;
-    const opponentFrame = battlefieldDisplayFrame(sides.opponentSide, 'right');
-    const playerFrame = battlefieldDisplayFrame(sides.playerSide, 'left');
-    const dividerCenter = (sides.opponentSide.x + sides.opponentSide.width + sides.playerSide.x) / 2;
+  it('builds one compact plaque frame per visible battlefield lane', () => {
+    const zones = computeLayout(1600, 720, ['player', 'opponent']);
+    const displays = battlefieldLaneDisplays(
+      [
+        { userId: 'player', name: 'Player', score: 0, selectedBattlefieldId: 'sunken-temple' },
+        { userId: 'opponent', name: 'Opponent', score: 0, selectedBattlefieldId: 'unknown-battlefield' },
+      ],
+      'player',
+      new Map([[sunkenTemple.id, sunkenTemple]]),
+      zones,
+    );
 
-    expect(opponentFrame.x + opponentFrame.width).toBeLessThanOrEqual(dividerCenter);
-    expect(playerFrame.x).toBeGreaterThanOrEqual(dividerCenter);
-    expect(playerFrame.x - (opponentFrame.x + opponentFrame.width)).toBeLessThan(80);
+    expect(displays.map((display) => display.locationId)).toEqual(['bf-0', 'bf-1', 'bf-2']);
+    expect(displays[0].label).toBe('Sunken Temple');
+    expect(displays[1].label).toBe('unknown-battlefield');
+    expect(displays[2].label).toBe('Battlefield 3');
+    expect(displays[0].frame.x).toBeLessThan(displays[1].frame.x);
+    expect(displays[1].frame.x).toBeLessThan(displays[2].frame.x);
   });
 
   it('marks selected battlefield visuals as non-targetable and non-interactive', () => {

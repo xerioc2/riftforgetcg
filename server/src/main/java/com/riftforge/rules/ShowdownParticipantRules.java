@@ -24,7 +24,9 @@ public class ShowdownParticipantRules {
         && state.getActiveShowdown() != null
         && playerId != null
         && state.getCards().stream()
-            .anyMatch(card -> playerId.equals(card.getOwnerId()) && card.getZone() == ZoneName.BATTLEFIELD);
+            .anyMatch(card -> playerId.equals(card.getOwnerId())
+                && card.getZone() == ZoneName.BATTLEFIELD
+                && BattlefieldLocationRules.isAtLocation(card, state.getActiveShowdown().locationId()));
   }
 
   public boolean isFocusedPlayer(LiveGameState state, String playerId) {
@@ -50,6 +52,7 @@ public class ShowdownParticipantRules {
     if (attacker != null && !attacker.isBlank()) relevant.add(attacker);
     state.getCards().stream()
         .filter(card -> card.getZone() == ZoneName.BATTLEFIELD)
+        .filter(card -> BattlefieldLocationRules.isAtLocation(card, state.getActiveShowdown().locationId()))
         .map(card -> card.getOwnerId())
         .filter(owner -> owner != null && !owner.isBlank())
         .filter(owner -> !owner.equals(attacker))

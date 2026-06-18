@@ -140,6 +140,28 @@ class CombatDamageAssignmentPlannerTest {
   }
 
   @Test
+  void plannerOnlyUsesCombatantsAtActiveShowdownLocation() {
+    CardInstance sourceHere = atLocation(unit("source-here", "bot", 3, 3), "bf-1");
+    CardInstance sourceElsewhere = atLocation(unit("source-elsewhere", "bot", 9, 9), "bf-2");
+    CardInstance targetHere = atLocation(unit("target-here", "human", 1, 3), "bf-1");
+    CardInstance targetElsewhere = atLocation(unit("target-elsewhere", "human", 1, 9), "bf-2");
+    LiveGameState state = assignmentState(
+        "human",
+        "bot",
+        "bf-1",
+        sourceHere,
+        sourceElsewhere,
+        targetHere,
+        targetElsewhere);
+
+    List<LiveGameState.CombatDamageAssignment> assignments = plan(state, "bot");
+
+    assertThat(assignments).containsExactly(
+        new LiveGameState.CombatDamageAssignment("source-here", "target-here", 3));
+    assertAccepted(state, "bot", assignments);
+  }
+
+  @Test
   void returnsEmptyWhenStrictPolicyHasNoValidAssignment() {
     CardInstance tank = unit("tank", "human", 1, 2);
     LiveGameState state = assignmentState("bot", "bot",
@@ -167,6 +189,10 @@ class CombatDamageAssignmentPlannerTest {
   }
 
   private LiveGameState assignmentState(String attackerId, String assigningPlayerId, CardInstance... cards) {
+    return assignmentState(attackerId, assigningPlayerId, CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID, cards);
+  }
+
+  private LiveGameState assignmentState(String attackerId, String assigningPlayerId, String locationId, CardInstance... cards) {
     LiveGameState state = new LiveGameState();
     state.setCurrentPhase(Phase.MAIN);
     state.setActivePlayerId(assigningPlayerId);
@@ -183,7 +209,8 @@ class CombatDamageAssignmentPlannerTest {
         true,
         assigningPlayerId,
         List.of(),
-        List.of()));
+        List.of(),
+        locationId));
     return state;
   }
 
@@ -202,6 +229,11 @@ class CombatDamageAssignmentPlannerTest {
     card.setCurrentHealth(health);
     when(cardDataService.getCard(id)).thenReturn(
         new CardDefinition(id, id, "Unit", null, List.of(), 0, 0, null, null, null, null, might, health, List.of()));
+    return card;
+  }
+
+  private CardInstance atLocation(CardInstance card, String locationId) {
+    card.setBattlefieldLocationId(locationId);
     return card;
   }
 }

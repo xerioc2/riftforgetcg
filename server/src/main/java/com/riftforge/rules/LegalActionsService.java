@@ -321,7 +321,11 @@ public class LegalActionsService {
     if (card.getZone() != ZoneName.BASE && card.getZone() != ZoneName.BATTLEFIELD) return false;
     if (card.isFaceDown()) return false;
     CardDefinition def = cardDataService.getCard(card.getCardId());
-    return def != null && ("Unit".equalsIgnoreCase(def.type()) || "Champion".equalsIgnoreCase(def.type()));
+    return def != null && isUnitOrChampion(def);
+  }
+
+  private boolean isUnitOrChampion(CardDefinition def) {
+    return "Unit".equalsIgnoreCase(def.type()) || "Champion".equalsIgnoreCase(def.type());
   }
 
   private boolean canPayEquip(LiveGameState state, String playerId, CardDefinition gearDef) {

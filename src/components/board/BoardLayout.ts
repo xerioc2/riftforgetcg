@@ -9,6 +9,7 @@ export type ZoneRect = {
   height: number;
   ownerId: string | null;
   zoneName: ZoneName;
+  battlefieldLocationId?: string;
 };
 
 export type ZonePlacement = {
@@ -21,7 +22,34 @@ export type SharedBattlefieldSides = {
   playerSide: ZoneRect;
 };
 
-const zone = (id: string, label: string, x: number, y: number, width: number, height: number, ownerId: string | null, zoneName: ZoneName): ZoneRect => ({
+export const BATTLEFIELD_LOCATIONS = ['bf-0', 'bf-1', 'bf-2'] as const;
+export type BattlefieldLocationId = (typeof BATTLEFIELD_LOCATIONS)[number];
+export const DEFAULT_BATTLEFIELD_LOCATION_ID: BattlefieldLocationId = 'bf-0';
+
+export function normalizeBattlefieldLocationId(locationId?: string | null): BattlefieldLocationId {
+  const normalized = locationId?.trim();
+  return BATTLEFIELD_LOCATIONS.includes(normalized as BattlefieldLocationId)
+    ? normalized as BattlefieldLocationId
+    : DEFAULT_BATTLEFIELD_LOCATION_ID;
+}
+
+export function battlefieldLocationLabel(locationId?: string | null): string {
+  const normalized = normalizeBattlefieldLocationId(locationId);
+  const index = BATTLEFIELD_LOCATIONS.indexOf(normalized);
+  return `Battlefield ${index + 1}`;
+}
+
+const zone = (
+  id: string,
+  label: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  ownerId: string | null,
+  zoneName: ZoneName,
+  battlefieldLocationId?: string,
+): ZoneRect => ({
   id,
   label,
   x,
@@ -30,6 +58,7 @@ const zone = (id: string, label: string, x: number, y: number, width: number, he
   height,
   ownerId,
   zoneName,
+  battlefieldLocationId,
 });
 
 export function computeLayout(width: number, height: number, playerIds: string[]): ZoneRect[] {
@@ -50,13 +79,15 @@ export function computeLayout(width: number, height: number, playerIds: string[]
     const baseHeight = Math.max(100, Math.min(124, height * 0.145));
     const rowGap = 14;
     const utilityHeight = runeStrip + baseHeight + 12;
-    const battlefieldGap = Math.max(12, Math.min(22, actionWidth * 0.018));
     const maxBattlefieldHeight = Math.max(150, height - utilityHeight * 2 - rowGap * 2);
     const battlefieldHeight = Math.min(230, Math.max(150, Math.min(maxBattlefieldHeight, height * 0.31)));
     const topUtilityHeight = Math.max(utilityHeight, (height - battlefieldHeight - rowGap) / 2);
     const battlefieldY = topUtilityHeight;
     const localUtilityY = battlefieldY + battlefieldHeight + rowGap;
-    const battlefieldSideWidth = (actionWidth - battlefieldGap) / 2;
+    const locationGap = Math.max(10, Math.min(18, actionWidth * 0.012));
+    const locationWidth = (actionWidth - locationGap * (BATTLEFIELD_LOCATIONS.length - 1)) / BATTLEFIELD_LOCATIONS.length;
+    const sideGap = 8;
+    const battlefieldSideHeight = (battlefieldHeight - sideGap) / 2;
     const opponent = others[0] ?? 'opponent';
     const opponentIdentityY = Math.max(0, topUtilityHeight - identityHeight - 4);
 
@@ -65,10 +96,14 @@ export function computeLayout(width: number, height: number, playerIds: string[]
     zones.push(zone('p1-champion', 'Champion', identityStart + identityWidth + identityGap, opponentIdentityY, identityWidth, identityHeight, opponent, 'champion'));
     zones.push(zone('p1-rune', 'Runes', actionX, 0, actionWidth, runeStrip, opponent, 'rune'));
     zones.push(zone('p1-base', 'Base', actionX, Math.max(runeStrip + 8, topUtilityHeight - baseHeight - 6), actionWidth, baseHeight, opponent, 'base'));
-    zones.push(zone('p1-battlefield', 'Opponent side', actionX, battlefieldY, battlefieldSideWidth, battlefieldHeight, opponent, 'battlefield'));
+    BATTLEFIELD_LOCATIONS.forEach((locationId, index) => {
+      const x = actionX + index * (locationWidth + locationGap);
+      const label = battlefieldLocationLabel(locationId);
+      zones.push(zone(`p1-battlefield-${locationId}`, `${label}: opponent`, x, battlefieldY, locationWidth, battlefieldSideHeight, opponent, 'battlefield', locationId));
+      zones.push(zone(`p0-battlefield-${locationId}`, `${label}: you`, x, battlefieldY + battlefieldSideHeight + sideGap, locationWidth, battlefieldSideHeight, local, 'battlefield', locationId));
+    });
 
     // Local setup zones stay separate below the shared Battlefield row.
-    zones.push(zone('p0-battlefield', 'Your side', actionX + battlefieldSideWidth + battlefieldGap, battlefieldY, battlefieldSideWidth, battlefieldHeight, local, 'battlefield'));
     zones.push(zone('p0-legend', 'Legend', identityStart, localUtilityY, identityWidth, Math.min(identityHeight, height - localUtilityY), local, 'legend'));
     zones.push(zone('p0-champion', 'Champion', identityStart + identityWidth + identityGap, localUtilityY, identityWidth, Math.min(identityHeight, height - localUtilityY), local, 'champion'));
     zones.push(zone('p0-base', 'Base', actionX, localUtilityY, actionWidth, baseHeight, local, 'base'));
@@ -129,11 +164,33 @@ export function clampPlacementToZone(position: ZonePlacement, zone: ZoneRect, ma
 
 export function sharedBattlefieldSides(zones: ZoneRect[]): SharedBattlefieldSides | null {
   const battlefieldZones = zones.filter((candidate) => candidate.zoneName === 'battlefield' && candidate.ownerId);
-  const opponentSide = battlefieldZones.find((candidate) => candidate.id === 'p1-battlefield');
-  const playerSide = battlefieldZones.find((candidate) => candidate.id === 'p0-battlefield');
+  const opponentSide = battlefieldZones.find((candidate) => candidate.id === `p1-battlefield-${DEFAULT_BATTLEFIELD_LOCATION_ID}`);
+  const playerSide = battlefieldZones.find((candidate) => candidate.id === `p0-battlefield-${DEFAULT_BATTLEFIELD_LOCATION_ID}`);
   if (!opponentSide || !playerSide) return null;
-  if (opponentSide.y !== playerSide.y || opponentSide.height !== playerSide.height) return null;
   return { opponentSide, playerSide };
+}
+
+export function battlefieldZonesForLocation(zones: ZoneRect[], locationId?: string | null): ZoneRect[] {
+  const normalized = normalizeBattlefieldLocationId(locationId);
+  return zones.filter((zone) => zone.zoneName === 'battlefield' && normalizeBattlefieldLocationId(zone.battlefieldLocationId) === normalized);
+}
+
+export function battlefieldZoneForCard(zones: ZoneRect[], ownerId: string, locationId?: string | null): ZoneRect | undefined {
+  const normalized = normalizeBattlefieldLocationId(locationId);
+  return zones.find((zone) =>
+    zone.zoneName === 'battlefield'
+    && zone.ownerId === ownerId
+    && normalizeBattlefieldLocationId(zone.battlefieldLocationId) === normalized);
+}
+
+export function battlefieldLocationForPoint(x: number, y: number, zones: ZoneRect[]): BattlefieldLocationId | undefined {
+  return zones.find((zone) =>
+    zone.zoneName === 'battlefield'
+    && x >= zone.x
+    && x <= zone.x + zone.width
+    && y >= zone.y
+    && y <= zone.y + zone.height)
+    ?.battlefieldLocationId as BattlefieldLocationId | undefined;
 }
 
 export function runeSlotPositions(zone: ZoneRect, slotCount: number, minSpacing = 30, maxSpacing = 72): ZonePlacement[] {

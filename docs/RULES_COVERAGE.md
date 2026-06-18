@@ -86,8 +86,8 @@ Status: Partial
 Current implementation notes:
 - `SELECT_BATTLEFIELD` phase exists before `MULLIGAN` for constructed decks with Battlefield choices.
 - Player-specific projections include only that player's own Battlefield choices. Selected Battlefields are public once chosen.
-- Selected Battlefields render as inert shared-location plaques near the single Battlefield row and can be hovered for card text, but they are not targetable/movable cards.
-- Battlefield cards and showdowns now have a default location identity foundation (`bf-0`) so later multi-location work has a migration path without changing alpha gameplay.
+- Selected Battlefields render as inert location plaques on the visible Battlefield lanes and can be hovered for card text, but they are not targetable/movable cards.
+- Battlefield cards, movement, showdowns, combat assignment, controller keys, and scoring use stable location identities (`bf-0`, `bf-1`, `bf-2`). Cards without a location still fall back to `bf-0` for backward compatibility.
 - Legal-action visibility exposes `SELECT_BATTLEFIELD` only to players who still need to choose.
 - MULLIGAN phase exists.
 - Players may keep or recycle up to 2 cards, then draw replacements.
@@ -96,7 +96,7 @@ Current implementation notes:
 Known gaps:
 - Multiplayer turn-order mulligan nuance is not deeply modeled.
 - UI/engine language should stay aligned with official "recycle up to 2" wording.
-- Full official-style multi-location Battlefield setup remains post-alpha. Current alpha uses one shared Battlefield location; future 1v1 support needs multiple shared Battlefield locations/objectives with their own units, control, hidden slots, "here" targeting, scoring, and showdown state. This is separate from 3+ player multiplayer support.
+- Full official-style multi-location Battlefield setup remains partial. Current alpha renders three shared Battlefield lanes and can send move destinations, but future 1v1 support still needs official Battlefield effects, hidden slots, richer "here" targeting, scoring nuance, bot strategy, and card-specific location rules. This is separate from 3+ player multiplayer support.
 - Printed Battlefield abilities remain card-specific Partial unless explicitly scripted and tested; current local texts include delayed/optional conquer, defend, spell-play, and score-modification effects that are not safe to auto-enable from display-only selection.
 
 Test coverage:
@@ -312,15 +312,18 @@ Priority: P0.
 Status: Partial
 
 Current implementation notes:
-- The alpha Equipment lifecycle is finalized for the current single-battlefield
+- The alpha Equipment lifecycle is finalized for the current single-location
   model.
 - Basic `[Equip]` gear is played from hand to Base first, then attached with a
   separate Equip action from Base to a friendly Unit/Champion in Base or at the
   battlefield by paying its printed Equip cost.
+- Equip target validation is intentionally strict: Equipment cannot attach to
+  enemy cards, Battlefields, Runes, Legends, other Gear, hidden/face-down cards,
+  or cards outside Base/Battlefield public play.
 - Champion-zone identity cards are not legal equip targets until they move into
   Base or the battlefield.
-- Attached Gear remains in Base with an attachment link and is shown near its
-  host for readability.
+- Attached Gear remains in Base with an attachment link, follows its host in the
+  board display, and host cards show a compact attached-Gear label.
 - Gear cannot move to the battlefield or fight as a unit.
 - Non-equip gear is treated as unsupported.
 - Gear attached to a unit/champion returns to Base and detaches when its host
@@ -349,15 +352,14 @@ Current implementation notes:
 - `RepositionCardMove` changes x/y only and cannot change zones.
 - Repositioning is limited to owned cards in public zones.
 - Movement validates ownership, active player, readiness, source zone, and card type.
-- Showdowns are staged when movement creates battlefield opposition.
-- Moving to an empty battlefield updates `battlefieldController`.
-- Cards moved to `BATTLEFIELD` receive the default alpha location id (`bf-0`); old/no-location battlefield cards also resolve to that same default.
+- Showdowns are staged when movement creates opposition at the same Battlefield location.
+- Moving to an empty Battlefield location updates `battlefieldController` under that location id.
+- Cards moved to `BATTLEFIELD` receive a location id, defaulting to `bf-0`; old/no-location battlefield cards also resolve to that same default.
 
 Known gaps:
-- The multi-location Battlefield model remains an official-rules gap, but it is
-  intentionally deferred until after the single-battlefield alpha is stable.
-  The full 1v1 model affects movement, target selection, hidden slots,
-  showdown, control, scoring, bot decisions, and UI layout.
+- Player-facing multi-location Battlefield lanes and drag-to-lane movement
+  destination sending exist for `bf-0`/`bf-1`/`bf-2`; hidden slots,
+  Battlefield effects, and official "here" targeting remain deferred.
 - Movement costs, readiness/exhaustion edge cases, Ganking exceptions, and
   effect-driven movement still need more precision in the current simplified
   battlefield flow.
@@ -375,17 +377,18 @@ Priority: P0.
 Status: Partial
 
 Current implementation notes:
-- Battlefield control is tracked in `battlefieldController`.
-- Conquer and hold can award points in simplified single-battlefield flow.
+- Battlefield control is tracked in `battlefieldController` by location id.
+- Conquer and hold can award points per tracked location in the simplified alpha flow.
 - Moving an unopposed unit or Champion to the battlefield sets that player as
   the current controller.
-- Moving into an opposed battlefield starts `activeShowdown`.
-- The frontend renders the current single-battlefield alpha as one shared row split into player/opponent sides, so both sides still represent the same `BATTLEFIELD` rules location.
+- Moving into an opposed location starts `activeShowdown` for that location only.
+- The frontend renders three shared Battlefield lanes. Each lane has a player and opponent side for readability, while the lane itself maps to a stable `battlefieldLocationId`.
 
 Known gaps:
-- Multi-location Battlefield play and official contested/control cleanup are
-  not fully modeled. This is deliberate post-alpha scope; current playtests
-  focus on a readable single shared-Battlefield control flow.
+- Full multi-location Battlefield play is not fully modeled. This is deliberate
+  post-alpha scope; current playtests now have readable shared-location lanes,
+  but Battlefield effects, hidden slots, official "here" text, and richer
+  destination prompts remain future work.
 - Control locking during showdowns/combat and chain items is incomplete.
 
 Test coverage:
@@ -405,8 +408,9 @@ Current implementation notes:
   client; contested movement opens at ACTION_WINDOW.
 - `activeShowdown` now tracks the two-player alpha relevant players, current
   focused player, consecutive focus passes, and a `readyToResolve` gate.
-- `activeShowdown` carries the default battlefield location id (`bf-0`) for
-  future migration, while current combat still uses the single shared location.
+- `activeShowdown` carries a battlefield location id. Combat assignment,
+  resolution, attacker recall, conquest, and participant fallback are scoped to
+  that active location.
 - Focus starts with the attacker. The focused player may play a supported
   `[Action]` card or pass focus; playing an Action resets consecutive passes
   and advances focus. When both relevant players pass in succession, the

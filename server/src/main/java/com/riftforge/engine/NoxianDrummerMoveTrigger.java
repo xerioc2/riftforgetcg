@@ -30,7 +30,8 @@ public class NoxianDrummerMoveTrigger implements TriggerHandler {
   @Override
   public void handle(LiveGameState state, TriggerEvent event) {
     CardInstance card = event.sourceCard();
-    tokenFactory.createRecruit(state, card.getOwnerId(), ZoneName.BATTLEFIELD, card.getX() + 40, card.getY() + 40);
+    CardInstance token = tokenFactory.createRecruit(state, card.getOwnerId(), ZoneName.BATTLEFIELD, card.getX() + 40, card.getY() + 40);
+    token.setBattlefieldLocationId(event.locationKey());
     log(state, card.getOwnerId(), "Noxian Drummer created a Recruit token.");
   }
 

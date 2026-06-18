@@ -31,7 +31,7 @@ will raise regression risk faster than playtest value.
 | Constructed deck correction | High | Medium | Pre-playtest | Done | Role-separated Legend, chosen Champion, main deck, runes, and battlefields unblock real deck testing. |
 | Pre-mulligan Battlefield selection | High | Low | Pre-playtest | Done | Constructed games now reveal/lock one selected Battlefield per player before mulligans while keeping full multi-location Battlefield play deferred. |
 | Champion deployment payment | High | Medium | Pre-playtest | Done | Makes chosen Champions usable without treating them as normal hand cards. |
-| Equipment lifecycle | High | Medium | Pre-playtest | Done | Gear can be played to Base, equipped, cleaned up from hosts, and tested with starter decks. |
+| Equipment lifecycle | High | Medium | Pre-playtest | Done | Gear can be played to Base, equipped to friendly public Unit/Champion hosts, cleaned up from hosts, displayed with attachment labels, and tested with starter decks. |
 | Illegal drag snapback | High | Low | Pre-playtest | Done | Prevents UI confusion when server rejects a move. |
 | Pending choice prompts | High | Medium | Pre-playtest | Done | Owner-only yes/no, optional payment, Stacked Deck top-card choice, and Predict-style ordering prompts exist; Stacked Deck now creates its private choice after resolving from the narrow alpha chain. |
 | Target selection | High | Medium | Pre-playtest | Done | Required for simple spells, Equip, and many bug reports to be meaningful. |
@@ -42,6 +42,7 @@ will raise regression risk faster than playtest value.
 | Ambush foundation | Medium | Medium | Pre-playtest | Done | Narrow Main-phase battlefield play path; Ambush-as-Reaction remains deferred. |
 | Deathknell / tokens | Medium | Medium | Pre-playtest | Done | Supports safe starter-unit scripts, token plumbing, and Scuttle Crab's 1v1 private hand reveal while XP/facedown remain deferred. |
 | Responsive board | High | Low | Pre-playtest | Done | Makes fullscreen playtests readable and reduces layout complaints. |
+| Multi-location Battlefield lanes v1 | High | Medium | Post-playtest | Done | The board renders three shared Battlefield lanes, places cards by `battlefieldLocationId`, sends drag-to-lane movement destinations, highlights active showdown lanes, and shows per-lane controller indicators. Battlefield effects and full official location rules remain deferred. |
 | Support badges | High | Low | Pre-playtest | Done | Sets tester expectations for Partial, Unsupported, Banned, and Not Audited cards. |
 | Privacy regression suite | High | Medium | Pre-playtest | Done | Protects hand, hidden, private-choice, projection, and debug-info surfaces. |
 | Issue/report flow | High | Low | Pre-playtest | Done | Gives testers a consistent path to submit useful bug reports. |
@@ -59,7 +60,7 @@ will raise regression risk faster than playtest value.
 | Hidden play-from-hidden | High | High | Post-playtest | Deferred | Requires timing windows, payment, reveal/masking transitions, and target legality. |
 | Ambush-as-Reaction | High | High | Post-playtest | Deferred | Depends on chain/reaction windows and correct response priority. |
 | Reaction / counterspells on real cards | High | High | Post-playtest | Deferred | Required for many cards but likely the largest rules-system risk; Defy now covers one narrow public spell-chain counter path and Not So Fast covers one narrow public targeted-spell counter path, while Riposte counter behavior, abilities, hidden reactions, and broad timing should still be added one card/pattern at a time. |
-| Multi-location Battlefield model | High | High | Later | Deferred | A default `bf-0` location identity foundation exists for battlefield cards/showdowns, but official-style 1v1 play still needs multiple shared Battlefield locations/objectives. This is intentionally post-alpha because it touches movement, "here" targeting, hidden slots, showdown, scoring, bot decisions, and layout. It is separate from 3+ player multiplayer support. |
+| Full multi-location Battlefield model | High | High | Later | Deferred | A server/UI foundation now supports `bf-0`/`bf-1`/`bf-2` lanes, location-scoped movement, showdowns, combat, controller keys, scoring, and drag-to-lane destinations. Official-style 1v1 play still needs Battlefield effects, true selected Battlefield instances/objectives, "here" targeting, hidden slots, and bot strategy. It remains separate from 3+ player multiplayer support. |
 | Sideboard / tournament match structure | Medium | High | Later | Deferred | Valuable for organized play after single-game alpha flow is stable. |
 
 ## Low Impact + Low Risk: Polish / Backlog

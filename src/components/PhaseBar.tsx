@@ -70,6 +70,7 @@ interface PhaseBarProps {
   activeShowdown?: boolean;
   showdownStep?: string;
   showdownFocusName?: string;
+  showdownLocationLabel?: string;
   showdownReadyToResolve?: boolean;
   activeChain?: boolean;
   chainFocusName?: string;
@@ -99,6 +100,7 @@ export function PhaseBar({
   activeShowdown = false,
   showdownStep,
   showdownFocusName,
+  showdownLocationLabel,
   showdownReadyToResolve = false,
   activeChain = false,
   chainFocusName,
@@ -198,6 +200,7 @@ export function PhaseBar({
             {setupLabel ? <span className="shrink-0 font-semibold text-forge">{setupLabel}</span> : null}
             {activeChain ? <span className="shrink-0 font-semibold text-forge">Chain: {chainItemCount}</span> : null}
             {activeChain && chainFocusName ? <span className="shrink-0 font-semibold text-forge">Focus: {chainFocusName}</span> : null}
+            {activeShowdown && showdownLocationLabel ? <span className="shrink-0 font-semibold text-forge">{showdownLocationLabel}</span> : null}
             {activeShowdown && showdownFocusName ? <span className="shrink-0 font-semibold text-forge">Focus: {showdownFocusName}</span> : null}
             {guidance ? <span className="truncate text-slate-300">{guidance}</span> : null}
             {legalActionHint ? <span className="truncate text-forge">{legalActionHint}</span> : null}

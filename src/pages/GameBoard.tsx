@@ -12,14 +12,26 @@ import { PlayerPanel } from '../components/PlayerPanel';
 import { BattlefieldLocationDisplay } from '../components/board/BattlefieldLocationDisplay';
 import { CardSprite } from '../components/board/CardSprite';
 import { RuneSprite } from '../components/board/RuneSprite';
-import { autoPlaceInZone, clampPlacementToZone, computeLayout, runeSlotPositions, type ZoneRect } from '../components/board/BoardLayout';
+import {
+  autoPlaceInZone,
+  battlefieldLocationForPoint,
+  battlefieldLocationLabel,
+  battlefieldZoneForCard,
+  clampPlacementToZone,
+  computeLayout,
+  DEFAULT_BATTLEFIELD_LOCATION_ID,
+  normalizeBattlefieldLocationId,
+  runeSlotPositions,
+  type ZoneRect,
+} from '../components/board/BoardLayout';
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
 import { readableHttpError } from '../lib/http';
 import { canUseSupportedChainResponse, hasUnsupportedAdditionalCost, isActionCard, isAmbushCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isEquipCard, isGustReactionCard, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
 import { appBuildLabel, APP_VERSION, BUILD_DATE, BUILD_TAG } from '../lib/appMetadata';
 import { buildDebugInfo } from '../lib/debugInfo';
-import { battlefieldDisplayForPlayer, battlefieldDisplayFrame } from '../lib/battlefieldDisplay';
+import { attachedGearDisplayPosition, attachedGearDisplayScale, attachedGearIsIndependentBoardPiece, attachedGearNamesForHost } from '../lib/attachments';
+import { battlefieldLaneDisplays } from '../lib/battlefieldDisplay';
 import { buildCombatDamageAssignments } from '../lib/combatDamageAssignments';
 import { isBotPlayer, legalActionHint, phaseGuidance, waitingStatusText } from '../lib/gameGuidance';
 import { useLocalPlayer } from '../lib/playerContext';
@@ -40,7 +52,7 @@ const CARD_PREVIEW_DELAY_MS = 2000;
 const TOTAL_RUNE_SLOTS = 11;
 const GITHUB_ISSUES_URL = 'https://github.com/xerioc2/riftforgetcg/issues/new/choose';
 const ALPHA_LIMITATIONS = [
-  'Single-battlefield alpha: official multiple-battlefield positioning is deferred.',
+  'Multi-location Battlefield lanes are alpha support; Battlefield effects, hidden slots, and full official location rules are deferred.',
   'Reaction and chain/counterspell timing are not fully implemented.',
   'Hidden cards can be hidden, but play-from-hidden timing is incomplete.',
   'Ambush-as-Reaction and additional-cost Ambush cards are incomplete.',
@@ -112,7 +124,17 @@ function zoneKey(ownerId: string, zoneName: string) {
 }
 
 function visualZoneFor(instance: CardInstance, zones: ZoneRect[]) {
+  if (sameZone(instance.zone, 'battlefield')) {
+    return battlefieldZoneForCard(zones, instance.ownerId, instance.battlefieldLocationId);
+  }
   return zones.find((zone) => sameZone(zone.zoneName, instance.zone) && zone.ownerId === instance.ownerId);
+}
+
+function visualZoneKey(instance: CardInstance) {
+  if (sameZone(instance.zone, 'battlefield')) {
+    return `${instance.ownerId}:battlefield:${normalizeBattlefieldLocationId(instance.battlefieldLocationId)}`;
+  }
+  return zoneKey(instance.ownerId, instance.zone);
 }
 
 function shouldAutoPlacePublicCard(instance: CardInstance) {
@@ -186,12 +208,7 @@ export function GameBoard() {
   }, [playerIds, zones]);
   const battlefieldDisplays = useMemo(() => {
     if (!state) return [];
-    return state.players.flatMap((statePlayer) => {
-      const display = battlefieldDisplayForPlayer(statePlayer, cardsById);
-      const zone = zones.find((candidate) => candidate.zoneName === 'battlefield' && candidate.ownerId === statePlayer.userId);
-      const side = statePlayer.userId === player.id ? 'left' : 'right';
-      return display && zone ? [{ ...display, frame: battlefieldDisplayFrame(zone, side) }] : [];
-    });
+    return battlefieldLaneDisplays(state.players, player.id, cardsById, zones);
   }, [cardsById, player.id, state, zones]);
   const hand = useMemo(() => (state?.cards ?? []).filter((card) => card.ownerId === player.id && sameZone(card.zone, 'hand')), [player.id, state?.cards]);
   const handInstanceKey = useMemo(() => hand.map((card) => card.instanceId).sort().join(','), [hand]);
@@ -709,7 +726,7 @@ export function GameBoard() {
     publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'BASE', ...position, targetInstanceId, targets, accelerate, ...payment });
   };
 
-  const deployChampionFromZone = (instanceId: string) => {
+  const deployChampionFromZone = (instanceId: string, battlefieldLocationId = DEFAULT_BATTLEFIELD_LOCATION_ID) => {
     const instance = state?.cards.find((card) => card.instanceId === instanceId);
     const cardDef = instance ? cardsById.get(instance.cardId) : undefined;
     if (!state || !instance || !cardDef) return;
@@ -735,7 +752,7 @@ export function GameBoard() {
     }
     const payment = selectPaymentRunesForCard(cardDef);
     if (!payment) return;
-    publishMove({ type: 'MOVE_TO_BATTLEFIELD', playerId: player.id, instanceId, ...payment });
+    publishMove({ type: 'MOVE_TO_BATTLEFIELD', playerId: player.id, instanceId, battlefieldLocationId, ...payment });
   };
 
   const playCardWithAmbush = (instanceId: string) => {
@@ -769,8 +786,11 @@ export function GameBoard() {
     }
     const payment = selectPaymentRunesForCard(cardDef);
     if (!payment) return;
-    const battlefield = zones.find((zone) => zone.zoneName === 'battlefield' && zone.ownerId === player.id);
-    const battlefieldCount = state?.cards.filter((card) => card.ownerId === player.id && sameZone(card.zone, 'battlefield')).length ?? 0;
+    const battlefield = battlefieldZoneForCard(zones, player.id, DEFAULT_BATTLEFIELD_LOCATION_ID);
+    const battlefieldCount = state?.cards.filter((card) =>
+      card.ownerId === player.id
+      && sameZone(card.zone, 'battlefield')
+      && normalizeBattlefieldLocationId(card.battlefieldLocationId) === DEFAULT_BATTLEFIELD_LOCATION_ID).length ?? 0;
     const position = battlefield ? autoPlaceInZone(battlefield, battlefieldCount, battlefieldCount + 1) : { x: size.width / 2, y: size.height / 2 };
     publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'BATTLEFIELD', ...position, ...payment });
   };
@@ -903,7 +923,11 @@ export function GameBoard() {
       notifyWarning('Attached gear', 'Attached Equipment follows its host and cannot be moved directly.');
       return;
     }
-    const zone = pointZone(x, y, zones, instance.zone);
+    const targetZoneRect = zones.find((candidate) => x >= candidate.x && x <= candidate.x + candidate.width && y >= candidate.y && y <= candidate.y + candidate.height);
+    const zone = targetZoneRect?.zoneName ?? pointZone(x, y, zones, instance.zone);
+    const targetBattlefieldLocationId = sameZone(zone, 'battlefield')
+      ? normalizeBattlefieldLocationId(battlefieldLocationForPoint(x, y, zones))
+      : undefined;
     if (sameZone(instance.zone, 'legend') && sameZone(zone, 'battlefield') && instance.ownerId === player.id) {
       notifyWarning('Legend unavailable', 'Legends cannot be moved to the battlefield in this alpha model.');
       window.setTimeout(fetchProjectedState, 100);
@@ -928,16 +952,25 @@ export function GameBoard() {
         return;
       }
       if (sameZone(instance.zone, 'champion')) {
-        deployChampionFromZone(instanceId);
+        deployChampionFromZone(instanceId, targetBattlefieldLocationId ?? DEFAULT_BATTLEFIELD_LOCATION_ID);
         window.setTimeout(fetchProjectedState, 100);
         return;
       }
-      publishMove({ type: 'MOVE_TO_BATTLEFIELD', playerId: player.id, instanceId });
+      publishMove({
+        type: 'MOVE_TO_BATTLEFIELD',
+        playerId: player.id,
+        instanceId,
+        battlefieldLocationId: targetBattlefieldLocationId ?? DEFAULT_BATTLEFIELD_LOCATION_ID,
+      });
       return;
     }
-    const targetZoneRect = zones.find((candidate) => candidate.zoneName === zone && candidate.ownerId === instance.ownerId) ?? zones.find((candidate) => candidate.zoneName === zone);
-    const snappedX = targetZoneRect ? Math.max(targetZoneRect.x + 12, Math.min(targetZoneRect.x + targetZoneRect.width - 12, x)) : x;
-    const snappedY = targetZoneRect ? Math.max(targetZoneRect.y + 12, Math.min(targetZoneRect.y + targetZoneRect.height - 12, y)) : y;
+    const snappedZoneRect = sameZone(instance.zone, 'battlefield') && sameZone(zone, 'battlefield')
+      ? visualZoneFor(instance, zones)
+      : targetZoneRect && targetZoneRect.ownerId === instance.ownerId
+        ? targetZoneRect
+        : zones.find((candidate) => candidate.zoneName === zone && candidate.ownerId === instance.ownerId) ?? zones.find((candidate) => candidate.zoneName === zone);
+    const snappedX = snappedZoneRect ? Math.max(snappedZoneRect.x + 12, Math.min(snappedZoneRect.x + snappedZoneRect.width - 12, x)) : x;
+    const snappedY = snappedZoneRect ? Math.max(snappedZoneRect.y + 12, Math.min(snappedZoneRect.y + snappedZoneRect.height - 12, y)) : y;
     if (sameZone(instance.zone, zone) && instance.ownerId === player.id && canTakeAction(state, 'REPOSITION_CARD')) {
       publishMove({ type: 'REPOSITION_CARD', playerId: player.id, instanceId, x: snappedX, y: snappedY });
       return;
@@ -1026,6 +1059,12 @@ export function GameBoard() {
       }
       playCardToBase(pendingTargetSelection.instanceId, spellDef, false, instanceId);
       setPendingTargetSelection(null);
+      return;
+    }
+
+    if (instance.attachedToInstanceId) {
+      setSelectedInstanceId(null);
+      setInspectCard(instance);
       return;
     }
 
@@ -1272,6 +1311,13 @@ export function GameBoard() {
     statePlayer.userId,
     statePlayer.userId === player.id ? 'you' : statePlayer.name || statePlayer.userId,
   ]));
+  const playerNames = Object.fromEntries(state.players.map((statePlayer) => [
+    statePlayer.userId,
+    statePlayer.userId === player.id ? 'you' : statePlayer.name || statePlayer.userId,
+  ]));
+  const activeShowdownLocationLabel = state.activeShowdown
+    ? battlefieldLocationLabel(state.activeShowdown.locationId)
+    : undefined;
   const chainTargetNames = Object.fromEntries(state.cards
     .filter((instance) => !instance.faceDown && !['hand', 'deck', 'hidden'].includes(instance.zone.toLowerCase()))
     .map((instance) => [instance.instanceId, cardsById.get(instance.cardId)?.name ?? 'card']));
@@ -1293,12 +1339,12 @@ export function GameBoard() {
   const zoneTotals = new Map<string, number>();
   boardCardRenderItems.forEach(({ instance }) => {
     if (!shouldAutoPlacePublicCard(instance)) return;
-    const key = zoneKey(instance.ownerId, instance.zone);
+    const key = visualZoneKey(instance);
     zoneTotals.set(key, (zoneTotals.get(key) ?? 0) + 1);
   });
   const zoneCounts = new Map<string, number>();
   const boardCardDisplayItems = boardCardRenderItems.map(({ instance, zone }) => {
-    const key = zoneKey(instance.ownerId, instance.zone);
+    const key = visualZoneKey(instance);
 
     if (instance.attachedToInstanceId) {
       const host = state.cards.find((candidate) => candidate.instanceId === instance.attachedToInstanceId);
@@ -1312,7 +1358,8 @@ export function GameBoard() {
         } else if (sameZone(host.zone, 'base') || sameZone(host.zone, 'battlefield')) {
           hostPosition = clampPlacementToZone(host, hostZone);
         }
-        return { instance, displayInstance: { ...instance, x: hostPosition.x + 34, y: hostPosition.y + 34 } };
+        const position = attachedGearDisplayPosition(hostPosition);
+        return { instance, displayInstance: { ...instance, ...position }, displayScale: attachedGearDisplayScale(cardScale) };
       }
     }
 
@@ -1333,7 +1380,7 @@ export function GameBoard() {
     return { instance, displayInstance: instance };
   });
   const canDragBoardCard = (instance: CardInstance, cardDef: RiftCard) => {
-    if (instance.ownerId !== player.id || instance.attachedToInstanceId) return false;
+    if (instance.ownerId !== player.id || !attachedGearIsIndependentBoardPiece(instance)) return false;
     if (sameZone(instance.zone, 'legend')) return false;
     if (sameZone(instance.zone, 'champion')) {
       return cardDef.type?.toLowerCase() === 'champion'
@@ -1390,12 +1437,17 @@ export function GameBoard() {
           }}
         >
           <Layer listening={false}>
-            <ZoneOverlay zones={zones} />
+            <ZoneOverlay
+              zones={zones}
+              activeShowdownLocationId={state.activeShowdown?.locationId}
+              battlefieldController={state.battlefieldController}
+              playerNames={playerNames}
+            />
           </Layer>
           <Layer>
             {battlefieldDisplays.map((display) => (
               <BattlefieldLocationDisplay
-                key={`selected-battlefield-${display.playerId}`}
+                key={`selected-battlefield-${display.locationId}`}
                 frame={display.frame}
                 card={display.card}
                 label={display.label}
@@ -1439,16 +1491,17 @@ export function GameBoard() {
             })}
           </Layer>
           <Layer>
-            {boardCardDisplayItems.map(({ instance, displayInstance }) => {
+            {boardCardDisplayItems.map(({ instance, displayInstance, displayScale }) => {
               const cardDef = cardsById.get(instance.cardId);
               if (!cardDef) return null;
+              const attachedGearNames = attachedGearNamesForHost(state.cards, cardsById, instance.instanceId);
               return (
                 <CardSprite
                   key={instance.instanceId}
                   instance={displayInstance}
                   cardDef={cardDef}
                   isOwner={canDragBoardCard(instance, cardDef)}
-                  selected={selectedInstanceId === instance.instanceId}
+                  selected={selectedInstanceId === instance.instanceId && !instance.attachedToInstanceId}
                   onDragEnd={moveInstance}
                   onClick={handleCardClick}
                   onDoubleClick={(id) => {
@@ -1478,7 +1531,8 @@ export function GameBoard() {
                     else notifyWarning('Sandbox only', 'Manual flip is only available in Sandbox games.');
                   }}
                   animate={pendingAnimations.current.delete(instance.instanceId)}
-                  scale={cardScale}
+                  scale={displayScale ?? cardScale}
+                  attachedGearNames={attachedGearNames}
                   onHover={handleCardHover}
                 />
               );
@@ -1567,6 +1621,7 @@ export function GameBoard() {
         activeShowdown={showdownActive}
         showdownStep={state.activeShowdown?.step}
         showdownFocusName={showdownFocusName}
+        showdownLocationLabel={activeShowdownLocationLabel}
         showdownReadyToResolve={state.activeShowdown?.readyToResolve}
         activeChain={chainActive}
         chainFocusName={chainFocusName}

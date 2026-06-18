@@ -21,6 +21,28 @@ export type DebugInfoPayload = {
   turnNumber: number | null;
   gameMode: string | null;
   activeShowdown: boolean;
+  activeShowdownDetails: {
+    locationId: string | null;
+    step: string | null;
+    attackingPlayerId: string | null;
+    focusedPlayerId: string | null;
+    readyToResolve: boolean;
+  };
+  battlefieldController: Record<string, string>;
+  selectedBattlefields: Array<{
+    playerId: string;
+    selectedBattlefieldId: string | null;
+  }>;
+  publicCards: Array<{
+    instanceId: string;
+    cardId: string | null;
+    ownerId: string;
+    zone: string;
+    battlefieldLocationId: string | null;
+    attachedToInstanceId: string | null;
+    faceDown: boolean;
+  }>;
+  cardZoneCounts: Record<string, number>;
   chainState: {
     active: boolean;
     itemCount: number;
@@ -62,6 +84,12 @@ type BuildDebugInfoInput = {
   lastActionFailureMessage?: string | null;
   generatedAt?: string;
 };
+
+const PUBLIC_DEBUG_ZONES = new Set(['base', 'battlefield', 'champion', 'legend', 'discard', 'limbo']);
+
+function isPublicDebugCard(card: LiveGameState['cards'][number]) {
+  return PUBLIC_DEBUG_ZONES.has(card.zone.toLowerCase());
+}
 
 export function buildDebugInfo({
   roomCode,
@@ -105,6 +133,34 @@ export function buildDebugInfo({
     turnNumber: state?.turnNumber ?? null,
     gameMode: state?.gameMode ?? null,
     activeShowdown: Boolean(state?.activeShowdown),
+    activeShowdownDetails: {
+      locationId: state?.activeShowdown?.locationId ?? null,
+      step: state?.activeShowdown?.step ?? null,
+      attackingPlayerId: state?.activeShowdown?.attackingPlayerId ?? null,
+      focusedPlayerId: state?.activeShowdown?.focusedPlayerId ?? null,
+      readyToResolve: state?.activeShowdown?.readyToResolve ?? false,
+    },
+    battlefieldController: state?.battlefieldController ?? {},
+    selectedBattlefields: state?.players.map((statePlayer) => ({
+      playerId: statePlayer.userId,
+      selectedBattlefieldId: statePlayer.selectedBattlefieldId ?? null,
+    })) ?? [],
+    publicCards: state?.cards
+      .filter(isPublicDebugCard)
+      .map((card) => ({
+        instanceId: card.instanceId,
+        cardId: card.faceDown ? null : card.cardId,
+        ownerId: card.ownerId,
+        zone: card.zone,
+        battlefieldLocationId: card.battlefieldLocationId ?? null,
+        attachedToInstanceId: card.attachedToInstanceId ?? null,
+        faceDown: card.faceDown,
+      })) ?? [],
+    cardZoneCounts: state?.cards.reduce<Record<string, number>>((counts, card) => {
+      const key = `${card.ownerId}:${card.zone}`;
+      counts[key] = (counts[key] ?? 0) + 1;
+      return counts;
+    }, {}) ?? {},
     chainState: {
       active: Boolean(state?.chainState),
       itemCount: state?.chainState?.chainItems?.length ?? 0,

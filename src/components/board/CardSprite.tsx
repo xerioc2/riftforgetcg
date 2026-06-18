@@ -38,6 +38,7 @@ export function CardSprite({
   selected,
   animate,
   scale = 1,
+  attachedGearNames = [],
   onHover,
 }: {
   instance: CardInstance;
@@ -50,6 +51,7 @@ export function CardSprite({
   selected: boolean;
   animate?: boolean;
   scale?: number;
+  attachedGearNames?: string[];
   onHover?: (card: RiftCard | null, instance?: CardInstance) => void;
 }) {
   const [image] = useImage(instance.faceDown ? CARD_BACK_URL : cardDef.imageUrl ?? '');
@@ -154,6 +156,23 @@ export function CardSprite({
         </>
       ) : null}
       {selected ? <Rect width={CARD_WIDTH} height={CARD_HEIGHT} stroke="#d8b05d" strokeWidth={3} cornerRadius={4} listening={false} /> : null}
+      {attachedGearNames.length > 0 ? (
+        <>
+          <Rect x={3} y={-15} width={CARD_WIDTH - 6} height={13} fill="rgba(5,8,13,0.9)" stroke="#d8b05d" strokeWidth={0.75} cornerRadius={3} listening={false} />
+          <Text
+            x={5}
+            y={-13}
+            width={CARD_WIDTH - 10}
+            text={attachedGearNames.length === 1 ? attachedGearNames[0] : `${attachedGearNames[0]} +${attachedGearNames.length - 1}`}
+            align="center"
+            fontSize={6.5}
+            fontStyle="bold"
+            fill="#f2d58a"
+            listening={false}
+            ellipsis
+          />
+        </>
+      ) : null}
       {instance.attachedToInstanceId ? <Text x={2} y={CARD_HEIGHT - 14} width={CARD_WIDTH - 4} text="EQUIPPED" align="center" fontSize={7} fontStyle="bold" fill="#d8b05d" listening={false} /> : null}
     </Group>
   );

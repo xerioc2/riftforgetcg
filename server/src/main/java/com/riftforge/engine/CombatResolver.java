@@ -6,6 +6,7 @@ import com.riftforge.model.CardInstance;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.ZoneName;
 import com.riftforge.engine.CombatStatsService.CombatContext;
+import com.riftforge.rules.BattlefieldLocationRules;
 import com.riftforge.service.CardDataService;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -40,9 +41,12 @@ public class CombatResolver {
   }
 
   public CombatResult resolve(LiveGameState state, String attackingPlayerId) {
-    List<CardInstance> attackers = battlefieldCards(state, attackingPlayerId);
+    String locationId = BattlefieldLocationRules.activeShowdownLocation(state);
+    List<CardInstance> attackers = battlefieldCards(state, attackingPlayerId, locationId);
     List<CardInstance> defenders = state.getCards().stream()
+        .filter(this::isCombatant)
         .filter(card -> card.getZone() == ZoneName.BATTLEFIELD && !attackingPlayerId.equals(card.getOwnerId()))
+        .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
         .toList();
     if (attackers.isEmpty() || defenders.isEmpty()) return new CombatResult(!attackers.isEmpty(), defenders.isEmpty());
 
@@ -52,10 +56,11 @@ public class CombatResolver {
 
     applyDamage(state, damage);
 
-    boolean attackersRemain = !battlefieldCards(state, attackingPlayerId).isEmpty();
+    boolean attackersRemain = !battlefieldCards(state, attackingPlayerId, locationId).isEmpty();
     boolean defendersEliminated = state.getCards().stream()
+        .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
         .noneMatch(card -> card.getZone() == ZoneName.BATTLEFIELD && !attackingPlayerId.equals(card.getOwnerId()));
-    healSurvivors(state);
+    healSurvivors(state, locationId);
     return new CombatResult(attackersRemain, defendersEliminated);
   }
 
@@ -64,6 +69,7 @@ public class CombatResolver {
       String attackingPlayerId,
       List<LiveGameState.CombatDamageAssignment> attackerAssignments,
       List<LiveGameState.CombatDamageAssignment> defenderAssignments) {
+    String locationId = BattlefieldLocationRules.activeShowdownLocation(state);
     Map<String, Integer> damage = new HashMap<>();
     for (LiveGameState.CombatDamageAssignment assignment : attackerAssignments) {
       damage.merge(assignment.targetInstanceId(), assignment.amount(), Integer::sum);
@@ -73,25 +79,36 @@ public class CombatResolver {
     }
     applyDamage(state, damage);
 
-    boolean attackersRemain = !battlefieldCombatants(state, attackingPlayerId).isEmpty();
+    boolean attackersRemain = !battlefieldCombatants(state, attackingPlayerId, locationId).isEmpty();
     boolean defendersEliminated = state.getCards().stream()
         .filter(this::isCombatant)
+        .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
         .noneMatch(card -> card.getZone() == ZoneName.BATTLEFIELD && !attackingPlayerId.equals(card.getOwnerId()));
-    healSurvivors(state);
+    healSurvivors(state, locationId);
     return new CombatResult(attackersRemain, defendersEliminated);
   }
 
   public List<CardInstance> battlefieldCombatants(LiveGameState state, String playerId) {
+    return battlefieldCombatants(state, playerId, CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID);
+  }
+
+  public List<CardInstance> battlefieldCombatants(LiveGameState state, String playerId, String locationId) {
     return state.getCards().stream()
         .filter(this::isCombatant)
         .filter(card -> card.getZone() == ZoneName.BATTLEFIELD && playerId.equals(card.getOwnerId()))
+        .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
         .toList();
   }
 
   public List<CardInstance> opposingBattlefieldCombatants(LiveGameState state, String playerId) {
+    return opposingBattlefieldCombatants(state, playerId, CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID);
+  }
+
+  public List<CardInstance> opposingBattlefieldCombatants(LiveGameState state, String playerId, String locationId) {
     return state.getCards().stream()
         .filter(this::isCombatant)
         .filter(card -> card.getZone() == ZoneName.BATTLEFIELD && !playerId.equals(card.getOwnerId()))
+        .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
         .toList();
   }
 
@@ -164,16 +181,18 @@ public class CombatResolver {
     return def == null ? card.getCardId() : def.name();
   }
 
-  private void healSurvivors(LiveGameState state) {
+  private void healSurvivors(LiveGameState state, String locationId) {
     state.getCards().stream()
         .filter(card -> card.getZone() == ZoneName.BATTLEFIELD)
+        .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
         .forEach(card -> card.setCurrentHealth(cardDataService.getCard(card.getCardId()).health()));
   }
 
-  private List<CardInstance> battlefieldCards(LiveGameState state, String playerId) {
+  private List<CardInstance> battlefieldCards(LiveGameState state, String playerId, String locationId) {
     return state.getCards().stream()
         .filter(this::isCombatant)
         .filter(card -> card.getZone() == ZoneName.BATTLEFIELD && playerId.equals(card.getOwnerId()))
+        .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
         .toList();
   }
 }

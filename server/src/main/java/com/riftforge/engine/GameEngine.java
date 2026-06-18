@@ -3,6 +3,7 @@ package com.riftforge.engine;
 import com.riftforge.effect.CardEffectRegistry;
 import com.riftforge.model.*;
 import com.riftforge.model.move.*;
+import com.riftforge.rules.BattlefieldLocationRules;
 import com.riftforge.rules.EquipmentRules;
 import com.riftforge.rules.ShowdownParticipantRules;
 import com.riftforge.service.CardDataService;
@@ -369,7 +370,9 @@ public class GameEngine {
       }
       player.setAvailableEnergy(Math.max(0, player.getAvailableEnergy() + selectedEnergy - Math.max(0, def.cost())));
     }
+    String locationId = BattlefieldLocationRules.normalize(move.battlefieldLocationId());
     card.setZone(ZoneName.BATTLEFIELD);
+    card.setBattlefieldLocationId(locationId);
     card.setX(0);
     card.setY(0);
     card.setTapped(!cardDataService.hasKeyword(card, "AMBUSH"));
@@ -380,10 +383,9 @@ public class GameEngine {
     log(state, move.playerId(), playedFromChampionZone
         ? "Played " + def.name() + " from the Champion zone."
         : "Moved " + def.name() + " to the battlefield.");
-    boolean opposed = state.getCards().stream()
-        .anyMatch(candidate -> candidate.getZone() == ZoneName.BATTLEFIELD && !move.playerId().equals(candidate.getOwnerId()));
+    boolean opposed = hasOpposingCombatantsAtLocation(state, move.playerId(), locationId);
     if (!opposed) {
-      state.getBattlefieldController().put("BATTLEFIELD", move.playerId());
+      state.getBattlefieldController().put(locationId, move.playerId());
       return state;
     }
     state.setActiveShowdown(showdownState(
@@ -421,10 +423,10 @@ public class GameEngine {
 
   private void startAmbushBattlefield(LiveGameState state, CardInstance card, CardDefinition def, String playerId) {
     log(state, playerId, "Ambushed " + def.name() + " to the battlefield.");
-    boolean opposed = state.getCards().stream()
-        .anyMatch(candidate -> candidate.getZone() == ZoneName.BATTLEFIELD && !playerId.equals(candidate.getOwnerId()));
+    String locationId = BattlefieldLocationRules.locationOf(card);
+    boolean opposed = hasOpposingCombatantsAtLocation(state, playerId, locationId);
     if (!opposed) {
-      state.getBattlefieldController().put("BATTLEFIELD", playerId);
+      state.getBattlefieldController().put(locationId, playerId);
       return;
     }
     state.setActiveShowdown(showdownState(
@@ -437,8 +439,9 @@ public class GameEngine {
 
   private LiveGameState applyResolveShowdown(LiveGameState state, ResolveShowdownMove move) {
     LiveGameState.ShowdownState showdown = state.getActiveShowdown();
-    List<CardInstance> attackers = combatResolver.battlefieldCombatants(state, showdown.attackingPlayerId());
-    List<CardInstance> defenders = combatResolver.opposingBattlefieldCombatants(state, showdown.attackingPlayerId());
+    String locationId = BattlefieldLocationRules.normalize(showdown.locationId());
+    List<CardInstance> attackers = combatResolver.battlefieldCombatants(state, showdown.attackingPlayerId(), locationId);
+    List<CardInstance> defenders = combatResolver.opposingBattlefieldCombatants(state, showdown.attackingPlayerId(), locationId);
     if (!attackers.isEmpty() && !defenders.isEmpty()) {
       state.setActiveShowdown(new LiveGameState.ShowdownState(
           showdown.attackingPlayerId(),
@@ -487,8 +490,8 @@ public class GameEngine {
         .filter(card -> card.getInstanceId().equals(instanceId))
         .findFirst()
         .ifPresent(card -> card.setTemporaryPowerModifier(Math.max(0, card.getTemporaryPowerModifier() - bonus))));
-    if (result.attackersRemain() && result.defendersEliminated()) conquerBattlefield(state, showdown.attackingPlayerId());
-    else if (!result.defendersEliminated()) returnBattlefieldCardsToBase(state, showdown.attackingPlayerId());
+    if (result.attackersRemain() && result.defendersEliminated()) conquerBattlefield(state, showdown.attackingPlayerId(), locationId);
+    else if (!result.defendersEliminated()) returnBattlefieldCardsToBase(state, showdown.attackingPlayerId(), locationId);
     state.setActiveShowdown(null);
     state.setCurrentPhase(Phase.MAIN);
     log(state, move.playerId(), "Showdown resolved.");
@@ -533,6 +536,7 @@ public class GameEngine {
         move.assignments(),
         showdown.locationId());
     state.setActiveShowdown(assigned);
+    String locationId = BattlefieldLocationRules.normalize(assigned.locationId());
     CombatResolver.CombatResult result = combatResolver.resolveAssigned(
         state,
         assigned.attackingPlayerId(),
@@ -542,8 +546,8 @@ public class GameEngine {
         .filter(card -> card.getInstanceId().equals(instanceId))
         .findFirst()
         .ifPresent(card -> card.setTemporaryPowerModifier(Math.max(0, card.getTemporaryPowerModifier() - bonus))));
-    if (result.attackersRemain() && result.defendersEliminated()) conquerBattlefield(state, assigned.attackingPlayerId());
-    else if (!result.defendersEliminated()) returnBattlefieldCardsToBase(state, assigned.attackingPlayerId());
+    if (result.attackersRemain() && result.defendersEliminated()) conquerBattlefield(state, assigned.attackingPlayerId(), locationId);
+    else if (!result.defendersEliminated()) returnBattlefieldCardsToBase(state, assigned.attackingPlayerId(), locationId);
     state.setActiveShowdown(null);
     state.setCurrentPhase(Phase.MAIN);
     log(state, move.playerId(), "Combat damage assigned. Showdown resolved.");
@@ -989,6 +993,8 @@ public class GameEngine {
   private boolean isOnlyFriendlyUnitAtLocation(LiveGameState state, CardInstance target) {
     return state.getCards().stream()
         .filter(card -> card.getZone() == target.getZone())
+        .filter(card -> target.getZone() != ZoneName.BATTLEFIELD
+            || BattlefieldLocationRules.isAtLocation(card, target.getBattlefieldLocationId()))
         .filter(card -> target.getOwnerId().equals(card.getOwnerId()))
         .filter(this::isPublicBattlefieldUnit)
         .count() == 1;
@@ -1130,10 +1136,13 @@ public class GameEngine {
       String attackingPlayerId,
       List<String> attackerInstanceIds,
       Map<String, Integer> gankingBonuses) {
+    String locationId = battlefieldLocationIdFor(state, attackerInstanceIds);
     List<String> relevant = new ArrayList<>();
     relevant.add(attackingPlayerId);
     state.getCards().stream()
         .filter(card -> card.getZone() == ZoneName.BATTLEFIELD)
+        .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
+        .filter(this::isPublicCombatant)
         .map(CardInstance::getOwnerId)
         .filter(owner -> owner != null && !owner.isBlank())
         .filter(owner -> !owner.equals(attackingPlayerId))
@@ -1152,7 +1161,7 @@ public class GameEngine {
         null,
         List.of(),
         List.of(),
-        battlefieldLocationIdFor(state, attackerInstanceIds));
+        locationId);
   }
 
   private String battlefieldLocationIdFor(LiveGameState state, List<String> attackerInstanceIds) {
@@ -1163,6 +1172,19 @@ public class GameEngine {
         .filter(locationId -> locationId != null && !locationId.isBlank())
         .findFirst()
         .orElse(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID);
+  }
+
+  private boolean hasOpposingCombatantsAtLocation(LiveGameState state, String playerId, String locationId) {
+    return state.getCards().stream()
+        .filter(this::isPublicCombatant)
+        .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
+        .anyMatch(candidate -> !playerId.equals(candidate.getOwnerId()));
+  }
+
+  private boolean isPublicCombatant(CardInstance card) {
+    if (card == null || card.getZone() != ZoneName.BATTLEFIELD || card.isFaceDown()) return false;
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    return def != null && ("Unit".equalsIgnoreCase(def.type()) || "Champion".equalsIgnoreCase(def.type()));
   }
 
   private LiveGameState applyUndoRunes(LiveGameState state, UndoRunesMove move) {
@@ -1431,12 +1453,12 @@ public class GameEngine {
     }
   }
 
-  private void conquerBattlefield(LiveGameState state, String playerId) {
-    String battlefieldId = "BATTLEFIELD";
-    state.getBattlefieldController().put(battlefieldId, playerId);
-    if (state.getScoredBattlefieldsThisTurn().contains(battlefieldId)) return;
+  private void conquerBattlefield(LiveGameState state, String playerId, String battlefieldId) {
+    String locationId = BattlefieldLocationRules.normalize(battlefieldId);
+    state.getBattlefieldController().put(locationId, playerId);
+    if (state.getScoredBattlefieldsThisTurn().contains(locationId)) return;
     PlayerState scorer = player(state, playerId);
-    state.getScoredBattlefieldsThisTurn().add(battlefieldId);
+    state.getScoredBattlefieldsThisTurn().add(locationId);
     if (scorer.getScore() >= targetScore - 1 && !scoredAllBattlefieldsThisTurn(state)) {
       autoDraw(state, scorer.getUserId());
       log(state, scorer.getUserId(), "Conquers but draws a card (must score all battlefields to win).");
@@ -1447,7 +1469,7 @@ public class GameEngine {
   }
 
   private List<String> battlefieldIds(LiveGameState state) {
-    if (state.getBattlefieldController().isEmpty()) return List.of("BATTLEFIELD");
+    if (state.getBattlefieldController().isEmpty()) return List.of(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID);
     return state.getBattlefieldController().keySet().stream().sorted().toList();
   }
 
@@ -1461,12 +1483,15 @@ public class GameEngine {
   }
 
   private String battlefieldLabel(String battlefieldId) {
-    return "BATTLEFIELD".equals(battlefieldId) ? "the battlefield" : battlefieldId;
+    return CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID.equals(BattlefieldLocationRules.normalize(battlefieldId))
+        ? "the battlefield"
+        : battlefieldId;
   }
 
-  private void returnBattlefieldCardsToBase(LiveGameState state, String playerId) {
+  private void returnBattlefieldCardsToBase(LiveGameState state, String playerId, String locationId) {
     List<CardInstance> returned = state.getCards().stream()
         .filter(card -> card.getZone() == ZoneName.BATTLEFIELD && playerId.equals(card.getOwnerId()))
+        .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
         .toList();
     returned.forEach(card -> {
       card.setZone(ZoneName.BASE);
@@ -1517,7 +1542,7 @@ public class GameEngine {
 
   private void dispatchCardMoved(LiveGameState state, CardInstance card, ZoneName sourceZone, ZoneName targetZone, String cause) {
     if (sourceZone == targetZone) return;
-    triggerDispatcher.dispatch(state, TriggerEvent.cardMoved(card, sourceZone, targetZone, "BATTLEFIELD", cause));
+    triggerDispatcher.dispatch(state, TriggerEvent.cardMoved(card, sourceZone, targetZone, BattlefieldLocationRules.locationOf(card), cause));
   }
 
   private boolean isNamed(CardDefinition def, String name) {
@@ -1530,6 +1555,7 @@ public class GameEngine {
     int might = effectiveMight(card);
     boolean facesStrongerUnit = state.getCards().stream()
         .filter(candidate -> candidate.getZone() == ZoneName.BATTLEFIELD)
+        .filter(candidate -> BattlefieldLocationRules.isAtLocation(candidate, card.getBattlefieldLocationId()))
         .filter(candidate -> !card.getOwnerId().equals(candidate.getOwnerId()))
         .anyMatch(candidate -> effectiveMight(candidate) > might);
     if (!facesStrongerUnit) return 0;

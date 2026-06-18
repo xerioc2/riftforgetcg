@@ -10,6 +10,7 @@ import com.riftforge.model.PlayerState;
 import com.riftforge.model.RuneState;
 import com.riftforge.model.ZoneName;
 import com.riftforge.model.move.*;
+import com.riftforge.rules.BattlefieldLocationRules;
 import com.riftforge.rules.EquipmentRules;
 import com.riftforge.rules.EquipmentRules.EquipCost;
 import com.riftforge.rules.ShowdownParticipantRules;
@@ -663,17 +664,29 @@ public class RulesValidator {
 
   private void validateEquipTarget(String playerId, CardInstance target) {
     if (target.getZone() != ZoneName.BASE && target.getZone() != ZoneName.BATTLEFIELD) {
-      throw new IllegalMoveException("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
+      throw new IllegalMoveException("Equipment target must be in Base or at a battlefield.");
     }
     if (target.isFaceDown()) {
-      throw new IllegalMoveException("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
+      throw new IllegalMoveException("Equipment cannot attach to hidden or face-down cards.");
     }
     CardDefinition targetDef = cardDataService.getCard(target.getCardId());
+    if (isType(targetDef, "Gear")) {
+      throw new IllegalMoveException("Equipment cannot attach to another Equipment.");
+    }
+    if (isType(targetDef, "Rune")) {
+      throw new IllegalMoveException("Equipment cannot attach to Runes.");
+    }
+    if (isType(targetDef, "Battlefield")) {
+      throw new IllegalMoveException("Equipment cannot attach to Battlefields.");
+    }
+    if (isType(targetDef, "Legend")) {
+      throw new IllegalMoveException("Equipment cannot attach to Legends.");
+    }
     if (!isType(targetDef, "Unit") && !isType(targetDef, "Champion")) {
-      throw new IllegalMoveException("Target must be a Unit or Champion.");
+      throw new IllegalMoveException("Equipment can only attach to a friendly Unit or Champion.");
     }
     if (!target.getOwnerId().equals(playerId)) {
-      throw new IllegalMoveException("Equip requires a friendly Unit or Champion in Base or at the battlefield.");
+      throw new IllegalMoveException("Equipment can only attach to a friendly Unit or Champion.");
     }
   }
 
@@ -838,17 +851,19 @@ public class RulesValidator {
       throw new IllegalMoveException("Wait for your combat damage assignment.");
     }
     boolean attackingAssignment = move.playerId().equals(showdown.attackingPlayerId());
-    validateDamageAssignments(state, move.assignments(), move.playerId(), attackingAssignment);
+    validateDamageAssignments(state, move.assignments(), move.playerId(), attackingAssignment, showdown.locationId());
   }
 
   private void validateDamageAssignments(
       LiveGameState state,
       List<LiveGameState.CombatDamageAssignment> assignments,
       String sourceOwnerId,
-      boolean attackingAssignment) {
-    List<CardInstance> sources = combatantsFor(state, sourceOwnerId);
+      boolean attackingAssignment,
+      String locationId) {
+    List<CardInstance> sources = combatantsFor(state, sourceOwnerId, locationId);
     List<CardInstance> targets = state.getCards().stream()
         .filter(this::isCombatant)
+        .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
         .filter(card -> !sourceOwnerId.equals(card.getOwnerId()))
         .toList();
     Map<String, CardInstance> sourceById = sources.stream().collect(Collectors.toMap(CardInstance::getInstanceId, card -> card));
@@ -918,9 +933,10 @@ public class RulesValidator {
     }
   }
 
-  private List<CardInstance> combatantsFor(LiveGameState state, String playerId) {
+  private List<CardInstance> combatantsFor(LiveGameState state, String playerId, String locationId) {
     return state.getCards().stream()
         .filter(this::isCombatant)
+        .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
         .filter(card -> playerId.equals(card.getOwnerId()))
         .toList();
   }

@@ -11,6 +11,7 @@ describe('buildDebugInfo', () => {
       activePlayerId: 'bot-player-riftbot',
       turnNumber: 3,
       activeShowdown: null,
+      battlefieldController: { 'bf-1': 'p1' },
       chainState: {
         chainId: 'chain-1',
         chainItems: [{ itemId: 'item-1', controllerPlayerId: 'p1' }],
@@ -27,10 +28,46 @@ describe('buildDebugInfo', () => {
         cardOptions: [{ optionId: 'secret-option', cardId: 'private-card', name: 'Private Card', originalIndex: 0 }],
       },
       legalActions: ['PLAY_CARD', 'PASS_PHASE'],
-      cards: [],
+      cards: [
+        {
+          instanceId: 'public-unit',
+          cardId: 'unit-card',
+          ownerId: 'p1',
+          zone: 'battlefield',
+          battlefieldLocationId: 'bf-1',
+          attachedToInstanceId: 'gear-1',
+          tapped: false,
+          faceDown: false,
+          zIndex: 0,
+          x: 0,
+          y: 0,
+        },
+        {
+          instanceId: 'hidden-card',
+          cardId: 'secret-card',
+          ownerId: 'p1',
+          zone: 'hidden',
+          tapped: false,
+          faceDown: true,
+          zIndex: 0,
+          x: 0,
+          y: 0,
+        },
+        {
+          instanceId: 'hand-card',
+          cardId: 'private-hand-card',
+          ownerId: 'p1',
+          zone: 'hand',
+          tapped: false,
+          faceDown: false,
+          zIndex: 0,
+          x: 0,
+          y: 0,
+        },
+      ],
       players: [
-        { userId: 'p1', name: 'Human', score: 0 },
-        { userId: 'bot-player-riftbot', name: 'RiftBot', score: 0 },
+        { userId: 'p1', name: 'Human', score: 0, selectedBattlefieldId: 'sunken-temple' },
+        { userId: 'bot-player-riftbot', name: 'RiftBot', score: 0, selectedBattlefieldId: 'training-grounds' },
       ],
       log: [],
       updatedAt: 'now',
@@ -62,10 +99,40 @@ describe('buildDebugInfo', () => {
       playerId: 'p1',
     });
     expect(debug.legalActions).toEqual(['PLAY_CARD', 'PASS_PHASE']);
+    expect(debug.activeShowdownDetails).toEqual({
+      locationId: null,
+      step: null,
+      attackingPlayerId: null,
+      focusedPlayerId: null,
+      readyToResolve: false,
+    });
+    expect(debug.battlefieldController).toEqual({ 'bf-1': 'p1' });
+    expect(debug.selectedBattlefields).toEqual([
+      { playerId: 'p1', selectedBattlefieldId: 'sunken-temple' },
+      { playerId: 'bot-player-riftbot', selectedBattlefieldId: 'training-grounds' },
+    ]);
+    expect(debug.publicCards).toEqual([
+      {
+        instanceId: 'public-unit',
+        cardId: 'unit-card',
+        ownerId: 'p1',
+        zone: 'battlefield',
+        battlefieldLocationId: 'bf-1',
+        attachedToInstanceId: 'gear-1',
+        faceDown: false,
+      },
+    ]);
+    expect(debug.cardZoneCounts).toEqual({
+      'p1:battlefield': 1,
+      'p1:hidden': 1,
+      'p1:hand': 1,
+    });
     expect(debug.awaitingServerUpdate).toBe(true);
     expect(debug.lastSubmittedActionType).toBe('PLAY_CARD');
     expect(debug.lastActionFailureMessage).toBe('Reaction timing is not implemented yet.');
     expect(JSON.stringify(debug)).not.toContain('Private Card');
     expect(JSON.stringify(debug)).not.toContain('private-card');
+    expect(JSON.stringify(debug)).not.toContain('secret-card');
+    expect(JSON.stringify(debug)).not.toContain('private-hand-card');
   });
 });

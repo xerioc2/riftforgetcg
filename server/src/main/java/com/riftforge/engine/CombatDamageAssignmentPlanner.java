@@ -4,6 +4,7 @@ import com.riftforge.model.CardDefinition;
 import com.riftforge.model.CardInstance;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.ZoneName;
+import com.riftforge.rules.BattlefieldLocationRules;
 import com.riftforge.service.CardDataService;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -30,16 +31,18 @@ public class CombatDamageAssignmentPlanner {
 
   public Optional<List<LiveGameState.CombatDamageAssignment>> plan(LiveGameState state, String playerId) {
     if (state == null || state.getActiveShowdown() == null) return Optional.empty();
+    String locationId = BattlefieldLocationRules.normalize(state.getActiveShowdown().locationId());
     boolean attacking = playerId.equals(state.getActiveShowdown().attackingPlayerId());
     CombatStatsService.CombatContext context = attacking
         ? CombatStatsService.CombatContext.ATTACKING
         : CombatStatsService.CombatContext.DEFENDING;
-    List<CardInstance> sources = combatantsFor(state, playerId).stream()
+    List<CardInstance> sources = combatantsFor(state, playerId, locationId).stream()
         .sorted(Comparator.comparing(CardInstance::getInstanceId))
         .toList();
     List<CardInstance> targets = state.getCards().stream()
         .filter(card -> !playerId.equals(card.getOwnerId()))
         .filter(this::isCombatant)
+        .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
         .sorted(targetOrder())
         .toList();
     if (sources.isEmpty() || targets.isEmpty()) return Optional.empty();
@@ -122,10 +125,11 @@ public class CombatDamageAssignmentPlanner {
     return assignments;
   }
 
-  private List<CardInstance> combatantsFor(LiveGameState state, String playerId) {
+  private List<CardInstance> combatantsFor(LiveGameState state, String playerId, String locationId) {
     return state.getCards().stream()
         .filter(card -> playerId.equals(card.getOwnerId()))
         .filter(this::isCombatant)
+        .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
         .toList();
   }
 
