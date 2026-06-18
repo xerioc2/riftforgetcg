@@ -67,6 +67,9 @@ public class GameStateProjectionService {
       copy.setCurrentHealth(0);
       copy.setFaceDown(true);
     }
+    if (card.isFaceDown() && !Objects.equals(card.getOwnerId(), viewerPlayerId)) {
+      copy.setBattlefieldLocationId(null);
+    }
     return copy;
   }
 
@@ -129,7 +132,8 @@ public class GameStateProjectionService {
         showdown.readyToResolve(),
         showdown.assigningPlayerId(),
         new ArrayList<>(showdown.attackerAssignments()),
-        new ArrayList<>(showdown.defenderAssignments()));
+        new ArrayList<>(showdown.defenderAssignments()),
+        showdown.locationId());
   }
 
   private LiveGameState.ChainState copyChain(LiveGameState.ChainState chain, String viewerPlayerId) {

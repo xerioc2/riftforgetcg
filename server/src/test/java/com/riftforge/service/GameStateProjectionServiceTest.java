@@ -72,6 +72,30 @@ class GameStateProjectionServiceTest {
   }
 
   @Test
+  void publicBattlefieldCardProjectsDefaultLocationId() {
+    LiveGameState state = state(card("battlefield-card", "p2", "visible-card", ZoneName.BATTLEFIELD));
+
+    LiveGameState view = projectionService.toPublicView(state, "p1");
+
+    CardInstance projected = view.getCards().getFirst();
+    assertThat(projected.getCardId()).isEqualTo("visible-card");
+    assertThat(projected.getBattlefieldLocationId()).isEqualTo(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID);
+  }
+
+  @Test
+  void faceDownBattlefieldCardDoesNotExposeLocationIdToOpponentOrSpectator() {
+    CardInstance hidden = card("hidden-battlefield", "p2", "private-card", ZoneName.BATTLEFIELD);
+    hidden.setFaceDown(true);
+    LiveGameState state = state(hidden);
+
+    LiveGameState opponentView = projectionService.toPublicView(state, "p1");
+    LiveGameState spectatorView = projectionService.toPublicView(state, null);
+
+    assertThat(opponentView.getCards().getFirst().getBattlefieldLocationId()).isNull();
+    assertThat(spectatorView.getCards().getFirst().getBattlefieldLocationId()).isNull();
+  }
+
+  @Test
   void attachedPublicGearIsVisibleToOwnerOpponentAndSpectator() {
     CardInstance host = card("host", "p1", "host-unit", ZoneName.BATTLEFIELD);
     CardInstance gear = card("gear", "p1", "equip-gear", ZoneName.BASE);
@@ -424,6 +448,7 @@ class GameStateProjectionServiceTest {
     assertThat(view.getActiveShowdown().focusedPlayerId()).isEqualTo("p2");
     assertThat(view.getActiveShowdown().consecutivePasses()).isEqualTo(1);
     assertThat(view.getActiveShowdown().readyToResolve()).isFalse();
+    assertThat(view.getActiveShowdown().locationId()).isEqualTo(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID);
   }
 
   @Test

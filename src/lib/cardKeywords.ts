@@ -16,7 +16,7 @@ export const KEYWORD_DESCRIPTIONS: Record<string, string> = {
   HIDDEN: 'Can be hidden from hand into a private hidden area by paying a ready rune. Later hidden play/reaction timing is not implemented yet.',
   GANKING: 'Gets +X Might for combat when entering against an opponent with higher Might. Partial combat support.',
   REPEAT: 'Allows you to play one additional card this turn.',
-  EQUIP: 'Attachment/action word for Gear. Gear plays to Base first, then can equip from Base to a friendly Unit or Champion; full timing/payment edge cases remain incomplete.',
+  EQUIP: 'Attachment/action word for Gear. Gear plays to Base first, then can equip from Base to a friendly Unit or Champion by paying its printed Equip cost; full official timing edge cases remain incomplete.',
   WEAPONMASTER: 'Gear-related Might keyword. Rules support is deferred until full equipment modifier cleanup.',
   STUN: 'A stunned card cannot participate normally until the effect clears. Rules support incomplete.',
   STUNNED: 'A stunned card cannot participate normally until the effect clears. Rules support incomplete.',

@@ -59,7 +59,7 @@ will raise regression risk faster than playtest value.
 | Hidden play-from-hidden | High | High | Post-playtest | Deferred | Requires timing windows, payment, reveal/masking transitions, and target legality. |
 | Ambush-as-Reaction | High | High | Post-playtest | Deferred | Depends on chain/reaction windows and correct response priority. |
 | Reaction / counterspells on real cards | High | High | Post-playtest | Deferred | Required for many cards but likely the largest rules-system risk; Defy now covers one narrow public spell-chain counter path and Not So Fast covers one narrow public targeted-spell counter path, while Riposte counter behavior, abilities, hidden reactions, and broad timing should still be added one card/pattern at a time. |
-| Multi-location Battlefield model | High | High | Later | Deferred | Official-style 1v1 play needs multiple shared Battlefield locations/objectives. This is intentionally post-alpha because it touches movement, "here" targeting, hidden slots, showdown, scoring, bot decisions, and layout. It is separate from 3+ player multiplayer support. |
+| Multi-location Battlefield model | High | High | Later | Deferred | A default `bf-0` location identity foundation exists for battlefield cards/showdowns, but official-style 1v1 play still needs multiple shared Battlefield locations/objectives. This is intentionally post-alpha because it touches movement, "here" targeting, hidden slots, showdown, scoring, bot decisions, and layout. It is separate from 3+ player multiplayer support. |
 | Sideboard / tournament match structure | Medium | High | Later | Deferred | Valuable for organized play after single-game alpha flow is stable. |
 
 ## Low Impact + Low Risk: Polish / Backlog

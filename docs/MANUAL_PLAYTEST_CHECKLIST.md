@@ -38,7 +38,8 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - If Not So Fast is in hand during chain focus, confirm it stays unavailable
   against untargeted Stacked Deck, but can counter an enemy Gust only when that
   Gust chooses your friendly Unit/Champion Unit or Gear.
-- Play Gear to Base, then equip it to a friendly Unit or Champion if you draw one.
+- Play Gear to Base, then pay its printed Equip cost to equip it to a friendly
+  Unit or Champion if you draw one.
 - Confirm attached Gear stays with a host that moves from Base to battlefield.
 - Confirm attached Gear returns to Base, not Trash, if its host dies or leaves
   public play in a supported path.

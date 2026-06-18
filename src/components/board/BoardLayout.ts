@@ -39,38 +39,40 @@ export function computeLayout(width: number, height: number, playerIds: string[]
 
   if (playerIds.length <= 2) {
     const playerColumnWidth = 200;
-    const identityWidth = 95;
-    const identityGap = 4;
-    const identityStart = playerColumnWidth;
-    const actionX = identityStart + identityWidth * 2 + identityGap * 2 + 8;
-    const utilityColumnWidth = Math.max(64, Math.min(96, width * 0.06));
-    const actionWidth = Math.max(360, width - actionX - utilityColumnWidth - 8);
+    const identityWidth = 88;
+    const identityHeight = 126;
+    const identityGap = 6;
+    const identityStart = playerColumnWidth + 4;
+    const actionX = identityStart + identityWidth * 2 + identityGap + 8;
+    const rightPadding = Math.max(12, Math.min(24, width * 0.015));
+    const actionWidth = Math.max(420, width - actionX - rightPadding);
     const runeStrip = 56;
-    const baseHeight = 76;
+    const baseHeight = Math.max(100, Math.min(124, height * 0.145));
     const rowGap = 14;
-    const utilityHeight = runeStrip + baseHeight + 8;
+    const utilityHeight = runeStrip + baseHeight + 12;
     const battlefieldGap = Math.max(12, Math.min(22, actionWidth * 0.018));
     const maxBattlefieldHeight = Math.max(150, height - utilityHeight * 2 - rowGap * 2);
-    const battlefieldHeight = Math.min(250, Math.max(150, Math.min(maxBattlefieldHeight, height * 0.34)));
+    const battlefieldHeight = Math.min(230, Math.max(150, Math.min(maxBattlefieldHeight, height * 0.31)));
     const topUtilityHeight = Math.max(utilityHeight, (height - battlefieldHeight - rowGap) / 2);
     const battlefieldY = topUtilityHeight;
     const localUtilityY = battlefieldY + battlefieldHeight + rowGap;
     const battlefieldSideWidth = (actionWidth - battlefieldGap) / 2;
     const opponent = others[0] ?? 'opponent';
+    const opponentIdentityY = Math.max(0, topUtilityHeight - identityHeight - 4);
 
     // Opponent setup zones stay separate. The Battlefield itself is a shared row split into two controller sides.
-    zones.push(zone('p1-legend', 'Legend', identityStart, 0, identityWidth, topUtilityHeight, opponent, 'legend'));
-    zones.push(zone('p1-champion', 'Champion', identityStart + identityWidth + identityGap, 0, identityWidth, topUtilityHeight, opponent, 'champion'));
+    zones.push(zone('p1-legend', 'Legend', identityStart, opponentIdentityY, identityWidth, identityHeight, opponent, 'legend'));
+    zones.push(zone('p1-champion', 'Champion', identityStart + identityWidth + identityGap, opponentIdentityY, identityWidth, identityHeight, opponent, 'champion'));
     zones.push(zone('p1-rune', 'Runes', actionX, 0, actionWidth, runeStrip, opponent, 'rune'));
-    zones.push(zone('p1-base', 'Base', actionX, Math.max(runeStrip + 4, topUtilityHeight - baseHeight - 4), actionWidth, baseHeight, opponent, 'base'));
+    zones.push(zone('p1-base', 'Base', actionX, Math.max(runeStrip + 8, topUtilityHeight - baseHeight - 6), actionWidth, baseHeight, opponent, 'base'));
     zones.push(zone('p1-battlefield', 'Opponent side', actionX, battlefieldY, battlefieldSideWidth, battlefieldHeight, opponent, 'battlefield'));
 
     // Local setup zones stay separate below the shared Battlefield row.
     zones.push(zone('p0-battlefield', 'Your side', actionX + battlefieldSideWidth + battlefieldGap, battlefieldY, battlefieldSideWidth, battlefieldHeight, local, 'battlefield'));
-    zones.push(zone('p0-legend', 'Legend', identityStart, localUtilityY, identityWidth, height - localUtilityY, local, 'legend'));
-    zones.push(zone('p0-champion', 'Champion', identityStart + identityWidth + identityGap, localUtilityY, identityWidth, height - localUtilityY, local, 'champion'));
+    zones.push(zone('p0-legend', 'Legend', identityStart, localUtilityY, identityWidth, Math.min(identityHeight, height - localUtilityY), local, 'legend'));
+    zones.push(zone('p0-champion', 'Champion', identityStart + identityWidth + identityGap, localUtilityY, identityWidth, Math.min(identityHeight, height - localUtilityY), local, 'champion'));
     zones.push(zone('p0-base', 'Base', actionX, localUtilityY, actionWidth, baseHeight, local, 'base'));
-    zones.push(zone('p0-rune', 'Runes', actionX, Math.max(localUtilityY + baseHeight + 4, height - runeStrip), actionWidth, runeStrip, local, 'rune'));
+    zones.push(zone('p0-rune', 'Runes', actionX, Math.max(localUtilityY + baseHeight + 8, height - runeStrip), actionWidth, runeStrip, local, 'rune'));
     return zones;
   }
 
@@ -106,12 +108,15 @@ export function autoPlaceInZone(zone: ZoneRect, existingCount: number, totalCoun
   const row = Math.floor(existingCount / cols);
   const col = existingCount % cols;
   const itemsInRow = Math.max(1, Math.min(cols, totalCount - row * cols));
+  const rows = Math.max(1, Math.ceil(totalCount / cols));
   const rowWidth = itemsInRow * cardW + Math.max(0, itemsInRow - 1) * gapX;
   const rowStartX = zone.x + paddingX + Math.max(0, (availableWidth - rowWidth) / 2);
+  const contentHeight = cardH + Math.max(0, rows - 1) * stepY;
+  const rowStartY = zone.y + Math.max(paddingY, (zone.height - contentHeight) / 2);
 
   return {
     x: rowStartX + col * stepX + cardW / 2,
-    y: zone.y + paddingY + row * stepY + cardH / 4,
+    y: rowStartY + row * stepY + cardH / 2,
   };
 }
 

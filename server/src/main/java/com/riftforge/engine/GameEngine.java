@@ -3,6 +3,7 @@ package com.riftforge.engine;
 import com.riftforge.effect.CardEffectRegistry;
 import com.riftforge.model.*;
 import com.riftforge.model.move.*;
+import com.riftforge.rules.EquipmentRules;
 import com.riftforge.rules.ShowdownParticipantRules;
 import com.riftforge.service.CardDataService;
 import java.time.Instant;
@@ -236,19 +237,24 @@ public class GameEngine {
     CardInstance gear = findCard(state, move.gearInstanceId());
     CardDefinition gearDef = cardDataService.getCard(gear.getCardId());
     CardInstance target = findCard(state, move.targetInstanceId());
+    applyPayment(state, move.playerId(), move.paymentRuneIds(), move.premiumRuneIds(), EquipmentRules.equipCost(gearDef).energyCost());
     attachGear(state, gear, gearDef, target, move.playerId());
     return state;
   }
 
   private void applyPayment(LiveGameState state, PlayCardMove move, int cost) {
-    PlayerState player = player(state, move.playerId());
+    applyPayment(state, move.playerId(), move.paymentRuneIds(), move.premiumRuneIds(), cost);
+  }
+
+  private void applyPayment(LiveGameState state, String playerId, List<String> paymentRuneIds, List<String> premiumRuneIds, int cost) {
+    PlayerState player = player(state, playerId);
     int selectedEnergy = 0;
-    for (String runeId : move.paymentRuneIds()) {
+    for (String runeId : paymentRuneIds) {
       RuneState rune = findRune(state, runeId);
       rune.setTapped(true);
       selectedEnergy += rune.getNormalEnergy();
     }
-    for (String runeId : move.premiumRuneIds()) {
+    for (String runeId : premiumRuneIds) {
       RuneState rune = findRune(state, runeId);
       state.getRunes().remove(rune);
       if (rune.getCardId() != null && !rune.getCardId().isBlank()) {
@@ -445,7 +451,8 @@ public class GameEngine {
           true,
           showdown.attackingPlayerId(),
           List.of(),
-          List.of()));
+          List.of(),
+          showdown.locationId()));
       log(state, move.playerId(), "Combat damage assignment started.");
       return state;
     }
@@ -457,7 +464,11 @@ public class GameEngine {
         showdown.relevantPlayerIds(),
         showdown.focusedPlayerId(),
         showdown.consecutivePasses(),
-        true));
+        true,
+        null,
+        List.of(),
+        List.of(),
+        showdown.locationId()));
     CombatResolver.CombatResult result = combatResolver.resolve(state, showdown.attackingPlayerId());
     state.setActiveShowdown(new LiveGameState.ShowdownState(
         showdown.attackingPlayerId(),
@@ -467,7 +478,11 @@ public class GameEngine {
         showdown.relevantPlayerIds(),
         showdown.focusedPlayerId(),
         showdown.consecutivePasses(),
-        true));
+        true,
+        null,
+        List.of(),
+        List.of(),
+        showdown.locationId()));
     showdown.gankingBonuses().forEach((instanceId, bonus) -> state.getCards().stream()
         .filter(card -> card.getInstanceId().equals(instanceId))
         .findFirst()
@@ -499,7 +514,8 @@ public class GameEngine {
           true,
           defenderId,
           move.assignments(),
-          showdown.defenderAssignments()));
+          showdown.defenderAssignments(),
+          showdown.locationId()));
       log(state, move.playerId(), "Assigned attacking combat damage.");
       return state;
     }
@@ -514,7 +530,8 @@ public class GameEngine {
         true,
         null,
         showdown.attackerAssignments(),
-        move.assignments());
+        move.assignments(),
+        showdown.locationId());
     state.setActiveShowdown(assigned);
     CombatResolver.CombatResult result = combatResolver.resolveAssigned(
         state,
@@ -547,7 +564,11 @@ public class GameEngine {
         relevant,
         readyToResolve ? showdown.attackingPlayerId() : nextFocus,
         consecutivePasses,
-        readyToResolve));
+        readyToResolve,
+        null,
+        List.of(),
+        List.of(),
+        showdown.locationId()));
     log(state, move.playerId(), readyToResolve
         ? "Passed showdown focus. Showdown is ready to resolve."
         : "Passed showdown focus.");
@@ -1096,7 +1117,11 @@ public class GameEngine {
         relevant,
         nextFocus == null ? playerId : nextFocus,
         0,
-        false));
+        false,
+        null,
+        List.of(),
+        List.of(),
+        showdown.locationId()));
     log(state, playerId, "Showdown focus passed to the next player.");
   }
 
@@ -1123,7 +1148,21 @@ public class GameEngine {
         relevant,
         attackingPlayerId,
         0,
-        false);
+        false,
+        null,
+        List.of(),
+        List.of(),
+        battlefieldLocationIdFor(state, attackerInstanceIds));
+  }
+
+  private String battlefieldLocationIdFor(LiveGameState state, List<String> attackerInstanceIds) {
+    return attackerInstanceIds.stream()
+        .flatMap(instanceId -> state.getCards().stream()
+            .filter(card -> instanceId.equals(card.getInstanceId())))
+        .map(CardInstance::getBattlefieldLocationId)
+        .filter(locationId -> locationId != null && !locationId.isBlank())
+        .findFirst()
+        .orElse(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID);
   }
 
   private LiveGameState applyUndoRunes(LiveGameState state, UndoRunesMove move) {

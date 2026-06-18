@@ -87,6 +87,7 @@ Current implementation notes:
 - `SELECT_BATTLEFIELD` phase exists before `MULLIGAN` for constructed decks with Battlefield choices.
 - Player-specific projections include only that player's own Battlefield choices. Selected Battlefields are public once chosen.
 - Selected Battlefields render as inert shared-location plaques near the single Battlefield row and can be hovered for card text, but they are not targetable/movable cards.
+- Battlefield cards and showdowns now have a default location identity foundation (`bf-0`) so later multi-location work has a migration path without changing alpha gameplay.
 - Legal-action visibility exposes `SELECT_BATTLEFIELD` only to players who still need to choose.
 - MULLIGAN phase exists.
 - Players may keep or recycle up to 2 cards, then draw replacements.
@@ -315,7 +316,7 @@ Current implementation notes:
   model.
 - Basic `[Equip]` gear is played from hand to Base first, then attached with a
   separate Equip action from Base to a friendly Unit/Champion in Base or at the
-  battlefield.
+  battlefield by paying its printed Equip cost.
 - Champion-zone identity cards are not legal equip targets until they move into
   Base or the battlefield.
 - Attached Gear remains in Base with an attachment link and is shown near its
@@ -329,9 +330,9 @@ Current implementation notes:
   Deathknell.
 
 Known gaps:
-- Official equipment timing, Equip payment/domain precision, Quick-Draw,
-  Weaponmaster, replacement/reattachment edge cases, voluntary detach rules, and
-  many card-specific gear effects are incomplete.
+- Official equipment timing, Quick-Draw, Weaponmaster,
+  replacement/reattachment edge cases, voluntary detach rules, and many
+  card-specific gear effects are incomplete.
 
 Test coverage:
 - `GameEnginePlayCardTypeTest`
@@ -350,6 +351,7 @@ Current implementation notes:
 - Movement validates ownership, active player, readiness, source zone, and card type.
 - Showdowns are staged when movement creates battlefield opposition.
 - Moving to an empty battlefield updates `battlefieldController`.
+- Cards moved to `BATTLEFIELD` receive the default alpha location id (`bf-0`); old/no-location battlefield cards also resolve to that same default.
 
 Known gaps:
 - The multi-location Battlefield model remains an official-rules gap, but it is
@@ -403,6 +405,8 @@ Current implementation notes:
   client; contested movement opens at ACTION_WINDOW.
 - `activeShowdown` now tracks the two-player alpha relevant players, current
   focused player, consecutive focus passes, and a `readyToResolve` gate.
+- `activeShowdown` carries the default battlefield location id (`bf-0`) for
+  future migration, while current combat still uses the single shared location.
 - Focus starts with the attacker. The focused player may play a supported
   `[Action]` card or pass focus; playing an Action resets consecutive passes
   and advances focus. When both relevant players pass in succession, the

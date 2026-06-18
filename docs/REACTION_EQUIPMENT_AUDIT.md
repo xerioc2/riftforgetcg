@@ -39,8 +39,8 @@ targeting, replacement, or card-specific edge cases remain missing.
 
 | Card | In current playtest source | Type | Cost | Domains / premium | Exact local rules text | Backend status | Frontend status | Docs status | Bucket | Recommended status | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Guardian Angel | Irelia Tempo | Gear | 2 | CALM / premium 0 | `[Equip] :rb_rune_calm: (:rb_rune_calm:: Attach this to a unit you control.)` | Partial | Partial | Partial | Equipment lifecycle only | Partial | Alpha lifecycle works: play Gear to Base, equip from Base, attach to friendly Unit/Champion, return to Base when host leaves. Exact Equip payment/domain and official timing remain incomplete. |
-| Boots of Swiftness | Irelia Tempo | Gear | 3 | CHAOS / premium 0 | `[Equip] :rb_rune_chaos: (:rb_rune_chaos:: Attach this to a unit you control.)` | Partial | Partial | Partial | Equipment lifecycle only | Partial | Same alpha lifecycle as Guardian Angel. Exact Chaos payment and official timing remain incomplete. |
+| Guardian Angel | Irelia Tempo | Gear | 2 | CALM / premium 0 | `[Equip] :rb_rune_calm: (:rb_rune_calm:: Attach this to a unit you control.)` | Partial | Partial | Partial | Equipment lifecycle only | Partial | Alpha lifecycle works: play Gear to Base, pay the printed Calm Equip cost, attach to friendly Unit/Champion, and return to Base when host leaves. Full official Equip timing and replacement/reattachment edge cases remain incomplete. |
+| Boots of Swiftness | Irelia Tempo | Gear | 3 | CHAOS / premium 0 | `[Equip] :rb_rune_chaos: (:rb_rune_chaos:: Attach this to a unit you control.)` | Partial | Partial | Partial | Equipment lifecycle only | Partial | Alpha lifecycle works: play Gear to Base, pay the printed Chaos Equip cost, attach to friendly Unit/Champion, and return to Base when host leaves. Full official Equip timing and replacement/reattachment edge cases remain incomplete. |
 | Zhonya's Hourglass | Explicit audit/test pool, not starter main | Gear | 2 | CALM / premium 0 | `[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)If a friendly unit would die, kill this instead. Heal that unit, exhaust it, and recall it. (Send it to base. This isn't a move.)` | Unsupported | Unsupported | Not listed | Equipment effect / replacement / prevention | Unsupported | This is not an Equip lifecycle card. It needs Hidden, replacement/prevention timing, death prevention, heal, exhaust, and recall. Keep blocked. |
 | Edge of Night | Explicit audit/test pool, not starter main | Gear | 3 | CHAOS / premium 0 | `[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)When you play this from face down, attach it to a unit you control (here).[Equip] :rb_rune_chaos: (:rb_rune_chaos:: Attach this to a unit you control.)` | Partial | Partial | Not listed | Equipment lifecycle plus Hidden play-from-hidden | Partial | Basic Equip lifecycle applies only after the card is in Base. Face-down attach remains deferred. |
 | Disarming Rake | Irelia sideboard / playtest pool | Unit | 3 | CALM / premium 0 | `When you play me, you may kill a gear.` | Supported | Supported | Supported | Trigger plus optional prompt plus Gear destroy | Supported | Not Gear itself, but it is the main tested Gear-interaction card. Frontend/backend/docs support status now agree. |
@@ -90,7 +90,8 @@ are tested.
 - Boots of Swiftness
 - Edge of Night's plain `[Equip]` clause
 
-The lifecycle is alpha-ready, but official Equip payment/timing remains Partial.
+The lifecycle and printed Equip rune payments are alpha-ready, but official Equip
+timing and replacement/reattachment edge cases remain Partial.
 
 ### Equipment Effect / Replacement / Prevention
 

@@ -5,10 +5,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CardInstance {
+  public static final String DEFAULT_BATTLEFIELD_LOCATION_ID = "bf-0";
+
   private String instanceId;
   private String cardId;
   private String ownerId;
   private ZoneName zone;
+  private String battlefieldLocationId;
   private int x;
   private int y;
   private int zIndex;
@@ -28,6 +31,7 @@ public class CardInstance {
     this.cardId = other.cardId;
     this.ownerId = other.ownerId;
     this.zone = other.zone;
+    this.battlefieldLocationId = other.battlefieldLocationId;
     this.x = other.x;
     this.y = other.y;
     this.zIndex = other.zIndex;
@@ -48,7 +52,30 @@ public class CardInstance {
   public String getOwnerId() { return ownerId; }
   public void setOwnerId(String ownerId) { this.ownerId = ownerId; }
   public ZoneName getZone() { return zone; }
-  public void setZone(ZoneName zone) { this.zone = zone; }
+  public void setZone(ZoneName zone) {
+    this.zone = zone;
+    if (zone == ZoneName.BATTLEFIELD && !faceDown) {
+      if (battlefieldLocationId == null || battlefieldLocationId.isBlank()) {
+        battlefieldLocationId = DEFAULT_BATTLEFIELD_LOCATION_ID;
+      }
+    } else {
+      battlefieldLocationId = null;
+    }
+  }
+  public String getBattlefieldLocationId() {
+    if (zone == ZoneName.BATTLEFIELD && !faceDown) {
+      return battlefieldLocationId == null || battlefieldLocationId.isBlank()
+          ? DEFAULT_BATTLEFIELD_LOCATION_ID
+          : battlefieldLocationId;
+    }
+    return null;
+  }
+  public void setBattlefieldLocationId(String battlefieldLocationId) {
+    this.battlefieldLocationId = battlefieldLocationId;
+    if (zone == ZoneName.BATTLEFIELD && (this.battlefieldLocationId == null || this.battlefieldLocationId.isBlank())) {
+      this.battlefieldLocationId = DEFAULT_BATTLEFIELD_LOCATION_ID;
+    }
+  }
   public int getX() { return x; }
   public void setX(int x) { this.x = x; }
   public int getY() { return y; }

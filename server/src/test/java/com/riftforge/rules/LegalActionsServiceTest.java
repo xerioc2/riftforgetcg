@@ -79,6 +79,41 @@ class LegalActionsServiceTest {
   }
 
   @Test
+  void equipGearActionRequiresLegalTargetAndPayableEquipCost() {
+    when(cardDataService.getCard("guardian")).thenReturn(new CardDefinition(
+        "guardian",
+        "Guardian Angel",
+        "Gear",
+        null,
+        List.of("CALM"),
+        0,
+        0,
+        null,
+        null,
+        null,
+        "[Equip] :rb_rune_calm: (:rb_rune_calm:: Attach this to a unit you control.)",
+        0,
+        0,
+        List.of()));
+    when(cardDataService.getCard("friendly")).thenReturn(unitDef("friendly", 2, 2));
+    when(cardDataService.getCard("calm-rune")).thenReturn(new CardDefinition("calm-rune", "Calm Rune", "Rune", null, List.of("CALM"), 0, 0, null, null, null, null, 0, 0, List.of()));
+    when(cardDataService.isEquip(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      return def != null && "Gear".equalsIgnoreCase(def.type()) && def.rulesText() != null && def.rulesText().toLowerCase().contains("[equip]");
+    });
+    LegalActionsService legalActions = new LegalActionsService(cardDataService);
+    LiveGameState state = state(Phase.MAIN, "p1");
+    state.getCards().add(card("guardian-1", "p1", "guardian", ZoneName.BASE));
+    state.getCards().add(card("friendly-1", "p1", "friendly", ZoneName.BASE));
+
+    assertThat(legalActions.legalActionsFor(state, "p1")).doesNotContain(LegalAction.EQUIP_GEAR);
+
+    state.setRunes(new ArrayList<>(List.of(rune("calm-rune", "p1", false))));
+
+    assertThat(legalActions.legalActionsFor(state, "p1")).contains(LegalAction.EQUIP_GEAR);
+  }
+
+  @Test
   void pendingChoiceExposesOnlyResolveChoiceToOwner() {
     LiveGameState state = state(Phase.MAIN, "p1");
     state.setPendingChoice(PendingChoice.optionalDrawOne("choice-1", "p1", "source", "Draw a card?"));

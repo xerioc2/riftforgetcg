@@ -43,13 +43,20 @@ public class LiveGameState {
       boolean readyToResolve,
       String assigningPlayerId,
       List<CombatDamageAssignment> attackerAssignments,
-      List<CombatDamageAssignment> defenderAssignments) {
+      List<CombatDamageAssignment> defenderAssignments,
+      String locationId) {
+    public ShowdownState {
+      locationId = locationId == null || locationId.isBlank()
+          ? CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID
+          : locationId;
+    }
+
     public ShowdownState(String attackingPlayerId, List<String> attackerInstanceIds, Map<String, Integer> gankingBonuses) {
       this(attackingPlayerId, attackerInstanceIds, gankingBonuses, ShowdownStep.ACTION_WINDOW);
     }
 
     public ShowdownState(String attackingPlayerId, List<String> attackerInstanceIds, Map<String, Integer> gankingBonuses, ShowdownStep step) {
-      this(attackingPlayerId, attackerInstanceIds, gankingBonuses, step, List.of(), attackingPlayerId, 0, false, null, List.of(), List.of());
+      this(attackingPlayerId, attackerInstanceIds, gankingBonuses, step, List.of(), attackingPlayerId, 0, false, null, List.of(), List.of(), CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID);
     }
 
     public ShowdownState(
@@ -61,7 +68,22 @@ public class LiveGameState {
         String focusedPlayerId,
         int consecutivePasses,
         boolean readyToResolve) {
-      this(attackingPlayerId, attackerInstanceIds, gankingBonuses, step, relevantPlayerIds, focusedPlayerId, consecutivePasses, readyToResolve, null, List.of(), List.of());
+      this(attackingPlayerId, attackerInstanceIds, gankingBonuses, step, relevantPlayerIds, focusedPlayerId, consecutivePasses, readyToResolve, null, List.of(), List.of(), CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID);
+    }
+
+    public ShowdownState(
+        String attackingPlayerId,
+        List<String> attackerInstanceIds,
+        Map<String, Integer> gankingBonuses,
+        ShowdownStep step,
+        List<String> relevantPlayerIds,
+        String focusedPlayerId,
+        int consecutivePasses,
+        boolean readyToResolve,
+        String assigningPlayerId,
+        List<CombatDamageAssignment> attackerAssignments,
+        List<CombatDamageAssignment> defenderAssignments) {
+      this(attackingPlayerId, attackerInstanceIds, gankingBonuses, step, relevantPlayerIds, focusedPlayerId, consecutivePasses, readyToResolve, assigningPlayerId, attackerAssignments, defenderAssignments, CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID);
     }
   }
 

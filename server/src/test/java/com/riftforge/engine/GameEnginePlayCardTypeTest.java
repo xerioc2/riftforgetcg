@@ -1099,6 +1099,80 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void equipRequiresPrintedPremiumPayment() {
+    CardInstance gear = card("guardian", "p1", ZoneName.BASE);
+    CardInstance friendly = card("friendly", "p1", ZoneName.BASE);
+    LiveGameState state = state(gear, friendly);
+    stubCard("guardian", "Guardian Angel", "Gear", 0, 0, 0, "[Equip] :rb_rune_calm: (:rb_rune_calm:: Attach this to a unit you control.)", List.of(), List.of("CALM"));
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+
+    assertThatThrownBy(() -> engine.applyMove(state, equip("guardian", "friendly")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Insufficient equip payment.");
+
+    assertThat(gear.getAttachedToInstanceId()).isNull();
+    assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(friendly.getZone()).isEqualTo(ZoneName.BASE);
+  }
+
+  @Test
+  void equipSpendsPrintedPremiumPaymentExactlyOnce() {
+    CardInstance gear = card("boots", "p1", ZoneName.BASE);
+    CardInstance friendly = card("friendly", "p1", ZoneName.BASE);
+    LiveGameState state = state(gear, friendly);
+    state.setRunes(new ArrayList<>(List.of(rune("chaos-rune", "p1", false))));
+    stubCard("boots", "Boots of Swiftness", "Gear", 0, 0, 0, "[Equip] :rb_rune_chaos: (:rb_rune_chaos:: Attach this to a unit you control.)", List.of(), List.of("CHAOS"));
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    stubCard("chaos-rune", "Chaos Rune", "Rune", 0, 0, 0, null, List.of(), List.of("CHAOS"));
+
+    engine.applyMove(state, equip("boots", "friendly", List.of(), List.of("chaos-rune")));
+
+    assertThat(gear.getAttachedToInstanceId()).isEqualTo("friendly");
+    assertThat(state.getRunes()).extracting(RuneState::getInstanceId).doesNotContain("chaos-rune");
+    assertThat(state.getPlayers().getFirst().getRuneDeckPool()).containsExactly("chaos-rune");
+  }
+
+  @Test
+  void equipRejectsWrongDomainWithoutMutation() {
+    CardInstance gear = card("guardian", "p1", ZoneName.BASE);
+    CardInstance friendly = card("friendly", "p1", ZoneName.BASE);
+    LiveGameState state = state(gear, friendly);
+    state.setRunes(new ArrayList<>(List.of(rune("chaos-rune", "p1", false))));
+    stubCard("guardian", "Guardian Angel", "Gear", 0, 0, 0, "[Equip] :rb_rune_calm: (:rb_rune_calm:: Attach this to a unit you control.)", List.of(), List.of("CALM"));
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    stubCard("chaos-rune", "Chaos Rune", "Rune", 0, 0, 0, null, List.of(), List.of("CHAOS"));
+
+    assertThatThrownBy(() -> engine.applyMove(state, equip("guardian", "friendly", List.of(), List.of("chaos-rune"))))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Equip payment uses the wrong rune domain.");
+
+    assertThat(gear.getAttachedToInstanceId()).isNull();
+    assertThat(state.getRunes()).extracting(RuneState::getInstanceId).containsExactly("chaos-rune");
+    assertThat(state.getPlayers().getFirst().getRuneDeckPool()).isEmpty();
+  }
+
+  @Test
+  void equipCanUseSelectedEnergyAndPremiumPayment() {
+    CardInstance gear = card("zero-drive", "p1", ZoneName.BASE);
+    CardInstance friendly = card("friendly", "p1", ZoneName.BASE);
+    LiveGameState state = state(gear, friendly);
+    state.setRunes(new ArrayList<>(List.of(
+        rune("energy-rune", "p1", false),
+        rune("mind-rune", "p1", false))));
+    stubCard("zero-drive", "The Zero Drive", "Gear", 0, 0, 0, "[Equip] :rb_energy_1::rb_rune_mind: (:rb_energy_1::rb_rune_mind:: Attach this to a unit you control.)", List.of(), List.of("MIND"));
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    stubCard("energy-rune", "Chaos Rune", "Rune", 0, 0, 0, null, List.of(), List.of("CHAOS"));
+    stubCard("mind-rune", "Mind Rune", "Rune", 0, 0, 0, null, List.of(), List.of("MIND"));
+
+    engine.applyMove(state, equip("zero-drive", "friendly", List.of("energy-rune"), List.of("mind-rune")));
+
+    assertThat(gear.getAttachedToInstanceId()).isEqualTo("friendly");
+    assertThat(findRune(state, "energy-rune").isTapped()).isTrue();
+    assertThat(state.getRunes()).extracting(RuneState::getInstanceId).doesNotContain("mind-rune");
+    assertThat(state.getPlayers().getFirst().getAvailableEnergy()).isZero();
+  }
+
+  @Test
   void equipRequiresATarget() {
     LiveGameState state = state(card("equip", "p1", ZoneName.BASE));
     stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
@@ -1795,6 +1869,58 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void movingUnitToBattlefieldAssignsDefaultLocationId() {
+    LiveGameState state = state(card("unit", "p1", ZoneName.BASE));
+    stubCard("unit", "Unit", 0);
+
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "unit"));
+
+    CardInstance unit = find(state, "unit");
+    assertThat(unit.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(unit.getBattlefieldLocationId()).isEqualTo(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID);
+  }
+
+  @Test
+  void showdownStartedByMoveStoresDefaultLocationId() {
+    LiveGameState state = state(
+        card("attacker", "p1", ZoneName.BASE),
+        card("defender", "p2", ZoneName.BATTLEFIELD));
+    stubCard("attacker", "Unit", 0);
+    stubCard("defender", "Unit", 0);
+
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "attacker"));
+
+    assertThat(find(state, "attacker").getBattlefieldLocationId()).isEqualTo(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID);
+    assertThat(state.getActiveShowdown()).isNotNull();
+    assertThat(state.getActiveShowdown().locationId()).isEqualTo(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID);
+  }
+
+  @Test
+  void oldBattlefieldCardsWithoutStoredLocationUseDefaultLocationId() {
+    CardInstance unit = card("unit", "p1", ZoneName.BATTLEFIELD);
+    unit.setBattlefieldLocationId("");
+
+    assertThat(unit.getBattlefieldLocationId()).isEqualTo(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID);
+  }
+
+  @Test
+  void targetingStillWorksForDefaultLocationBattlefieldCards() {
+    CardInstance spell = card("boost", "p1", ZoneName.HAND);
+    CardInstance target = card("target", "p1", ZoneName.BATTLEFIELD);
+    target.setBattlefieldLocationId("");
+    LiveGameState state = state(spell, target);
+    stubCard("boost", "Boost", "Spell", 0, 0, 0, "Give a friendly unit +2 :rb_might: this turn.");
+    stubCard("target", "Target Unit", "Unit", 0, 2, 2, null);
+    when(cardDataService.requiresBattlefieldTarget("boost")).thenReturn(true);
+    when(cardDataService.requiresFriendlyTarget("boost")).thenReturn(true);
+
+    engine.applyMove(state, playTarget("boost", "target"));
+
+    assertThat(target.getTemporaryPowerModifier()).isEqualTo(2);
+    assertThat(target.getBattlefieldLocationId()).isEqualTo(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID);
+  }
+
+  @Test
   void cannotMoveOpponentUnitToBattlefield() {
     LiveGameState state = state(card("enemy", "p2", ZoneName.BASE));
     stubCard("enemy", "Unit", 0);
@@ -1896,6 +2022,10 @@ class GameEnginePlayCardTypeTest {
     return new EquipGearMove("p1", gearInstanceId, targetInstanceId);
   }
 
+  private EquipGearMove equip(String gearInstanceId, String targetInstanceId, List<String> paymentRuneIds, List<String> premiumRuneIds) {
+    return new EquipGearMove("p1", gearInstanceId, targetInstanceId, paymentRuneIds, premiumRuneIds);
+  }
+
   private LiveGameState disarmingRakeState(CardInstance... extraCards) {
     stubCard("rake", "Disarming Rake", "Unit", 0, 1, 2, "When you play me, you may kill a gear.");
     List<CardInstance> cards = new ArrayList<>();
@@ -1955,6 +2085,13 @@ class GameEnginePlayCardTypeTest {
         .orElseThrow();
   }
 
+  private RuneState findRune(LiveGameState state, String instanceId) {
+    return state.getRunes().stream()
+        .filter(rune -> rune.getInstanceId().equals(instanceId))
+        .findFirst()
+        .orElseThrow();
+  }
+
   private RuneState rune(String id, String ownerId, boolean tapped) {
     RuneState rune = new RuneState();
     rune.setInstanceId(id);
@@ -1977,6 +2114,11 @@ class GameEnginePlayCardTypeTest {
   private void stubCard(String id, String name, String type, int cost, int power, int health, String rulesText, List<String> keywords) {
     when(cardDataService.getCard(id)).thenReturn(
         new CardDefinition(id, name, type, null, List.of(), cost, 0, null, null, null, rulesText, power, health, keywords));
+  }
+
+  private void stubCard(String id, String name, String type, int cost, int power, int health, String rulesText, List<String> keywords, List<String> domains) {
+    when(cardDataService.getCard(id)).thenReturn(
+        new CardDefinition(id, name, type, null, domains, cost, 0, null, null, null, rulesText, power, health, keywords));
   }
 
   private RevealedHandSnapshot revealedHand(String toPlayerId, String ownerId, String... instanceIds) {

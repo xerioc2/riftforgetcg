@@ -29,6 +29,10 @@ safer issue-reporting path.
 - Basic Gear lifecycle is supported: play Gear to Base, equip from Base, keep
   attached Gear out of combat, and return it to Base when its host leaves public
   play.
+- Correction: equipping now requires paying the printed `[Equip]` cost (energy
+  and/or premium rune domains). The earlier alpha behavior that let gear equip
+  for free was a bug and has been fixed; the server rejects equips that do not
+  cover the printed cost.
 - Explicit target selection handles supported targeted effects and shows clear
   feedback for invalid targets.
 - Stacked Deck-style private choices are owner-only and do not reveal top-deck
@@ -65,7 +69,8 @@ safer issue-reporting path.
 - Quick-Draw, Weaponmaster, XP, Hunt, Level, Buff, and most battlefield
   abilities are deferred.
 - Predict/top-deck ordering and broader private choice prompts are partial.
-- Domain/power payment precision is still not tournament-accurate.
+- Printed Equip rune payments are supported for alpha Equip gear, but broader
+  domain/power payment precision is still not tournament-accurate.
 
 ## Reporting Issues
 

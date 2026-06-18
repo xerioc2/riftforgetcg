@@ -25,8 +25,8 @@ playtesting, but it is not a complete Riftbound rules implementation yet.
 - Ambush has a narrow Main-phase foundation; Ambush-as-Reaction and additional
   Ambush costs are incomplete.
 - Predict/top-deck ordering and private choice prompts are partial.
-- Gear payment precision, Quick-Draw, Weaponmaster, replacement, and voluntary
-  detach rules are deferred.
+- Printed Equip rune payments are supported for alpha Equip gear; Quick-Draw,
+  Weaponmaster, replacement, and voluntary detach rules are deferred.
 - Domain/power payment and selected-rune payment are not complete enough for
   tournament-accurate testing.
 

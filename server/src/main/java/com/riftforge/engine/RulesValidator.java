@@ -10,9 +10,12 @@ import com.riftforge.model.PlayerState;
 import com.riftforge.model.RuneState;
 import com.riftforge.model.ZoneName;
 import com.riftforge.model.move.*;
+import com.riftforge.rules.EquipmentRules;
+import com.riftforge.rules.EquipmentRules.EquipCost;
 import com.riftforge.rules.ShowdownParticipantRules;
 import com.riftforge.service.CardDataService;
 import com.riftforge.engine.CombatStatsService.CombatContext;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -609,6 +612,53 @@ public class RulesValidator {
     if (move.targetInstanceId() == null || move.targetInstanceId().isBlank()) throw new IllegalMoveException("Equipment requires a target.");
     CardInstance target = findCard(state, move.targetInstanceId());
     validateEquipTarget(move.playerId(), target);
+    validateEquipPayment(state, move, gearDef);
+  }
+
+  private void validateEquipPayment(LiveGameState state, EquipGearMove move, CardDefinition gearDef) {
+    EquipCost cost = EquipmentRules.equipCost(gearDef);
+    Set<String> allRuneIds = new HashSet<>();
+    for (String runeId : move.paymentRuneIds()) {
+      validatePaymentRune(state, move.playerId(), requirePaymentRuneId(runeId));
+      if (!allRuneIds.add(runeId)) throw new IllegalMoveException("Payment cannot use the same rune twice.");
+    }
+    List<String> requiredDomains = new ArrayList<>(cost.premiumDomains());
+    for (String runeId : move.premiumRuneIds()) {
+      RuneState rune = validatePaymentRune(state, move.playerId(), requirePaymentRuneId(runeId));
+      if (!allRuneIds.add(runeId)) throw new IllegalMoveException("Payment cannot use the same rune twice.");
+      if (!consumeMatchingEquipDomain(requiredDomains, rune)) throw new IllegalMoveException("Equip payment uses the wrong rune domain.");
+    }
+    if (!requiredDomains.isEmpty()) throw new IllegalMoveException("Insufficient equip payment.");
+    if (move.premiumRuneIds().size() > cost.premiumDomains().size()) {
+      throw new IllegalMoveException("Too many runes selected for equip payment.");
+    }
+    int availableEnergy = state.getPlayers().stream()
+        .filter(player -> move.playerId().equals(player.getUserId()))
+        .findFirst()
+        .orElseThrow()
+        .getAvailableEnergy();
+    if (availableEnergy + selectedPaymentEnergy(state, move.paymentRuneIds()) < cost.energyCost()) {
+      throw new IllegalMoveException("Insufficient equip payment.");
+    }
+  }
+
+  private boolean consumeMatchingEquipDomain(List<String> requiredDomains, RuneState rune) {
+    for (int i = 0; i < requiredDomains.size(); i++) {
+      if (runeMatchesRequiredDomain(rune, requiredDomains.get(i))) {
+        requiredDomains.remove(i);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private boolean runeMatchesRequiredDomain(RuneState rune, String requiredDomain) {
+    CardDefinition runeDef = cardDataService.getCard(rune.getCardId());
+    if (runeDef == null || runeDef.domains() == null || runeDef.domains().isEmpty()) return false;
+    String normalizedRequired = EquipmentRules.normalizeDomain(requiredDomain);
+    return runeDef.domains().stream()
+        .filter(domain -> !"COLORLESS".equalsIgnoreCase(domain))
+        .anyMatch(domain -> "RAINBOW".equals(normalizedRequired) || EquipmentRules.normalizeDomain(domain).equals(normalizedRequired));
   }
 
   private void validateEquipTarget(String playerId, CardInstance target) {

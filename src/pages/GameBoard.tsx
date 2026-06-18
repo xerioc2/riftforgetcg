@@ -78,6 +78,33 @@ function sharesDomain(card: RiftCard | undefined, rune: RiftCard | undefined) {
     .some((domain) => card.domains.some((cardDomain) => cardDomain.toUpperCase() === domain.toUpperCase()));
 }
 
+type EquipCost = {
+  energyCost: number;
+  premiumDomains: string[];
+};
+
+function normalizeDomain(domain: string) {
+  return domain.trim().replace('-', '_').toUpperCase();
+}
+
+function equipCostForCard(card: RiftCard | undefined): EquipCost {
+  const text = card?.rulesText ?? '';
+  const header = text.match(/\[equip\]\s*([^\(\[]*)/i)?.[1] ?? '';
+  const energyCost = [...header.matchAll(/:rb_energy_(\d+):/gi)]
+    .reduce((total, match) => total + Number(match[1] ?? 0), 0);
+  const premiumDomains = [...header.matchAll(/:rb_rune_([a-z_]+):/gi)]
+    .map((match) => normalizeDomain(match[1] ?? ''));
+  return { energyCost, premiumDomains };
+}
+
+function runeMatchesEquipDomain(requiredDomain: string, rune: RiftCard | undefined) {
+  if (!rune) return false;
+  const required = normalizeDomain(requiredDomain);
+  return rune.domains
+    .filter((domain) => domain !== 'COLORLESS')
+    .some((domain) => required === 'RAINBOW' || normalizeDomain(domain) === required);
+}
+
 function hasMaskedOwnHand(state: LiveGameState, playerId: string) {
   return state.cards.some((card) => card.ownerId === playerId && sameZone(card.zone, 'hand') && card.cardId === 'hidden');
 }
@@ -558,6 +585,55 @@ export function GameBoard() {
     return { paymentRuneIds: [...selectedRunes], premiumRuneIds };
   };
 
+  const equipPaymentForCard = (cardDef: RiftCard | undefined, showWarnings: boolean) => {
+    const cost = equipCostForCard(cardDef);
+    const playerEnergy = state?.players.find((statePlayer) => statePlayer.userId === player.id)?.availableEnergy ?? 0;
+    const readyRunes = (state?.runes ?? []).filter((rune) => rune.ownerId === player.id && !rune.tapped);
+    const premiumRuneIds: string[] = [];
+    const reservedRuneIds = new Set<string>();
+    for (const domain of cost.premiumDomains) {
+      const rune = readyRunes.find((candidate) =>
+        !reservedRuneIds.has(candidate.instanceId)
+        && runeMatchesEquipDomain(domain, cardsById.get(candidate.cardId)));
+      if (!rune) {
+        if (showWarnings) notifyWarning('Insufficient equip payment', `${cardDef?.name ?? 'That Equipment'} needs a ${domain.toLowerCase()} rune to equip.`);
+        return null;
+      }
+      premiumRuneIds.push(rune.instanceId);
+      reservedRuneIds.add(rune.instanceId);
+    }
+    const selectedRunes = new Set<string>();
+    let plannedEnergy = 0;
+    const neededEnergy = Math.max(0, cost.energyCost - playerEnergy);
+    for (const runeId of pendingRuneTaps) {
+      if (plannedEnergy >= neededEnergy) break;
+      const rune = state?.runes?.find((candidate) => candidate.instanceId === runeId);
+      if (!rune || rune.ownerId !== player.id || rune.tapped || reservedRuneIds.has(rune.instanceId)) continue;
+      selectedRunes.add(rune.instanceId);
+      plannedEnergy += rune.normalEnergy;
+    }
+    for (const rune of readyRunes) {
+      if (plannedEnergy >= neededEnergy) break;
+      if (reservedRuneIds.has(rune.instanceId) || selectedRunes.has(rune.instanceId)) continue;
+      selectedRunes.add(rune.instanceId);
+      plannedEnergy += rune.normalEnergy;
+    }
+    if (plannedEnergy < neededEnergy) {
+      if (showWarnings) notifyWarning('Insufficient energy', `${cardDef?.name ?? 'That Equipment'} needs ${neededEnergy} energy from ready runes to equip.`);
+      return null;
+    }
+    return { paymentRuneIds: [...selectedRunes], premiumRuneIds };
+  };
+
+  const canPayEquipCost = (cardDef: RiftCard | undefined) => equipPaymentForCard(cardDef, false) != null;
+
+  const selectPaymentRunesForEquip = (cardDef: RiftCard | undefined) => {
+    const payment = equipPaymentForCard(cardDef, true);
+    if (!payment) return null;
+    setPendingRuneTaps(new Set());
+    return payment;
+  };
+
   const legalTargetsForMode = (mode: TargetMode) =>
     (state?.cards ?? []).filter((instance) => {
       const targetDef = cardsById.get(instance.cardId);
@@ -998,7 +1074,9 @@ export function GameBoard() {
           notifyWarning('Equip unavailable', 'Equipment can be attached only when the server marks Equip legal.');
           return;
         }
-        publishMove({ type: 'EQUIP_GEAR', playerId: player.id, gearInstanceId: pendingTargetSelection.instanceId, targetInstanceId: instanceId });
+        const payment = selectPaymentRunesForEquip(spellDef);
+        if (!payment) return;
+        publishMove({ type: 'EQUIP_GEAR', playerId: player.id, gearInstanceId: pendingTargetSelection.instanceId, targetInstanceId: instanceId, ...payment });
         setPendingTargetSelection(null);
         return;
       }
@@ -1016,8 +1094,14 @@ export function GameBoard() {
         notifyWarning('No legal targets', noLegalTargetsMessage('FRIENDLY_UNIT_FOR_EQUIP'));
         return;
       }
+      if (!canPayEquipCost(targetCard)) {
+        const cost = equipCostForCard(targetCard);
+        const runeText = cost.premiumDomains.length > 0 ? ` and ${cost.premiumDomains.join('/').toLowerCase()} rune payment` : '';
+        notifyWarning('Equip unavailable', `${targetCard?.name ?? 'That Equipment'} needs ${cost.energyCost > 0 ? `${cost.energyCost} energy` : 'its printed equip cost'}${runeText}.`);
+        return;
+      }
       if (!canTakeAction(state, 'EQUIP_GEAR')) {
-        notifyWarning('Equip unavailable', 'Equipment can be attached during your Main Phase when a legal target exists.');
+        notifyWarning('Equip unavailable', 'Equipment can be attached during your Main Phase when a legal target and payment are available.');
         return;
       }
       beginTargetSelection(instanceId, 'FRIENDLY_UNIT_FOR_EQUIP');
@@ -1278,10 +1362,10 @@ export function GameBoard() {
       if (host && hostZone) {
         let hostPosition = { x: host.x, y: host.y };
         if ((sameZone(host.zone, 'champion') || sameZone(host.zone, 'legend'))) {
-          hostPosition = { x: hostZone.x + 48, y: hostZone.y + 60 };
+          hostPosition = { x: hostZone.x + hostZone.width / 2, y: hostZone.y + Math.min(60, hostZone.height / 2) };
         } else if (shouldAutoPlacePublicCard(host)) {
           hostPosition = autoPlaceInZone(hostZone, 0, 1);
-        } else if (sameZone(host.zone, 'battlefield')) {
+        } else if (sameZone(host.zone, 'base') || sameZone(host.zone, 'battlefield')) {
           hostPosition = clampPlacementToZone(host, hostZone);
         }
         return { instance, displayInstance: { ...instance, x: hostPosition.x + 34, y: hostPosition.y + 34 } };
@@ -1289,7 +1373,7 @@ export function GameBoard() {
     }
 
     if ((sameZone(instance.zone, 'champion') || sameZone(instance.zone, 'legend')) && zone) {
-      return { instance, displayInstance: { ...instance, x: zone.x + 48, y: zone.y + 60 } };
+      return { instance, displayInstance: { ...instance, x: zone.x + zone.width / 2, y: zone.y + Math.min(60, zone.height / 2) } };
     }
 
     if (zone && shouldAutoPlacePublicCard(instance)) {
@@ -1298,7 +1382,7 @@ export function GameBoard() {
       return { instance, displayInstance: { ...instance, ...autoPlaceInZone(zone, zoneIndex, zoneTotals.get(key) ?? zoneIndex + 1) } };
     }
 
-    if (zone && sameZone(instance.zone, 'battlefield')) {
+    if (zone && (sameZone(instance.zone, 'base') || sameZone(instance.zone, 'battlefield'))) {
       return { instance, displayInstance: { ...instance, ...clampPlacementToZone(instance, zone) } };
     }
 

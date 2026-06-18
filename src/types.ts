@@ -144,6 +144,7 @@ export type CardInstance = {
   tapped: boolean;
   faceDown: boolean;
   zIndex: number;
+  battlefieldLocationId?: string | null;
   currentHealth?: number;
   mightBonus?: number;
   temporaryPowerModifier?: number;
@@ -248,6 +249,7 @@ export type PendingChoice = {
 
 export type ShowdownState = {
   attackingPlayerId: string;
+  locationId?: string;
   attackerInstanceIds: string[];
   gankingBonuses?: Record<string, number>;
   step?: 'STAGED' | 'ACTION_WINDOW' | 'ASSIGN_DAMAGE' | 'RESOLVE_DAMAGE' | 'CLEANUP' | 'COMPLETE';

@@ -5,12 +5,15 @@ import com.riftforge.model.CardInstance;
 import com.riftforge.model.GameMode;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.Phase;
+import com.riftforge.model.RuneState;
 import com.riftforge.model.ShowdownStep;
 import com.riftforge.model.ZoneName;
 import com.riftforge.engine.CombatStatsService;
 import com.riftforge.engine.CombatStatsService.CombatContext;
 import com.riftforge.service.CardDataService;
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -305,7 +308,7 @@ public class LegalActionsService {
         .filter(card -> card.getZone() == ZoneName.BASE)
         .filter(card -> card.getAttachedToInstanceId() == null || card.getAttachedToInstanceId().isBlank())
         .map(card -> cardDataService.getCard(card.getCardId()))
-        .anyMatch(cardDataService::isEquip);
+        .anyMatch(def -> cardDataService.isEquip(def) && canPayEquip(state, playerId, def));
   }
 
   private boolean hasLegalEquipTarget(LiveGameState state, String playerId) {
@@ -319,5 +322,42 @@ public class LegalActionsService {
     if (card.isFaceDown()) return false;
     CardDefinition def = cardDataService.getCard(card.getCardId());
     return def != null && ("Unit".equalsIgnoreCase(def.type()) || "Champion".equalsIgnoreCase(def.type()));
+  }
+
+  private boolean canPayEquip(LiveGameState state, String playerId, CardDefinition gearDef) {
+    EquipmentRules.EquipCost cost = EquipmentRules.equipCost(gearDef);
+    List<RuneState> remainingRunes = new ArrayList<>(state.getRunes().stream()
+        .filter(rune -> playerId.equals(rune.getOwnerId()) && !rune.isTapped())
+        .toList());
+    for (String domain : cost.premiumDomains()) {
+      int index = firstMatchingRuneIndex(remainingRunes, domain);
+      if (index < 0) return false;
+      remainingRunes.remove(index);
+    }
+    int availableEnergy = state.getPlayers().stream()
+        .filter(player -> playerId.equals(player.getUserId()))
+        .findFirst()
+        .map(player -> player.getAvailableEnergy())
+        .orElse(0);
+    int readyRuneEnergy = remainingRunes.stream()
+        .mapToInt(rune -> Math.max(0, rune.getNormalEnergy()))
+        .sum();
+    return availableEnergy + readyRuneEnergy >= cost.energyCost();
+  }
+
+  private int firstMatchingRuneIndex(List<RuneState> runes, String requiredDomain) {
+    for (int i = 0; i < runes.size(); i++) {
+      if (runeMatchesRequiredDomain(runes.get(i), requiredDomain)) return i;
+    }
+    return -1;
+  }
+
+  private boolean runeMatchesRequiredDomain(RuneState rune, String requiredDomain) {
+    CardDefinition runeDef = cardDataService.getCard(rune.getCardId());
+    if (runeDef == null || runeDef.domains() == null || runeDef.domains().isEmpty()) return false;
+    String normalizedRequired = EquipmentRules.normalizeDomain(requiredDomain);
+    return runeDef.domains().stream()
+        .filter(domain -> !"COLORLESS".equalsIgnoreCase(domain))
+        .anyMatch(domain -> "RAINBOW".equals(normalizedRequired) || EquipmentRules.normalizeDomain(domain).equals(normalizedRequired));
   }
 }
