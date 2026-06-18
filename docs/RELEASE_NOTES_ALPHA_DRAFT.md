@@ -15,7 +15,7 @@ Public alpha playtest build.
 ## Summary
 
 This build is intended for focused external playtesting of RiftForge's
-single-battlefield alpha. It includes the current starter-deck flow, improved
+active-lane alpha. It includes the current starter-deck flow, improved
 privacy protections, visible support badges, clearer playtest guidance, and a
 safer issue-reporting path.
 
@@ -61,7 +61,7 @@ safer issue-reporting path.
 
 ## Known Limitations
 
-- Single-battlefield alpha is intentional; official multiple-battlefield rules
+- active-lane alpha is intentional; official multiple-battlefield rules
   are post-alpha work.
 - Reaction, chain, counterspell timing, and formal priority are not complete.
 - Hidden play-from-hidden timing is incomplete.

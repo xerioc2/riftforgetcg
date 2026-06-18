@@ -1,5 +1,5 @@
 import { Group, Rect, Text } from 'react-konva';
-import { BATTLEFIELD_LOCATIONS, battlefieldLocationLabel, battlefieldZonesForLocation, normalizeBattlefieldLocationId, type ZoneRect } from './BoardLayout';
+import { battlefieldLocationLabel, battlefieldZonesForLocation, normalizeBattlefieldLocationId, type BattlefieldLocationId, type ZoneRect } from './BoardLayout';
 
 function zoneFill(zoneName: string): string {
   switch (zoneName) {
@@ -36,7 +36,11 @@ export function ZoneOverlay({
   playerNames?: Record<string, string>;
 }) {
   const activeLocation = activeShowdownLocationId ? normalizeBattlefieldLocationId(activeShowdownLocationId) : undefined;
-  const locationFrames = BATTLEFIELD_LOCATIONS.map((locationId) => {
+  const visibleLocations = zones
+    .filter((zone) => zone.zoneName === 'battlefield' && zone.battlefieldLocationId)
+    .map((zone) => normalizeBattlefieldLocationId(zone.battlefieldLocationId))
+    .filter((locationId, index, all) => all.indexOf(locationId) === index);
+  const locationFrames = visibleLocations.map((locationId: BattlefieldLocationId) => {
     const laneZones = battlefieldZonesForLocation(zones, locationId);
     if (laneZones.length === 0) return null;
     const minX = Math.min(...laneZones.map((zone) => zone.x));

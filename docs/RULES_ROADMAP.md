@@ -25,7 +25,7 @@ errata, and tournament policy remain the source of truth.
   basic premium/domain rune recycling.
 - Common card-type play legality is enforced for units, spells, gear, runes,
   Champions, Legends, and Battlefields.
-- Movement legality is enforced for the current single-battlefield flow, with a
+- Movement legality is enforced for the current active-lane flow, with a
   dedicated same-zone `REPOSITION_CARD` move for visual organization.
 - Keyword/effect handler registry scaffold exists for keyword, on-play,
   triggered, activated, static modifier, and replacement-effect handler shapes,

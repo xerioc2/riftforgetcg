@@ -928,6 +928,31 @@ export function GameBoard() {
     const targetBattlefieldLocationId = sameZone(zone, 'battlefield')
       ? normalizeBattlefieldLocationId(battlefieldLocationForPoint(x, y, zones))
       : undefined;
+    if (sameZone(instance.zone, 'battlefield') && sameZone(zone, 'battlefield') && instance.ownerId === player.id) {
+      const currentLocationId = normalizeBattlefieldLocationId(instance.battlefieldLocationId);
+      const destinationLocationId = targetBattlefieldLocationId ?? DEFAULT_BATTLEFIELD_LOCATION_ID;
+      if (destinationLocationId !== currentLocationId) {
+        if (!canTakeAction(state, 'MOVE_TO_BATTLEFIELD')) {
+          notifyWarning('Action unavailable', 'Battlefield lane movement is available only during your Main Phase before a showdown starts.');
+          window.setTimeout(fetchProjectedState, 100);
+          return;
+        }
+        const cardDef = cardsById.get(instance.cardId);
+        const type = cardDef?.type?.toLowerCase();
+        if (type !== 'unit' && type !== 'champion') {
+          notifyWarning('Cannot move lanes', 'Only face-up Units and Champions can move between battlefield lanes.');
+          window.setTimeout(fetchProjectedState, 100);
+          return;
+        }
+        publishMove({
+          type: 'MOVE_TO_BATTLEFIELD',
+          playerId: player.id,
+          instanceId,
+          battlefieldLocationId: destinationLocationId,
+        });
+        return;
+      }
+    }
     if (sameZone(instance.zone, 'legend') && sameZone(zone, 'battlefield') && instance.ownerId === player.id) {
       notifyWarning('Legend unavailable', 'Legends cannot be moved to the battlefield in this alpha model.');
       window.setTimeout(fetchProjectedState, 100);

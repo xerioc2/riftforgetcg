@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { unsupportedCardReason } from '../lib/cardActions';
+import { cardDisplayStats } from '../lib/cardDisplayStats';
 import { keywordDescription } from '../lib/cardKeywords';
 import { cardSupportStatus } from '../lib/deckSupport';
 import type { CardInstance, RiftCard } from '../types';
@@ -18,6 +19,7 @@ export function CardPreview({ card, instance, onInspect }: { card: RiftCard | nu
   if (!card) return null;
   const unsupportedReason = unsupportedCardReason(card);
   const support = cardSupportStatus(card);
+  const stats = cardDisplayStats(card, instance);
 
   return (
     <aside
@@ -71,15 +73,15 @@ export function CardPreview({ card, instance, onInspect }: { card: RiftCard | nu
           <span className={`mt-2 inline-flex border px-2 py-1 text-xs font-semibold uppercase tracking-wide ${supportBadgeClass[support.status]}`} title={support.reason}>
             {support.status.replace('_', ' ')}
           </span>
-          {card.power != null && card.health != null ? (
+          {stats.hasCombatStats ? (
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-semibold text-slate-200">
-              <span className="border border-slate-700/80 bg-[#0b1017] px-2 py-1">
-                Might {card.power}
-                {(instance?.mightBonus ?? 0) > 0 ? ` (+${instance?.mightBonus})` : ''}
+              <span className={`border px-2 py-1 ${stats.mightModified ? 'border-forge/60 bg-[#161307] text-forge' : 'border-slate-700/80 bg-[#0b1017]'}`}>
+                {stats.mightLabel}
               </span>
               <span className="border border-slate-700/80 bg-[#0b1017] px-2 py-1">
-                Guard {instance?.currentHealth ?? card.health}/{card.health}
+                {stats.healthLabel}
               </span>
+              {stats.damageLabel ? <span className="col-span-2 border border-ember/60 bg-[#1a0d0a] px-2 py-1 text-ember">{stats.damageLabel}</span> : null}
             </div>
           ) : null}
           {['Spell', 'Gear'].includes(card.type) ? (

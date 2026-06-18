@@ -113,12 +113,11 @@ describe('battlefieldDisplay', () => {
       zones,
     );
 
-    expect(displays.map((display) => display.locationId)).toEqual(['bf-0', 'bf-1', 'bf-2']);
+    expect(displays.map((display) => display.locationId)).toEqual(['bf-0', 'bf-1']);
     expect(displays[0].label).toBe('Sunken Temple');
     expect(displays[1].label).toBe('unknown-battlefield');
-    expect(displays[2].label).toBe('Battlefield 3');
     expect(displays[0].frame.x).toBeLessThan(displays[1].frame.x);
-    expect(displays[1].frame.x).toBeLessThan(displays[2].frame.x);
+    expect(displays.some((display) => display.label === 'Battlefield 3')).toBe(false);
   });
 
   it('marks selected battlefield visuals as non-targetable and non-interactive', () => {

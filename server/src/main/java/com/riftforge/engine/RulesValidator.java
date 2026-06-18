@@ -701,6 +701,7 @@ public class RulesValidator {
     CardInstance card = findCard(state, move.instanceId());
     if (!move.playerId().equals(card.getOwnerId())) throw new IllegalMoveException("You do not own that card.");
     CardDefinition def = cardDataService.getCard(card.getCardId());
+    String destinationLocationId = BattlefieldLocationRules.normalize(move.battlefieldLocationId());
     boolean unit = isType(def, "Unit");
     boolean champion = isType(def, "Champion");
     boolean legend = isType(def, "Legend");
@@ -713,10 +714,23 @@ public class RulesValidator {
     if (!unit && !champion) {
       throw new IllegalMoveException("Only Units and Champions can move to the battlefield.");
     }
-    if (unit && card.getZone() != ZoneName.BASE) {
-      throw new IllegalMoveException("Only units from your base can move to the battlefield.");
+    if (!BattlefieldLocationRules.isActiveLocation(state, destinationLocationId)) {
+      throw new IllegalMoveException("That battlefield lane is not active in this game.");
     }
-    if (champion && card.getZone() != ZoneName.CHAMPION && card.getZone() != ZoneName.BASE) {
+    if (card.getAttachedToInstanceId() != null && !card.getAttachedToInstanceId().isBlank()) {
+      throw new IllegalMoveException("Attached Equipment follows its host and cannot move as a combatant.");
+    }
+    if (card.isFaceDown() || card.getZone() == ZoneName.HIDDEN) {
+      throw new IllegalMoveException("Hidden cards cannot move to a battlefield lane this way.");
+    }
+    boolean fromBattlefield = card.getZone() == ZoneName.BATTLEFIELD;
+    if (fromBattlefield) {
+      if (BattlefieldLocationRules.locationOf(card).equals(destinationLocationId)) {
+        throw new IllegalMoveException("That card is already at that battlefield lane.");
+      }
+    } else if (unit && card.getZone() != ZoneName.BASE) {
+      throw new IllegalMoveException("Only units from your base or another battlefield lane can move to the battlefield.");
+    } else if (champion && card.getZone() != ZoneName.CHAMPION && card.getZone() != ZoneName.BASE) {
       throw new IllegalMoveException("Only Champions from your champion zone or base can move to the battlefield.");
     }
     if (card.getZone() != ZoneName.CHAMPION

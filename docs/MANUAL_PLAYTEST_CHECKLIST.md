@@ -10,7 +10,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Start a human vs RiftBot or human vs human game.
 - Choose one Battlefield before mulligan and confirm the opponent's unchosen Battlefield pool is not visible.
 - After both players choose, confirm selected Battlefield plaques appear in the three-lane Battlefield area, can be hovered/read like cards, and cannot be targeted, moved, tapped, or fought.
-- Remember the current alpha has three visible shared Battlefield lanes for 1v1 testing. Battlefield effects, hidden slots, official "here" targeting, and full location rules remain deferred.
+- Remember the current 1v1 alpha has two active shared Battlefield lanes. Deck construction still requires three Battlefield cards, but that does not mean three active lanes are used in Duel/bot games. Battlefield effects, hidden slots, official "here" targeting, and full location rules remain deferred.
 - Keep your opening hand or mulligan at least one card.
 - Play a Unit and confirm it stays visible in Base.
 - Confirm your Legend starts in the Legend zone and your chosen Champion starts in the Champion zone.
@@ -60,7 +60,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Create a human vs RiftBot room.
 - Load or select a constructed deck, then ready and start.
 - Choose one Battlefield from the three-card setup prompt and confirm it appears on the board after both players choose.
-- Move one Unit into each visible lane across a few turns and confirm the card lands in the lane you dropped it on.
+- Move one Unit into each visible active lane across a few turns and confirm the card lands in the lane you dropped it on.
 - Move opposing Units into the same lane and confirm a same-lane showdown starts with that lane highlighted.
 - Move opposing Units into different lanes and confirm no cross-lane showdown starts.
 - Keep the opening hand or mulligan at least one card.
@@ -111,7 +111,9 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Ready up, start the game, and confirm the Battlefield selection prompt appears before mulligan.
 - Choose one Battlefield, then confirm mulligan appears after both players have selected.
 - Confirm the selected Battlefield displays appear in the visible Battlefield lanes after setup, show hover previews, and remain non-interactive location displays.
-- Move Units to `Battlefield 1`, `Battlefield 2`, and `Battlefield 3` and confirm each card stays in the lane chosen by the drag/drop.
+- Move Units to `Battlefield 1` and `Battlefield 2` and confirm each card stays in the lane chosen by the drag/drop. In 1v1, confirm no `Battlefield 3` placeholder is shown.
+- During Main Phase with no active showdown, drag a ready Unit/Champion from `Battlefield 1` to `Battlefield 2` and confirm it moves lanes instead of snapping back.
+- Try dragging a Unit/Champion to the lane it already occupies and confirm it does not create a new move/showdown.
 - Move units from both players into the same lane and confirm the lane highlight/phase bar identify the active showdown location.
 - Move units from both players into different lanes and confirm they do not start a showdown with each other.
 - Keep the opening hand or mulligan at least one card.
@@ -131,6 +133,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - If an Ambush card appears, confirm it either shows a clear Ambush option with a friendly battlefield unit or explains why Ambush/additional cost is unavailable.
 - If a showdown starts and you have a supported `[Action]` card, confirm the UI says you may play it or pass focus only while you are focused.
 - Confirm `Resolve Showdown` appears only after both relevant players pass focus.
+- After combat damage assignment, confirm board cards and hover/inspect show readable Might, current HP, and marked damage until the model clears it.
 - Play Stacked Deck to open the narrow alpha chain. If the opponent has Gust in
   hand, confirm Gust shows as a `Respond` option only while that player has
   chain focus, highlights only battlefield Units/Champions with 3 Might or

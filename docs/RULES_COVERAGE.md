@@ -96,7 +96,7 @@ Current implementation notes:
 Known gaps:
 - Multiplayer turn-order mulligan nuance is not deeply modeled.
 - UI/engine language should stay aligned with official "recycle up to 2" wording.
-- Full official-style multi-location Battlefield setup remains partial. Current alpha renders three shared Battlefield lanes and can send move destinations, but future 1v1 support still needs official Battlefield effects, hidden slots, richer "here" targeting, scoring nuance, bot strategy, and card-specific location rules. This is separate from 3+ player multiplayer support.
+- Full official-style multi-location Battlefield setup remains partial. Current 1v1 Duel/bot alpha renders two active shared Battlefield lanes (`bf-0`, `bf-1`) and can send move destinations, including ready Unit/Champion movement between active lanes during Main Phase when no showdown is active; `bf-2` remains a supported model id for future formats but is not an active 1v1 lane. Future support still needs official Battlefield effects, hidden slots, richer "here" targeting, scoring nuance, bot strategy, and card-specific location rules. This is separate from 3+ player multiplayer support.
 - Printed Battlefield abilities remain card-specific Partial unless explicitly scripted and tested; current local texts include delayed/optional conquer, defend, spell-play, and score-modification effects that are not safe to auto-enable from display-only selection.
 
 Test coverage:
@@ -381,8 +381,11 @@ Current implementation notes:
 - Conquer and hold can award points per tracked location in the simplified alpha flow.
 - Moving an unopposed unit or Champion to the battlefield sets that player as
   the current controller.
+- Moving a ready Unit/Champion between active Battlefield lanes during Main
+  Phase updates that card's `battlefieldLocationId`; moving into an opposed
+  lane starts a showdown at the destination only.
 - Moving into an opposed location starts `activeShowdown` for that location only.
-- The frontend renders three shared Battlefield lanes. Each lane has a player and opponent side for readability, while the lane itself maps to a stable `battlefieldLocationId`.
+- The frontend renders active Battlefield lanes by format. Current 1v1 Duel/bot games show `bf-0` and `bf-1`; future/non-1v1 formats can still use `bf-2`. Each visible lane has a player and opponent side for readability, while the lane itself maps to a stable `battlefieldLocationId`.
 
 Known gaps:
 - Full multi-location Battlefield play is not fully modeled. This is deliberate
@@ -562,10 +565,10 @@ Current implementation notes:
   controller's end phase. XP and facedown viewing remain deferred.
 - Simple Recruit token creation exists through `TokenFactory` for starter-deck
   scripts. Noxian Drummer's move-to-battlefield trigger and Vanguard Captain's
-  Legion token trigger are card-specific Supported in the single-battlefield
+  Legion token trigger are card-specific Supported in the active-lane
   alpha.
 - Stellacorn Herder's full printed movement trigger is card-specific
-  Supported in the single-battlefield alpha: Base -> battlefield and
+  Supported in the active-lane alpha: Base -> battlefield and
   battlefield -> Base/recall movement each draw 1 privately, while play from
   hand, return to hand, trash/death, setup/import, hidden transitions, and
   same-zone repositioning do not trigger it.
@@ -727,7 +730,7 @@ Priority: P1.
 1. Rune payment validation: domain/power costs, recycling, cost modifiers.
 2. Play-card legality edge cases: action/reaction permissions, gear attachment detail, card-specific prompts.
 3. Movement legality edge cases: Ganking, effect-driven movement, and current
-   single-battlefield readability. Full multi-location Battlefield play is
+   active-lane readability. Full Battlefield effects/location rules are
    post-alpha.
 4. Showdown timing edge cases: interactive action windows, combat conversion, open states.
 5. Combat damage assignment edge cases: player assignment, multi-unit combat, prevention/replacement.

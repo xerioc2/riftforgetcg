@@ -262,8 +262,8 @@ class GameEngineShowdownTest {
 
   @Test
   void secondShowdownCanStartAtDifferentLocationAfterFirstResolves() {
-    CardInstance defenderOne = atLocation(card("defender-one", "p2", ZoneName.BATTLEFIELD, 1), "bf-1");
-    CardInstance defenderTwo = atLocation(card("defender-two", "p2", ZoneName.BATTLEFIELD, 1), "bf-2");
+    CardInstance defenderOne = atLocation(card("defender-one", "p2", ZoneName.BATTLEFIELD, 1), "bf-0");
+    CardInstance defenderTwo = atLocation(card("defender-two", "p2", ZoneName.BATTLEFIELD, 1), "bf-1");
     LiveGameState state = state(
         card("attacker-one", "p1", ZoneName.BASE, 3),
         card("attacker-two", "p1", ZoneName.BASE, 3),
@@ -274,13 +274,13 @@ class GameEngineShowdownTest {
     stubUnit("defender-one", 1, 1);
     stubUnit("defender-two", 1, 1);
 
-    engine.applyMove(state, new MoveToBattlefieldMove("p1", "attacker-one", "bf-1", List.of(), List.of()));
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "attacker-one", "bf-0", List.of(), List.of()));
     passShowdownFocusCycle(state);
     resolveShowdownWithAssignments(state, "attacker-one", "defender-one", 3, 1);
-    engine.applyMove(state, new MoveToBattlefieldMove("p1", "attacker-two", "bf-2", List.of(), List.of()));
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "attacker-two", "bf-1", List.of(), List.of()));
 
     assertThat(state.getActiveShowdown()).isNotNull();
-    assertThat(state.getActiveShowdown().locationId()).isEqualTo("bf-2");
+    assertThat(state.getActiveShowdown().locationId()).isEqualTo("bf-1");
     assertThat(state.getActiveShowdown().attackerInstanceIds()).containsExactly("attacker-two");
   }
 

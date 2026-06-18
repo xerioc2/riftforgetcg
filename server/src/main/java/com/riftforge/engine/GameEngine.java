@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
@@ -351,6 +352,9 @@ public class GameEngine {
     CardInstance card = findCard(state, move.instanceId());
     CardDefinition def = cardDataService.getCard(card.getCardId());
     ZoneName sourceZone = card.getZone();
+    String sourceLocationId = sourceZone == ZoneName.BATTLEFIELD
+        ? BattlefieldLocationRules.locationOf(card)
+        : null;
     boolean playedFromChampionZone = card.getZone() == ZoneName.CHAMPION;
     if (playedFromChampionZone) {
       PlayerState player = player(state, move.playerId());
@@ -384,6 +388,9 @@ public class GameEngine {
         ? "Played " + def.name() + " from the Champion zone."
         : "Moved " + def.name() + " to the battlefield.");
     boolean opposed = hasOpposingCombatantsAtLocation(state, move.playerId(), locationId);
+    if (sourceLocationId != null && !sourceLocationId.equals(locationId)) {
+      updateBattlefieldControllerFromCombatants(state, sourceLocationId);
+    }
     if (!opposed) {
       state.getBattlefieldController().put(locationId, move.playerId());
       return state;
@@ -416,7 +423,7 @@ public class GameEngine {
       String battlefieldName = "BATTLEFIELD".equals(activeBattlefield)
           ? "the default Battlefield"
           : cardDataService.getCard(activeBattlefield).name();
-      log(state, move.playerId(), "Battlefields locked. Using " + battlefieldName + " for the single-battlefield alpha. Advanced to MULLIGAN.");
+      log(state, move.playerId(), "Battlefields locked. " + battlefieldName + " is visible on the board. Advanced to MULLIGAN.");
     }
     return state;
   }
@@ -1179,6 +1186,23 @@ public class GameEngine {
         .filter(this::isPublicCombatant)
         .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
         .anyMatch(candidate -> !playerId.equals(candidate.getOwnerId()));
+  }
+
+  private void updateBattlefieldControllerFromCombatants(LiveGameState state, String locationId) {
+    Set<String> owners = state.getCards().stream()
+        .filter(this::isPublicCombatant)
+        .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
+        .map(CardInstance::getOwnerId)
+        .filter(owner -> owner != null && !owner.isBlank())
+        .collect(java.util.stream.Collectors.toCollection(java.util.TreeSet::new));
+    String normalized = BattlefieldLocationRules.normalize(locationId);
+    if (owners.size() == 1) {
+      state.getBattlefieldController().put(normalized, owners.iterator().next());
+      return;
+    }
+    if (owners.isEmpty()) {
+      state.getBattlefieldController().remove(normalized);
+    }
   }
 
   private boolean isPublicCombatant(CardInstance card) {

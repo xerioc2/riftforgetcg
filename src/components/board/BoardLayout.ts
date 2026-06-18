@@ -25,12 +25,17 @@ export type SharedBattlefieldSides = {
 export const BATTLEFIELD_LOCATIONS = ['bf-0', 'bf-1', 'bf-2'] as const;
 export type BattlefieldLocationId = (typeof BATTLEFIELD_LOCATIONS)[number];
 export const DEFAULT_BATTLEFIELD_LOCATION_ID: BattlefieldLocationId = 'bf-0';
+export const DUEL_BATTLEFIELD_LOCATIONS = ['bf-0', 'bf-1'] as const satisfies readonly BattlefieldLocationId[];
 
 export function normalizeBattlefieldLocationId(locationId?: string | null): BattlefieldLocationId {
   const normalized = locationId?.trim();
   return BATTLEFIELD_LOCATIONS.includes(normalized as BattlefieldLocationId)
     ? normalized as BattlefieldLocationId
     : DEFAULT_BATTLEFIELD_LOCATION_ID;
+}
+
+export function activeBattlefieldLocationsForPlayerCount(playerCount: number): readonly BattlefieldLocationId[] {
+  return playerCount <= 2 ? DUEL_BATTLEFIELD_LOCATIONS : BATTLEFIELD_LOCATIONS;
 }
 
 export function battlefieldLocationLabel(locationId?: string | null): string {
@@ -65,6 +70,7 @@ export function computeLayout(width: number, height: number, playerIds: string[]
   const [local, ...others] = playerIds;
   if (!local) return [];
   const zones: ZoneRect[] = [];
+  const activeBattlefieldLocations = activeBattlefieldLocationsForPlayerCount(playerIds.length);
 
   if (playerIds.length <= 2) {
     const playerColumnWidth = 200;
@@ -85,7 +91,7 @@ export function computeLayout(width: number, height: number, playerIds: string[]
     const battlefieldY = topUtilityHeight;
     const localUtilityY = battlefieldY + battlefieldHeight + rowGap;
     const locationGap = Math.max(10, Math.min(18, actionWidth * 0.012));
-    const locationWidth = (actionWidth - locationGap * (BATTLEFIELD_LOCATIONS.length - 1)) / BATTLEFIELD_LOCATIONS.length;
+    const locationWidth = (actionWidth - locationGap * (activeBattlefieldLocations.length - 1)) / activeBattlefieldLocations.length;
     const sideGap = 8;
     const battlefieldSideHeight = (battlefieldHeight - sideGap) / 2;
     const opponent = others[0] ?? 'opponent';
@@ -96,7 +102,7 @@ export function computeLayout(width: number, height: number, playerIds: string[]
     zones.push(zone('p1-champion', 'Champion', identityStart + identityWidth + identityGap, opponentIdentityY, identityWidth, identityHeight, opponent, 'champion'));
     zones.push(zone('p1-rune', 'Runes', actionX, 0, actionWidth, runeStrip, opponent, 'rune'));
     zones.push(zone('p1-base', 'Base', actionX, Math.max(runeStrip + 8, topUtilityHeight - baseHeight - 6), actionWidth, baseHeight, opponent, 'base'));
-    BATTLEFIELD_LOCATIONS.forEach((locationId, index) => {
+    activeBattlefieldLocations.forEach((locationId, index) => {
       const x = actionX + index * (locationWidth + locationGap);
       const label = battlefieldLocationLabel(locationId);
       zones.push(zone(`p1-battlefield-${locationId}`, `${label}: opponent`, x, battlefieldY, locationWidth, battlefieldSideHeight, opponent, 'battlefield', locationId));

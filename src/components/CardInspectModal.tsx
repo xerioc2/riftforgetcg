@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { cardDisplayStats } from '../lib/cardDisplayStats';
 import { keywordDescription } from '../lib/cardKeywords';
 import { cardSupportStatus } from '../lib/deckSupport';
 import type { CardInstance, RiftCard } from '../types';
@@ -20,9 +21,7 @@ export function CardInspectModal({ card, cardDef, onClose }: { card: CardInstanc
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [onClose]);
 
-  const mightBonus = card.mightBonus ?? 0;
-  const baseMight = cardDef?.power ?? 0;
-  const maxHealth = cardDef?.health ?? 0;
+  const stats = cardDisplayStats(cardDef, card);
   const support = cardSupportStatus(cardDef);
 
   return (
@@ -42,10 +41,13 @@ export function CardInspectModal({ card, cardDef, onClose }: { card: CardInstanc
           </div>
           {cardDef?.cost != null ? <span className="badge text-forge">Cost {cardDef.cost}</span> : null}
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-2 border-y border-line py-3 text-sm font-semibold text-slate-200">
-          <span>Might {baseMight + mightBonus}{mightBonus > 0 ? ` (+${mightBonus})` : ''}</span>
-          <span>Guard {card.currentHealth ?? maxHealth}/{maxHealth}</span>
-        </div>
+        {stats.hasCombatStats ? (
+          <div className="mt-4 grid grid-cols-2 gap-2 border-y border-line py-3 text-sm font-semibold text-slate-200">
+            <span className={stats.mightModified ? 'text-forge' : undefined}>{stats.mightLabel}</span>
+            <span>{stats.healthLabel}</span>
+            {stats.damageLabel ? <span className="col-span-2 text-ember">{stats.damageLabel}</span> : null}
+          </div>
+        ) : null}
         <div className="mt-4">
           <h3 className="text-xs font-semibold uppercase text-slate-500">Rules</h3>
           <p className={`mt-2 whitespace-pre-wrap text-sm leading-5 ${cardDef?.rulesText ? 'text-slate-200' : 'text-slate-500'}`}>{cardDef?.rulesText || 'No effect text.'}</p>

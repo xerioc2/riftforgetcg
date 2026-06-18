@@ -835,7 +835,7 @@ class GameEnginePlayCardTypeTest {
 
     assertThatThrownBy(() -> engine.applyMove(state, new MoveToBattlefieldMove("p1", "tideturner")))
         .isInstanceOf(IllegalMoveException.class)
-        .hasMessage("Only units from your base can move to the battlefield.");
+        .hasMessage("Hidden cards cannot move to a battlefield lane this way.");
   }
 
   @Test
@@ -1614,7 +1614,7 @@ class GameEnginePlayCardTypeTest {
 
     assertThatThrownBy(() -> engine.applyMove(state, new MoveToBattlefieldMove("p1", "champion")))
         .isInstanceOf(IllegalMoveException.class)
-        .hasMessage("Only Champions from your champion zone or base can move to the battlefield.");
+        .hasMessage("That card is already at that battlefield lane.");
   }
 
   @Test
@@ -1973,16 +1973,105 @@ class GameEnginePlayCardTypeTest {
 
   @Test
   void movingToDifferentLocationThanOpponentDoesNotStartShowdown() {
-    CardInstance defender = atLocation(card("defender", "p2", ZoneName.BATTLEFIELD), "bf-1");
+    CardInstance defender = atLocation(card("defender", "p2", ZoneName.BATTLEFIELD), "bf-0");
     LiveGameState state = state(card("attacker", "p1", ZoneName.BASE), defender);
     stubCard("attacker", "Unit", 0);
     stubCard("defender", "Unit", 0);
 
-    engine.applyMove(state, new MoveToBattlefieldMove("p1", "attacker", "bf-2", List.of(), List.of()));
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "attacker", "bf-1", List.of(), List.of()));
 
     assertThat(state.getActiveShowdown()).isNull();
-    assertThat(find(state, "attacker").getBattlefieldLocationId()).isEqualTo("bf-2");
-    assertThat(state.getBattlefieldController()).containsEntry("bf-2", "p1");
+    assertThat(find(state, "attacker").getBattlefieldLocationId()).isEqualTo("bf-1");
+    assertThat(state.getBattlefieldController()).containsEntry("bf-1", "p1");
+  }
+
+  @Test
+  void activeDuelBattlefieldLocationsAreBf0AndBf1Only() {
+    LiveGameState state = state();
+
+    assertThat(com.riftforge.rules.BattlefieldLocationRules.activeLocationIds(state))
+        .containsExactly("bf-0", "bf-1");
+  }
+
+  @Test
+  void battlefieldToBattlefieldMoveUpdatesLocationAndControllers() {
+    CardInstance unit = atLocation(card("unit", "p1", ZoneName.BATTLEFIELD), "bf-0");
+    LiveGameState state = state(unit);
+    state.getBattlefieldController().put("bf-0", "p1");
+    stubCard("unit", "Unit", 0);
+
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "unit", "bf-1", List.of(), List.of()));
+
+    assertThat(unit.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(unit.getBattlefieldLocationId()).isEqualTo("bf-1");
+    assertThat(unit.isTapped()).isTrue();
+    assertThat(state.getActiveShowdown()).isNull();
+    assertThat(state.getBattlefieldController()).doesNotContainKey("bf-0");
+    assertThat(state.getBattlefieldController()).containsEntry("bf-1", "p1");
+  }
+
+  @Test
+  void battlefieldToBattlefieldMoveToSameLocationIsRejected() {
+    CardInstance unit = atLocation(card("unit", "p1", ZoneName.BATTLEFIELD), "bf-0");
+    LiveGameState state = state(unit);
+    stubCard("unit", "Unit", 0);
+
+    assertThatThrownBy(() -> engine.applyMove(state, new MoveToBattlefieldMove("p1", "unit", "bf-0", List.of(), List.of())))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("That card is already at that battlefield lane.");
+
+    assertThat(unit.getBattlefieldLocationId()).isEqualTo("bf-0");
+  }
+
+  @Test
+  void battlefieldToBattlefieldMoveToInactiveBf2InDuelIsRejected() {
+    CardInstance unit = atLocation(card("unit", "p1", ZoneName.BATTLEFIELD), "bf-0");
+    LiveGameState state = state(unit);
+    stubCard("unit", "Unit", 0);
+
+    assertThatThrownBy(() -> engine.applyMove(state, new MoveToBattlefieldMove("p1", "unit", "bf-2", List.of(), List.of())))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("That battlefield lane is not active in this game.");
+
+    assertThat(unit.getBattlefieldLocationId()).isEqualTo("bf-0");
+  }
+
+  @Test
+  void battlefieldToBattlefieldMoveDuringActiveShowdownIsRejected() {
+    CardInstance unit = atLocation(card("unit", "p1", ZoneName.BATTLEFIELD), "bf-0");
+    LiveGameState state = state(unit);
+    state.setActiveShowdown(focusedShowdown("p1", false));
+    stubCard("unit", "Unit", 0);
+
+    assertThatThrownBy(() -> engine.applyMove(state, new MoveToBattlefieldMove("p1", "unit", "bf-1", List.of(), List.of())))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Resolve the active showdown first.");
+
+    assertThat(unit.getBattlefieldLocationId()).isEqualTo("bf-0");
+  }
+
+  @Test
+  void battlefieldToBattlefieldMoveIntoOpposingLaneStartsShowdownOnlyThere() {
+    CardInstance attacker = atLocation(card("attacker", "p1", ZoneName.BATTLEFIELD), "bf-0");
+    CardInstance offLocationFriend = atLocation(card("off-location-friend", "p1", ZoneName.BATTLEFIELD), "bf-0");
+    CardInstance defender = atLocation(card("defender", "p2", ZoneName.BATTLEFIELD), "bf-1");
+    LiveGameState state = state(attacker, offLocationFriend, defender);
+    state.getBattlefieldController().put("bf-0", "p1");
+    state.getBattlefieldController().put("bf-1", "p2");
+    stubCard("attacker", "Unit", 0);
+    stubCard("off-location-friend", "Unit", 0);
+    stubCard("defender", "Unit", 0);
+
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "attacker", "bf-1", List.of(), List.of()));
+
+    assertThat(attacker.getBattlefieldLocationId()).isEqualTo("bf-1");
+    assertThat(state.getActiveShowdown()).isNotNull();
+    assertThat(state.getActiveShowdown().locationId()).isEqualTo("bf-1");
+    assertThat(state.getActiveShowdown().attackerInstanceIds()).containsExactly("attacker");
+    assertThat(state.getActiveShowdown().relevantPlayerIds()).containsExactly("p1", "p2");
+    assertThat(offLocationFriend.getBattlefieldLocationId()).isEqualTo("bf-0");
+    assertThat(state.getBattlefieldController()).containsEntry("bf-0", "p1");
+    assertThat(state.getBattlefieldController()).containsEntry("bf-1", "p2");
   }
 
   @Test
@@ -1991,12 +2080,12 @@ class GameEnginePlayCardTypeTest {
     stubCard("drummer", "Noxian Drummer", "Unit", 0, 2, 2, "When I move to battlefield, create a Recruit.");
     stubCard(TokenFactory.RECRUIT_TOKEN_CARD_ID, "Recruit", "Unit", 0, 1, 1, "Token Unit.");
 
-    engine.applyMove(state, new MoveToBattlefieldMove("p1", "drummer", "bf-2", List.of(), List.of()));
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "drummer", "bf-1", List.of(), List.of()));
 
     assertThat(state.getCards())
         .filteredOn(card -> TokenFactory.RECRUIT_TOKEN_CARD_ID.equals(card.getCardId()))
         .singleElement()
-        .satisfies(token -> assertThat(token.getBattlefieldLocationId()).isEqualTo("bf-2"));
+        .satisfies(token -> assertThat(token.getBattlefieldLocationId()).isEqualTo("bf-1"));
   }
 
   @Test

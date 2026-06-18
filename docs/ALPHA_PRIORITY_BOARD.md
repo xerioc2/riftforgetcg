@@ -20,7 +20,7 @@ place, stop feature work for the external alpha. From that point forward, take
 only blocker bugfixes, privacy fixes, installer/release fixes, and small
 readability/documentation updates until playtest feedback lands.
 
-The reason is simple: the current single-battlefield alpha is now broad enough
+The reason is simple: the current 1v1 active-lane alpha is now broad enough
 to generate useful feedback. More rules systems before the first external pass
 will raise regression risk faster than playtest value.
 
@@ -42,7 +42,7 @@ will raise regression risk faster than playtest value.
 | Ambush foundation | Medium | Medium | Pre-playtest | Done | Narrow Main-phase battlefield play path; Ambush-as-Reaction remains deferred. |
 | Deathknell / tokens | Medium | Medium | Pre-playtest | Done | Supports safe starter-unit scripts, token plumbing, and Scuttle Crab's 1v1 private hand reveal while XP/facedown remain deferred. |
 | Responsive board | High | Low | Pre-playtest | Done | Makes fullscreen playtests readable and reduces layout complaints. |
-| Multi-location Battlefield lanes v1 | High | Medium | Post-playtest | Done | The board renders three shared Battlefield lanes, places cards by `battlefieldLocationId`, sends drag-to-lane movement destinations, highlights active showdown lanes, and shows per-lane controller indicators. Battlefield effects and full official location rules remain deferred. |
+| Multi-location Battlefield lanes v1 | High | Medium | Post-playtest | Done | The board renders the active Battlefield lanes for the current format: 1v1 Duel/bot games show `bf-0` and `bf-1`, while `bf-2` remains reserved for future formats. Cards are placed by `battlefieldLocationId`, drag-to-lane sends active destinations, active showdown lanes highlight, and per-lane controller indicators show. Battlefield effects and full official location rules remain deferred. |
 | Support badges | High | Low | Pre-playtest | Done | Sets tester expectations for Partial, Unsupported, Banned, and Not Audited cards. |
 | Privacy regression suite | High | Medium | Pre-playtest | Done | Protects hand, hidden, private-choice, projection, and debug-info surfaces. |
 | Issue/report flow | High | Low | Pre-playtest | Done | Gives testers a consistent path to submit useful bug reports. |
@@ -110,5 +110,5 @@ After feedback:
 1. Pick the highest repeated playtest pain point.
 2. Prefer one narrow card/rule slice with tests.
 3. Update support badges and docs immediately.
-4. Keep the multi-location Battlefield model, broader Reaction/chain, and
-   XP/Hunt/Level/Buff out of scope until the single-battlefield alpha is stable.
+4. Keep full Battlefield effects/location rules, broader Reaction/chain, and
+   XP/Hunt/Level/Buff out of scope until the active-lane alpha is stable.
