@@ -29,7 +29,7 @@ will raise regression risk faster than playtest value.
 | Work item | Impact | Risk | Timing | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
 | Constructed deck correction | High | Medium | Pre-playtest | Done | Role-separated Legend, chosen Champion, main deck, runes, and battlefields unblock real deck testing. |
-| Pre-mulligan Battlefield selection | High | Low | Pre-playtest | Done | Constructed games now reveal/lock one selected Battlefield per player before mulligans while keeping full multi-Battlefield play deferred. |
+| Pre-mulligan Battlefield selection | High | Low | Pre-playtest | Done | Constructed games now reveal/lock one selected Battlefield per player before mulligans while keeping full multi-location Battlefield play deferred. |
 | Champion deployment payment | High | Medium | Pre-playtest | Done | Makes chosen Champions usable without treating them as normal hand cards. |
 | Equipment lifecycle | High | Medium | Pre-playtest | Done | Gear can be played to Base, equipped, cleaned up from hosts, and tested with starter decks. |
 | Illegal drag snapback | High | Low | Pre-playtest | Done | Prevents UI confusion when server rejects a move. |
@@ -59,7 +59,7 @@ will raise regression risk faster than playtest value.
 | Hidden play-from-hidden | High | High | Post-playtest | Deferred | Requires timing windows, payment, reveal/masking transitions, and target legality. |
 | Ambush-as-Reaction | High | High | Post-playtest | Deferred | Depends on chain/reaction windows and correct response priority. |
 | Reaction / counterspells on real cards | High | High | Post-playtest | Deferred | Required for many cards but likely the largest rules-system risk; Defy now covers one narrow public spell-chain counter path and Not So Fast covers one narrow public targeted-spell counter path, while Riposte counter behavior, abilities, hidden reactions, and broad timing should still be added one card/pattern at a time. |
-| Multiple battlefields | High | High | Later | Deferred | Officially important, intentionally post-alpha because it touches movement, targeting, showdown, scoring, bot decisions, and layout. |
+| Multi-location Battlefield model | High | High | Later | Deferred | Official-style 1v1 play needs multiple shared Battlefield locations/objectives. This is intentionally post-alpha because it touches movement, "here" targeting, hidden slots, showdown, scoring, bot decisions, and layout. It is separate from 3+ player multiplayer support. |
 | Sideboard / tournament match structure | Medium | High | Later | Deferred | Valuable for organized play after single-game alpha flow is stable. |
 
 ## Low Impact + Low Risk: Polish / Backlog
@@ -109,5 +109,5 @@ After feedback:
 1. Pick the highest repeated playtest pain point.
 2. Prefer one narrow card/rule slice with tests.
 3. Update support badges and docs immediately.
-4. Keep multiple battlefields, Reaction/chain, and XP/Hunt/Level/Buff out of
-   scope until the single-battlefield alpha is stable.
+4. Keep the multi-location Battlefield model, broader Reaction/chain, and
+   XP/Hunt/Level/Buff out of scope until the single-battlefield alpha is stable.

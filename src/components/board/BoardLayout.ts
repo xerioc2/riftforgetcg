@@ -16,6 +16,11 @@ export type ZonePlacement = {
   y: number;
 };
 
+export type SharedBattlefieldSides = {
+  opponentSide: ZoneRect;
+  playerSide: ZoneRect;
+};
+
 const zone = (id: string, label: string, x: number, y: number, width: number, height: number, ownerId: string | null, zoneName: ZoneName): ZoneRect => ({
   id,
   label,
@@ -40,28 +45,32 @@ export function computeLayout(width: number, height: number, playerIds: string[]
     const actionX = identityStart + identityWidth * 2 + identityGap * 2 + 8;
     const utilityColumnWidth = Math.max(64, Math.min(96, width * 0.06));
     const actionWidth = Math.max(360, width - actionX - utilityColumnWidth - 8);
-    const divider = 14;
-    const half = (height - divider) / 2;
     const runeStrip = 56;
     const baseHeight = 76;
-    const battlefieldHeight = half - runeStrip - baseHeight - 8;
+    const rowGap = 14;
+    const utilityHeight = runeStrip + baseHeight + 8;
+    const battlefieldGap = Math.max(12, Math.min(22, actionWidth * 0.018));
+    const maxBattlefieldHeight = Math.max(150, height - utilityHeight * 2 - rowGap * 2);
+    const battlefieldHeight = Math.min(250, Math.max(150, Math.min(maxBattlefieldHeight, height * 0.34)));
+    const topUtilityHeight = Math.max(utilityHeight, (height - battlefieldHeight - rowGap) / 2);
+    const battlefieldY = topUtilityHeight;
+    const localUtilityY = battlefieldY + battlefieldHeight + rowGap;
+    const battlefieldSideWidth = (actionWidth - battlefieldGap) / 2;
     const opponent = others[0] ?? 'opponent';
 
-    // Opponent (top half): Runes at very top (back), then Base, then Battlefield near center
-    zones.push(zone('p1-legend', 'Legend', identityStart, 0, identityWidth, half, opponent, 'legend'));
-    zones.push(zone('p1-champion', 'Champion', identityStart + identityWidth + identityGap, 0, identityWidth, half, opponent, 'champion'));
+    // Opponent setup zones stay separate. The Battlefield itself is a shared row split into two controller sides.
+    zones.push(zone('p1-legend', 'Legend', identityStart, 0, identityWidth, topUtilityHeight, opponent, 'legend'));
+    zones.push(zone('p1-champion', 'Champion', identityStart + identityWidth + identityGap, 0, identityWidth, topUtilityHeight, opponent, 'champion'));
     zones.push(zone('p1-rune', 'Runes', actionX, 0, actionWidth, runeStrip, opponent, 'rune'));
-    zones.push(zone('p1-base', 'Base', actionX, runeStrip + 4, actionWidth, baseHeight, opponent, 'base'));
-    zones.push(zone('p1-battlefield', 'Battlefield', actionX, runeStrip + baseHeight + 8, actionWidth, battlefieldHeight, opponent, 'battlefield'));
-    zones.push(zone('center', '', 0, half, width, divider, null, 'limbo'));
+    zones.push(zone('p1-base', 'Base', actionX, Math.max(runeStrip + 4, topUtilityHeight - baseHeight - 4), actionWidth, baseHeight, opponent, 'base'));
+    zones.push(zone('p1-battlefield', 'Opponent side', actionX, battlefieldY, battlefieldSideWidth, battlefieldHeight, opponent, 'battlefield'));
 
-    // Local player (bottom half): Battlefield near center, then Base, then Runes at very bottom (back)
-    const localY = half + divider;
-    zones.push(zone('p0-legend', 'Legend', identityStart, localY, identityWidth, half, local, 'legend'));
-    zones.push(zone('p0-champion', 'Champion', identityStart + identityWidth + identityGap, localY, identityWidth, half, local, 'champion'));
-    zones.push(zone('p0-battlefield', 'Battlefield', actionX, localY, actionWidth, battlefieldHeight, local, 'battlefield'));
-    zones.push(zone('p0-base', 'Base', actionX, localY + battlefieldHeight + 4, actionWidth, baseHeight, local, 'base'));
-    zones.push(zone('p0-rune', 'Runes', actionX, localY + battlefieldHeight + baseHeight + 8, actionWidth, runeStrip, local, 'rune'));
+    // Local setup zones stay separate below the shared Battlefield row.
+    zones.push(zone('p0-battlefield', 'Your side', actionX + battlefieldSideWidth + battlefieldGap, battlefieldY, battlefieldSideWidth, battlefieldHeight, local, 'battlefield'));
+    zones.push(zone('p0-legend', 'Legend', identityStart, localUtilityY, identityWidth, height - localUtilityY, local, 'legend'));
+    zones.push(zone('p0-champion', 'Champion', identityStart + identityWidth + identityGap, localUtilityY, identityWidth, height - localUtilityY, local, 'champion'));
+    zones.push(zone('p0-base', 'Base', actionX, localUtilityY, actionWidth, baseHeight, local, 'base'));
+    zones.push(zone('p0-rune', 'Runes', actionX, Math.max(localUtilityY + baseHeight + 4, height - runeStrip), actionWidth, runeStrip, local, 'rune'));
     return zones;
   }
 
@@ -104,6 +113,22 @@ export function autoPlaceInZone(zone: ZoneRect, existingCount: number, totalCoun
     x: rowStartX + col * stepX + cardW / 2,
     y: zone.y + paddingY + row * stepY + cardH / 4,
   };
+}
+
+export function clampPlacementToZone(position: ZonePlacement, zone: ZoneRect, margin = 12): ZonePlacement {
+  return {
+    x: Math.max(zone.x + margin, Math.min(zone.x + zone.width - margin, position.x)),
+    y: Math.max(zone.y + margin, Math.min(zone.y + zone.height - margin, position.y)),
+  };
+}
+
+export function sharedBattlefieldSides(zones: ZoneRect[]): SharedBattlefieldSides | null {
+  const battlefieldZones = zones.filter((candidate) => candidate.zoneName === 'battlefield' && candidate.ownerId);
+  const opponentSide = battlefieldZones.find((candidate) => candidate.id === 'p1-battlefield');
+  const playerSide = battlefieldZones.find((candidate) => candidate.id === 'p0-battlefield');
+  if (!opponentSide || !playerSide) return null;
+  if (opponentSide.y !== playerSide.y || opponentSide.height !== playerSide.height) return null;
+  return { opponentSide, playerSide };
 }
 
 export function runeSlotPositions(zone: ZoneRect, slotCount: number, minSpacing = 30, maxSpacing = 72): ZonePlacement[] {

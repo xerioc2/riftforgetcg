@@ -12,7 +12,7 @@ import { PlayerPanel } from '../components/PlayerPanel';
 import { BattlefieldLocationDisplay } from '../components/board/BattlefieldLocationDisplay';
 import { CardSprite } from '../components/board/CardSprite';
 import { RuneSprite } from '../components/board/RuneSprite';
-import { autoPlaceInZone, computeLayout, runeSlotPositions, type ZoneRect } from '../components/board/BoardLayout';
+import { autoPlaceInZone, clampPlacementToZone, computeLayout, runeSlotPositions, type ZoneRect } from '../components/board/BoardLayout';
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
 import { readableHttpError } from '../lib/http';
@@ -168,7 +168,7 @@ export function GameBoard() {
     return state.players.flatMap((statePlayer) => {
       const display = battlefieldDisplayForPlayer(statePlayer, cardsById);
       const zone = zones.find((candidate) => candidate.zoneName === 'battlefield' && candidate.ownerId === statePlayer.userId);
-      const side = statePlayer.userId === player.id ? 'right' : 'left';
+      const side = statePlayer.userId === player.id ? 'left' : 'right';
       return display && zone ? [{ ...display, frame: battlefieldDisplayFrame(zone, side) }] : [];
     });
   }, [cardsById, player.id, state, zones]);
@@ -1281,6 +1281,8 @@ export function GameBoard() {
           hostPosition = { x: hostZone.x + 48, y: hostZone.y + 60 };
         } else if (shouldAutoPlacePublicCard(host)) {
           hostPosition = autoPlaceInZone(hostZone, 0, 1);
+        } else if (sameZone(host.zone, 'battlefield')) {
+          hostPosition = clampPlacementToZone(host, hostZone);
         }
         return { instance, displayInstance: { ...instance, x: hostPosition.x + 34, y: hostPosition.y + 34 } };
       }
@@ -1294,6 +1296,10 @@ export function GameBoard() {
       const zoneIndex = zoneCounts.get(key) ?? 0;
       zoneCounts.set(key, zoneIndex + 1);
       return { instance, displayInstance: { ...instance, ...autoPlaceInZone(zone, zoneIndex, zoneTotals.get(key) ?? zoneIndex + 1) } };
+    }
+
+    if (zone && sameZone(instance.zone, 'battlefield')) {
+      return { instance, displayInstance: { ...instance, ...clampPlacementToZone(instance, zone) } };
     }
 
     return { instance, displayInstance: instance };

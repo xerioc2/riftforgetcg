@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { canUseSupportedChainResponse, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isGustReactionCard, isNotSoFastCounterCard, isReactionCard, isSupportedChainReactionCard, unsupportedCardReason } from './cardActions';
-import type { RiftCard } from '../types';
+import { canUseSupportedChainResponse, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isGustReactionCard, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isSupportedChainReactionCard, unsupportedCardReason } from './cardActions';
+import type { CardInstance, RiftCard } from '../types';
 
 describe('cardActions', () => {
   it('recognizes Gust as a supported chain-backed Reaction helper', () => {
@@ -199,5 +199,40 @@ describe('cardActions', () => {
       hasLegalEnGardeTarget: true,
       hasLegalDefyTarget: false,
     })).toBe(false);
+  });
+
+  it('treats both visual battlefield sides as the same battlefield target zone', () => {
+    const unit: RiftCard = {
+      id: 'unit',
+      name: 'Battlefield Unit',
+      type: 'Unit',
+      domains: [],
+      power: 2,
+      health: 2,
+      rulesText: '',
+    };
+    const playerSideUnit: CardInstance = {
+      instanceId: 'player-unit',
+      cardId: 'unit',
+      ownerId: 'player',
+      zone: 'battlefield',
+      x: 900,
+      y: 360,
+      tapped: false,
+      faceDown: false,
+      zIndex: 0,
+      currentHealth: 2,
+    };
+    const opponentSideUnit: CardInstance = {
+      ...playerSideUnit,
+      instanceId: 'opponent-unit',
+      ownerId: 'opponent',
+      x: 500,
+    };
+
+    expect(isLegalTargetForMode(playerSideUnit, unit, 'ANY_BATTLEFIELD_UNIT', 'player')).toBe(true);
+    expect(isLegalTargetForMode(opponentSideUnit, unit, 'ANY_BATTLEFIELD_UNIT', 'player')).toBe(true);
+    expect(isLegalTargetForMode(playerSideUnit, unit, 'FRIENDLY_UNIT', 'player')).toBe(true);
+    expect(isLegalTargetForMode(opponentSideUnit, unit, 'ENEMY_UNIT', 'player')).toBe(true);
   });
 });

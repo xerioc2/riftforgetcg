@@ -148,6 +148,6 @@ Status: Planned
 5. Bug-report/debug-info polish.
 6. Rune payment edge cases and official timing polish.
 7. Unit/spell/gear edge cases and card-specific legality.
-8. Multi-battlefield movement and control modeling.
+8. Multi-location Battlefield movement and control modeling.
 9. Combat/showdown precision.
 10. Keyword/effect handler expansion for supported starter-deck cards.

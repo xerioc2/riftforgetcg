@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { battlefieldDisplayForPlayer, battlefieldDisplayFrame, selectedBattlefieldIsInteractiveTarget, selectedBattlefieldSupportsPreview } from './battlefieldDisplay';
 import type { RiftCard } from '../types';
-import type { ZoneRect } from '../components/board/BoardLayout';
+import { computeLayout, sharedBattlefieldSides, type ZoneRect } from '../components/board/BoardLayout';
 
 const sunkenTemple: RiftCard = {
   id: 'sunken-temple',
@@ -99,6 +99,17 @@ describe('battlefieldDisplay', () => {
 
     expect(frame.width).toBeLessThanOrEqual(180);
     expect(frame.width).toBeLessThan(zone.width * 0.2);
+  });
+
+  it('positions selected battlefield plaques near the shared divider on split battlefield sides', () => {
+    const sides = sharedBattlefieldSides(computeLayout(1600, 720, ['player', 'opponent']))!;
+    const opponentFrame = battlefieldDisplayFrame(sides.opponentSide, 'right');
+    const playerFrame = battlefieldDisplayFrame(sides.playerSide, 'left');
+    const dividerCenter = (sides.opponentSide.x + sides.opponentSide.width + sides.playerSide.x) / 2;
+
+    expect(opponentFrame.x + opponentFrame.width).toBeLessThanOrEqual(dividerCenter);
+    expect(playerFrame.x).toBeGreaterThanOrEqual(dividerCenter);
+    expect(playerFrame.x - (opponentFrame.x + opponentFrame.width)).toBeLessThan(80);
   });
 
   it('marks selected battlefield visuals as non-targetable and non-interactive', () => {

@@ -9,7 +9,8 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Select a deck in the lobby, review support warnings, then Ready and Start.
 - Start a human vs RiftBot or human vs human game.
 - Choose one Battlefield before mulligan and confirm the opponent's unchosen Battlefield pool is not visible.
-- After both players choose, confirm each selected Battlefield appears in its board Battlefield slot, can be hovered/read like a card, and cannot be targeted, moved, tapped, or fought.
+- After both players choose, confirm the selected Battlefield plaque appears as a shared center location marker, can be hovered/read like a card, and cannot be targeted, moved, tapped, or fought.
+- Remember the current alpha has one shared Battlefield location. Future multi-location Battlefield play is about multiple shared objectives in 1v1 games, not 3+ player multiplayer.
 - Keep your opening hand or mulligan at least one card.
 - Play a Unit and confirm it stays visible in Base.
 - Confirm your Legend starts in the Legend zone and your chosen Champion starts in the Champion zone.
@@ -101,9 +102,10 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 
 - Start RiftForge and create a human vs RiftBot room.
 - Load or select a constructed deck.
-- Ready up, start the game, and confirm the opening mulligan appears.
-- Confirm the Battlefield selection prompt appears before mulligan, then choose one Battlefield.
-- Confirm your selected Battlefield and the opponent/RiftBot selected Battlefield appear on the board after setup, show a hover preview, and remain non-interactive location displays.
+- Ready up, start the game, and confirm the Battlefield selection prompt appears before mulligan.
+- Choose one Battlefield, then confirm mulligan appears after both players have selected.
+- Confirm the selected Battlefield display appears around the shared Battlefield divider after setup, shows a hover preview, and remains a non-interactive location display.
+- Move units from each player to the Battlefield and confirm they occupy opposite sides of the same shared Battlefield row instead of separate Battlefield lanes.
 - Keep the opening hand or mulligan at least one card.
 - Confirm your hand cards are visible to you after mulligan.
 - Confirm RiftBot advances through its turn steps without manual help.

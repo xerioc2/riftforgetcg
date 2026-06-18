@@ -1,5 +1,5 @@
 import { Group, Rect, Text } from 'react-konva';
-import type { ZoneRect } from './BoardLayout';
+import { sharedBattlefieldSides, type ZoneRect } from './BoardLayout';
 
 function zoneFill(zoneName: string): string {
   switch (zoneName) {
@@ -25,6 +25,17 @@ function zoneFill(zoneName: string): string {
 }
 
 export function ZoneOverlay({ zones }: { zones: ZoneRect[] }) {
+  const sharedBattlefield = sharedBattlefieldSides(zones);
+  const sharedFrame = sharedBattlefield
+    ? {
+        x: sharedBattlefield.opponentSide.x,
+        y: sharedBattlefield.opponentSide.y,
+        width: sharedBattlefield.playerSide.x + sharedBattlefield.playerSide.width - sharedBattlefield.opponentSide.x,
+        height: sharedBattlefield.opponentSide.height,
+        dividerX: (sharedBattlefield.opponentSide.x + sharedBattlefield.opponentSide.width + sharedBattlefield.playerSide.x) / 2,
+      }
+    : null;
+
   return (
     <>
       {zones.map((zone) => (
@@ -33,6 +44,37 @@ export function ZoneOverlay({ zones }: { zones: ZoneRect[] }) {
           {zone.zoneName !== 'limbo' ? <Text x={zone.x} y={zone.y + zone.height / 2 - 6} width={zone.width} text={zone.label} align="center" fontSize={11} fill="#64748b" /> : null}
         </Group>
       ))}
+      {sharedFrame ? (
+        <Group listening={false}>
+          <Rect
+            x={sharedFrame.x}
+            y={sharedFrame.y}
+            width={sharedFrame.width}
+            height={sharedFrame.height}
+            fill="rgba(0,0,0,0)"
+            stroke="rgba(216,176,93,0.24)"
+            strokeWidth={1.5}
+            cornerRadius={5}
+          />
+          <Rect
+            x={sharedFrame.dividerX - 1}
+            y={sharedFrame.y + 12}
+            width={2}
+            height={Math.max(20, sharedFrame.height - 24)}
+            fill="rgba(216,176,93,0.28)"
+            cornerRadius={1}
+          />
+          <Text
+            x={sharedFrame.dividerX - 80}
+            y={sharedFrame.y + 8}
+            width={160}
+            text="Shared Battlefield"
+            align="center"
+            fontSize={11}
+            fill="rgba(216,176,93,0.76)"
+          />
+        </Group>
+      ) : null}
     </>
   );
 }

@@ -86,7 +86,7 @@ Status: Partial
 Current implementation notes:
 - `SELECT_BATTLEFIELD` phase exists before `MULLIGAN` for constructed decks with Battlefield choices.
 - Player-specific projections include only that player's own Battlefield choices. Selected Battlefields are public once chosen.
-- Selected Battlefields render in the board Battlefield slot and can be hovered for card text, but they remain inert location displays rather than targetable/movable cards.
+- Selected Battlefields render as inert shared-location plaques near the single Battlefield row and can be hovered for card text, but they are not targetable/movable cards.
 - Legal-action visibility exposes `SELECT_BATTLEFIELD` only to players who still need to choose.
 - MULLIGAN phase exists.
 - Players may keep or recycle up to 2 cards, then draw replacements.
@@ -95,7 +95,7 @@ Current implementation notes:
 Known gaps:
 - Multiplayer turn-order mulligan nuance is not deeply modeled.
 - UI/engine language should stay aligned with official "recycle up to 2" wording.
-- Full official multiple-Battlefield location setup remains post-alpha.
+- Full official-style multi-location Battlefield setup remains post-alpha. Current alpha uses one shared Battlefield location; future 1v1 support needs multiple shared Battlefield locations/objectives with their own units, control, hidden slots, "here" targeting, scoring, and showdown state. This is separate from 3+ player multiplayer support.
 - Printed Battlefield abilities remain card-specific Partial unless explicitly scripted and tested; current local texts include delayed/optional conquer, defend, spell-play, and score-modification effects that are not safe to auto-enable from display-only selection.
 
 Test coverage:
@@ -352,10 +352,10 @@ Current implementation notes:
 - Moving to an empty battlefield updates `battlefieldController`.
 
 Known gaps:
-- Multiple battlefields remain an official-rules gap, but they are
+- The multi-location Battlefield model remains an official-rules gap, but it is
   intentionally deferred until after the single-battlefield alpha is stable.
-  The full model affects movement, target selection, showdown, control,
-  scoring, bot decisions, and UI layout.
+  The full 1v1 model affects movement, target selection, hidden slots,
+  showdown, control, scoring, bot decisions, and UI layout.
 - Movement costs, readiness/exhaustion edge cases, Ganking exceptions, and
   effect-driven movement still need more precision in the current simplified
   battlefield flow.
@@ -378,11 +378,12 @@ Current implementation notes:
 - Moving an unopposed unit or Champion to the battlefield sets that player as
   the current controller.
 - Moving into an opposed battlefield starts `activeShowdown`.
+- The frontend renders the current single-battlefield alpha as one shared row split into player/opponent sides, so both sides still represent the same `BATTLEFIELD` rules location.
 
 Known gaps:
-- Multiple battlefields and official contested/control cleanup are not fully
-  modeled. This is deliberate post-alpha scope; current playtests focus on a
-  readable single-battlefield control flow.
+- Multi-location Battlefield play and official contested/control cleanup are
+  not fully modeled. This is deliberate post-alpha scope; current playtests
+  focus on a readable single shared-Battlefield control flow.
 - Control locking during showdowns/combat and chain items is incomplete.
 
 Test coverage:
@@ -474,9 +475,9 @@ Current implementation notes:
   battlefield in one turn.
 
 Known gaps:
-- Multiple named battlefields are represented by controller keys, but full
-  official battlefield selection, assignment, and cleanup timing are
-  intentionally deferred until after the single-battlefield alpha stabilizes.
+- Multiple named Battlefield keys may exist internally, but the official-style
+  multi-location Battlefield model, assignment, and cleanup timing are
+  intentionally deferred until after the single shared-Battlefield alpha stabilizes.
 
 Test coverage:
 - `GameEngineScoringTest`
@@ -718,7 +719,8 @@ Priority: P1.
 1. Rune payment validation: domain/power costs, recycling, cost modifiers.
 2. Play-card legality edge cases: action/reaction permissions, gear attachment detail, card-specific prompts.
 3. Movement legality edge cases: Ganking, effect-driven movement, and current
-   single-battlefield readability. Full multiple battlefields are post-alpha.
+   single-battlefield readability. Full multi-location Battlefield play is
+   post-alpha.
 4. Showdown timing edge cases: interactive action windows, combat conversion, open states.
 5. Combat damage assignment edge cases: player assignment, multi-unit combat, prevention/replacement.
 6. Winning point edge cases: official cleanup timing, multiplayer/tie/burnout cases.

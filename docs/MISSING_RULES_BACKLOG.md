@@ -7,9 +7,12 @@ not official rules order. It is intentionally conservative. "Supported" means
 implemented and tested in this repository. "Partial" means the common playtest
 path exists, but official edge cases or card-specific scripts are missing.
 
-RiftForge's alpha playtest target intentionally uses a simplified
-single-battlefield flow. Full official multiple-battlefield location support is
-post-alpha work because it touches movement, target selection, showdowns,
+RiftForge's alpha playtest target intentionally uses one shared Battlefield
+location. The deferred official-style work is the multi-location Battlefield
+model for 1v1 games: multiple shared Battlefield locations/objectives, each
+with each player's units, control, hidden slots, "here" targeting, scoring, and
+combat/showdown state. That is separate from 3+ player multiplayer support.
+It remains post-alpha because it touches movement, target selection, showdowns,
 control, scoring, bot decisions, and the board UI all at once.
 
 Sources checked:
@@ -161,15 +164,15 @@ Sources checked:
 | Replacement/prevention effects | Not started | Prevent, replace, and copy effects require effect-layer timing. | effect registry, combat resolver, chain model | A prevention effect reduces combat damage before destruction is checked. |
 | Unique/copy/linked instructions | Not started | Official Unleashed updates mention systems not currently represented. | card text parser, effect handlers | Copy effect copies only official copyable values and expires at the correct time. |
 | Full battlefield abilities | Partial | Battlefields are selected, revealed, rendered, and hover-readable, but most printed abilities are unscripted. Targon's Peak, Sunken Temple, Abandoned Hall, Aspirant's Climb, Hall of Legends, and Fortified Position need explicit trigger/payment/target/status handling before promotion. | battlefield model, effect handlers | Hall of Legends triggers on conquer and readies the legend after legal payment. |
-| Official battlefield setup details | Partial | Alpha now has pre-mulligan player Battlefield selection and reveal, but starting player, ownership, and future multi-Battlefield placement details are simplified. | `GameService`, `GameEngine`, `RulesValidator`, `LegalActionsService`, `GameBoard.tsx` | Both players choose from their submitted Battlefields before mulligan and the chosen cards remain public. |
+| Official battlefield setup details | Partial | Alpha now has pre-mulligan player Battlefield selection and reveal, but starting player, ownership, and future multi-location Battlefield placement details are simplified. | `GameService`, `GameEngine`, `RulesValidator`, `LegalActionsService`, `GameBoard.tsx` | Both players choose from their submitted Battlefields before mulligan and the chosen cards remain public. |
 
-### Post-Alpha Multiple Battlefield Model
+### Post-Alpha Multi-Location Battlefield Model
 
 | Item | Status | Why it matters | Likely files | Suggested first test |
 | --- | --- | --- | --- | --- |
-| Multiple battlefield location model | Deferred / Post-alpha | Current alpha intentionally treats play as a simplified single-battlefield experience. Official support needs selected battlefield instances and per-location units, targets, showdowns, control, scoring, bot decisions, and UI layout. | `LiveGameState`, `CardInstance`, `GameEngine`, `CombatResolver`, `LegalActionsService`, `BotService`, `GameBoard.tsx` | Moving into Battlefield A starts a showdown only with opposing units at Battlefield A, not Battlefield B. |
-| Multi-battlefield score tracking | Deferred / Post-alpha | Current scoring should remain understandable for alpha; official play later needs per-battlefield scoring without duplicate scoring. | `GameEngine`, `LiveGameState`, setup tests, scoreboard UI | Player scores two different battlefields in one turn and cannot score the same battlefield twice. |
-| Per-battlefield target and movement UI | Deferred / Post-alpha | Target prompts and movement highlights need location awareness before multiple battlefields are readable for playtesters. | target UI, `cardActions.ts`, `GameBoard.tsx`, `RulesValidator` | A targeted effect can choose only units at the named battlefield required by the effect. |
+| Multi-location Battlefield model | Deferred / Post-alpha | Current alpha intentionally treats play as one shared Battlefield location. Official-style 1v1 support needs selected Battlefield instances and per-location units, targets, showdowns, control, scoring, bot decisions, and UI layout. This is not the same as 3+ player multiplayer. | `LiveGameState`, `CardInstance`, `GameEngine`, `CombatResolver`, `LegalActionsService`, `BotService`, `GameBoard.tsx` | Moving into Battlefield A starts a showdown only with opposing units at Battlefield A, not Battlefield B. |
+| Per-location Battlefield score tracking | Deferred / Post-alpha | Current scoring should remain understandable for alpha; official-style play later needs per-Battlefield scoring without duplicate scoring. | `GameEngine`, `LiveGameState`, setup tests, scoreboard UI | Player scores two different Battlefield locations in one turn and cannot score the same Battlefield twice. |
+| Per-location target and movement UI | Deferred / Post-alpha | Target prompts and movement highlights need location awareness before multi-location Battlefield play is readable for playtesters. | target UI, `cardActions.ts`, `GameBoard.tsx`, `RulesValidator` | A targeted effect can choose only units at the named Battlefield required by the effect. |
 
 ## Recommended Next Sprints
 
