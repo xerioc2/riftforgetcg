@@ -34,6 +34,7 @@ import { attachedGearDisplayPosition, attachedGearDisplayScale, attachedGearIsIn
 import { battlefieldLaneDisplays } from '../lib/battlefieldDisplay';
 import { isBotPlayer, legalActionHint, phaseGuidance, waitingStatusText } from '../lib/gameGuidance';
 import { equipCostForCard, equipCostLabel, runeMatchesEquipDomain } from '../lib/equipment';
+import { hiddenCardDisplayForViewer } from '../lib/hiddenCards';
 import { loadPriorityStopSettings, savePriorityStopSettings, shouldLocalAutoPassPriority, type PriorityStopSettings } from '../lib/priorityStops';
 import { useLocalPlayer } from '../lib/playerContext';
 import { getServerBuildInfo } from '../lib/serverBuildInfo';
@@ -1279,8 +1280,8 @@ export function GameBoard() {
   const visibleCardsFor = (ownerId: string | undefined, zone: string) =>
     state.cards
       .filter((instance) => instance.ownerId === ownerId && sameZone(instance.zone, zone))
-      .map((instance) => ({ instanceId: instance.instanceId, card: cardsById.get(instance.cardId) }))
-      .filter((entry): entry is { instanceId: string; card: RiftCard } => Boolean(entry.card));
+      .map((instance) => ({ instanceId: instance.instanceId, instance, card: cardsById.get(instance.cardId) }))
+      .filter((entry): entry is { instanceId: string; instance: CardInstance; card: RiftCard } => Boolean(entry.card));
   const revealedCardsFor = (snapshot: RevealedHandSnapshot | undefined) =>
     (snapshot?.instanceIds ?? [])
       .map((instanceId) => {
@@ -1786,24 +1787,42 @@ export function GameBoard() {
       <div className="pointer-events-auto absolute right-[296px] top-3 z-20 flex max-w-[260px] flex-col gap-2 text-xs">
         {opponentHiddenCount > 0 ? (
           <div className="border border-line bg-panel/90 px-3 py-2 text-slate-300">
-            {opponentName} has {opponentHiddenCount} hidden card{opponentHiddenCount === 1 ? '' : 's'}.
+            <p>{opponentName} has {opponentHiddenCount} hidden card{opponentHiddenCount === 1 ? '' : 's'}.</p>
+            <div className="mt-2 flex flex-wrap gap-1" aria-label={`${opponentName} hidden cards`}>
+              {Array.from({ length: Math.min(opponentHiddenCount, 6) }).map((_, index) => (
+                <span
+                  key={index}
+                  className="flex h-10 w-7 items-center justify-center border border-slate-600 bg-[#0b1017] text-[10px] font-semibold text-slate-400 shadow-inner"
+                  title="Hidden card"
+                >
+                  ?
+                </span>
+              ))}
+              {opponentHiddenCount > 6 ? <span className="self-end text-[10px] text-slate-500">+{opponentHiddenCount - 6}</span> : null}
+            </div>
           </div>
         ) : null}
         {myHiddenCards.length > 0 ? (
           <div className="border border-forge/50 bg-panel/95 px-3 py-2">
             <p className="font-semibold text-forge">Hidden cards</p>
+            <p className="mt-1 text-[11px] text-slate-400">Only you can inspect these. Play from Hidden is deferred.</p>
             <div className="mt-1 flex flex-wrap gap-1">
-              {myHiddenCards.map(({ instanceId, card }) => (
-                <button
-                  key={instanceId}
-                  className="border border-line bg-ink px-2 py-1 text-left text-slate-200 hover:border-forge"
-                  onClick={() => notifyWarning('Hidden timing unavailable', 'Playing hidden cards later is not implemented yet.')}
-                  onMouseEnter={() => handleCardHover(card)}
-                  onMouseLeave={() => handleCardHover(null)}
-                >
-                  {card.name}
-                </button>
-              ))}
+              {myHiddenCards.map(({ instanceId, instance, card }) => {
+                const display = hiddenCardDisplayForViewer(instance, card, player.id);
+                return (
+                  <button
+                    key={instanceId}
+                    className="border border-line bg-ink px-2 py-1 text-left text-slate-200 hover:border-forge"
+                    onClick={() => setInspectCard(instance)}
+                    onMouseEnter={() => handleCardHover(display.previewCard, instance)}
+                    onMouseLeave={() => handleCardHover(null)}
+                    title="Inspect hidden card"
+                  >
+                    <span className="block font-semibold">{display.label}</span>
+                    <span className="block text-[10px] text-slate-500">{display.subtitle}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         ) : null}

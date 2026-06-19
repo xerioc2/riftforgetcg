@@ -15,6 +15,7 @@ export function targetModeForCard(card: RiftCard | undefined): TargetMode {
   if (card.type?.toLowerCase() === 'gear') return text.includes('[equip]') ? 'NONE' : 'UNSUPPORTED';
   if (multiTargetRequirementsForCard(card).length > 0) return 'NONE';
   if (isSupportedChainReactionCard(card)) return 'NONE';
+  if (isCharmMoveCard(card)) return 'ENEMY_UNIT';
   if (text.includes('another unit')) return 'UNSUPPORTED';
   if (text.includes('counter a spell')
     || text.includes('counter an enemy spell')
@@ -164,6 +165,13 @@ export function isFlashReactionCard(card: RiftCard | undefined) {
     && card.name?.trim().toLowerCase() === 'flash'
     && text.includes('move up to 2 friendly units')
     && text.includes('base');
+}
+
+export function isCharmMoveCard(card: RiftCard | undefined) {
+  const text = (card?.rulesText ?? '').trim().toLowerCase();
+  return card?.type?.toLowerCase() === 'spell'
+    && card.name?.trim().toLowerCase() === 'charm'
+    && text === 'move an enemy unit.';
 }
 
 export function isSupportedChainReactionCard(card: RiftCard | undefined) {
@@ -320,6 +328,7 @@ export function unsupportedCardReason(card: RiftCard | undefined): string | null
   const supported = text.includes(':rb_might:')
     || text.includes('return a unit')
     || text.includes('move up to 2 friendly units')
+    || isCharmMoveCard(card)
     || (text.includes('friendly unit') && text.includes('enemy unit') && text.includes('return'))
     || text.includes('ready it')
     || text.includes('draw 1')

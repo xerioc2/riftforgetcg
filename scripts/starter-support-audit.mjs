@@ -58,9 +58,12 @@ function isUnsupportedAction(card) {
   const text = String(card.rulesText ?? '').toLowerCase();
   if (type === 'gear') return !text.includes('[equip]');
   if (type !== 'spell') return false;
+  const isCharm = String(card.name ?? '').trim().toUpperCase() === 'CHARM'
+    && text.trim() === 'move an enemy unit.';
   const requiresMultipleTargets = text.includes('another unit') || text.includes('a friendly unit and an enemy unit');
   const supportedEffect = text.includes(':rb_might:')
     || text.includes('return a unit')
+    || isCharm
     || text.includes('ready it')
     || text.includes('draw 1');
   return text.includes('counter a spell')
@@ -119,6 +122,7 @@ function bucket(card, keywords) {
   if (type === 'spell') {
     if (text.includes('draw') || text.includes('look at') || text.includes('reveal') || text.includes('top') || text.includes('deck')) return 'Spell: draw/card selection';
     if (text.includes('return') || text.includes('recall')) return 'Spell: bounce/return';
+    if (text.trim() === 'move an enemy unit.') return 'Spell: enemy movement';
     if (text.includes(':rb_might:') || text.includes('give a unit') || /[+-]\d/.test(text)) return 'Spell: stat/might modifier';
     if (text.includes('ready') || text.includes('exhaust')) return 'Spell: ready/exhaust';
     return 'Unsupported/unknown text pattern';

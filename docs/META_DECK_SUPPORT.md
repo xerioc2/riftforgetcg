@@ -23,10 +23,10 @@ See `docs/meta/UPLOADED_META_DECKS.md` for the complete table.
 
 | Archetype | Uploaded source | Shape check | Support status | Key blockers / review notes |
 | --- | --- | --- | --- | --- |
-| Irelia, Blade Dancer | `irelia_wins_s3_shanghai_city_challenge.txt` | Pass | Blocked | Uploaded blockers are now `Charm`, `Zhonya's Hourglass`, and `The Syren`; Defiant Dance and Flash are Partial alpha chain-backed Reactions. |
+| Irelia, Blade Dancer | `irelia_wins_s3_shanghai_city_challenge.txt` | Pass | Blocked | Uploaded blockers are now `Zhonya's Hourglass` and `The Syren`; Charm is Partial for narrow enemy-battlefield movement, and Defiant Dance/Flash are Partial alpha chain-backed Reactions. |
 | Diana, Scorn of the Moon | `diana_wins_s3_suzhou_city_challenge.txt` | Pass | Blocked | `Hard Bargain`, `Abandon`, `The Syren`; Diana remains the recommended next target. Flash is Partial alpha support. |
 | Annie, Dark Child | `annie_4th_at_lille_regional_qualifier.txt` | Needs review | Blocked | `Annie - Dark Child - Starter` (`OGS-017`) is missing from local card cache; remaining Unsupported blocker is `Hard Bargain`. Flash is Partial alpha support. |
-| Master Yi, Wuju Bladesman | `master_yi_wins_s3_guangzhou_city_challenge.txt` | Needs review | Blocked | `Master Yi - Wuju Bladesman - Starter` (`OGS-019`) is missing from local card cache; blockers include `Zhonya's Hourglass` and `Charm`. |
+| Master Yi, Wuju Bladesman | `master_yi_wins_s3_guangzhou_city_challenge.txt` | Needs review | Blocked | `Master Yi - Wuju Bladesman - Starter` (`OGS-019`) is missing from local card cache; `Zhonya's Hourglass` remains Unsupported while Charm is Partial. |
 | LeBlanc, Deceiver | `leblanc_wins_s3_zhongshan_city_challenge.txt` | Pass | Blocked | `Mirror Image`, `Deadly Flourish`, `Hidden Blade`, `Cull the Weak`. |
 | Vex, Gloomist | `vex_top_8_at_s3_zhongshan_city_challenge.txt` | Needs review | Blocked | Uploaded list infers 37 main-deck cards after chosen Champion; `Allay - Eager Admirer` (`UNL-041`) is missing from local card cache. |
 | Azir, Emperor of the Sands | `azir_wins_lille_regional_qualifier.txt` | Pass | Blocked | `Facebreaker`, `Hidden Blade`; token/location/scoring text remains partial. |
@@ -38,12 +38,12 @@ See `docs/meta/UPLOADED_META_DECKS.md` for the complete table.
 
 | Legend / archetype | Meta share | Win rate | Deck count | Current support status | Guide list status | Top blockers | Next implementation target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Irelia, Blade Dancer | 8% | 54% | 1637 | Blocked | 2 list(s) extracted | Uploaded list: Charm (UNSUPPORTED), Zhonya's Hourglass (UNSUPPORTED), The Syren (UNSUPPORTED), plus important Partial Legend/Reaction/Gear effects | Finish current/Irelia support slice |
+| Irelia, Blade Dancer | 8% | 54% | 1637 | Blocked | 2 list(s) extracted | Uploaded list: Zhonya's Hourglass (UNSUPPORTED), The Syren (UNSUPPORTED), Charm (PARTIAL), plus important Partial Legend/Reaction/Gear effects | Finish current/Irelia support slice |
 | Diana, Scorn of the Moon | 7% | 54% | 1438 | Blocked | 3 list(s) extracted | Uploaded list: Abandon (UNSUPPORTED), Hard Bargain (UNSUPPORTED), The Syren (UNSUPPORTED), plus interaction-heavy Partial effects | Reviewer-prioritized next interaction deck |
-| Master Yi, Wuju Bladesman | 9% | 60% | 1710 | Blocked | 3 list(s) extracted | Charm (UNSUPPORTED), Repulse (UNSUPPORTED), Zhonya's Hourglass (UNSUPPORTED), Amateur Recital (PARTIAL), Grove of the God-Willow (PARTIAL) | Raw meta leader; audit after gameplay notes |
-| Azir, Emperor of the Sands | 4% | 51% | 728 | Blocked | 1 list(s) extracted | Charm (UNSUPPORTED), Cull the Weak (UNSUPPORTED), Facebreaker (UNSUPPORTED), Hidden Blade (UNSUPPORTED), Wind Wall (UNSUPPORTED) | Later raw-meta audit |
+| Master Yi, Wuju Bladesman | 9% | 60% | 1710 | Blocked | 3 list(s) extracted | Zhonya's Hourglass (UNSUPPORTED), Repulse (UNSUPPORTED), Charm (PARTIAL), Amateur Recital (PARTIAL), Grove of the God-Willow (PARTIAL) | Raw meta leader; audit after gameplay notes |
+| Azir, Emperor of the Sands | 4% | 51% | 728 | Blocked | 1 list(s) extracted | Cull the Weak (UNSUPPORTED), Facebreaker (UNSUPPORTED), Hidden Blade (UNSUPPORTED), Wind Wall (UNSUPPORTED), Charm (PARTIAL) | Later raw-meta audit |
 | Sivir, Battle Mistress | n/a | n/a | n/a | Blocked | 1 list(s) extracted | Dazzling Aurora (UNSUPPORTED), Flurry of Blades (UNSUPPORTED), Lunar Boon (UNSUPPORTED), Pack of Wonders (UNSUPPORTED), Sabotage (UNSUPPORTED) | Additional guide-sourced archetype |
-| Vex, Gloomist | 5% | 46% | 971 | Blocked | 3 list(s) extracted | Abandon (UNSUPPORTED), Allay - Eager Admirer (NOT_AUDITED), Blast Cone (UNSUPPORTED), Charm (UNSUPPORTED), Emperor's Divide (UNSUPPORTED) | Later raw-meta audit |
+| Vex, Gloomist | 5% | 46% | 971 | Blocked | 3 list(s) extracted | Abandon (UNSUPPORTED), Allay - Eager Admirer (NOT_AUDITED), Blast Cone (UNSUPPORTED), Emperor's Divide (UNSUPPORTED), Charm (PARTIAL) | Later raw-meta audit |
 | LeBlanc, Deceiver | 7% | 52% | 1376 | Blocked | 3 list(s) extracted | Cull the Weak (UNSUPPORTED), Deadly Flourish (UNSUPPORTED), Hidden Blade (UNSUPPORTED), Imperial Decree (UNSUPPORTED), Mirror Image (UNSUPPORTED) | Later raw-meta audit |
 | Annie, Dark Child | n/a | n/a | n/a | Blocked | 1 list(s) extracted | Uploaded list: Annie - Dark Child - Starter (NOT_AUDITED), Hard Bargain (UNSUPPORTED), plus Partial Aurora/Battlefield/Champion effects | Aurora shell candidate with Miss Fortune |
 

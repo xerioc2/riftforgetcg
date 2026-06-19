@@ -22,7 +22,7 @@ Extraction status: Extracted
 
 ## Shared Top Blockers
 
-- Charm: UNSUPPORTED - Movement / location. Blocked in enforced play: this card's effect is not supported yet.
+- Charm: PARTIAL - Movement / location. Alpha support moves one enemy public battlefield Unit/Champion to Base; broader movement choices and destination control remain deferred.
 - Cull the Weak: UNSUPPORTED - Damage / destroy. Blocked in enforced play: this card's effect is not supported yet.
 - Facebreaker: UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
 - Hidden Blade: UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
@@ -46,7 +46,7 @@ Extraction status: Extracted
 
 Top blockers:
 
-- Charm: UNSUPPORTED - Movement / location. Blocked in enforced play: this card's effect is not supported yet.
+- Charm: PARTIAL - Movement / location. Alpha support moves one enemy public battlefield Unit/Champion to Base; broader movement choices and destination control remain deferred.
 - Cull the Weak: UNSUPPORTED - Damage / destroy. Blocked in enforced play: this card's effect is not supported yet.
 - Facebreaker: UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
 - Hidden Blade: UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.

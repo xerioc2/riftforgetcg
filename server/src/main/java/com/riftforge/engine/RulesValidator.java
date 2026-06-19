@@ -298,6 +298,10 @@ public class RulesValidator {
       validateFlashTargets(state, move);
       return;
     }
+    if (spell && cardDataService.isCharmMoveEffect(def)) {
+      validateCharmTarget(state, move);
+      return;
+    }
     if (hasStructuredTargets) throw new IllegalMoveException("That card does not use multiple targets.");
     if (spell && cardDataService.isDefyCounterReaction(def)) {
       validateDefyCounterTarget(state, move);
@@ -650,6 +654,19 @@ public class RulesValidator {
       if (!isFriendlyPublicBattlefieldUnit(card, move.playerId())) {
         throw new IllegalMoveException("Flash requires one or two friendly Unit or Champion targets at a battlefield.");
       }
+    }
+  }
+
+  private void validateCharmTarget(LiveGameState state, PlayCardMove move) {
+    if (move.targetInstanceId() == null || move.targetInstanceId().isBlank()) {
+      throw new IllegalMoveException("Charm requires an enemy Unit or Champion at a battlefield.");
+    }
+    CardInstance target = findCard(state, move.targetInstanceId());
+    if (!isPublicBattlefieldUnit(target)) {
+      throw new IllegalMoveException("Charm can only target a public enemy Unit or Champion at a battlefield.");
+    }
+    if (move.playerId().equals(target.getOwnerId())) {
+      throw new IllegalMoveException("Charm can only target an enemy Unit or Champion.");
     }
   }
 

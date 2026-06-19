@@ -24,7 +24,7 @@ Extraction status: Extracted
 
 ## Shared Top Blockers
 
-- Charm: UNSUPPORTED - Movement / location. Blocked in enforced play: this card's effect is not supported yet.
+- Charm: PARTIAL - Movement / location. Alpha support moves one enemy public battlefield Unit/Champion to Base; broader movement choices and destination control remain deferred.
 - Repulse: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Zhonya's Hourglass: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Amateur Recital: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
@@ -52,7 +52,7 @@ Extraction status: Extracted
 
 Top blockers:
 
-- Charm: UNSUPPORTED - Movement / location. Blocked in enforced play: this card's effect is not supported yet.
+- Charm: PARTIAL - Movement / location. Alpha support moves one enemy public battlefield Unit/Champion to Base; broader movement choices and destination control remain deferred.
 - Repulse: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Zhonya's Hourglass: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Amateur Recital: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
@@ -74,7 +74,7 @@ Top blockers:
 Top blockers:
 
 - Challenge: UNSUPPORTED - Damage / destroy. Blocked in enforced play: this card's effect is not supported yet.
-- Charm: UNSUPPORTED - Movement / location. Blocked in enforced play: this card's effect is not supported yet.
+- Charm: PARTIAL - Movement / location. Alpha support moves one enemy public battlefield Unit/Champion to Base; broader movement choices and destination control remain deferred.
 - Repulse: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Sabotage: UNSUPPORTED - Draw / reveal / deck selection. Blocked in enforced play: this card's effect is not supported yet.
 - Zhonya's Hourglass: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
@@ -95,7 +95,7 @@ Top blockers:
 Top blockers:
 
 - Alpha Strike: UNSUPPORTED - XP / Hunt / Level / Buff. Blocked in enforced play: this card's effect is not supported yet.
-- Charm: UNSUPPORTED - Movement / location. Blocked in enforced play: this card's effect is not supported yet.
+- Charm: PARTIAL - Movement / location. Alpha support moves one enemy public battlefield Unit/Champion to Base; broader movement choices and destination control remain deferred.
 - Zhonya's Hourglass: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Startipped Peak: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - The Arena's Greatest: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.

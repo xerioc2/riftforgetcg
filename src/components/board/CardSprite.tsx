@@ -59,7 +59,8 @@ export function CardSprite({
   cardsById?: Map<string, RiftCard>;
   onHover?: (card: RiftCard | null, instance?: CardInstance) => void;
 }) {
-  const [image] = useImage(instance.faceDown ? CARD_BACK_URL : cardDef.imageUrl ?? '');
+  const maskedFaceDown = instance.faceDown && !isOwner;
+  const [image] = useImage(maskedFaceDown ? CARD_BACK_URL : cardDef.imageUrl ?? '');
   const groupRef = useRef<KonvaGroup | null>(null);
   const isDiscarded = instance.zone.toLowerCase() === 'discard';
   const isBoardUnit = ['base', 'battlefield'].includes(instance.zone.toLowerCase());
@@ -119,7 +120,7 @@ export function CardSprite({
       }}
       onClick={() => onClick(instance.instanceId)}
       onTap={() => onClick(instance.instanceId)}
-      onMouseEnter={() => onHover?.(instance.faceDown ? null : cardDef, instance.faceDown ? undefined : instance)}
+      onMouseEnter={() => onHover?.(maskedFaceDown ? null : cardDef, maskedFaceDown ? undefined : instance)}
       onMouseLeave={() => onHover?.(null)}
       onDblClick={() => onDoubleClick(instance.instanceId)}
       onDblTap={() => onDoubleClick(instance.instanceId)}
@@ -128,18 +129,18 @@ export function CardSprite({
         onContextMenu(instance.instanceId);
       }}
     >
-      {image && !instance.faceDown ? (
+      {image && !maskedFaceDown ? (
         <Image image={image} width={CARD_WIDTH} height={CARD_HEIGHT} cornerRadius={4} />
       ) : (
         <>
           <Rect width={CARD_WIDTH} height={CARD_HEIGHT} fill={typeFill(cardDef.type)} stroke="#2b333d" strokeWidth={1} cornerRadius={4} />
           <Rect x={2} y={2} width={16} height={16} fill="rgba(0,0,0,0.5)" cornerRadius={3} />
           <Text x={2} y={4} width={16} text={String(cardDef.cost ?? 0)} align="center" fontSize={10} fontStyle="bold" fill="#d8b05d" />
-          <Text x={2} y={24} width={CARD_WIDTH - 4} text={instance.faceDown ? '?' : cardDef.name} align="center" fontSize={9} fontStyle="bold" fill="#ffffff" wrap="word" />
-          <Text x={2} y={CARD_HEIGHT / 2 - 6} width={CARD_WIDTH - 4} text={instance.faceDown ? '' : cardDef.type ?? ''} align="center" fontSize={8} fill="rgba(255,255,255,0.5)" />
+          <Text x={2} y={24} width={CARD_WIDTH - 4} text={maskedFaceDown ? '?' : cardDef.name} align="center" fontSize={9} fontStyle="bold" fill="#ffffff" wrap="word" />
+          <Text x={2} y={CARD_HEIGHT / 2 - 6} width={CARD_WIDTH - 4} text={maskedFaceDown ? '' : cardDef.type ?? ''} align="center" fontSize={8} fill="rgba(255,255,255,0.5)" />
         </>
       )}
-      {!instance.faceDown && stats.hasCombatStats ? (
+      {!maskedFaceDown && stats.hasCombatStats ? (
         <>
           <Rect
             x={4}

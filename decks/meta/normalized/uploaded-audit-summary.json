@@ -19,21 +19,14 @@
         "uniqueCards": 27,
         "counts": {
           "SUPPORTED": 4,
-          "PARTIAL": 20,
-          "UNSUPPORTED": 3,
+          "PARTIAL": 21,
+          "UNSUPPORTED": 2,
           "BANNED": 0,
           "NOT_AUDITED": 0
         },
         "canUseInEnforced": false,
         "unresolvedCards": [],
         "topBlockers": [
-          {
-            "cardName": "Charm",
-            "sourceCardId": "OGN-043",
-            "status": "UNSUPPORTED",
-            "bucket": "Movement / location",
-            "reason": "Blocked in enforced play: this card's effect is not supported yet."
-          },
           {
             "cardName": "Zhonya's Hourglass",
             "sourceCardId": "OGN-077",
@@ -61,6 +54,13 @@
             "status": "PARTIAL",
             "bucket": "Reaction / chain / counter",
             "reason": "Partial: Not So Fast can counter a supported public pending enemy spell chain item only when that item chooses your friendly Unit/Champion Unit or Gear. Ability-chain targets, broad official Reaction timing, and countering counters remain deferred."
+          },
+          {
+            "cardName": "Abandoned Hall",
+            "sourceCardId": "UNL-205",
+            "status": "PARTIAL",
+            "bucket": "Battlefield effect",
+            "reason": "Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely."
           }
         ]
       }
@@ -221,8 +221,8 @@
         "uniqueCards": 23,
         "counts": {
           "SUPPORTED": 3,
-          "PARTIAL": 17,
-          "UNSUPPORTED": 2,
+          "PARTIAL": 18,
+          "UNSUPPORTED": 1,
           "BANNED": 0,
           "NOT_AUDITED": 1
         },
@@ -250,13 +250,6 @@
             "reason": "Blocked in enforced play: this card's effect is not supported yet."
           },
           {
-            "cardName": "Charm",
-            "sourceCardId": "OGN-043",
-            "status": "UNSUPPORTED",
-            "bucket": "Movement / location",
-            "reason": "Blocked in enforced play: this card's effect is not supported yet."
-          },
-          {
             "cardName": "Amateur Recital",
             "sourceCardId": "UNL-207",
             "status": "PARTIAL",
@@ -266,6 +259,13 @@
           {
             "cardName": "Rengar - Trophy Hunter",
             "sourceCardId": "UNL-120",
+            "status": "PARTIAL",
+            "bucket": "Champion text",
+            "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+          },
+          {
+            "cardName": "Master Yi - Tempered",
+            "sourceCardId": "UNL-113",
             "status": "PARTIAL",
             "bucket": "Champion text",
             "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
@@ -357,8 +357,8 @@
         "uniqueCards": 27,
         "counts": {
           "SUPPORTED": 2,
-          "PARTIAL": 19,
-          "UNSUPPORTED": 5,
+          "PARTIAL": 20,
+          "UNSUPPORTED": 4,
           "BANNED": 0,
           "NOT_AUDITED": 1
         },
@@ -371,13 +371,6 @@
           }
         ],
         "topBlockers": [
-          {
-            "cardName": "Charm",
-            "sourceCardId": "OGN-043",
-            "status": "UNSUPPORTED",
-            "bucket": "Movement / location",
-            "reason": "Blocked in enforced play: this card's effect is not supported yet."
-          },
           {
             "cardName": "Existential Dread",
             "sourceCardId": "UNL-134",
@@ -404,6 +397,13 @@
             "sourceCardId": "SFD-145",
             "status": "UNSUPPORTED",
             "bucket": "Hidden / facedown",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Zhonya's Hourglass",
+            "sourceCardId": "OGN-077",
+            "status": "UNSUPPORTED",
+            "bucket": "Equipment lifecycle/effect",
             "reason": "Blocked in enforced play: this card's effect is not supported yet."
           }
         ]

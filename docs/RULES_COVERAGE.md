@@ -160,8 +160,8 @@ Current implementation notes:
   whether a played card/effect opens a response window and what chain metadata
   it receives. Production opt-ins remain conservative: Stacked Deck and simple
   public `Draw 1` spells are the only real opener patterns, while Gust,
-  Discipline, En Garde, Defy, and Not So Fast are the only real chain-backed
-  Reactions.
+  Discipline, En Garde, Defiant Dance, Flash, Defy, and Not So Fast are the
+  only real chain-backed Reactions.
 - `LegalActionsService` exposes `PASS_CHAIN_FOCUS`, `RESOLVE_CHAIN_TOP`,
   narrowly supported focused Reaction play to the focused chain player, and
   narrowly supported targeted Reaction play to focused showdown participants.
@@ -176,7 +176,7 @@ Current implementation notes:
 - RiftBot can pass chain focus or resolve a ready top item through the same server legal-action contract.
 - Current effect resolution is deliberately limited to deterministic test/no-op
   and draw-one harness items, Stacked Deck as the first real chain opener, and
-  Gust, Discipline, En Garde, Defy, and Not So Fast as the first real
+  Gust, Discipline, En Garde, Defiant Dance, Flash, Defy, and Not So Fast as the first real
   chain-backed Reactions.
 - Stacked Deck opens the narrow alpha chain when played in supported gameplay,
   becomes a public chain item, and creates its existing owner-only private
@@ -305,7 +305,7 @@ Current implementation notes:
 - Targeted-spell heuristics require valid server-checked targets. Single-target spells use the legacy `targetInstanceId` path; narrow multi-target paths support required friendly Unit/Champion plus enemy Unit/Champion roles, Defiant Dance's +2/-2 target pair, and Flash's one-or-two friendly Unit/Champion recall targets.
 - Simple helper-backed effect scripts currently cover draw 1, selected
   temporary Might boosts and reductions, selected unit/champion return-to-hand, paired
-  friendly/enemy unit return-to-hand, selected friendly unit/champion movement to Base, and selected friendly unit/champion
+  friendly/enemy unit return-to-hand, selected friendly unit/champion movement to Base, Charm's selected enemy public battlefield Unit/Champion movement to Base, and selected friendly unit/champion
   readying.
 - Unsupported spell shapes are blocked by `CardDataService.isUnsupportedAction`.
 - A generic pending-choice framework exists for private yes/no, optional-payment,
@@ -320,7 +320,8 @@ Current implementation notes:
 
 Known gaps:
 - Chain timing, Reaction timing, broad countering spells/abilities, optional/three-plus/conditional multi-target spells, full optional trigger ordering, replacement/prevention, and many spell-specific effects are not complete.
-- Active-showdown `[Action]` play is lightweight: focused showdown participants can play supported Action cards or pass focus. Once both relevant players pass in succession, the showdown becomes ready for the attacker to resolve. A narrow bluff-safe priority/chain foundation exists, with Stacked Deck and simple public `Draw 1` spells as the only real opener patterns and Gust/Discipline/En Garde/Defy/Not So Fast as the only connected Reactions; broader response-card support and unrestricted Reaction timing remain deferred.
+- Active-showdown `[Action]` play is lightweight: focused showdown participants can play supported Action cards or pass focus. Once both relevant players pass in succession, the showdown becomes ready for the attacker to resolve. A narrow bluff-safe priority/chain foundation exists, with Stacked Deck and simple public `Draw 1` spells as the only real opener patterns and Gust/Discipline/En Garde/Defiant Dance/Flash/Defy/Not So Fast as the only connected Reactions; broader response-card support and unrestricted Reaction timing remain deferred.
+- Broad movement scripting is still deferred: Charm has only an exact-text alpha path that moves one enemy public battlefield Unit/Champion to Base.
 
 Test coverage:
 - Rules validator keyword/target tests.
@@ -588,8 +589,11 @@ Current implementation notes:
 - HIDDEN has a conservative foundation: `[Hidden]` cards can move from hand to
   a dedicated hidden zone by tapping a ready own rune; owner projections keep
   identity visible while opponent/spectator projections mask the card id and
-  facedown state. Hidden cards are excluded from normal targeting, movement,
-  and combat. Later hidden play/reaction timing is not implemented.
+  facedown state. The owner can hover/inspect their hidden cards in the game UI;
+  opponents and spectators see only generic hidden-card/card-back information.
+  Public logs and copied debug info omit hidden identities. Hidden cards are
+  excluded from normal targeting, movement, and combat. Later hidden
+  play/reaction timing is not implemented.
 - AMBUSH has a conservative alpha foundation: a clean Ambush Unit can be played
   directly from hand to the battlefield during supported Main-phase play if its
   controller already has a friendly Unit/Champion at the battlefield. Reaction

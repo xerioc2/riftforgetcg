@@ -78,4 +78,13 @@ describe('deckSupport', () => {
     expect(flash.reason).toContain('up to two friendly');
     expect(flash.reason).toContain('Base');
   });
+
+  it('uses a Charm-specific Partial reason for alpha enemy battlefield movement', () => {
+    const charm = cardSupportStatus(spell('Charm', 'Move an enemy unit.'));
+
+    expect(charm.status).toBe('PARTIAL');
+    expect(charm.reason).toContain('enemy public battlefield Unit/Champion');
+    expect(charm.reason).toContain('Base');
+    expect(charm.reason).toContain('movement choices');
+  });
 });

@@ -55,11 +55,11 @@ Reaction and Equipment exact-text support planning is tracked in
 
 Reaction note: current Partial Reaction support uses server-created chain
 windows. Stacked Deck and simple public `Draw 1` spells open response windows;
-Gust, Discipline, and En Garde can also be played as narrow own-turn or focused
-showdown Reactions and resolve from the chain. Defy and Not So Fast still
-require an existing legal chain target. Rune innate actions do not create chain
-windows, hidden Reaction play remains deferred, and broader official "play any
-time" timing is still incomplete.
+Gust, Discipline, En Garde, Defiant Dance, and Flash can also be played as
+narrow own-turn or focused showdown Reactions and resolve from the chain. Defy
+and Not So Fast still require an existing legal chain target. Rune innate
+actions do not create chain windows, hidden Reaction play remains deferred, and
+broader official "play any time" timing is still incomplete.
 
 ## Meta Deck Support
 
@@ -74,12 +74,12 @@ and directly tested.
 
 | Priority | Legend / archetype | Meta data supplied | Current support status | Representative list source | Current top blockers |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Master Yi, Wuju Bladesman | 9% meta, 60% win, 1710 decks | Blocked | 3 Riftbound.gg guide lists extracted | `Charm`, `Repulse`, `Zhonya's Hourglass`, and several Battlefield/Legend/Champion Partial effects. Reviewer gameplay notes are still needed before implementation. |
-| 2 | Irelia, Blade Dancer | 8% meta, 54% win, 1637 decks | Blocked | 2 Riftbound.gg guide lists extracted | Uploaded Shanghai list is down to `Charm`, `Zhonya's Hourglass`, and `The Syren` as Unsupported blockers; Defiant Dance and Flash are Partial alpha chain-backed Reactions. |
+| 1 | Master Yi, Wuju Bladesman | 9% meta, 60% win, 1710 decks | Blocked | 3 Riftbound.gg guide lists extracted | `Repulse`, `Zhonya's Hourglass`, and several Battlefield/Legend/Champion Partial effects remain; Charm now has narrow Partial enemy-battlefield movement support. Reviewer gameplay notes are still needed before implementation. |
+| 2 | Irelia, Blade Dancer | 8% meta, 54% win, 1637 decks | Blocked | 2 Riftbound.gg guide lists extracted | Uploaded Shanghai list is down to `Zhonya's Hourglass` and `The Syren` as Unsupported blockers; Charm, Defiant Dance, and Flash are Partial alpha support. |
 | 3 | Diana, Scorn of the Moon | 7% meta, 54% win, 1438 decks | Blocked | 3 Riftbound.gg guide lists extracted | Uploaded Suzhou list blockers are now `Abandon`, `Hard Bargain`, `The Syren`, and multiple interaction-heavy Partial effects. This remains the recommended next support target. |
 | 4 | LeBlanc, Deceiver | 7% meta, 52% win, 1376 decks | Blocked | 3 Riftbound.gg guide lists extracted | `Cull the Weak`, `Deadly Flourish`, `Hidden Blade`, `Imperial Decree`, `Mirror Image`. |
-| 5 | Vex, Gloomist | 5% meta, 46% win, 971 decks | Blocked | 3 Riftbound.gg guide lists extracted | `Abandon`, `Blast Cone`, `Charm`, `Emperor's Divide`, plus one unresolved/Not Audited Allay variant. |
-| 6 | Azir, Emperor of the Sands | 4% meta, 51% win, 728 decks | Blocked | 1 Riftbound.gg guide list extracted | `Charm`, `Cull the Weak`, `Facebreaker`, `Hidden Blade`, `Wind Wall`. |
+| 5 | Vex, Gloomist | 5% meta, 46% win, 971 decks | Blocked | 3 Riftbound.gg guide lists extracted | `Abandon`, `Blast Cone`, `Emperor's Divide`, plus one unresolved/Not Audited Allay variant; Charm is Partial. |
+| 6 | Azir, Emperor of the Sands | 4% meta, 51% win, 728 decks | Blocked | 1 Riftbound.gg guide list extracted | `Cull the Weak`, `Facebreaker`, `Hidden Blade`, `Wind Wall`; Charm is Partial. |
 | Additional | Sivir, Battle Mistress | not in supplied screenshot | Blocked | 1 Riftbound.gg guide list extracted | `Dazzling Aurora`, `Flurry of Blades`, `Lunar Boon`, `Pack of Wonders`, `Sabotage`. |
 | Aurora bucket | Annie, Dark Child / Miss Fortune | reviewer signal | Blocked / Missing MF list | Annie guide list extracted; Miss Fortune list still needed | Uploaded Annie blockers include missing local `Annie - Dark Child - Starter` data plus `Hard Bargain`; Flash is Partial alpha support. Miss Fortune is not audited without a real list. |
 
@@ -89,14 +89,14 @@ and directly tested.
 | Irelia - Fervent | Irelia Tempo | Champion | Partial | Champion text | Needs Deflect targeting tax and choose/ready might trigger. |
 | Defy | Irelia Tempo | Spell | Partial | Counterspell: alpha chain item counter | Can counter supported public spell chain items such as Stacked Deck in the current alpha chain window; full official Reaction timing and broad counter targets remain deferred. |
 | Discipline | Irelia Tempo | Spell | Partial | Chain-backed Reaction boost/draw | Can be played in the current narrow alpha windows: own-turn Main, focused showdown, or while focused during an active chain. It creates a public chain item, gives a public battlefield Unit/Champion +2 Might this turn, and draws 1 privately on resolution. Full official "any time" Reaction timing remains incomplete. |
-| Tideturner | Irelia Tempo | Unit | Partial | Unit with triggered ability | Hidden foundation is implemented: it can be hidden from hand and masked from opponents. Later hidden play timing and its play trigger that swaps locations remain incomplete. |
+| Tideturner | Irelia Tempo | Unit | Partial | Unit with triggered ability | Hidden foundation is implemented: it can be hidden from hand, masked from opponents/spectators, and owner-inspected from the hidden area without leaking through public logs or copied debug info. Later hidden play timing and its play trigger that swaps locations remain incomplete. |
 | Stellacorn Herder | Irelia Tempo | Unit | Supported | Movement draw trigger | Full printed text is implemented and directly tested in the active-lane alpha: Base -> battlefield and battlefield -> Base/recall movement draw 1 privately; play from hand, return to hand, trash/death, setup/import, hidden transitions, and same-zone reposition do not trigger. |
 | Guardian Angel | Irelia Tempo | Gear | Partial | Gear/equipment | Alpha Equip lifecycle and printed Calm equip payment are covered: play to Base first using normal play cost, then equip from Base to a friendly public Unit/Champion in Base or at the battlefield by paying the printed Equip cost; attached Gear cannot fight, returns to Base when its host leaves public play, and does not trigger Deathknell when returned. It has no enabled stat modifier entry. Full official Equip timing, replacement/reattachment edge cases, and card-specific Gear effects remain incomplete. |
 | Boots of Swiftness | Irelia Tempo | Gear | Partial | Gear/equipment | Alpha Equip lifecycle and printed Chaos equip payment are covered: play to Base first using normal play cost, then equip from Base to a friendly public Unit/Champion in Base or at the battlefield by paying the printed Equip cost; attached Gear cannot fight, returns to Base when its host leaves public play, and does not trigger Deathknell when returned. It has no enabled stat modifier entry. Full official Equip timing, replacement/reattachment edge cases, and card-specific Gear effects remain incomplete. |
 | Defiant Dance | Irelia Tempo | Spell | Partial | Chain-backed Reaction multi-target modifier | Can be played in the current narrow alpha windows: own-turn Main, focused showdown, or while focused during an active chain. It creates a public chain item, requires one boosted public battlefield Unit/Champion and another weakened public battlefield Unit/Champion, gives +2 Might and -2 Might this turn on resolution, and rejects duplicate targets. Full official "any time" Reaction timing remains incomplete. |
 | Scuttle Crab | Irelia Tempo | Unit | Partial | Unit with triggered ability | 0 Might Unit survives normally; on-play draw 1 is helper-backed with private card identity; Deathknell auto-selects the 1v1 opponent and privately reveals their hand to the Crab controller until end phase. XP and facedown viewing remain deferred. |
 | Lonely Poro | Irelia playtest pool | Unit | Supported | Deathknell draw trigger | Full printed text is implemented and directly tested: Deathknell fires on death only, draws exactly once when no other friendly Unit/Champion was at the same location, ignores enemies and Gear for the alone check, and simultaneous friendly deaths do not count as alone. |
-| Charm | Irelia Tempo | Spell | Unsupported | Unsupported/unknown text pattern | Blocked by unsupported move effect; needs enemy-unit movement target rules. |
+| Charm | Irelia Tempo | Spell | Partial | Spell: enemy movement | Alpha support moves one enemy public battlefield Unit/Champion to Base using a selected target. Broader official movement choices, control/location edge cases, non-battlefield destinations, and full card-pool movement scripting remain deferred. |
 | En Garde | Irelia Tempo | Spell | Partial | Chain-backed Reaction boost | Can be played in the current narrow alpha windows: own-turn Main, focused showdown, or while focused during an active chain. It creates a public chain item, gives a friendly battlefield Unit/Champion +1 Might this turn, and gives +2 instead if it is your only unit there. Full official "any time" Reaction timing remains incomplete. |
 | Flash | Irelia Tempo | Spell | Partial | Chain-backed Reaction friendly recall | Can be played in the current narrow alpha windows: own-turn Main, focused showdown, or while focused during an active chain. It creates a public chain item, chooses one or two friendly public battlefield Unit/Champion cards, and moves them to Base on resolution. Full official "any time" Reaction timing remains incomplete. |
 | Gust | Irelia Tempo | Spell | Partial | Chain-backed Reaction bounce | Can be played in the current narrow alpha windows: own-turn Main, focused showdown, or while focused during an active chain. It creates a public chain item and returns a battlefield Unit/Champion with 3 Might or less to its owner's hand on resolution. Full official "any time" Reaction timing remains incomplete. |

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canUseSupportedChainResponse, isDefiantDanceReactionCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isFlashReactionCard, isGustReactionCard, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isSupportedChainReactionCard, multiTargetRequirementsForCard, shouldShowRespondAction, unsupportedCardReason } from './cardActions';
+import { canUseSupportedChainResponse, isCharmMoveCard, isDefiantDanceReactionCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isFlashReactionCard, isGustReactionCard, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isSupportedChainReactionCard, multiTargetRequirementsForCard, shouldShowRespondAction, targetModeForCard, unsupportedCardReason } from './cardActions';
 import type { CardInstance, RiftCard } from '../types';
 
 describe('cardActions', () => {
@@ -98,6 +98,47 @@ describe('cardActions', () => {
     expect(isNotSoFastCounterCard(notSoFast)).toBe(true);
     expect(isSupportedChainReactionCard(notSoFast)).toBe(true);
     expect(unsupportedCardReason(notSoFast)).toBeNull();
+  });
+
+  it('recognizes Charm as the narrow alpha enemy battlefield movement helper', () => {
+    const charm: RiftCard = {
+      id: 'charm',
+      name: 'Charm',
+      type: 'Spell',
+      domains: [],
+      rulesText: 'Move an enemy unit.',
+    };
+    const enemyUnit: RiftCard = {
+      id: 'enemy-unit',
+      name: 'Enemy Unit',
+      type: 'Unit',
+      domains: [],
+      power: 2,
+      health: 2,
+      rulesText: '',
+    };
+    const enemyBattlefield: CardInstance = {
+      instanceId: 'enemy-battlefield',
+      cardId: 'enemy-unit',
+      ownerId: 'opponent',
+      zone: 'battlefield',
+      x: 0,
+      y: 0,
+      tapped: false,
+      faceDown: false,
+      zIndex: 0,
+    };
+    const enemyBase: CardInstance = { ...enemyBattlefield, instanceId: 'enemy-base', zone: 'base' };
+    const friendlyBattlefield: CardInstance = { ...enemyBattlefield, instanceId: 'friendly', ownerId: 'player' };
+    const faceDownEnemy: CardInstance = { ...enemyBattlefield, instanceId: 'face-down', faceDown: true };
+
+    expect(isCharmMoveCard(charm)).toBe(true);
+    expect(targetModeForCard(charm)).toBe('ENEMY_UNIT');
+    expect(unsupportedCardReason(charm)).toBeNull();
+    expect(isLegalTargetForMode(enemyBattlefield, enemyUnit, 'ENEMY_UNIT', 'player')).toBe(true);
+    expect(isLegalTargetForMode(enemyBase, enemyUnit, 'ENEMY_UNIT', 'player')).toBe(false);
+    expect(isLegalTargetForMode(friendlyBattlefield, enemyUnit, 'ENEMY_UNIT', 'player')).toBe(false);
+    expect(isLegalTargetForMode(faceDownEnemy, enemyUnit, 'ENEMY_UNIT', 'player')).toBe(false);
   });
 
   it('marks Gust playable only when chain play and a legal Gust target are available', () => {

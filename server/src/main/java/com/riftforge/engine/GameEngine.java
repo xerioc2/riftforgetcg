@@ -230,6 +230,8 @@ public class GameEngine {
     }
     if (cardDataService.requiresFriendlyAndEnemyTargets(card.getCardId())) {
       applyFriendlyAndEnemyReturn(card, move, state, def);
+    } else if (cardDataService.isCharmMoveEffect(def)) {
+      applyCharmMove(card, state, def, resolvedTarget);
     } else {
       applyRulesTextEffect(card, target, state, def);
     }
@@ -327,7 +329,6 @@ public class GameEngine {
 
   private LiveGameState applyHideCard(LiveGameState state, HideCardMove move) {
     CardInstance card = findCard(state, move.instanceId());
-    CardDefinition def = cardDataService.getCard(card.getCardId());
     RuneState rune = findRune(state, move.paymentRuneId());
     rune.setTapped(true);
     card.setZone(ZoneName.HIDDEN);
@@ -336,7 +337,7 @@ public class GameEngine {
     card.setX(0);
     card.setY(0);
     card.setAttachedToInstanceId(null);
-    log(state, move.playerId(), "Hid " + def.name() + ".");
+    log(state, move.playerId(), "Hid a card.");
     return state;
   }
 
@@ -1921,6 +1922,14 @@ public class GameEngine {
     returnUnitToOwnerHand(state, source, sourceDef, friendly);
     returnUnitToOwnerHand(state, source, sourceDef, enemy);
     log(state, source.getOwnerId(), sourceDef.name() + " returned a friendly unit and an enemy unit to hand.");
+  }
+
+  private void applyCharmMove(CardInstance source, LiveGameState state, CardDefinition sourceDef, CardInstance target) {
+    if (target == null || !isPublicBattlefieldUnit(target) || source.getOwnerId().equals(target.getOwnerId())) {
+      log(state, source.getOwnerId(), sourceDef.name() + " fizzled because its target was no longer legal.");
+      return;
+    }
+    recallUnitToBase(state, source, sourceDef, target);
   }
 
   private CardInstance structuredTarget(LiveGameState state, PlayCardMove move, String role) {

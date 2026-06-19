@@ -121,13 +121,13 @@ function docFor(deck) {
 
 function recommendation(key) {
   const recommendations = {
-    irelia: '- Continue current Irelia polish: Charm movement, Zhonya\'s Hourglass/The Syren Gear-effect blockers, and remaining Partial Legend/Reaction accuracy from the uploaded list.',
+    irelia: '- Continue current Irelia polish: Zhonya\'s Hourglass/The Syren Gear-effect blockers, and remaining Partial Legend/Reaction accuracy from the uploaded list. Charm now has narrow Partial enemy-battlefield movement support.',
     diana: '- Diana remains next: start with repeated interaction blockers such as Abandon/Hard Bargain or a shared Gear/effect blocker if it appears in the chosen support slice.',
     annie: '- Use Annie as the first Aurora-shell list while waiting for Miss Fortune; focus on shared Reaction/bounce/damage blockers only after MF is available.',
-    'master-yi': '- Review gameplay notes before implementation; likely blockers are movement/control, Gear, and Charm-like location effects.',
+    'master-yi': '- Review gameplay notes before implementation; likely blockers are Gear, Champion/Legend text, and remaining movement/location edge cases beyond Charm\'s narrow alpha support.',
     leblanc: '- Defer until Diana/Aurora unless tester demand rises; blockers skew toward destroy/hidden/counter-style spell effects.',
-    vex: '- Defer until Diana/Aurora unless tester demand rises; blockers include Charm, Blast Cone, Emperor\'s Divide, and hidden/facedown pieces.',
-    azir: '- Defer until higher-priority interaction decks; blockers include Charm, Facebreaker, Hidden Blade, and Wind Wall.',
+    vex: '- Defer until Diana/Aurora unless tester demand rises; blockers include Blast Cone, Emperor\'s Divide, Switcheroo, and hidden/facedown pieces. Charm now has narrow Partial support.',
+    azir: '- Defer until higher-priority interaction decks; blockers include Facebreaker, Hidden Blade, Wind Wall, and remaining movement/location edge cases beyond Charm\'s narrow alpha support.',
     sivir: '- Keep as additional data; blockers include Dazzling Aurora, Flurry of Blades, Lunar Boon, Pack of Wonders, and Sabotage.',
     fiora: '- Treat as additional data for equipment/combat work; blockers include Challenge, Hidden Blade, and several Partial Gear/combat texts.',
     draven: '- Treat as additional data for Aurora/Draven shell work; blockers include Switcheroo, Edge of Night, Hard Bargain, and token/hidden pieces.',

@@ -49,4 +49,4 @@ Event/result: azir wins lille regional qualifier
 
 ## Recommended Implementation Order
 
-- Defer until higher-priority interaction decks; blockers include Charm, Facebreaker, Hidden Blade, and Wind Wall.
+- Defer until higher-priority interaction decks; blockers include Facebreaker, Hidden Blade, Wind Wall, and remaining movement/location edge cases beyond Charm's narrow alpha support.

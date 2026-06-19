@@ -20,8 +20,8 @@ Event/result: irelia wins s3 shanghai city challenge
 
 - Status: Blocked
 - Supported: 4
-- Partial: 20
-- Unsupported: 3
+- Partial: 21
+- Unsupported: 2
 - Not Audited: 0
 - Enforced playable: No
 
@@ -31,11 +31,11 @@ Event/result: irelia wins s3 shanghai city challenge
 
 ## Top Blockers
 
-- Charm (OGN-043): UNSUPPORTED - Movement / location. Blocked in enforced play: this card's effect is not supported yet.
 - Zhonya's Hourglass (OGN-077): UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - The Syren (OGN-184): UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Irelia - Blade Dancer (SFD-195): PARTIAL - Legend text. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Not So Fast (SFD-045): PARTIAL - Reaction / chain / counter. Partial: Not So Fast can counter a supported public pending enemy spell chain item only when that item chooses your friendly Unit/Champion Unit or Gear. Ability-chain targets, broad official Reaction timing, and countering counters remain deferred.
+- Abandoned Hall (UNL-205): PARTIAL - Battlefield effect. Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.
 
 ## Normalized Sections
 
@@ -49,4 +49,4 @@ Event/result: irelia wins s3 shanghai city challenge
 
 ## Recommended Implementation Order
 
-- Continue current Irelia polish: Charm movement, Zhonya's Hourglass/The Syren Gear-effect blockers, and remaining Partial Legend/Reaction accuracy from the uploaded list.
+- Continue current Irelia polish: Zhonya's Hourglass/The Syren Gear-effect blockers, and remaining Partial Legend/Reaction accuracy from the uploaded list. Charm now has narrow Partial enemy-battlefield movement support.

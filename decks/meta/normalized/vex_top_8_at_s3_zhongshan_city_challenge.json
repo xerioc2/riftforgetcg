@@ -46,9 +46,9 @@
         }
       },
       "support": {
-        "status": "UNSUPPORTED",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
-        "blocked": true
+        "status": "PARTIAL",
+        "reason": "Partial: alpha support moves one enemy public battlefield Unit/Champion to Base. Broader official movement choices, control/location edge cases, and non-battlefield destinations remain deferred.",
+        "blocked": false
       },
       "bucket": "Movement / location"
     },
@@ -688,8 +688,8 @@
     "uniqueCards": 27,
     "counts": {
       "SUPPORTED": 2,
-      "PARTIAL": 19,
-      "UNSUPPORTED": 5,
+      "PARTIAL": 20,
+      "UNSUPPORTED": 4,
       "BANNED": 0,
       "NOT_AUDITED": 1
     },
@@ -702,13 +702,6 @@
       }
     ],
     "topBlockers": [
-      {
-        "cardName": "Charm",
-        "sourceCardId": "OGN-043",
-        "status": "UNSUPPORTED",
-        "bucket": "Movement / location",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet."
-      },
       {
         "cardName": "Existential Dread",
         "sourceCardId": "UNL-134",
@@ -735,6 +728,13 @@
         "sourceCardId": "SFD-145",
         "status": "UNSUPPORTED",
         "bucket": "Hidden / facedown",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Zhonya's Hourglass",
+        "sourceCardId": "OGN-077",
+        "status": "UNSUPPORTED",
+        "bucket": "Equipment lifecycle/effect",
         "reason": "Blocked in enforced play: this card's effect is not supported yet."
       }
     ]

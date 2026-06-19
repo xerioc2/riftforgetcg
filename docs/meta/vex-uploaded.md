@@ -20,8 +20,8 @@ Event/result: vex top 8 at s3 zhongshan city challenge
 
 - Status: Blocked
 - Supported: 2
-- Partial: 19
-- Unsupported: 5
+- Partial: 20
+- Unsupported: 4
 - Not Audited: 1
 - Enforced playable: No
 
@@ -31,11 +31,11 @@ Event/result: vex top 8 at s3 zhongshan city challenge
 
 ## Top Blockers
 
-- Charm (OGN-043): UNSUPPORTED - Movement / location. Blocked in enforced play: this card's effect is not supported yet.
 - Existential Dread (UNL-134): UNSUPPORTED - Bounce / return. Blocked in enforced play: this card's effect is not supported yet.
 - Blast Cone (UNL-133): UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Allay - Eager Admirer (UNL-041): NOT_AUDITED - Unresolved / missing card data. No local RiftForge card matched Allay - Eager Admirer in Unleashed.
 - Switcheroo (SFD-145): UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
+- Zhonya's Hourglass (OGN-077): UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 
 ## Normalized Sections
 
@@ -50,4 +50,4 @@ Event/result: vex top 8 at s3 zhongshan city challenge
 
 ## Recommended Implementation Order
 
-- Defer until Diana/Aurora unless tester demand rises; blockers include Charm, Blast Cone, Emperor's Divide, and hidden/facedown pieces.
+- Defer until Diana/Aurora unless tester demand rises; blockers include Blast Cone, Emperor's Divide, Switcheroo, and hidden/facedown pieces. Charm now has narrow Partial support.

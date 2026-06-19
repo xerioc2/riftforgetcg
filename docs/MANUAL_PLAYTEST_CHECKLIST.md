@@ -180,7 +180,8 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Open a second player or spectator view when practical.
 - Confirm your own hand card names are visible only to you.
 - Confirm opponent hand cards are masked in player/spectator views.
-- If you draw a `[Hidden]` card, hide it with a ready rune; confirm you see its name in your hidden area and the opponent/spectator sees only a hidden-card count.
+- If you draw a `[Hidden]` card, hide it with a ready rune; confirm you can hover/inspect its real card from your hidden area and the opponent/spectator sees only generic hidden-card backs/counts.
+- Confirm the public log says only that a card was hidden and does not name the hidden card.
 - Confirm Vision/private reveal log entries are not visible to the wrong viewer.
 - Confirm the spectator/public room view has no action buttons or `legalActions`.
 - Confirm opponent Hidden cards cannot be selected as targets unless a future reveal effect explicitly grants permission.

@@ -74,6 +74,10 @@ class CardSupportServiceTest {
         .contains("alpha chain-window Reaction support")
         .contains("up to two friendly")
         .contains("Base");
+    assertThat(service.summarize(card("charm", "Charm", "Spell", "Move an enemy unit.")).reason())
+        .contains("enemy public battlefield Unit/Champion")
+        .contains("Base")
+        .contains("movement choices");
     assertThat(service.summarize(card("defy", "Defy", "Spell", "[Reaction] Counter a spell.")).reason())
         .contains("no more than 4 energy")
         .contains("no more than 1 premium rune")

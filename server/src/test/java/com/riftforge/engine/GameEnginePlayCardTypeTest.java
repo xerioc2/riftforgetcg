@@ -78,6 +78,14 @@ class GameEnginePlayCardTypeTest {
           && text.contains("hand")
           && text.contains("recycle");
     });
+    when(cardDataService.isCharmMoveEffect(any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      String text = def == null || def.rulesText() == null ? "" : def.rulesText().trim().toLowerCase();
+      return def != null
+          && "Spell".equalsIgnoreCase(def.type())
+          && "Charm".equalsIgnoreCase(def.name())
+          && text.equals("move an enemy unit.");
+    });
     when(cardDataService.isHiddenCard(any(CardDefinition.class))).thenAnswer(invocation -> {
       CardDefinition def = invocation.getArgument(0);
       return def != null && (
@@ -485,6 +493,74 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void charmMovesSelectedEnemyBattlefieldUnitToBase() {
+    CardInstance spell = card("charm", "p1", ZoneName.HAND);
+    CardInstance enemy = atLocation(card("enemy", "p2", ZoneName.BATTLEFIELD), "bf-1");
+    LiveGameState state = state(spell, enemy);
+    stubCard("charm", "Charm", "Spell", 0, 0, 0, "Move an enemy unit.");
+    stubCard("enemy", "Enemy Unit", "Unit", 0, 2, 2, null);
+
+    engine.applyMove(state, playTarget("charm", "enemy"));
+
+    assertThat(enemy.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(enemy.getBattlefieldLocationId()).isNull();
+    assertThat(spell.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Charm moved Enemy Unit to Base."));
+  }
+
+  @Test
+  void charmRejectsFriendlyOrNonPublicBattlefieldTargetsWithoutMutation() {
+    CardInstance spell = card("charm", "p1", ZoneName.HAND);
+    CardInstance friendly = card("friendly", "p1", ZoneName.BATTLEFIELD);
+    CardInstance enemyBase = card("enemy-base", "p2", ZoneName.BASE);
+    CardInstance hiddenEnemy = card("hidden-enemy", "p2", ZoneName.HIDDEN);
+    CardInstance enemyGear = card("enemy-gear", "p2", ZoneName.BATTLEFIELD);
+    LiveGameState state = state(spell, friendly, enemyBase, hiddenEnemy, enemyGear);
+    stubCard("charm", "Charm", "Spell", 0, 0, 0, "Move an enemy unit.");
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    stubCard("enemy-base", "Enemy Base Unit", "Unit", 0, 2, 2, null);
+    stubCard("hidden-enemy", "Hidden Enemy", "Unit", 0, 2, 2, null);
+    stubCard("enemy-gear", "Enemy Gear", "Gear", 0, 0, 0, "[Equip]");
+
+    assertThatThrownBy(() -> engine.applyMove(state, playTarget("charm", "friendly")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Charm can only target an enemy Unit or Champion.");
+    assertThatThrownBy(() -> engine.applyMove(state, playTarget("charm", "enemy-base")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Charm can only target a public enemy Unit or Champion at a battlefield.");
+    assertThatThrownBy(() -> engine.applyMove(state, playTarget("charm", "hidden-enemy")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Charm can only target a public enemy Unit or Champion at a battlefield.");
+    assertThatThrownBy(() -> engine.applyMove(state, playTarget("charm", "enemy-gear")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Charm can only target a public enemy Unit or Champion at a battlefield.");
+
+    assertThat(spell.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(friendly.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(enemyBase.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(hiddenEnemy.getZone()).isEqualTo(ZoneName.HIDDEN);
+    assertThat(enemyGear.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+  }
+
+  @Test
+  void charmPaymentFailureDoesNotMoveTarget() {
+    CardInstance spell = card("charm", "p1", ZoneName.HAND);
+    CardInstance enemy = card("enemy", "p2", ZoneName.BATTLEFIELD);
+    LiveGameState state = state(spell, enemy);
+    state.getPlayers().getFirst().setAvailableEnergy(1);
+    stubCard("charm", "Charm", "Spell", 2, 0, 0, "Move an enemy unit.");
+    stubCard("enemy", "Enemy Unit", "Unit", 0, 2, 2, null);
+
+    assertThatThrownBy(() -> engine.applyMove(state, playTarget("charm", "enemy")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Insufficient energy.");
+
+    assertThat(spell.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(enemy.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(state.getPlayers().getFirst().getAvailableEnergy()).isEqualTo(1);
+  }
+
+  @Test
   void returnEffectUsesSelectedTargetInsteadOfFirstValidTarget() {
     CardInstance firstEnemy = card("first-enemy", "p2", ZoneName.BATTLEFIELD);
     CardInstance selectedEnemy = card("selected-enemy", "p2", ZoneName.BATTLEFIELD);
@@ -784,7 +860,8 @@ class GameEnginePlayCardTypeTest {
     assertThat(tideturner.isFaceDown()).isTrue();
     assertThat(tideturner.isTapped()).isFalse();
     assertThat(state.getRunes().getFirst().isTapped()).isTrue();
-    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Hid Tideturner."));
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Hid a card."));
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("Tideturner"));
   }
 
   @Test

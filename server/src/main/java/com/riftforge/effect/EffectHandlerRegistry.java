@@ -86,6 +86,7 @@ public class EffectHandlerRegistry {
         || supportedFriendlyEnemyReturn
         || normalized.contains("ready it")
         || normalized.contains("draw 1")
+        || isCharmMoveEffect(card, normalized)
         || isDefyCounterEffect(card, normalized)
         || isNotSoFastCounterEffect(card, normalized)
         || isDefiantDanceEffect(card, normalized)
@@ -132,6 +133,13 @@ public class EffectHandlerRegistry {
         && normalized.contains("[reaction]")
         && normalized.contains("move up to 2 friendly units")
         && normalized.contains("base");
+  }
+
+  private boolean isCharmMoveEffect(CardDefinition card, String normalized) {
+    return "Spell".equalsIgnoreCase(card.type())
+        && card.name() != null
+        && card.name().trim().equalsIgnoreCase("Charm")
+        && normalized.trim().equals("move an enemy unit.");
   }
 
   private boolean isStackedDeckEffect(String normalized) {

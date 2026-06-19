@@ -27,7 +27,7 @@ Extraction status: Extracted
 - Abandon: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Allay - Eager Admirer: NOT_AUDITED - Triggered/static card text. No local RiftForge card matched "Allay - Eager Admirer".
 - Blast Cone: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
-- Charm: UNSUPPORTED - Movement / location. Blocked in enforced play: this card's effect is not supported yet.
+- Charm: PARTIAL - Movement / location. Alpha support moves one enemy public battlefield Unit/Champion to Base; broader movement choices and destination control remain deferred.
 - Emperor's Divide: UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
 - Seal of Focus: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Wind Wall: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
@@ -59,7 +59,7 @@ Top blockers:
 - Abandon: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Allay - Eager Admirer: NOT_AUDITED - Triggered/static card text. No local RiftForge card matched "Allay - Eager Admirer".
 - Blast Cone: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
-- Charm: UNSUPPORTED - Movement / location. Blocked in enforced play: this card's effect is not supported yet.
+- Charm: PARTIAL - Movement / location. Alpha support moves one enemy public battlefield Unit/Champion to Base; broader movement choices and destination control remain deferred.
 - Emperor's Divide: UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
 
 ### Vex Top 8 at City Challenge — Wuhan

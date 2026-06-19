@@ -338,6 +338,15 @@ public class CardDataService {
         && text.contains("base");
   }
 
+  public boolean isCharmMoveEffect(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().trim().toLowerCase();
+    boolean charmName = def.name() != null && def.name().trim().equalsIgnoreCase("Charm");
+    return "Spell".equalsIgnoreCase(def.type())
+        && charmName
+        && text.equals("move an enemy unit.");
+  }
+
   public boolean isDefyCounterReaction(CardDefinition def) {
     if (def == null || def.rulesText() == null) return false;
     String text = def.rulesText().toLowerCase();
@@ -405,6 +414,7 @@ public class CardDataService {
         || supportedFriendlyEnemyReturn
         || normalized.contains("ready it")
         || normalized.contains("draw 1")
+        || isCharmMoveEffect(def)
         || isDefyCounterReaction(def)
         || isNotSoFastCounterReaction(def)
         || isDisciplineReaction(def)

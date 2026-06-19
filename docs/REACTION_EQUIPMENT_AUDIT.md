@@ -33,7 +33,7 @@ targeting, replacement, or card-specific edge cases remain missing.
 | Back Off | Explicit audit/test pool, not starter main | Spell | 3 | CALM / premium 0 | `[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)[Action] (Play on your turn or in showdowns.)[Stun] a unit. (It doesn't deal combat damage this turn.)If you played this from your hand, draw 1.` | Partial | Partial | Not listed | Hidden/Action with Stun | Partial | Current heuristics see draw 1, but full text needs Hidden play-from-hidden, Stun target scripting, and from-hand conditional draw. Do not promote. |
 | Edge of Night | Explicit audit/test pool, not starter main | Gear | 3 | CHAOS / premium 0 | `[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)When you play this from face down, attach it to a unit you control (here).[Equip] :rb_rune_chaos: (:rb_rune_chaos:: Attach this to a unit you control.)` | Partial | Partial | Not listed | Equipment lifecycle plus Hidden play-from-hidden | Partial | Basic Equip text fits the alpha equipment lifecycle, but face-down play and automatic same-location attach are deferred. |
 | Switcheroo | Explicit audit/test pool, not starter main | Spell | 2 | CHAOS / premium 0 | `[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)[Action] (Play on your turn or in showdowns.)Swap the Might of two units at the same battlefield this turn.` | Unsupported | Unsupported | Not listed | Hidden/Action with same-location multi-target modifier | Unsupported | Needs Hidden play, two same-battlefield targets, temporary Might swapping, and cleanup. |
-| Charm | Irelia Tempo | Spell | 1 | CALM / premium 0 | `Move an enemy unit.` | Unsupported | Unsupported | Unsupported | Movement effect | Unsupported | Not a Reaction, but included because it is a high-impact Irelia spell. Needs enemy movement target rules and legal destination handling. |
+| Charm | Irelia Tempo | Spell | 1 | CALM / premium 0 | `Move an enemy unit.` | Partial | Partial | Partial | Movement effect | Partial | Not a Reaction, but included because it is a high-impact Irelia spell. Alpha support selects one enemy public battlefield Unit/Champion and moves it to Base. Broader official movement choices, control/location edge cases, and non-battlefield destinations remain deferred. |
 
 ## Equipment and Gear Cards
 
@@ -60,6 +60,7 @@ targeting, replacement, or card-specific edge cases remain missing.
 - En Garde (implemented for the current alpha chain window)
 - Defiant Dance (implemented for the current alpha chain window)
 - Flash (implemented for the current alpha chain window)
+- Charm (implemented as narrow non-Reaction enemy battlefield movement)
 
 These use existing target selection, temporary Might, and draw helpers through
 public chain items. They stay Partial until official any-time Reaction timing is
@@ -141,9 +142,8 @@ chain items exist.
 1. Star-Crossed chain hookup
    - Effect is already staged and scripted.
    - Add chain-backed Reaction entry point, then keep Partial for official timing.
-2. Charm
-   - Biggest remaining Irelia spell blocker; needs legal enemy movement
-     destinations and active-lane handling.
+2. Zhonya's Hourglass / The Syren Gear-effect blockers
+   - Biggest remaining Irelia Unsupported blockers after Charm's narrow movement slice.
 3. Riposte
    - Higher risk because it combines a unit target, spell chain target, counter,
      and variable Might based on Energy cost.

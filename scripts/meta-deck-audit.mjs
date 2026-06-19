@@ -114,6 +114,9 @@ const PARTIAL_REASONS = new Map([
   ['ADAPTATRON', 'Partial: conquer trigger, optional gear kill, and official Buff state are not implemented yet.'],
   ['SCUTTLE CRAB', 'Partial: on-play draw and 1v1 private hand reveal Deathknell are implemented, but XP and facedown-card viewing are deferred.'],
   ['EN GARDE', 'Partial: alpha chain-window Reaction support exists for giving a friendly battlefield Unit/Champion +1 Might, or +2 if it is your only unit there. Full official any-time Reaction timing remains incomplete.'],
+  ['DEFIANT DANCE', 'Partial: alpha chain-window Reaction support exists for giving one public battlefield Unit/Champion +2 Might and another public battlefield Unit/Champion -2 Might this turn. Full official any-time Reaction timing remains incomplete.'],
+  ['FLASH', 'Partial: alpha chain-window Reaction support exists for moving up to two friendly battlefield Unit/Champion cards to Base. Full official any-time Reaction timing remains incomplete.'],
+  ['CHARM', 'Partial: alpha support moves one enemy public battlefield Unit/Champion to Base. Broader official movement choices, control/location edge cases, and non-battlefield destinations remain deferred.'],
   ['DEFY', 'Partial: Defy can counter supported public pending spell chain items that cost no more than 4 energy and no more than 1 premium rune during the current alpha chain window. Full official Reaction timing, broad spell/ability targets, and countering counters remain deferred.'],
   ['NOT SO FAST', 'Partial: Not So Fast can counter a supported public pending enemy spell chain item only when that item chooses your friendly Unit/Champion Unit or Gear. Ability-chain targets, broad official Reaction timing, and countering counters remain deferred.'],
   ['GUST', 'Partial: alpha chain-window Reaction support exists through Stacked Deck for returning a battlefield Unit/Champion with 3 Might or less, but full official any-time Reaction timing remains incomplete.'],
@@ -291,6 +294,27 @@ function isEnGarde(card) {
   return normalize(card?.name) === 'EN GARDE' && text.includes('friendly unit') && text.includes('+1') && text.includes('additional +1');
 }
 
+function isDefiantDance(card) {
+  const text = textOf(card);
+  return normalize(card?.name) === 'DEFIANT DANCE'
+    && text.includes('give a unit')
+    && text.includes('+2')
+    && text.includes('another unit')
+    && text.includes('-2');
+}
+
+function isFlash(card) {
+  const text = textOf(card);
+  return normalize(card?.name) === 'FLASH'
+    && text.includes('move up to 2 friendly units')
+    && text.includes('base');
+}
+
+function isCharm(card) {
+  return normalize(card?.name) === 'CHARM'
+    && textOf(card).trim() === 'move an enemy unit.';
+}
+
 function isStackedDeck(card) {
   const text = textOf(card);
   return text.includes('look at the top 3') && text.includes('put 1') && text.includes('hand') && text.includes('recycle');
@@ -309,17 +333,21 @@ function isUnsupportedAction(card) {
   const supportedFriendlyEnemyReturn = text.includes('return')
     && text.includes('friendly unit')
     && text.includes('enemy unit');
-  const requiresMultipleTargets = text.includes('another unit')
+  const requiresMultipleTargets = (text.includes('another unit') && !isDefiantDance(card))
     || (text.includes('a friendly unit and an enemy unit') && !supportedFriendlyEnemyReturn);
   const supportedEffect = text.includes(':rb_might:')
     || text.includes('return a unit')
+    || text.includes('move up to 2 friendly units')
     || supportedFriendlyEnemyReturn
     || text.includes('ready it')
     || text.includes('draw 1')
+    || isCharm(card)
     || isDefy(card)
     || isNotSoFast(card)
     || isDiscipline(card)
     || isEnGarde(card)
+    || isDefiantDance(card)
+    || isFlash(card)
     || isStackedDeck(card);
   return (text.includes('counter a spell') && !isDefy(card))
     || (text.includes('counter an enemy spell') && !isNotSoFast(card))

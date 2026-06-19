@@ -23,7 +23,7 @@ Extraction status: Extracted
 
 ## Shared Top Blockers
 
-- Charm: UNSUPPORTED - Movement / location. Blocked in enforced play: this card's effect is not supported yet.
+- Charm: PARTIAL - Movement / location. Alpha support moves one enemy public battlefield Unit/Champion to Base; broader movement choices and destination control remain deferred.
 - Defiant Dance: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Flash: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Hard Bargain: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
@@ -50,7 +50,7 @@ Extraction status: Extracted
 
 Top blockers:
 
-- Charm: UNSUPPORTED - Movement / location. Blocked in enforced play: this card's effect is not supported yet.
+- Charm: PARTIAL - Movement / location. Alpha support moves one enemy public battlefield Unit/Champion to Base; broader movement choices and destination control remain deferred.
 - Defiant Dance: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Flash: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Hard Bargain: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
@@ -72,7 +72,7 @@ Top blockers:
 
 Top blockers:
 
-- Charm: UNSUPPORTED - Movement / location. Blocked in enforced play: this card's effect is not supported yet.
+- Charm: PARTIAL - Movement / location. Alpha support moves one enemy public battlefield Unit/Champion to Base; broader movement choices and destination control remain deferred.
 - Defiant Dance: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Abandoned Hall: PARTIAL - Battlefield effect. Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.
 - Sunken Temple: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.

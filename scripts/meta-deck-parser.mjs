@@ -49,6 +49,7 @@ const PARTIAL_REASONS = new Map([
   ['EN GARDE', 'Partial: alpha chain-window Reaction support exists for giving a friendly battlefield Unit/Champion +1 Might, or +2 if it is your only unit there. Full official any-time Reaction timing remains incomplete.'],
   ['DEFIANT DANCE', 'Partial: alpha chain-window Reaction support exists for giving one public battlefield Unit/Champion +2 Might and another public battlefield Unit/Champion -2 Might this turn. Full official any-time Reaction timing remains incomplete.'],
   ['FLASH', 'Partial: alpha chain-window Reaction support exists for moving up to two friendly battlefield Unit/Champion cards to Base. Full official any-time Reaction timing remains incomplete.'],
+  ['CHARM', 'Partial: alpha support moves one enemy public battlefield Unit/Champion to Base. Broader official movement choices, control/location edge cases, and non-battlefield destinations remain deferred.'],
   ['DEFY', 'Partial: Defy can counter supported public pending spell chain items that cost no more than 4 energy and no more than 1 premium rune during the current alpha chain window. Full official Reaction timing, broad spell/ability targets, and countering counters remain deferred.'],
   ['NOT SO FAST', 'Partial: Not So Fast can counter a supported public pending enemy spell chain item only when that item chooses your friendly Unit/Champion Unit or Gear. Ability-chain targets, broad official Reaction timing, and countering counters remain deferred.'],
   ['GUST', 'Partial: alpha chain-window Reaction support exists through Stacked Deck for returning a battlefield Unit/Champion with 3 Might or less, but full official any-time Reaction timing remains incomplete.'],
@@ -277,6 +278,7 @@ function isUnsupportedAction(card) {
     || supportedFriendlyEnemyReturn
     || text.includes('ready it')
     || text.includes('draw 1')
+    || isCharm(card)
     || isDefy(card)
     || isNotSoFast(card)
     || isDiscipline(card)
@@ -325,6 +327,12 @@ function isFlash(card) {
   return normalizeName(card?.name) === 'FLASH'
     && text.includes('move up to 2 friendly units')
     && text.includes('base');
+}
+
+function isCharm(card) {
+  const text = String(card?.rulesText ?? '').trim().toLowerCase();
+  return normalizeName(card?.name) === 'CHARM'
+    && text === 'move an enemy unit.';
 }
 
 function isStackedDeck(card) {

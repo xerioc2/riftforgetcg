@@ -57,7 +57,7 @@ will raise regression risk faster than playtest value.
 | Work item | Impact | Risk | Timing | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
 | Trigger framework v1 | High | High | Post-playtest | Done | Small deterministic event/handler dispatcher exists for alpha movement triggers. Chain, priority, optional ordering, and complex trigger windows remain deferred. |
-| Charm / enemy movement | High | High | Post-playtest | Deferred | Needs precise legal destinations, ownership, battlefield/control rules, and UI affordances. |
+| Charm / enemy movement | High | High | Post-playtest | In progress | Charm has narrow Partial support for selecting one enemy public battlefield Unit/Champion and moving it to Base. Broader official movement choices, control/location rules, and non-battlefield destinations remain deferred. |
 | Hidden play-from-hidden | High | High | Post-playtest | Deferred | Requires timing windows, payment, reveal/masking transitions, and target legality. |
 | Ambush-as-Reaction | High | High | Post-playtest | Deferred | Depends on chain/reaction windows and correct response priority. |
 | Reaction / counterspells on real cards | High | High | Post-playtest | Deferred | Required for many cards but likely the largest rules-system risk; Gust, Discipline, En Garde, Defiant Dance, Flash, Defy, and Not So Fast cover narrow public chain paths, with targeted Reactions now also available on the active player's turn and focused showdown windows. Riposte counter behavior, abilities, hidden reactions, countering counters, private/choice effects, and broad timing should still be added one card/pattern at a time. |
