@@ -121,8 +121,8 @@ function docFor(deck) {
 
 function recommendation(key) {
   const recommendations = {
-    irelia: '- Continue current Irelia polish: Charm movement, Defiant Dance multi-target modifier, and repeated unsupported Reaction/Gear blockers from the uploaded list.',
-    diana: '- Diana remains next: start with repeated interaction blockers such as Abandon/Flash/Hard Bargain or a shared Gear/effect blocker if it appears in the chosen support slice.',
+    irelia: '- Continue current Irelia polish: Charm movement, Zhonya\'s Hourglass/The Syren Gear-effect blockers, and remaining Partial Legend/Reaction accuracy from the uploaded list.',
+    diana: '- Diana remains next: start with repeated interaction blockers such as Abandon/Hard Bargain or a shared Gear/effect blocker if it appears in the chosen support slice.',
     annie: '- Use Annie as the first Aurora-shell list while waiting for Miss Fortune; focus on shared Reaction/bounce/damage blockers only after MF is available.',
     'master-yi': '- Review gameplay notes before implementation; likely blockers are movement/control, Gear, and Charm-like location effects.',
     leblanc: '- Defer until Diana/Aurora unless tester demand rises; blockers skew toward destroy/hidden/counter-style spell effects.',

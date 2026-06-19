@@ -78,15 +78,18 @@ public class EffectHandlerRegistry {
     boolean supportedFriendlyEnemyReturn = normalized.contains("return")
         && normalized.contains("friendly unit")
         && normalized.contains("enemy unit");
-    boolean requiresMultipleTargets = normalized.contains("another unit")
+    boolean requiresMultipleTargets = (normalized.contains("another unit") && !isDefiantDanceEffect(card, normalized))
         || (normalized.contains("a friendly unit and an enemy unit") && !supportedFriendlyEnemyReturn);
     boolean supportedEffect = normalized.contains(":rb_might:")
         || normalized.contains("return a unit")
+        || normalized.contains("move up to 2 friendly units")
         || supportedFriendlyEnemyReturn
         || normalized.contains("ready it")
         || normalized.contains("draw 1")
         || isDefyCounterEffect(card, normalized)
         || isNotSoFastCounterEffect(card, normalized)
+        || isDefiantDanceEffect(card, normalized)
+        || isFlashEffect(card, normalized)
         || isStackedDeckEffect(normalized);
     return !(normalized.contains("counter a spell") && !isDefyCounterEffect(card, normalized))
         && !(normalized.contains("counter an enemy spell") && !isNotSoFastCounterEffect(card, normalized))
@@ -109,6 +112,26 @@ public class EffectHandlerRegistry {
         && normalized.contains("[reaction]")
         && normalized.contains("counter an enemy spell or ability")
         && normalized.contains("friendly unit or gear");
+  }
+
+  private boolean isDefiantDanceEffect(CardDefinition card, String normalized) {
+    return "Spell".equalsIgnoreCase(card.type())
+        && card.name() != null
+        && card.name().trim().equalsIgnoreCase("Defiant Dance")
+        && normalized.contains("[reaction]")
+        && normalized.contains("give a unit")
+        && normalized.contains("+2")
+        && normalized.contains("another unit")
+        && normalized.contains("-2");
+  }
+
+  private boolean isFlashEffect(CardDefinition card, String normalized) {
+    return "Spell".equalsIgnoreCase(card.type())
+        && card.name() != null
+        && card.name().trim().equalsIgnoreCase("Flash")
+        && normalized.contains("[reaction]")
+        && normalized.contains("move up to 2 friendly units")
+        && normalized.contains("base");
   }
 
   private boolean isStackedDeckEffect(String normalized) {

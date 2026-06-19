@@ -278,7 +278,6 @@ public class RulesValidator {
       validateFriendlyAndEnemyTargets(state, move);
       return;
     }
-    if (hasStructuredTargets) throw new IllegalMoveException("That card does not use multiple targets.");
     if (spell && cardDataService.isGustReaction(def)) {
       validateGustTarget(state, move);
       return;
@@ -291,6 +290,15 @@ public class RulesValidator {
       validateFriendlyPublicUnitTarget(state, move, "En Garde requires a friendly public Unit or Champion target.");
       return;
     }
+    if (spell && cardDataService.isDefiantDanceReaction(def)) {
+      validateDefiantDanceTargets(state, move);
+      return;
+    }
+    if (spell && cardDataService.isFlashReaction(def)) {
+      validateFlashTargets(state, move);
+      return;
+    }
+    if (hasStructuredTargets) throw new IllegalMoveException("That card does not use multiple targets.");
     if (spell && cardDataService.isDefyCounterReaction(def)) {
       validateDefyCounterTarget(state, move);
       return;
@@ -316,6 +324,8 @@ public class RulesValidator {
       if (!cardDataService.isGustReaction(def)
           && !cardDataService.isDisciplineReaction(def)
           && !cardDataService.isEnGardeReaction(def)
+          && !cardDataService.isDefiantDanceReaction(def)
+          && !cardDataService.isFlashReaction(def)
           && !cardDataService.isDefyCounterReaction(def)
           && !cardDataService.isNotSoFastCounterReaction(def)) {
         throw new IllegalMoveException("That Reaction is not supported yet.");
@@ -382,7 +392,9 @@ public class RulesValidator {
   private boolean isSupportedTargetedReaction(CardDefinition def) {
     return cardDataService.isGustReaction(def)
         || cardDataService.isDisciplineReaction(def)
-        || cardDataService.isEnGardeReaction(def);
+        || cardDataService.isEnGardeReaction(def)
+        || cardDataService.isDefiantDanceReaction(def)
+        || cardDataService.isFlashReaction(def);
   }
 
   private boolean isReactionPlayFromHand(LiveGameState state, PlayCardMove move) {
@@ -598,10 +610,65 @@ public class RulesValidator {
     }
   }
 
+  private void validateDefiantDanceTargets(LiveGameState state, PlayCardMove move) {
+    if (move.targets().size() != 2) {
+      throw new IllegalMoveException("Defiant Dance requires one boosted unit and another weakened unit.");
+    }
+    CardInstance boostTarget = structuredTarget(state, move, PlayCardMove.TargetSelection.BOOST_UNIT, "Choose the unit to get +2 Might.");
+    CardInstance weakenTarget = structuredTarget(state, move, PlayCardMove.TargetSelection.WEAKEN_UNIT, "Choose another unit to get -2 Might.");
+    if (boostTarget.getInstanceId().equals(weakenTarget.getInstanceId())) {
+      throw new IllegalMoveException("Defiant Dance targets must be different units.");
+    }
+    if (!isPublicBattlefieldUnit(boostTarget) || !isPublicBattlefieldUnit(weakenTarget)) {
+      throw new IllegalMoveException("Defiant Dance requires public Unit or Champion targets at a battlefield.");
+    }
+  }
+
+  private void validateFlashTargets(LiveGameState state, PlayCardMove move) {
+    List<PlayCardMove.TargetSelection> targets = move.targets();
+    if (targets.isEmpty() && move.targetInstanceId() != null && !move.targetInstanceId().isBlank()) {
+      CardInstance target = findCard(state, move.targetInstanceId());
+      if (!isFriendlyPublicBattlefieldUnit(target, move.playerId())) {
+        throw new IllegalMoveException("Flash requires one or two friendly Unit or Champion targets at a battlefield.");
+      }
+      return;
+    }
+    if (targets.isEmpty() || targets.size() > 2) {
+      throw new IllegalMoveException("Flash requires one or two friendly Unit or Champion targets at a battlefield.");
+    }
+    Set<String> seenInstances = new HashSet<>();
+    for (PlayCardMove.TargetSelection target : targets) {
+      if (!PlayCardMove.TargetSelection.FIRST_FRIENDLY_UNIT.equals(target.role())
+          && !PlayCardMove.TargetSelection.SECOND_FRIENDLY_UNIT.equals(target.role())) {
+        throw new IllegalMoveException("Flash requires friendly unit targets.");
+      }
+      if (target.instanceId() == null || target.instanceId().isBlank()) {
+        throw new IllegalMoveException("Flash requires one or two friendly Unit or Champion targets at a battlefield.");
+      }
+      if (!seenInstances.add(target.instanceId())) throw new IllegalMoveException("Flash targets must be different units.");
+      CardInstance card = findCard(state, target.instanceId());
+      if (!isFriendlyPublicBattlefieldUnit(card, move.playerId())) {
+        throw new IllegalMoveException("Flash requires one or two friendly Unit or Champion targets at a battlefield.");
+      }
+    }
+  }
+
+  private CardInstance structuredTarget(LiveGameState state, PlayCardMove move, String role, String message) {
+    return move.targets().stream()
+        .filter(target -> role.equals(target.role()))
+        .findFirst()
+        .map(target -> findCard(state, target.instanceId()))
+        .orElseThrow(() -> new IllegalMoveException(message));
+  }
+
   private boolean isPublicBattlefieldUnit(CardInstance target) {
     if (target.getZone() != ZoneName.BATTLEFIELD || target.isFaceDown()) return false;
     CardDefinition targetDef = cardDataService.getCard(target.getCardId());
     return isType(targetDef, "Unit") || isType(targetDef, "Champion");
+  }
+
+  private boolean isFriendlyPublicBattlefieldUnit(CardInstance target, String playerId) {
+    return isPublicBattlefieldUnit(target) && playerId.equals(target.getOwnerId());
   }
 
   private void validateFriendlyAndEnemyTargets(LiveGameState state, PlayCardMove move) {

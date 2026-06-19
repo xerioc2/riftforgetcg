@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canUseSupportedChainResponse, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isGustReactionCard, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isSupportedChainReactionCard, shouldShowRespondAction, unsupportedCardReason } from './cardActions';
+import { canUseSupportedChainResponse, isDefiantDanceReactionCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isFlashReactionCard, isGustReactionCard, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isSupportedChainReactionCard, multiTargetRequirementsForCard, shouldShowRespondAction, unsupportedCardReason } from './cardActions';
 import type { CardInstance, RiftCard } from '../types';
 
 describe('cardActions', () => {
@@ -36,6 +36,30 @@ describe('cardActions', () => {
     expect(isSupportedChainReactionCard(discipline)).toBe(true);
     expect(isEnGardeReactionCard(enGarde)).toBe(true);
     expect(isSupportedChainReactionCard(enGarde)).toBe(true);
+  });
+
+  it('recognizes Defiant Dance and Flash as supported alpha chain-backed Reaction helpers', () => {
+    const defiantDance: RiftCard = {
+      id: 'defiant-dance',
+      name: 'Defiant Dance',
+      type: 'Spell',
+      domains: [],
+      rulesText: '[Reaction] Give a unit +2 Might this turn and another unit -2 Might this turn.',
+    };
+    const flash: RiftCard = {
+      id: 'flash',
+      name: 'Flash',
+      type: 'Spell',
+      domains: [],
+      rulesText: '[Reaction] Move up to 2 friendly units to base.',
+    };
+
+    expect(isDefiantDanceReactionCard(defiantDance)).toBe(true);
+    expect(isSupportedChainReactionCard(defiantDance)).toBe(true);
+    expect(isFlashReactionCard(flash)).toBe(true);
+    expect(isSupportedChainReactionCard(flash)).toBe(true);
+    expect(unsupportedCardReason(defiantDance)).toBeNull();
+    expect(unsupportedCardReason(flash)).toBeNull();
   });
 
   it('does not treat unsupported Reaction cards as Gust-playable responses', () => {
@@ -199,6 +223,71 @@ describe('cardActions', () => {
       hasLegalEnGardeTarget: true,
       hasLegalDefyTarget: false,
     })).toBe(false);
+  });
+
+  it('marks Defiant Dance and Flash playable only with their legal target patterns', () => {
+    const defiantDance: RiftCard = {
+      id: 'defiant-dance',
+      name: 'Defiant Dance',
+      type: 'Spell',
+      domains: [],
+      rulesText: '[Reaction] Give a unit +2 Might this turn and another unit -2 Might this turn.',
+    };
+    const flash: RiftCard = {
+      id: 'flash',
+      name: 'Flash',
+      type: 'Spell',
+      domains: [],
+      rulesText: '[Reaction] Move up to 2 friendly units to base.',
+    };
+
+    expect(canUseSupportedChainResponse(defiantDance, {
+      canPlayCard: true,
+      hasLegalGustTarget: false,
+      hasLegalDefiantDanceTarget: true,
+      hasLegalDefyTarget: false,
+    })).toBe(true);
+    expect(canUseSupportedChainResponse(defiantDance, {
+      canPlayCard: true,
+      hasLegalGustTarget: false,
+      hasLegalDefiantDanceTarget: false,
+      hasLegalDefyTarget: false,
+    })).toBe(false);
+    expect(canUseSupportedChainResponse(flash, {
+      canPlayCard: true,
+      hasLegalGustTarget: false,
+      hasLegalFlashTarget: true,
+      hasLegalDefyTarget: false,
+    })).toBe(true);
+    expect(canUseSupportedChainResponse(flash, {
+      canPlayCard: true,
+      hasLegalGustTarget: false,
+      hasLegalFlashTarget: false,
+      hasLegalDefyTarget: false,
+    })).toBe(false);
+  });
+
+  it('builds staged target requirements for Defiant Dance and Flash', () => {
+    const defiantDance: RiftCard = {
+      id: 'defiant-dance',
+      name: 'Defiant Dance',
+      type: 'Spell',
+      domains: [],
+      rulesText: '[Reaction] Give a unit +2 Might this turn and another unit -2 Might this turn.',
+    };
+    const flash: RiftCard = {
+      id: 'flash',
+      name: 'Flash',
+      type: 'Spell',
+      domains: [],
+      rulesText: '[Reaction] Move up to 2 friendly units to base.',
+    };
+
+    expect(multiTargetRequirementsForCard(defiantDance).map((target) => target.role)).toEqual(['boostUnit', 'weakenUnit']);
+    const flashTargets = multiTargetRequirementsForCard(flash);
+    expect(flashTargets.map((target) => target.role)).toEqual(['firstFriendlyUnit', 'secondFriendlyUnit']);
+    expect(flashTargets[0].optional).toBeUndefined();
+    expect(flashTargets[1].optional).toBe(true);
   });
 
   it('shows Respond only for supported Reactions when server legal actions allow chain play', () => {

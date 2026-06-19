@@ -41,5 +41,9 @@ public record PlayCardMove(
   public record TargetSelection(String role, String instanceId) {
     public static final String FRIENDLY_UNIT = "friendlyUnit";
     public static final String ENEMY_UNIT = "enemyUnit";
+    public static final String BOOST_UNIT = "boostUnit";
+    public static final String WEAKEN_UNIT = "weakenUnit";
+    public static final String FIRST_FRIENDLY_UNIT = "firstFriendlyUnit";
+    public static final String SECOND_FRIENDLY_UNIT = "secondFriendlyUnit";
   }
 }

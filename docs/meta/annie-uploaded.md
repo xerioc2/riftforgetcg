@@ -20,8 +20,8 @@ Event/result: annie 4th at lille regional qualifier
 
 - Status: Blocked
 - Supported: 1
-- Partial: 19
-- Unsupported: 2
+- Partial: 20
+- Unsupported: 1
 - Not Audited: 1
 - Enforced playable: No
 
@@ -33,9 +33,9 @@ Event/result: annie 4th at lille regional qualifier
 
 - Annie - Dark Child - Starter (OGS-017): NOT_AUDITED - Unresolved / missing card data. No local RiftForge card matched Annie - Dark Child - Starter in Proving Grounds.
 - Hard Bargain (SFD-136): UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
-- Flash (OGS-011): UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - The Arena's Greatest (OGN-290): PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Seat of Power (SFD-217): PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Rek'Sai - Breacher (SFD-029): PARTIAL - Champion text. Playable for alpha testing, but card-specific behavior may be incomplete.
 
 ## Normalized Sections
 

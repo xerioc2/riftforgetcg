@@ -4,9 +4,9 @@ Generated from exact raw exports in `decks/meta/raw/`.
 
 | Archetype | Raw source | Support status | Shape | S/P/U/NA | Top blockers | Priority note |
 | --- | --- | --- | --- | --- | --- | --- |
-| Irelia, Blade Dancer | decks/meta/raw/irelia_wins_s3_shanghai_city_challenge.txt | Blocked | Pass | 4/18/5/0 | Defiant Dance, Flash, Charm, Zhonya's Hourglass, The Syren | Finish current/Irelia support polish |
-| Diana, Scorn of the Moon | decks/meta/raw/diana_wins_s3_suzhou_city_challenge.txt | Blocked | Pass | 1/20/4/0 | Hard Bargain, Abandon, Flash, The Syren, Diana - Scorn of the Moon | Next reviewer-prioritized interaction deck |
-| Annie, Dark Child | decks/meta/raw/annie_4th_at_lille_regional_qualifier.txt | Blocked | Needs review | 1/19/2/1 | Annie - Dark Child - Starter, Hard Bargain, Flash, The Arena's Greatest, Seat of Power | Aurora shell with future Miss Fortune list |
+| Irelia, Blade Dancer | decks/meta/raw/irelia_wins_s3_shanghai_city_challenge.txt | Blocked | Pass | 4/20/3/0 | Charm, Zhonya's Hourglass, The Syren, Irelia - Blade Dancer, Not So Fast | Finish current/Irelia support polish |
+| Diana, Scorn of the Moon | decks/meta/raw/diana_wins_s3_suzhou_city_challenge.txt | Blocked | Pass | 1/21/3/0 | Hard Bargain, Abandon, The Syren, Diana - Scorn of the Moon, Star Spring | Next reviewer-prioritized interaction deck |
+| Annie, Dark Child | decks/meta/raw/annie_4th_at_lille_regional_qualifier.txt | Blocked | Needs review | 1/20/1/1 | Annie - Dark Child - Starter, Hard Bargain, The Arena's Greatest, Seat of Power, Rek'Sai - Breacher | Aurora shell with future Miss Fortune list |
 | Master Yi, Wuju Bladesman | decks/meta/raw/master_yi_wins_s3_guangzhou_city_challenge.txt | Blocked | Needs review | 3/17/2/1 | Master Yi - Wuju Bladesman - Starter, Zhonya's Hourglass, Charm, Amateur Recital, Rengar - Trophy Hunter | Audit before implementation; gameplay notes still useful |
 | LeBlanc, Deceiver | decks/meta/raw/leblanc_wins_s3_zhongshan_city_challenge.txt | Blocked | Pass | 1/16/4/0 | Mirror Image, Deadly Flourish, Hidden Blade, Cull the Weak, LeBlanc - Deceiver | Later raw-meta audit |
 | Vex, Gloomist | decks/meta/raw/vex_top_8_at_s3_zhongshan_city_challenge.txt | Blocked | Needs review | 2/19/5/1 | Charm, Existential Dread, Blast Cone, Allay - Eager Admirer, Switcheroo | Later raw-meta audit |

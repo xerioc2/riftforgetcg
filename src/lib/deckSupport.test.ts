@@ -66,4 +66,16 @@ describe('deckSupport', () => {
     expect(enGarde.reason).toContain('alpha chain-window Reaction support');
     expect(enGarde.reason).toContain('only unit there');
   });
+
+  it('uses alpha chain-window Partial reasons for Defiant Dance and Flash', () => {
+    const defiantDance = cardSupportStatus(spell('Defiant Dance', '[Reaction] Give a unit +2 Might this turn and another unit -2 Might this turn.'));
+    const flash = cardSupportStatus(spell('Flash', '[Reaction] Move up to 2 friendly units to base.'));
+
+    expect(defiantDance.status).toBe('PARTIAL');
+    expect(defiantDance.reason).toContain('+2 Might');
+    expect(defiantDance.reason).toContain('-2 Might');
+    expect(flash.status).toBe('PARTIAL');
+    expect(flash.reason).toContain('up to two friendly');
+    expect(flash.reason).toContain('Base');
+  });
 });

@@ -20,8 +20,8 @@ Event/result: diana wins s3 suzhou city challenge
 
 - Status: Blocked
 - Supported: 1
-- Partial: 20
-- Unsupported: 4
+- Partial: 21
+- Unsupported: 3
 - Not Audited: 0
 - Enforced playable: No
 
@@ -33,9 +33,9 @@ Event/result: diana wins s3 suzhou city challenge
 
 - Hard Bargain (SFD-136): UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Abandon (UNL-131): UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
-- Flash (OGS-011): UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - The Syren (OGN-184): UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Diana - Scorn of the Moon (UNL-197): PARTIAL - Legend text. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Star Spring (UNL-215): PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 
 ## Normalized Sections
 
@@ -49,4 +49,4 @@ Event/result: diana wins s3 suzhou city challenge
 
 ## Recommended Implementation Order
 
-- Diana remains next: start with repeated interaction blockers such as Abandon/Flash/Hard Bargain or a shared Gear/effect blocker if it appears in the chosen support slice.
+- Diana remains next: start with repeated interaction blockers such as Abandon/Hard Bargain or a shared Gear/effect blocker if it appears in the chosen support slice.

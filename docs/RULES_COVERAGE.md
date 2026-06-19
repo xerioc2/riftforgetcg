@@ -217,14 +217,14 @@ Current implementation notes:
   counter-target metadata and source-zone details for non-owners.
 - The client shows a compact chain panel when `chainState` exists, ordered
   top-to-bottom with public-safe item descriptions, focus state, target
-  summaries for Stacked Deck/Gust/Discipline/En Garde/Defy/Not So Fast, disabled illegal counter targets, and
+  summaries for Stacked Deck/Gust/Discipline/En Garde/Defiant Dance/Flash/Defy/Not So Fast, disabled illegal counter targets, and
   non-pending item status. It still exposes chain buttons only through
   server-provided legal actions.
 
 Known gaps:
-- Gust, Discipline, En Garde, Defy, and Not So Fast are the only real Reaction
-  cards connected to server-created chain windows. Star-Crossed/Defiant Dance multi-target
-  Reactions, Riposte counter behavior, Ambush-as-Reaction, hidden play windows,
+- Gust, Discipline, En Garde, Defiant Dance, Flash, Defy, and Not So Fast are
+  the only real Reaction cards connected to server-created chain windows.
+  Star-Crossed Reaction timing, Riposte counter behavior, Ambush-as-Reaction, hidden play windows,
   and ability-counter targets are not connected yet.
 - Supported targeted Reactions now have narrow own-turn and focused showdown
   windows, but hidden Reaction play, unsupported Reaction text, counter-only
@@ -302,10 +302,10 @@ Current implementation notes:
 - Spells can be played during MAIN.
 - Spells resolve through the supported effect path and move to discard afterward.
 - Spells cannot move to the battlefield as units.
-- Targeted-spell heuristics require valid server-checked targets. Single-target spells use the legacy `targetInstanceId` path; one narrow multi-target path supports required friendly Unit/Champion plus enemy Unit/Champion roles.
+- Targeted-spell heuristics require valid server-checked targets. Single-target spells use the legacy `targetInstanceId` path; narrow multi-target paths support required friendly Unit/Champion plus enemy Unit/Champion roles, Defiant Dance's +2/-2 target pair, and Flash's one-or-two friendly Unit/Champion recall targets.
 - Simple helper-backed effect scripts currently cover draw 1, selected
-  temporary Might boosts, selected unit/champion return-to-hand, paired
-  friendly/enemy unit return-to-hand, and selected friendly unit/champion
+  temporary Might boosts and reductions, selected unit/champion return-to-hand, paired
+  friendly/enemy unit return-to-hand, selected friendly unit/champion movement to Base, and selected friendly unit/champion
   readying.
 - Unsupported spell shapes are blocked by `CardDataService.isUnsupportedAction`.
 - A generic pending-choice framework exists for private yes/no, optional-payment,

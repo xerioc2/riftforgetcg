@@ -314,6 +314,30 @@ public class CardDataService {
         && text.contains("only unit you control");
   }
 
+  public boolean isDefiantDanceReaction(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().toLowerCase();
+    boolean defiantDanceName = def.name() != null && def.name().trim().equalsIgnoreCase("Defiant Dance");
+    return "Spell".equalsIgnoreCase(def.type())
+        && isReactionCard(def)
+        && defiantDanceName
+        && text.contains("give a unit")
+        && text.contains("+2")
+        && text.contains("another unit")
+        && text.contains("-2");
+  }
+
+  public boolean isFlashReaction(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().toLowerCase();
+    boolean flashName = def.name() != null && def.name().trim().equalsIgnoreCase("Flash");
+    return "Spell".equalsIgnoreCase(def.type())
+        && isReactionCard(def)
+        && flashName
+        && text.contains("move up to 2 friendly units")
+        && text.contains("base");
+  }
+
   public boolean isDefyCounterReaction(CardDefinition def) {
     if (def == null || def.rulesText() == null) return false;
     String text = def.rulesText().toLowerCase();
@@ -373,10 +397,11 @@ public class CardDataService {
     boolean supportedFriendlyEnemyReturn = normalized.contains("return")
         && normalized.contains("friendly unit")
         && normalized.contains("enemy unit");
-    boolean requiresMultipleTargets = normalized.contains("another unit")
+    boolean requiresMultipleTargets = (normalized.contains("another unit") && !isDefiantDanceReaction(def))
         || (normalized.contains("a friendly unit and an enemy unit") && !supportedFriendlyEnemyReturn);
     boolean supportedEffect = normalized.contains(":rb_might:")
         || normalized.contains("return a unit")
+        || normalized.contains("move up to 2 friendly units")
         || supportedFriendlyEnemyReturn
         || normalized.contains("ready it")
         || normalized.contains("draw 1")
@@ -384,6 +409,8 @@ public class CardDataService {
         || isNotSoFastCounterReaction(def)
         || isDisciplineReaction(def)
         || isEnGardeReaction(def)
+        || isDefiantDanceReaction(def)
+        || isFlashReaction(def)
         || isStackedDeckEffectText(normalized);
     return (normalized.contains("counter a spell") && !isDefyCounterReaction(def))
         || (normalized.contains("counter an enemy spell") && !isNotSoFastCounterReaction(def))

@@ -642,6 +642,8 @@ export function GameBoard() {
   const hasLegalGustChainTarget = () => legalTargetsForMode('GUST_BATTLEFIELD_UNIT').length > 0;
   const hasLegalDisciplineChainTarget = () => legalTargetsForMode('ANY_BATTLEFIELD_UNIT').length > 0;
   const hasLegalEnGardeChainTarget = () => legalTargetsForMode('FRIENDLY_UNIT').length > 0;
+  const hasLegalDefiantDanceChainTarget = () => legalTargetsForMode('ANY_BATTLEFIELD_UNIT').length >= 2;
+  const hasLegalFlashChainTarget = () => legalTargetsForMode('FRIENDLY_UNIT').length > 0;
 
   const canPlayChainReactionCard = (card: RiftCard | undefined) => {
     return chainActive && canUseSupportedChainResponse(card, {
@@ -649,6 +651,8 @@ export function GameBoard() {
       hasLegalGustTarget: hasLegalGustChainTarget(),
       hasLegalDisciplineTarget: hasLegalDisciplineChainTarget(),
       hasLegalEnGardeTarget: hasLegalEnGardeChainTarget(),
+      hasLegalDefiantDanceTarget: hasLegalDefiantDanceChainTarget(),
+      hasLegalFlashTarget: hasLegalFlashChainTarget(),
       hasLegalDefyTarget: legalDefyChainTargets().length > 0,
       hasLegalNotSoFastTarget: legalNotSoFastChainTargets().length > 0,
     });
@@ -682,7 +686,7 @@ export function GameBoard() {
   };
 
   const beginMultiTargetSelection = (instanceId: string, requirements: TargetRequirement[]) => {
-    const missing = requirements.find((requirement) => legalTargetsForMode(requirement.mode).length === 0);
+    const missing = requirements.find((requirement) => !requirement.optional && legalTargetsForMode(requirement.mode).length === 0);
     if (missing) {
       notifyWarning('No legal targets', noLegalTargetsMessage(missing.mode));
       return false;
@@ -734,6 +738,15 @@ export function GameBoard() {
     const baseCount = state?.cards.filter((card) => card.ownerId === player.id && sameZone(card.zone, 'base')).length ?? 0;
     const position = base ? autoPlaceInZone(base, baseCount, baseCount + 1) : { x: size.width / 2, y: size.height / 2 };
     publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'BASE', ...position, targetInstanceId, targets, accelerate, ...payment });
+  };
+
+  const submitPendingMultiTargets = (selection: typeof pendingMultiTargetSelection) => {
+    if (!selection || selection.selected.length === 0) return false;
+    const spellInstance = state?.cards.find((card) => card.instanceId === selection.instanceId);
+    const spellDef = spellInstance ? cardsById.get(spellInstance.cardId) : undefined;
+    playCardToBase(selection.instanceId, spellDef, false, undefined, selection.selected);
+    setPendingMultiTargetSelection(null);
+    return true;
   };
 
   const deployChampionFromZone = (instanceId: string, battlefieldLocationId = DEFAULT_BATTLEFIELD_LOCATION_ID) => {
@@ -1061,10 +1074,7 @@ export function GameBoard() {
         setPendingMultiTargetSelection({ ...pendingMultiTargetSelection, selected: nextSelected });
         return;
       }
-      const spellInstance = state?.cards.find((card) => card.instanceId === pendingMultiTargetSelection.instanceId);
-      const spellDef = spellInstance ? cardsById.get(spellInstance.cardId) : undefined;
-      playCardToBase(pendingMultiTargetSelection.instanceId, spellDef, false, undefined, nextSelected);
-      setPendingMultiTargetSelection(null);
+      submitPendingMultiTargets({ ...pendingMultiTargetSelection, selected: nextSelected });
       return;
     }
     const isValidPendingTarget = pendingTargetSelection
@@ -1479,7 +1489,11 @@ export function GameBoard() {
           onContextMenu={(event) => {
             event.evt.preventDefault();
             if (pendingTargetSelection) setPendingTargetSelection(null);
-            if (pendingMultiTargetSelection) setPendingMultiTargetSelection(null);
+            if (pendingMultiTargetSelection) {
+              const requirement = pendingMultiTargetSelection.requirements[pendingMultiTargetSelection.selected.length];
+              if (requirement?.optional && pendingMultiTargetSelection.selected.length > 0) submitPendingMultiTargets(pendingMultiTargetSelection);
+              else setPendingMultiTargetSelection(null);
+            }
             if (isGearTargetChoice) cancelPendingGearTargetChoice();
           }}
         >
@@ -1572,7 +1586,9 @@ export function GameBoard() {
                       return;
                     }
                     if (pendingMultiTargetSelection) {
-                      setPendingMultiTargetSelection(null);
+                      const requirement = pendingMultiTargetSelection.requirements[pendingMultiTargetSelection.selected.length];
+                      if (requirement?.optional && pendingMultiTargetSelection.selected.length > 0) submitPendingMultiTargets(pendingMultiTargetSelection);
+                      else setPendingMultiTargetSelection(null);
                       return;
                     }
                     if (isGearTargetChoice) {
@@ -1608,7 +1624,7 @@ export function GameBoard() {
                   .map(({ instance, displayInstance }) => <Rect key={`selected-target-${instance.instanceId}`} x={displayInstance.x - 48} y={displayInstance.y - 64} width={96} height={128} fill="rgba(234,179,8,0.10)" stroke="#eab308" shadowColor="#eab308" shadowBlur={16} cornerRadius={6} />)
               : null}
             {pendingTargetSelection ? <Text x={0} y={8} width={size.width} text={`${targetPromptForMode(pendingTargetSelection.mode)} Esc/right-click to cancel.`} align="center" fontSize={13} fontStyle="bold" fill="#e56c4f" /> : null}
-            {pendingMultiTargetSelection && currentMultiTargetRequirement ? <Text x={0} y={8} width={size.width} text={`${currentMultiTargetRequirement.prompt} (${pendingMultiTargetSelection.selected.length + 1}/${pendingMultiTargetSelection.requirements.length}) Esc/right-click to cancel.`} align="center" fontSize={13} fontStyle="bold" fill="#e56c4f" /> : null}
+            {pendingMultiTargetSelection && currentMultiTargetRequirement ? <Text x={0} y={8} width={size.width} text={`${currentMultiTargetRequirement.prompt} (${pendingMultiTargetSelection.selected.length + 1}/${pendingMultiTargetSelection.requirements.length}) ${currentMultiTargetRequirement.optional && pendingMultiTargetSelection.selected.length > 0 ? 'Right-click to resolve with selected target(s).' : 'Esc/right-click to cancel.'}`} align="center" fontSize={13} fontStyle="bold" fill="#e56c4f" /> : null}
             {isGearTargetChoice ? <Text x={0} y={8} width={size.width} text="Choose a Gear in play. Right-click to cancel." align="center" fontSize={13} fontStyle="bold" fill="#e56c4f" /> : null}
           </Layer>
         </Stage>

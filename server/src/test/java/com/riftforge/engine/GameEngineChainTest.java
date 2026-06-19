@@ -80,6 +80,24 @@ class GameEngineChainTest {
       String text = def == null || def.rulesText() == null ? "" : def.rulesText().toLowerCase();
       return def != null && "En Garde".equalsIgnoreCase(def.name()) && text.contains("[reaction]") && text.contains("friendly unit") && text.contains("additional +1");
     });
+    when(cardDataService.isDefiantDanceReaction(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      String text = def == null || def.rulesText() == null ? "" : def.rulesText().toLowerCase();
+      return def != null && "Defiant Dance".equalsIgnoreCase(def.name())
+          && text.contains("[reaction]")
+          && text.contains("give a unit")
+          && text.contains("+2")
+          && text.contains("another unit")
+          && text.contains("-2");
+    });
+    when(cardDataService.isFlashReaction(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      String text = def == null || def.rulesText() == null ? "" : def.rulesText().toLowerCase();
+      return def != null && "Flash".equalsIgnoreCase(def.name())
+          && text.contains("[reaction]")
+          && text.contains("move up to 2 friendly units")
+          && text.contains("base");
+    });
     when(cardDataService.isDefyCounterReaction(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
       CardDefinition def = invocation.getArgument(0);
       String text = def == null || def.rulesText() == null ? "" : def.rulesText().toLowerCase();
@@ -1326,6 +1344,107 @@ class GameEngineChainTest {
     assertThat(state.getChainState().chainItems()).hasSize(1);
   }
 
+  @Test
+  void defiantDanceResolvesFromChainWithPlusAndMinusMightTargets() {
+    stubCard("defiant-dance", "Defiant Dance", "Spell", 0, 0, 0, defiantDanceText());
+    stubCard("boost-target", "Boost Target", "Unit", 0, 2, 3, null);
+    stubCard("weaken-target", "Weaken Target", "Unit", 0, 2, 3, null);
+    LiveGameState state = state(chain(false, "p1"));
+    CardInstance defiantDance = cardInstance("defiant-1", "p1", "defiant-dance", ZoneName.HAND);
+    CardInstance boostTarget = cardInstance("boost-1", "p1", "boost-target", ZoneName.BATTLEFIELD);
+    CardInstance weakenTarget = cardInstance("weaken-1", "p2", "weaken-target", ZoneName.BATTLEFIELD);
+    state.getCards().addAll(List.of(defiantDance, boostTarget, weakenTarget));
+
+    engine.applyMove(state, multiTargetReaction(
+        "p1",
+        "defiant-1",
+        List.of(
+            new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.BOOST_UNIT, "boost-1"),
+            new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.WEAKEN_UNIT, "weaken-1"))));
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new ResolveChainTopMove("p1"));
+
+    assertThat(boostTarget.getTemporaryPowerModifier()).isEqualTo(2);
+    assertThat(weakenTarget.getTemporaryPowerModifier()).isEqualTo(-2);
+    assertThat(defiantDance.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().contains("Resolved Defiant Dance: gave +2 Might and -2 Might."));
+  }
+
+  @Test
+  void defiantDanceRejectsDuplicateOrNonPublicTargetsWithoutMutation() {
+    stubCard("defiant-dance", "Defiant Dance", "Spell", 0, 0, 0, defiantDanceText());
+    stubCard("target", "Target Unit", "Unit", 0, 2, 3, null);
+    LiveGameState state = state(chain(false, "p1"));
+    CardInstance defiantDance = cardInstance("defiant-1", "p1", "defiant-dance", ZoneName.HAND);
+    CardInstance target = cardInstance("target-1", "p1", "target", ZoneName.BATTLEFIELD);
+    state.getCards().addAll(List.of(defiantDance, target));
+
+    assertThatThrownBy(() -> engine.applyMove(state, multiTargetReaction(
+        "p1",
+        "defiant-1",
+        List.of(
+            new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.BOOST_UNIT, "target-1"),
+            new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.WEAKEN_UNIT, "target-1")))))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Defiant Dance targets must be different units.");
+
+    assertThat(defiantDance.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(target.getTemporaryPowerModifier()).isZero();
+    assertThat(state.getChainState().chainItems()).hasSize(1);
+  }
+
+  @Test
+  void flashResolvesFromChainAndRecallsOneOrTwoFriendlyUnits() {
+    stubCard("flash", "Flash", "Spell", 0, 0, 0, flashText());
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 3, null);
+    LiveGameState state = state(chain(false, "p1"));
+    CardInstance flash = cardInstance("flash-1", "p1", "flash", ZoneName.HAND);
+    CardInstance first = cardInstance("friendly-1", "p1", "friendly", ZoneName.BATTLEFIELD);
+    CardInstance second = cardInstance("friendly-2", "p1", "friendly", ZoneName.BATTLEFIELD);
+    first.setBattlefieldLocationId("bf-1");
+    second.setBattlefieldLocationId("bf-1");
+    state.getCards().addAll(List.of(flash, first, second));
+
+    engine.applyMove(state, multiTargetReaction(
+        "p1",
+        "flash-1",
+        List.of(
+            new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.FIRST_FRIENDLY_UNIT, "friendly-1"),
+            new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.SECOND_FRIENDLY_UNIT, "friendly-2"))));
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new ResolveChainTopMove("p1"));
+
+    assertThat(first.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(second.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(first.getBattlefieldLocationId()).isNull();
+    assertThat(second.getBattlefieldLocationId()).isNull();
+    assertThat(flash.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().contains("Resolved Flash: moved 2 friendly unit(s) to Base."));
+  }
+
+  @Test
+  void flashRejectsEnemyTargetWithoutMovingOrSpending() {
+    stubCard("flash", "Flash", "Spell", 0, 0, 0, flashText());
+    stubCard("target", "Target Unit", "Unit", 0, 2, 3, null);
+    LiveGameState state = state(chain(false, "p1"));
+    CardInstance flash = cardInstance("flash-1", "p1", "flash", ZoneName.HAND);
+    CardInstance enemy = cardInstance("target-1", "p2", "target", ZoneName.BATTLEFIELD);
+    state.getCards().addAll(List.of(flash, enemy));
+
+    assertThatThrownBy(() -> engine.applyMove(state, multiTargetReaction(
+        "p1",
+        "flash-1",
+        List.of(new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.FIRST_FRIENDLY_UNIT, "target-1")))))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Flash requires one or two friendly Unit or Champion targets at a battlefield.");
+
+    assertThat(flash.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(enemy.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(state.getChainState().chainItems()).hasSize(1);
+  }
+
   private LiveGameState state(LiveGameState.ChainState chain) {
     PlayerState p1 = new PlayerState();
     p1.setUserId("p1");
@@ -1657,12 +1776,24 @@ class GameEngineChainTest {
     return "[Reaction] (Play any time, even before spells and abilities resolve.) Give a friendly unit +1 :rb_might: this turn, then an additional +1 :rb_might: this turn if it is the only unit you control there.";
   }
 
+  private String defiantDanceText() {
+    return "[Reaction] (Play any time, even before spells and abilities resolve.) Give a unit +2 :rb_might: this turn and another unit -2 :rb_might: this turn.";
+  }
+
+  private String flashText() {
+    return "[Reaction] (Play any time, even before spells and abilities resolve.) Move up to 2 friendly units to base.";
+  }
+
   private PlayCardMove play(String playerId, String instanceId) {
     return new PlayCardMove(playerId, instanceId, ZoneName.BASE, 0, 0, null);
   }
 
   private PlayCardMove counter(String playerId, String instanceId, String targetChainItemId) {
     return new PlayCardMove(playerId, instanceId, ZoneName.BASE, 0, 0, null, targetChainItemId, List.of(), false, List.of(), List.of());
+  }
+
+  private PlayCardMove multiTargetReaction(String playerId, String instanceId, List<PlayCardMove.TargetSelection> targets) {
+    return new PlayCardMove(playerId, instanceId, ZoneName.BASE, 0, 0, null, null, targets, false, List.of(), List.of());
   }
 
   private void assertGustTargetRejected(CardInstance target, String cardId, String cardName, String type) {

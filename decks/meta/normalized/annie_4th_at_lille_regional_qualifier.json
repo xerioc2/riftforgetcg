@@ -214,9 +214,9 @@
         }
       },
       "support": {
-        "status": "UNSUPPORTED",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
-        "blocked": true
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists for moving up to two friendly battlefield Unit/Champion cards to Base. Full official any-time Reaction timing remains incomplete.",
+        "blocked": false
       },
       "bucket": "Reaction / chain / counter"
     },
@@ -588,8 +588,8 @@
     "uniqueCards": 23,
     "counts": {
       "SUPPORTED": 1,
-      "PARTIAL": 19,
-      "UNSUPPORTED": 2,
+      "PARTIAL": 20,
+      "UNSUPPORTED": 1,
       "BANNED": 0,
       "NOT_AUDITED": 1
     },
@@ -617,13 +617,6 @@
         "reason": "Blocked in enforced play: this card's effect is not supported yet."
       },
       {
-        "cardName": "Flash",
-        "sourceCardId": "OGS-011",
-        "status": "UNSUPPORTED",
-        "bucket": "Reaction / chain / counter",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet."
-      },
-      {
         "cardName": "The Arena's Greatest",
         "sourceCardId": "OGN-290",
         "status": "PARTIAL",
@@ -635,6 +628,13 @@
         "sourceCardId": "SFD-217",
         "status": "PARTIAL",
         "bucket": "Battlefield effect",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      },
+      {
+        "cardName": "Rek'Sai - Breacher",
+        "sourceCardId": "SFD-029",
+        "status": "PARTIAL",
+        "bucket": "Champion text",
         "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
       }
     ]

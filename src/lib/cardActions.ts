@@ -1,11 +1,12 @@
 import type { RiftCard } from '../types';
 
 export type TargetMode = 'NONE' | 'FRIENDLY_UNIT' | 'ENEMY_UNIT' | 'ANY_BATTLEFIELD_UNIT' | 'GUST_BATTLEFIELD_UNIT' | 'FRIENDLY_PUBLIC_UNIT' | 'ENEMY_PUBLIC_UNIT' | 'FRIENDLY_UNIT_FOR_EQUIP' | 'ANY_PUBLIC_GEAR' | 'UNSUPPORTED';
-export type TargetRole = 'friendlyUnit' | 'enemyUnit';
+export type TargetRole = 'friendlyUnit' | 'enemyUnit' | 'boostUnit' | 'weakenUnit' | 'firstFriendlyUnit' | 'secondFriendlyUnit';
 export type TargetRequirement = {
   role: TargetRole;
   mode: TargetMode;
   prompt: string;
+  optional?: boolean;
 };
 
 export function targetModeForCard(card: RiftCard | undefined): TargetMode {
@@ -40,6 +41,35 @@ export function targetModeForCard(card: RiftCard | undefined): TargetMode {
 export function multiTargetRequirementsForCard(card: RiftCard | undefined): TargetRequirement[] {
   if (!card || card.type?.toLowerCase() !== 'spell') return [];
   const text = (card.rulesText ?? '').toLowerCase();
+  if (isDefiantDanceReactionCard(card)) {
+    return [
+      {
+        role: 'boostUnit',
+        mode: 'ANY_BATTLEFIELD_UNIT',
+        prompt: 'Choose a Unit or Champion to get +2 Might.',
+      },
+      {
+        role: 'weakenUnit',
+        mode: 'ANY_BATTLEFIELD_UNIT',
+        prompt: 'Choose another Unit or Champion to get -2 Might.',
+      },
+    ];
+  }
+  if (isFlashReactionCard(card)) {
+    return [
+      {
+        role: 'firstFriendlyUnit',
+        mode: 'FRIENDLY_UNIT',
+        prompt: 'Choose a friendly Unit or Champion at a battlefield to move to Base.',
+      },
+      {
+        role: 'secondFriendlyUnit',
+        mode: 'FRIENDLY_UNIT',
+        prompt: 'Choose another friendly Unit or Champion, or right-click to resolve with one.',
+        optional: true,
+      },
+    ];
+  }
   if (!text.includes('friendly unit') || !text.includes('enemy unit')) return [];
   return [
     {
@@ -116,10 +146,32 @@ export function isEnGardeReactionCard(card: RiftCard | undefined) {
     && text.includes('only unit you control');
 }
 
+export function isDefiantDanceReactionCard(card: RiftCard | undefined) {
+  const text = (card?.rulesText ?? '').toLowerCase();
+  return card?.type?.toLowerCase() === 'spell'
+    && isReactionCard(card)
+    && card.name?.trim().toLowerCase() === 'defiant dance'
+    && text.includes('give a unit')
+    && text.includes('+2')
+    && text.includes('another unit')
+    && text.includes('-2');
+}
+
+export function isFlashReactionCard(card: RiftCard | undefined) {
+  const text = (card?.rulesText ?? '').toLowerCase();
+  return card?.type?.toLowerCase() === 'spell'
+    && isReactionCard(card)
+    && card.name?.trim().toLowerCase() === 'flash'
+    && text.includes('move up to 2 friendly units')
+    && text.includes('base');
+}
+
 export function isSupportedChainReactionCard(card: RiftCard | undefined) {
   return isGustReactionCard(card)
     || isDisciplineReactionCard(card)
     || isEnGardeReactionCard(card)
+    || isDefiantDanceReactionCard(card)
+    || isFlashReactionCard(card)
     || isDefyCounterCard(card)
     || isNotSoFastCounterCard(card);
 }
@@ -143,6 +195,8 @@ export function canUseSupportedChainResponse(
     hasLegalGustTarget: boolean;
     hasLegalDisciplineTarget?: boolean;
     hasLegalEnGardeTarget?: boolean;
+    hasLegalDefiantDanceTarget?: boolean;
+    hasLegalFlashTarget?: boolean;
     hasLegalDefyTarget: boolean;
     hasLegalNotSoFastTarget?: boolean;
   },
@@ -151,6 +205,8 @@ export function canUseSupportedChainResponse(
   if (isGustReactionCard(card)) return options.hasLegalGustTarget;
   if (isDisciplineReactionCard(card)) return Boolean(options.hasLegalDisciplineTarget);
   if (isEnGardeReactionCard(card)) return Boolean(options.hasLegalEnGardeTarget);
+  if (isDefiantDanceReactionCard(card)) return Boolean(options.hasLegalDefiantDanceTarget);
+  if (isFlashReactionCard(card)) return Boolean(options.hasLegalFlashTarget);
   if (isDefyCounterCard(card)) return options.hasLegalDefyTarget;
   if (isNotSoFastCounterCard(card)) return Boolean(options.hasLegalNotSoFastTarget);
   return false;
@@ -263,6 +319,7 @@ export function unsupportedCardReason(card: RiftCard | undefined): string | null
   if (type !== 'spell') return null;
   const supported = text.includes(':rb_might:')
     || text.includes('return a unit')
+    || text.includes('move up to 2 friendly units')
     || (text.includes('friendly unit') && text.includes('enemy unit') && text.includes('return'))
     || text.includes('ready it')
     || text.includes('draw 1')
@@ -270,8 +327,10 @@ export function unsupportedCardReason(card: RiftCard | undefined): string | null
     || isNotSoFastCounterCard(card)
     || isDisciplineReactionCard(card)
     || isEnGardeReactionCard(card)
+    || isDefiantDanceReactionCard(card)
+    || isFlashReactionCard(card)
     || isStackedDeckEffectText(text);
   if ((text.includes('counter a spell') && !isDefyCounterCard(card)) || (text.includes('counter an enemy spell') && !isNotSoFastCounterCard(card))) return 'Counter spells need the future reaction stack.';
-  if (text.includes('another unit')) return 'That targeting pattern is not supported yet.';
+  if (text.includes('another unit') && !isDefiantDanceReactionCard(card)) return 'That targeting pattern is not supported yet.';
   return supported ? null : 'That spell effect is not supported yet.';
 }

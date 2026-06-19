@@ -66,6 +66,14 @@ class CardSupportServiceTest {
         .contains("alpha chain-window Reaction support")
         .contains("+1 Might")
         .contains("only unit there");
+    assertThat(service.summarize(card("defiant-dance", "Defiant Dance", "Spell", "[Reaction] Give a unit +2 Might this turn and another unit -2 Might this turn.")).reason())
+        .contains("alpha chain-window Reaction support")
+        .contains("+2 Might")
+        .contains("-2 Might");
+    assertThat(service.summarize(card("flash", "Flash", "Spell", "[Reaction] Move up to 2 friendly units to base.")).reason())
+        .contains("alpha chain-window Reaction support")
+        .contains("up to two friendly")
+        .contains("Base");
     assertThat(service.summarize(card("defy", "Defy", "Spell", "[Reaction] Counter a spell.")).reason())
         .contains("no more than 4 energy")
         .contains("no more than 1 premium rune")

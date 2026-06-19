@@ -125,6 +125,30 @@ public class PriorityWindowService {
           def.name(),
           null));
     }
+    if (cardDataService.isDefiantDanceReaction(def)) {
+      return Optional.of(new PriorityWindow(
+          PriorityWindowType.REACTION_PLAYED,
+          LiveGameState.ChainItem.EFFECT_DEFIANT_DANCE_MODIFIERS,
+          LiveGameState.ChainItem.TYPE_SPELL,
+          LiveGameState.ChainItem.VISIBILITY_PUBLIC,
+          true,
+          true,
+          ZoneName.HAND,
+          def.name(),
+          null));
+    }
+    if (cardDataService.isFlashReaction(def)) {
+      return Optional.of(new PriorityWindow(
+          PriorityWindowType.REACTION_PLAYED,
+          LiveGameState.ChainItem.EFFECT_FLASH_RECALL,
+          LiveGameState.ChainItem.TYPE_SPELL,
+          LiveGameState.ChainItem.VISIBILITY_PUBLIC,
+          true,
+          true,
+          ZoneName.HAND,
+          def.name(),
+          null));
+    }
     if (cardDataService.isDefyCounterReaction(def)) {
       return Optional.of(new PriorityWindow(
           PriorityWindowType.REACTION_PLAYED,

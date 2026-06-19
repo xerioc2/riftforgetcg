@@ -25,11 +25,11 @@ targeting, replacement, or card-specific edge cases remain missing.
 | Not So Fast | Irelia Tempo | Spell | 2 | CALM / premium 0 | `[Reaction] (Play any time, even before spells and abilities resolve.)Counter an enemy spell or ability that chooses a friendly unit or gear.` | Partial | Partial | Partial | Counterspell / chain-item target | Partial | Can counter supported public pending enemy spell chain items only when the chain target is your friendly Unit/Champion Unit or Gear. Ability-chain targets and countering counters remain deferred. |
 | Discipline | Irelia Tempo | Spell | 2 | CALM / premium 0 | `[Reaction] (Play any time, even before spells and abilities resolve.)Give a unit +2 :rb_might: this turn. Draw 1.` | Partial | Partial | Partial | Simple chain-backed Reaction effect | Partial | Alpha chain response works only while focused in the Stacked Deck chain window. Target must be a public battlefield Unit/Champion. On resolution it gives +2 Might this turn and draws 1 privately. Broad any-time Reaction timing remains missing. |
 | En Garde | Irelia Tempo | Spell | 1 | CALM / premium 0 | `[Reaction] (Play any time, even before spells and abilities resolve.)Give a friendly unit +1 :rb_might: this turn, then an additional +1 :rb_might: this turn if it is the only unit you control there.` | Partial | Partial | Partial | Simple chain-backed Reaction effect | Partial | Alpha chain response works only while focused in the Stacked Deck chain window. Target must be a friendly public battlefield Unit/Champion. The lone-friendly-unit-at-location bonus is implemented for the current active-lane alpha. Broad any-time Reaction timing remains missing. |
-| Defiant Dance | Irelia Tempo | Spell | 1 | CALM, CHAOS / premium 0 | `[Reaction] (Play any time, even before spells and abilities resolve.)Give a unit +2 :rb_might: this turn and another unit -2 :rb_might: this turn.` | Unsupported | Unsupported | Unsupported | Multi-target staged targeting | Unsupported | Needs two separate target roles and two stat modifiers, then Reaction chain hookup. Keep blocked until both effect and timing are tested. |
+| Defiant Dance | Irelia Tempo | Spell | 1 | CALM, CHAOS / premium 0 | `[Reaction] (Play any time, even before spells and abilities resolve.)Give a unit +2 :rb_might: this turn and another unit -2 :rb_might: this turn.` | Partial | Partial | Partial | Multi-target staged chain-backed Reaction | Partial | Alpha support uses staged target roles, creates a public chain item, gives one public battlefield Unit/Champion +2 Might and another -2 Might this turn, and rejects duplicate targets. Full official any-time Reaction timing remains missing. |
 | Star-Crossed | Irelia Tempo | Spell | 3 | CHAOS / premium 0 | `[Reaction] (Play any time, even before spells and abilities resolve.)Return a friendly unit and an enemy unit to their owners' hands.` | Partial | Partial | Partial | Multi-target staged targeting | Partial | Paired friendly/enemy return is scripted with staged targets, but Reaction timing is not connected to chain. |
 | Riposte | Fiora Vanguard | Spell | 2 | BODY, ORDER / premium 0 | `[Reaction] (Play any time, even before spells and abilities resolve.)Choose a friendly unit and a spell. Counter that spell and give that unit +:rb_might: equal to that spell's Energy cost this turn.` | Partial | Partial | Partial | Counterspell plus multi-target staged targeting | Partial | Needs a friendly Unit target, spell chain-item target, variable Might amount, and official Reaction window. Not safe to implement until Defy/Not So Fast patterns are stable. |
 | Stalking Wolf | Fiora Vanguard | Unit | 4 | ORDER / premium 0 | `[Ambush] (You may play me as a [Reaction] to a battlefield where you have units.)As an additional cost to play me, kill a Bird, Cat, Dog, or Poro you control. You may play me to its battlefield (even if you don't have other units there).` | Partial | Unsupported | Partial | Needs broad official timing | Unsupported for enforced play | Backend marks Unit text Partial because support gates focus on Spell/Gear effects; frontend blocks additional-cost text. Keep effectively blocked until Ambush-as-Reaction and additional-cost sacrifice are implemented. |
-| Flash | Explicit audit/test pool, not starter main | Spell | 2 | CHAOS / premium 0 | `[Reaction] (Play any time, even before spells and abilities resolve.)Move up to 2 friendly units to base.` | Unsupported | Unsupported | Not listed | Broad official timing plus multi-select movement | Unsupported | Needs optional count, up-to-two target selection, movement legality, and any-time Reaction timing. |
+| Flash | Explicit audit/test pool, not starter main | Spell | 2 | CHAOS / premium 0 | `[Reaction] (Play any time, even before spells and abilities resolve.)Move up to 2 friendly units to base.` | Partial | Partial | Partial | Chain-backed Reaction friendly recall | Partial | Alpha support creates a public chain item, chooses one or two friendly public battlefield Unit/Champion cards, and moves them to Base on resolution. Full official any-time Reaction timing remains missing. |
 | Back Off | Explicit audit/test pool, not starter main | Spell | 3 | CALM / premium 0 | `[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)[Action] (Play on your turn or in showdowns.)[Stun] a unit. (It doesn't deal combat damage this turn.)If you played this from your hand, draw 1.` | Partial | Partial | Not listed | Hidden/Action with Stun | Partial | Current heuristics see draw 1, but full text needs Hidden play-from-hidden, Stun target scripting, and from-hand conditional draw. Do not promote. |
 | Edge of Night | Explicit audit/test pool, not starter main | Gear | 3 | CHAOS / premium 0 | `[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)When you play this from face down, attach it to a unit you control (here).[Equip] :rb_rune_chaos: (:rb_rune_chaos:: Attach this to a unit you control.)` | Partial | Partial | Not listed | Equipment lifecycle plus Hidden play-from-hidden | Partial | Basic Equip text fits the alpha equipment lifecycle, but face-down play and automatic same-location attach are deferred. |
 | Switcheroo | Explicit audit/test pool, not starter main | Spell | 2 | CHAOS / premium 0 | `[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)[Action] (Play on your turn or in showdowns.)Swap the Might of two units at the same battlefield this turn.` | Unsupported | Unsupported | Not listed | Hidden/Action with same-location multi-target modifier | Unsupported | Needs Hidden play, two same-battlefield targets, temporary Might swapping, and cleanup. |
@@ -51,13 +51,15 @@ targeting, replacement, or card-specific edge cases remain missing.
 
 - Disarming Rake: enter-play optional prompt and Gear destroy are implemented and tested.
 - Narrow alpha counter paths: Defy and Not So Fast are implemented only for their exact supported public chain-item shapes.
-- Gust, Discipline, and En Garde: implemented as narrow public chain-backed
+- Gust, Discipline, En Garde, Defiant Dance, and Flash: implemented as narrow public chain-backed
   board-target Reaction responses.
 
 ### Simple Chain-Backed Reaction Effect
 
 - Discipline (implemented for the current alpha chain window)
 - En Garde (implemented for the current alpha chain window)
+- Defiant Dance (implemented for the current alpha chain window)
+- Flash (implemented for the current alpha chain window)
 
 These use existing target selection, temporary Might, and draw helpers through
 public chain items. They stay Partial until official any-time Reaction timing is
@@ -80,9 +82,10 @@ apply variable Might from the countered spell cost.
 - Riposte
 - Switcheroo
 
-Star-Crossed has direct effect support but no Reaction timing. Defiant Dance and
-Switcheroo should stay blocked until two-target stat modifier logic and cleanup
-are tested.
+Star-Crossed has direct effect support but no Reaction timing. Defiant Dance now
+has a narrow chain-backed two-target stat modifier path. Switcheroo should stay
+blocked until two-target Might swapping, same-location checks, hidden play, and
+cleanup are tested.
 
 ### Equipment Lifecycle Only
 
@@ -122,14 +125,12 @@ chain items exist.
 
 ### Needs Broad Official Timing
 
-- All `[Reaction]` cards except the narrow Gust/Discipline/En Garde/Defy/Not So Fast chain responses.
+- All `[Reaction]` cards except the narrow Gust/Discipline/En Garde/Defiant Dance/Flash/Defy/Not So Fast chain responses.
 - Stalking Wolf's Ambush-as-Reaction path.
 - Hidden play-from-hidden cards such as Back Off, Edge of Night, and Switcheroo.
 
 ### Keep Unsupported For Now
 
-- Defiant Dance
-- Flash
 - Switcheroo
 - Zhonya's Hourglass
 - Charm
@@ -140,10 +141,9 @@ chain items exist.
 1. Star-Crossed chain hookup
    - Effect is already staged and scripted.
    - Add chain-backed Reaction entry point, then keep Partial for official timing.
-2. Defiant Dance
-   - Requires two-target staged stat modifiers and cleanup.
-   - Medium risk because negative Might and "another unit" duplicate prevention
-     must be exact.
+2. Charm
+   - Biggest remaining Irelia spell blocker; needs legal enemy movement
+     destinations and active-lane handling.
 3. Riposte
    - Higher risk because it combines a unit target, spell chain target, counter,
      and variable Might based on Energy cost.

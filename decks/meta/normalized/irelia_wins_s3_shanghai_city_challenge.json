@@ -196,9 +196,9 @@
         }
       },
       "support": {
-        "status": "UNSUPPORTED",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
-        "blocked": true
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists for giving one public battlefield Unit/Champion +2 Might and another public battlefield Unit/Champion -2 Might this turn. Full official any-time Reaction timing remains incomplete.",
+        "blocked": false
       },
       "bucket": "Reaction / chain / counter"
     },
@@ -396,9 +396,9 @@
         }
       },
       "support": {
-        "status": "UNSUPPORTED",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
-        "blocked": true
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists for moving up to two friendly battlefield Unit/Champion cards to Base. Full official any-time Reaction timing remains incomplete.",
+        "blocked": false
       },
       "bucket": "Reaction / chain / counter"
     },
@@ -693,28 +693,14 @@
     "uniqueCards": 27,
     "counts": {
       "SUPPORTED": 4,
-      "PARTIAL": 18,
-      "UNSUPPORTED": 5,
+      "PARTIAL": 20,
+      "UNSUPPORTED": 3,
       "BANNED": 0,
       "NOT_AUDITED": 0
     },
     "canUseInEnforced": false,
     "unresolvedCards": [],
     "topBlockers": [
-      {
-        "cardName": "Defiant Dance",
-        "sourceCardId": "SFD-196",
-        "status": "UNSUPPORTED",
-        "bucket": "Reaction / chain / counter",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet."
-      },
-      {
-        "cardName": "Flash",
-        "sourceCardId": "OGS-011",
-        "status": "UNSUPPORTED",
-        "bucket": "Reaction / chain / counter",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet."
-      },
       {
         "cardName": "Charm",
         "sourceCardId": "OGN-043",
@@ -735,6 +721,20 @@
         "status": "UNSUPPORTED",
         "bucket": "Equipment lifecycle/effect",
         "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Irelia - Blade Dancer",
+        "sourceCardId": "SFD-195",
+        "status": "PARTIAL",
+        "bucket": "Legend text",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      },
+      {
+        "cardName": "Not So Fast",
+        "sourceCardId": "SFD-045",
+        "status": "PARTIAL",
+        "bucket": "Reaction / chain / counter",
+        "reason": "Partial: Not So Fast can counter a supported public pending enemy spell chain item only when that item chooses your friendly Unit/Champion Unit or Gear. Ability-chain targets, broad official Reaction timing, and countering counters remain deferred."
       }
     ]
   },
