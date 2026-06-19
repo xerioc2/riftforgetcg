@@ -78,6 +78,10 @@ class CardSupportServiceTest {
         .contains("enemy public battlefield Unit/Champion")
         .contains("Base")
         .contains("movement choices");
+    assertThat(service.summarize(card("the-syren", "The Syren", "Gear", ":rb_energy_1:, :rb_exhaust:: Move a friendly unit at a battlefield to its base.")).reason())
+        .contains("paying 1 energy")
+        .contains("friendly public battlefield Unit/Champion")
+        .contains("activated ability timing");
     assertThat(service.summarize(card("defy", "Defy", "Spell", "[Reaction] Counter a spell.")).reason())
         .contains("no more than 4 energy")
         .contains("no more than 1 premium rune")

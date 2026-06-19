@@ -4,8 +4,8 @@ Generated from exact raw exports in `decks/meta/raw/`.
 
 | Archetype | Raw source | Support status | Shape | S/P/U/NA | Top blockers | Priority note |
 | --- | --- | --- | --- | --- | --- | --- |
-| Irelia, Blade Dancer | decks/meta/raw/irelia_wins_s3_shanghai_city_challenge.txt | Blocked | Pass | 4/21/2/0 | Zhonya's Hourglass, The Syren, Irelia - Blade Dancer, Not So Fast, Abandoned Hall | Finish current/Irelia support polish |
-| Diana, Scorn of the Moon | decks/meta/raw/diana_wins_s3_suzhou_city_challenge.txt | Blocked | Pass | 1/21/3/0 | Hard Bargain, Abandon, The Syren, Diana - Scorn of the Moon, Star Spring | Next reviewer-prioritized interaction deck |
+| Irelia, Blade Dancer | decks/meta/raw/irelia_wins_s3_shanghai_city_challenge.txt | Blocked | Pass | 4/22/1/0 | Zhonya's Hourglass, Irelia - Blade Dancer, Not So Fast, Abandoned Hall, Vex - Apathetic | Finish current/Irelia support polish |
+| Diana, Scorn of the Moon | decks/meta/raw/diana_wins_s3_suzhou_city_challenge.txt | Blocked | Pass | 1/22/2/0 | Hard Bargain, Abandon, Diana - Scorn of the Moon, Star Spring, Abandoned Hall | Next reviewer-prioritized interaction deck |
 | Annie, Dark Child | decks/meta/raw/annie_4th_at_lille_regional_qualifier.txt | Blocked | Needs review | 1/20/1/1 | Annie - Dark Child - Starter, Hard Bargain, The Arena's Greatest, Seat of Power, Rek'Sai - Breacher | Aurora shell with future Miss Fortune list |
 | Master Yi, Wuju Bladesman | decks/meta/raw/master_yi_wins_s3_guangzhou_city_challenge.txt | Blocked | Needs review | 3/18/1/1 | Master Yi - Wuju Bladesman - Starter, Zhonya's Hourglass, Amateur Recital, Rengar - Trophy Hunter, Master Yi - Tempered | Audit before implementation; gameplay notes still useful |
 | LeBlanc, Deceiver | decks/meta/raw/leblanc_wins_s3_zhongshan_city_challenge.txt | Blocked | Pass | 1/16/4/0 | Mirror Image, Deadly Flourish, Hidden Blade, Cull the Weak, LeBlanc - Deceiver | Later raw-meta audit |

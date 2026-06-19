@@ -32,21 +32,23 @@ public class RulesValidator {
   private final ShowdownParticipantRules showdownParticipantRules;
   private final CombatStatsService combatStatsService;
   private final CombatDamageRules combatDamageRules;
+  private final ActivatedAbilityService activatedAbilityService;
 
   public RulesValidator(CardDataService cardDataService) {
-    this(cardDataService, new ShowdownParticipantRules(), new CombatStatsService(cardDataService), new CombatDamageRules(cardDataService));
+    this(cardDataService, new ShowdownParticipantRules(), new CombatStatsService(cardDataService), new CombatDamageRules(cardDataService), new ActivatedAbilityService(cardDataService));
   }
 
   public RulesValidator(CardDataService cardDataService, ShowdownParticipantRules showdownParticipantRules) {
-    this(cardDataService, showdownParticipantRules, new CombatStatsService(cardDataService), new CombatDamageRules(cardDataService));
+    this(cardDataService, showdownParticipantRules, new CombatStatsService(cardDataService), new CombatDamageRules(cardDataService), new ActivatedAbilityService(cardDataService));
   }
 
   @Autowired
-  public RulesValidator(CardDataService cardDataService, ShowdownParticipantRules showdownParticipantRules, CombatStatsService combatStatsService, CombatDamageRules combatDamageRules) {
+  public RulesValidator(CardDataService cardDataService, ShowdownParticipantRules showdownParticipantRules, CombatStatsService combatStatsService, CombatDamageRules combatDamageRules, ActivatedAbilityService activatedAbilityService) {
     this.cardDataService = cardDataService;
     this.showdownParticipantRules = showdownParticipantRules;
     this.combatStatsService = combatStatsService;
     this.combatDamageRules = combatDamageRules;
+    this.activatedAbilityService = activatedAbilityService;
   }
 
   public void validate(LiveGameState state, MoveRequest move) {
@@ -116,6 +118,7 @@ public class RulesValidator {
     if (move instanceof UndoRunesMove undo) { validateUndoRunes(state, undo); return; }
     if (move instanceof HideCardMove hide) { validateHideCard(state, hide); return; }
     if (move instanceof EquipGearMove equip) { validateEquipGear(state, equip); return; }
+    if (move instanceof ActivateAbilityMove activate) { validateActivateAbility(state, activate); return; }
     if (move instanceof PlayCardMove play) { validatePlayCard(state, play); return; }
     if (move instanceof MoveToBattlefieldMove deploy) { validateMoveToBattlefield(state, deploy); return; }
     if (move instanceof RepositionCardMove reposition) { validateRepositionCard(state, reposition); return; }
@@ -745,6 +748,10 @@ public class RulesValidator {
     CardInstance target = findCard(state, move.targetInstanceId());
     validateEquipTarget(move.playerId(), target);
     validateEquipPayment(state, move, gearDef);
+  }
+
+  private void validateActivateAbility(LiveGameState state, ActivateAbilityMove move) {
+    activatedAbilityService.validate(state, move);
   }
 
   private void validateEquipPayment(LiveGameState state, EquipGearMove move, CardDefinition gearDef) {

@@ -37,7 +37,8 @@ export type MoveRequest =
     }
   | { type: 'DISMISS_REVEALED'; playerId: string; instanceId: string }
   | { type: 'HIDE_CARD'; playerId: string; instanceId: string; paymentRuneId: string }
-  | { type: 'EQUIP_GEAR'; playerId: string; gearInstanceId: string; targetInstanceId: string; paymentRuneIds?: string[]; premiumRuneIds?: string[] };
+  | { type: 'EQUIP_GEAR'; playerId: string; gearInstanceId: string; targetInstanceId: string; paymentRuneIds?: string[]; premiumRuneIds?: string[] }
+  | { type: 'ACTIVATE_ABILITY'; playerId: string; sourceInstanceId: string; abilityKey?: string; targetInstanceId: string; paymentRuneIds?: string[]; premiumRuneIds?: string[] };
 
 export type ServerMessage = { type: 'STATE_UPDATE'; state: LiveGameState } | { type: 'ERROR'; message: string; playerId: string };
 export type MatchNotification = { roomCode: string; sessionToken?: string };

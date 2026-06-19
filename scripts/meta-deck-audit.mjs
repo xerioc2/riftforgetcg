@@ -117,6 +117,7 @@ const PARTIAL_REASONS = new Map([
   ['DEFIANT DANCE', 'Partial: alpha chain-window Reaction support exists for giving one public battlefield Unit/Champion +2 Might and another public battlefield Unit/Champion -2 Might this turn. Full official any-time Reaction timing remains incomplete.'],
   ['FLASH', 'Partial: alpha chain-window Reaction support exists for moving up to two friendly battlefield Unit/Champion cards to Base. Full official any-time Reaction timing remains incomplete.'],
   ['CHARM', 'Partial: alpha support moves one enemy public battlefield Unit/Champion to Base. Broader official movement choices, control/location edge cases, and non-battlefield destinations remain deferred.'],
+  ['THE SYREN', 'Partial: The Syren can be played to Base and activated during your Main Phase by paying 1 energy and exhausting it to move a friendly public battlefield Unit/Champion to Base. Broader activated ability timing and ability-chain support remain deferred.'],
   ['DEFY', 'Partial: Defy can counter supported public pending spell chain items that cost no more than 4 energy and no more than 1 premium rune during the current alpha chain window. Full official Reaction timing, broad spell/ability targets, and countering counters remain deferred.'],
   ['NOT SO FAST', 'Partial: Not So Fast can counter a supported public pending enemy spell chain item only when that item chooses your friendly Unit/Champion Unit or Gear. Ability-chain targets, broad official Reaction timing, and countering counters remain deferred.'],
   ['GUST', 'Partial: alpha chain-window Reaction support exists through Stacked Deck for returning a battlefield Unit/Champion with 3 Might or less, but full official any-time Reaction timing remains incomplete.'],
@@ -315,6 +316,11 @@ function isCharm(card) {
     && textOf(card).trim() === 'move an enemy unit.';
 }
 
+function isTheSyren(card) {
+  return normalize(card?.name) === 'THE SYREN'
+    && textOf(card).trim() === ':rb_energy_1:, :rb_exhaust:: move a friendly unit at a battlefield to its base.';
+}
+
 function isStackedDeck(card) {
   const text = textOf(card);
   return text.includes('look at the top 3') && text.includes('put 1') && text.includes('hand') && text.includes('recycle');
@@ -328,7 +334,7 @@ function isUnsupportedAction(card) {
   if (!card) return false;
   const type = String(card.type ?? '').toLowerCase();
   const text = textOf(card);
-  if (type === 'gear') return !text.includes('[equip]');
+  if (type === 'gear') return !text.includes('[equip]') && !isTheSyren(card);
   if (type !== 'spell') return false;
   const supportedFriendlyEnemyReturn = text.includes('return')
     && text.includes('friendly unit')
@@ -342,6 +348,7 @@ function isUnsupportedAction(card) {
     || text.includes('ready it')
     || text.includes('draw 1')
     || isCharm(card)
+    || isTheSyren(card)
     || isDefy(card)
     || isNotSoFast(card)
     || isDiscipline(card)
@@ -584,12 +591,25 @@ function mainRoadmapMarkdown(results) {
     ];
   });
 
+  const uploadedSummaryPath = path.join(ROOT, 'decks', 'meta', 'normalized', 'uploaded-audit-summary.json');
+  const uploadedSummary = fs.existsSync(uploadedSummaryPath)
+    ? JSON.parse(fs.readFileSync(uploadedSummaryPath, 'utf8'))
+    : null;
+  const uploadedRows = uploadedSummary?.decks?.map((deck) => [
+    deck.archetype,
+    deck.rawSourceFile,
+    deck.validation?.validConstructedShape ? 'Pass' : 'Needs review',
+    deck.supportSummary?.canUseInEnforced ? 'Playable' : 'Blocked',
+    `${deck.supportSummary?.counts?.SUPPORTED ?? 0}/${deck.supportSummary?.counts?.PARTIAL ?? 0}/${deck.supportSummary?.counts?.UNSUPPORTED ?? 0}/${deck.supportSummary?.counts?.NOT_AUDITED ?? 0}`,
+    deck.supportSummary?.topBlockers?.map((item) => item.cardName).join(', ') || 'None',
+  ]) ?? [];
+
   return [
     '# Meta Deck Support Roadmap',
     '',
     `Last updated: ${CAPTURED_DATE}`,
     '',
-    'This roadmap combines reviewer meta priorities with actual guide decklists extracted from Riftbound.gg. Decklists are captured as reviewable JSON under `decks/meta/`; support summaries are generated from the current local card cache and the same conservative support rules used by RiftForge frontend/backend support gates.',
+    'This roadmap combines reviewer meta priorities with actual guide decklists extracted from Riftbound.gg and exact exported decklists uploaded by playtesters/reviewers. Decklists are captured as reviewable JSON under `decks/meta/`; support summaries are generated from the current local card cache and the same conservative support rules used by RiftForge frontend/backend support gates.',
     '',
     'Do not treat an archetype as supported just because a list is present. `Supported` means a card is implemented and directly covered by policy/tests; `Partial` means playable alpha behavior may exist but exact rules can be incomplete; `Unsupported` and `Not Audited` still block supported-only enforced play.',
     '',
@@ -598,6 +618,18 @@ function mainRoadmapMarkdown(results) {
     '- Riftbound.gg guide pages contain embedded deck widgets with `data-deck` slugs rather than complete static card lists.',
     '- `scripts/meta-deck-audit.mjs` fetches each guide, extracts those slugs, loads each list through `https://api.dotgg.gg/cgfw/getdeck?game=riftbound&slug=<slug>`, and resolves DotGG card ids through the DotGG card catalog.',
     '- Each source card is matched by exact/base name against `~/.riftforge/cards-cache.json`. Unresolved or ambiguous names are recorded instead of guessed.',
+    '- Uploaded text exports are preserved exactly in `decks/meta/raw/`.',
+    '- `scripts/import-uploaded-meta-decks.mjs` parses uploaded lines like `3 Stacked Deck (OGN-183)`, resolves by name and source set code against the local card cache, and writes normalized files to `decks/meta/normalized/`.',
+    '',
+    '## Uploaded Exact Decklist Summary',
+    '',
+    'The uploaded decklists are the current authoritative source for exact card counts. Guide-widget API captures remain useful secondary references.',
+    '',
+    'See `docs/meta/UPLOADED_META_DECKS.md` for the complete table.',
+    '',
+    uploadedRows.length
+      ? markdownTable(['Archetype', 'Uploaded source', 'Shape check', 'Support status', 'S/P/U/NA', 'Top blockers'], uploadedRows)
+      : 'No uploaded deck summary is available yet. Run `npm.cmd run import:uploaded-meta-decks` after adding raw exports.',
     '',
     '## Meta Priority Table',
     '',

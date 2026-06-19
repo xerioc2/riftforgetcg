@@ -22,6 +22,16 @@ function unit(name: string, rulesText: string): RiftCard {
   };
 }
 
+function gear(name: string, rulesText: string): RiftCard {
+  return {
+    id: name.toLowerCase().replace(/\s+/g, '-'),
+    name,
+    type: 'Gear',
+    domains: [],
+    rulesText,
+  };
+}
+
 describe('deckSupport', () => {
   it('matches backend/docs support for promoted playtest units', () => {
     expect(cardSupportStatus(unit('Lonely Poro', '[Deathknell] If I died alone, draw 1.')).status).toBe('SUPPORTED');
@@ -86,5 +96,14 @@ describe('deckSupport', () => {
     expect(charm.reason).toContain('enemy public battlefield Unit/Champion');
     expect(charm.reason).toContain('Base');
     expect(charm.reason).toContain('movement choices');
+  });
+
+  it('uses a The Syren-specific Partial reason for the alpha activated ability', () => {
+    const syren = cardSupportStatus(gear('The Syren', ':rb_energy_1:, :rb_exhaust:: Move a friendly unit at a battlefield to its base.'));
+
+    expect(syren.status).toBe('PARTIAL');
+    expect(syren.reason).toContain('paying 1 energy');
+    expect(syren.reason).toContain('friendly public battlefield Unit/Champion');
+    expect(syren.reason).toContain('activated ability timing');
   });
 });

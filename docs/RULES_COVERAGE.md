@@ -648,6 +648,9 @@ Current implementation notes:
 - `CardEffectRegistry` contains a small number of hard-coded effects.
 - Effect architecture scaffolding exists for keyword, on-play, triggered,
   activated, static modifier, and replacement handlers.
+- `ActivatedAbilityService` is the v1 server-authoritative activated ability
+  primitive for exact-card immediate Main Phase abilities; The Syren is the
+  first registered production ability.
 - `EffectHandlerRegistry` centralizes support-status decisions for tracked
   keywords and unsupported generic spell/gear shapes.
 - `CardSupportService` is the current card-support metadata source for deck

@@ -14,9 +14,9 @@ Extraction status: Extracted
 
 | Deck slug | Deck name | Unique cards | Supported | Partial | Unsupported | Not Audited | Enforced playable |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| master-yi-wins-s3-guangzhou-city-challenge | Master Yi Wins S3 Guangzhou City Challenge | 27 | 4 | 20 | 3 | 0 | No |
-| master-yi-wins-s3-chongqing-city-challenge | Master Yi Wins S3 Chongqing City Challenge | 26 | 3 | 18 | 5 | 0 | No |
-| master-yi-top-16-at-sydney-regional-qualifier | Master Yi Top 16 at Sydney Regional Qualifier | 24 | 3 | 18 | 3 | 0 | No |
+| master-yi-wins-s3-guangzhou-city-challenge | Master Yi Wins S3 Guangzhou City Challenge | 27 | 4 | 21 | 2 | 0 | No |
+| master-yi-wins-s3-chongqing-city-challenge | Master Yi Wins S3 Chongqing City Challenge | 26 | 3 | 19 | 4 | 0 | No |
+| master-yi-top-16-at-sydney-regional-qualifier | Master Yi Top 16 at Sydney Regional Qualifier | 24 | 3 | 19 | 2 | 0 | No |
 
 ## Unresolved Cards
 
@@ -24,16 +24,17 @@ Extraction status: Extracted
 
 ## Shared Top Blockers
 
-- Charm: PARTIAL - Movement / location. Alpha support moves one enemy public battlefield Unit/Champion to Base; broader movement choices and destination control remain deferred.
 - Repulse: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Zhonya's Hourglass: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Amateur Recital: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Grove of the God-Willow: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Startipped Peak: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Challenge: UNSUPPORTED - Damage / destroy. Blocked in enforced play: this card's effect is not supported yet.
 - Sabotage: UNSUPPORTED - Draw / reveal / deck selection. Blocked in enforced play: this card's effect is not supported yet.
+- Altar to Unity: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Alpha Strike: UNSUPPORTED - XP / Hunt / Level / Buff. Blocked in enforced play: this card's effect is not supported yet.
-- Startipped Peak: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - The Arena's Greatest: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Vilemaw's Lair: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 
 ## Decklists
 
@@ -52,11 +53,11 @@ Extraction status: Extracted
 
 Top blockers:
 
-- Charm: PARTIAL - Movement / location. Alpha support moves one enemy public battlefield Unit/Champion to Base; broader movement choices and destination control remain deferred.
 - Repulse: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Zhonya's Hourglass: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Amateur Recital: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Grove of the God-Willow: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Startipped Peak: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 
 ### Master Yi Wins S3 Chongqing City Challenge
 
@@ -74,10 +75,10 @@ Top blockers:
 Top blockers:
 
 - Challenge: UNSUPPORTED - Damage / destroy. Blocked in enforced play: this card's effect is not supported yet.
-- Charm: PARTIAL - Movement / location. Alpha support moves one enemy public battlefield Unit/Champion to Base; broader movement choices and destination control remain deferred.
 - Repulse: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Sabotage: UNSUPPORTED - Draw / reveal / deck selection. Blocked in enforced play: this card's effect is not supported yet.
 - Zhonya's Hourglass: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
+- Altar to Unity: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 
 ### Master Yi Top 16 at Sydney Regional Qualifier
 
@@ -95,10 +96,10 @@ Top blockers:
 Top blockers:
 
 - Alpha Strike: UNSUPPORTED - XP / Hunt / Level / Buff. Blocked in enforced play: this card's effect is not supported yet.
-- Charm: PARTIAL - Movement / location. Alpha support moves one enemy public battlefield Unit/Champion to Base; broader movement choices and destination control remain deferred.
 - Zhonya's Hourglass: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Startipped Peak: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - The Arena's Greatest: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Vilemaw's Lair: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 
 ## Recommended Implementation Order
 

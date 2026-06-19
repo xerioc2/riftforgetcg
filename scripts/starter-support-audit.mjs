@@ -56,7 +56,11 @@ function isUnsupportedAction(card) {
   if (!card) return false;
   const type = String(card.type ?? '').toLowerCase();
   const text = String(card.rulesText ?? '').toLowerCase();
-  if (type === 'gear') return !text.includes('[equip]');
+  if (type === 'gear') {
+    const isTheSyren = String(card.name ?? '').trim().toUpperCase() === 'THE SYREN'
+      && text.trim() === ':rb_energy_1:, :rb_exhaust:: move a friendly unit at a battlefield to its base.';
+    return !text.includes('[equip]') && !isTheSyren;
+  }
   if (type !== 'spell') return false;
   const isCharm = String(card.name ?? '').trim().toUpperCase() === 'CHARM'
     && text.trim() === 'move an enemy unit.';

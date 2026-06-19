@@ -14,7 +14,7 @@ Extraction status: Extracted
 
 | Deck slug | Deck name | Unique cards | Supported | Partial | Unsupported | Not Audited | Enforced playable |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| azir-wins-lille-regional-qualifier | Azir Wins Lille Regional Qualifier | 26 | 2 | 19 | 5 | 0 | No |
+| azir-wins-lille-regional-qualifier | Azir Wins Lille Regional Qualifier | 26 | 2 | 20 | 4 | 0 | No |
 
 ## Unresolved Cards
 
@@ -22,11 +22,11 @@ Extraction status: Extracted
 
 ## Shared Top Blockers
 
-- Charm: PARTIAL - Movement / location. Alpha support moves one enemy public battlefield Unit/Champion to Base; broader movement choices and destination control remain deferred.
 - Cull the Weak: UNSUPPORTED - Damage / destroy. Blocked in enforced play: this card's effect is not supported yet.
 - Facebreaker: UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
 - Hidden Blade: UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
 - Wind Wall: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
+- Hall of Legends: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 
 ## Decklists
 
@@ -46,11 +46,11 @@ Extraction status: Extracted
 
 Top blockers:
 
-- Charm: PARTIAL - Movement / location. Alpha support moves one enemy public battlefield Unit/Champion to Base; broader movement choices and destination control remain deferred.
 - Cull the Weak: UNSUPPORTED - Damage / destroy. Blocked in enforced play: this card's effect is not supported yet.
 - Facebreaker: UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
 - Hidden Blade: UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
 - Wind Wall: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
+- Hall of Legends: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 
 ## Recommended Implementation Order
 

@@ -57,6 +57,8 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Confirm attached Gear stays with a host that moves from Base to a battlefield lane.
 - Confirm attached Gear returns to Base, not Trash, if its host dies or leaves
   public play in a supported path.
+- If The Syren is in Base, activate it during Main Phase by paying 1 energy and
+  confirm a friendly battlefield Unit/Champion moves back to Base.
 - Hide a card if you draw a `[Hidden]` card.
 - Try Ambush if the UI says it is available.
 - Move a Unit to the battlefield.

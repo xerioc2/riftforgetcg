@@ -17,6 +17,7 @@ import com.riftforge.model.RevealedHandSnapshot;
 import com.riftforge.model.RuneState;
 import com.riftforge.model.ShowdownStep;
 import com.riftforge.model.ZoneName;
+import com.riftforge.model.move.ActivateAbilityMove;
 import com.riftforge.model.move.AssignCombatDamageMove;
 import com.riftforge.model.move.EquipGearMove;
 import com.riftforge.model.move.HideCardMove;
@@ -85,6 +86,14 @@ class GameEnginePlayCardTypeTest {
           && "Spell".equalsIgnoreCase(def.type())
           && "Charm".equalsIgnoreCase(def.name())
           && text.equals("move an enemy unit.");
+    });
+    when(cardDataService.isTheSyrenActivatedAbility(any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      String text = def == null || def.rulesText() == null ? "" : def.rulesText().trim().toLowerCase();
+      return def != null
+          && "Gear".equalsIgnoreCase(def.type())
+          && "The Syren".equalsIgnoreCase(def.name())
+          && text.equals(":rb_energy_1:, :rb_exhaust:: move a friendly unit at a battlefield to its base.");
     });
     when(cardDataService.isHiddenCard(any(CardDefinition.class))).thenAnswer(invocation -> {
       CardDefinition def = invocation.getArgument(0);
@@ -2245,6 +2254,69 @@ class GameEnginePlayCardTypeTest {
     engine.applyMove(state, new PassPhaseMove("p1"));
 
     assertThat(state.getRevealedHands()).isEmpty();
+  }
+
+  @Test
+  void theSyrenActivatesFromBaseToMoveFriendlyBattlefieldUnitToBase() {
+    stubCard("syren", "The Syren", "Gear", 2, 0, 0, ":rb_energy_1:, :rb_exhaust:: Move a friendly unit at a battlefield to its base.");
+    stubCard("unit", "Friendly Unit", "Unit", 0, 2, 2, "");
+    LiveGameState state = state(card("syren", "p1", ZoneName.BASE), atLocation(card("unit", "p1", ZoneName.BATTLEFIELD), "bf-1"));
+    state.getPlayers().getFirst().setAvailableEnergy(1);
+
+    engine.applyMove(state, new ActivateAbilityMove("p1", "syren", "unit"));
+
+    assertThat(find(state, "unit").getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(find(state, "unit").getBattlefieldLocationId()).isNull();
+    assertThat(find(state, "syren").isTapped()).isTrue();
+    assertThat(state.getPlayers().getFirst().getAvailableEnergy()).isZero();
+    assertThat(state.getLog()).extracting(LiveGameState.LogEntry::text)
+        .contains("The Syren moved Friendly Unit to Base.");
+  }
+
+  @Test
+  void theSyrenCanPayActivationWithSelectedRune() {
+    stubCard("syren", "The Syren", "Gear", 2, 0, 0, ":rb_energy_1:, :rb_exhaust:: Move a friendly unit at a battlefield to its base.");
+    stubCard("unit", "Friendly Unit", "Unit", 0, 2, 2, "");
+    LiveGameState state = state(card("syren", "p1", ZoneName.BASE), atLocation(card("unit", "p1", ZoneName.BATTLEFIELD), "bf-0"));
+    state.setRunes(new ArrayList<>(List.of(rune("rune-1", "p1", false))));
+
+    engine.applyMove(state, new ActivateAbilityMove("p1", "syren", "unit", List.of("rune-1"), List.of()));
+
+    assertThat(findRune(state, "rune-1").isTapped()).isTrue();
+    assertThat(find(state, "unit").getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(find(state, "syren").isTapped()).isTrue();
+  }
+
+  @Test
+  void theSyrenRejectsInvalidTargetWithoutMutation() {
+    stubCard("syren", "The Syren", "Gear", 2, 0, 0, ":rb_energy_1:, :rb_exhaust:: Move a friendly unit at a battlefield to its base.");
+    stubCard("enemy", "Enemy Unit", "Unit", 0, 2, 2, "");
+    LiveGameState state = state(card("syren", "p1", ZoneName.BASE), atLocation(card("enemy", "p2", ZoneName.BATTLEFIELD), "bf-0"));
+    state.getPlayers().getFirst().setAvailableEnergy(1);
+
+    assertThatThrownBy(() -> engine.applyMove(state, new ActivateAbilityMove("p1", "syren", "enemy")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessageContaining("friendly public Unit or Champion");
+
+    assertThat(find(state, "enemy").getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(find(state, "enemy").getBattlefieldLocationId()).isEqualTo("bf-0");
+    assertThat(find(state, "syren").isTapped()).isFalse();
+    assertThat(state.getPlayers().getFirst().getAvailableEnergy()).isEqualTo(1);
+  }
+
+  @Test
+  void theSyrenRejectsInsufficientPaymentWithoutMutation() {
+    stubCard("syren", "The Syren", "Gear", 2, 0, 0, ":rb_energy_1:, :rb_exhaust:: Move a friendly unit at a battlefield to its base.");
+    stubCard("unit", "Friendly Unit", "Unit", 0, 2, 2, "");
+    LiveGameState state = state(card("syren", "p1", ZoneName.BASE), atLocation(card("unit", "p1", ZoneName.BATTLEFIELD), "bf-0"));
+    state.setRunes(new ArrayList<>(List.of(rune("tapped-rune", "p1", true))));
+
+    assertThatThrownBy(() -> engine.applyMove(state, new ActivateAbilityMove("p1", "syren", "unit")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessageContaining("Insufficient energy");
+
+    assertThat(find(state, "unit").getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(find(state, "syren").isTapped()).isFalse();
   }
 
   private LiveGameState state(CardInstance... cards) {

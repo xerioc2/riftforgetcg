@@ -56,7 +56,7 @@ public class EffectHandlerRegistry {
       EffectSupportStatus status = keywordSupport(keyword);
       if (!status.implemented()) return status;
     }
-    if ("Gear".equalsIgnoreCase(card.type()) && !isSupportedEquip(card)) {
+    if ("Gear".equalsIgnoreCase(card.type()) && !isSupportedGear(card)) {
       return EffectSupportStatus.unsupported("That gear ability is not supported yet.");
     }
     if ("Spell".equalsIgnoreCase(card.type()) && !isSupportedSpell(card)) {
@@ -71,6 +71,18 @@ public class EffectHandlerRegistry {
 
   private boolean isSupportedEquip(CardDefinition card) {
     return card.rulesText() != null && card.rulesText().toLowerCase(Locale.ROOT).contains("[equip]");
+  }
+
+  private boolean isSupportedGear(CardDefinition card) {
+    return isSupportedEquip(card) || isTheSyrenActivatedAbility(card);
+  }
+
+  private boolean isTheSyrenActivatedAbility(CardDefinition card) {
+    String normalized = card.rulesText() == null ? "" : card.rulesText().trim().toLowerCase(Locale.ROOT);
+    return "Gear".equalsIgnoreCase(card.type())
+        && card.name() != null
+        && card.name().trim().equalsIgnoreCase("The Syren")
+        && normalized.equals(":rb_energy_1:, :rb_exhaust:: move a friendly unit at a battlefield to its base.");
   }
 
   private boolean isSupportedSpell(CardDefinition card) {

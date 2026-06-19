@@ -317,9 +317,9 @@
         }
       },
       "support": {
-        "status": "UNSUPPORTED",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
-        "blocked": true
+        "status": "PARTIAL",
+        "reason": "Partial: alpha support moves one enemy public battlefield Unit/Champion to Base. Broader official movement choices, control/location edge cases, and non-battlefield destinations remain deferred.",
+        "blocked": false
       },
       "keywords": [],
       "bucket": "Movement / location"
@@ -869,20 +869,14 @@
     "uniqueCards": 26,
     "counts": {
       "SUPPORTED": 2,
-      "PARTIAL": 19,
-      "UNSUPPORTED": 5,
+      "PARTIAL": 20,
+      "UNSUPPORTED": 4,
       "BANNED": 0,
       "NOT_AUDITED": 0
     },
     "unresolved": [],
     "canUseInEnforced": false,
     "topBlockers": [
-      {
-        "cardName": "Charm",
-        "status": "UNSUPPORTED",
-        "bucket": "Movement / location",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet."
-      },
       {
         "cardName": "Cull the Weak",
         "status": "UNSUPPORTED",
@@ -906,6 +900,12 @@
         "status": "UNSUPPORTED",
         "bucket": "Reaction / chain / counter",
         "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Hall of Legends",
+        "status": "PARTIAL",
+        "bucket": "Battlefield effect",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
       }
     ]
   },

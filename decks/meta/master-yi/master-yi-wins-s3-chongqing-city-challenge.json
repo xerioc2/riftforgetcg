@@ -353,9 +353,9 @@
         }
       },
       "support": {
-        "status": "UNSUPPORTED",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
-        "blocked": true
+        "status": "PARTIAL",
+        "reason": "Partial: alpha support moves one enemy public battlefield Unit/Champion to Base. Broader official movement choices, control/location edge cases, and non-battlefield destinations remain deferred.",
+        "blocked": false
       },
       "keywords": [],
       "bucket": "Movement / location"
@@ -869,8 +869,8 @@
     "uniqueCards": 26,
     "counts": {
       "SUPPORTED": 3,
-      "PARTIAL": 18,
-      "UNSUPPORTED": 5,
+      "PARTIAL": 19,
+      "UNSUPPORTED": 4,
       "BANNED": 0,
       "NOT_AUDITED": 0
     },
@@ -881,12 +881,6 @@
         "cardName": "Challenge",
         "status": "UNSUPPORTED",
         "bucket": "Damage / destroy",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet."
-      },
-      {
-        "cardName": "Charm",
-        "status": "UNSUPPORTED",
-        "bucket": "Movement / location",
         "reason": "Blocked in enforced play: this card's effect is not supported yet."
       },
       {
@@ -906,6 +900,12 @@
         "status": "UNSUPPORTED",
         "bucket": "Equipment lifecycle/effect",
         "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Altar to Unity",
+        "status": "PARTIAL",
+        "bucket": "Battlefield effect",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
       }
     ]
   },

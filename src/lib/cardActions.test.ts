@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canUseSupportedChainResponse, isCharmMoveCard, isDefiantDanceReactionCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isFlashReactionCard, isGustReactionCard, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isSupportedChainReactionCard, multiTargetRequirementsForCard, shouldShowRespondAction, targetModeForCard, unsupportedCardReason } from './cardActions';
+import { canUseSupportedChainResponse, isCharmMoveCard, isDefiantDanceReactionCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isFlashReactionCard, isGustReactionCard, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isSupportedChainReactionCard, isTheSyrenActivatedAbility, multiTargetRequirementsForCard, shouldShowRespondAction, targetModeForCard, unsupportedCardReason } from './cardActions';
 import type { CardInstance, RiftCard } from '../types';
 
 describe('cardActions', () => {
@@ -139,6 +139,21 @@ describe('cardActions', () => {
     expect(isLegalTargetForMode(enemyBase, enemyUnit, 'ENEMY_UNIT', 'player')).toBe(false);
     expect(isLegalTargetForMode(friendlyBattlefield, enemyUnit, 'ENEMY_UNIT', 'player')).toBe(false);
     expect(isLegalTargetForMode(faceDownEnemy, enemyUnit, 'ENEMY_UNIT', 'player')).toBe(false);
+  });
+
+  it('recognizes The Syren as the narrow alpha activated Gear helper', () => {
+    const syren: RiftCard = {
+      id: 'syren',
+      name: 'The Syren',
+      type: 'Gear',
+      domains: [],
+      cost: 2,
+      rulesText: ':rb_energy_1:, :rb_exhaust:: Move a friendly unit at a battlefield to its base.',
+    };
+
+    expect(isTheSyrenActivatedAbility(syren)).toBe(true);
+    expect(unsupportedCardReason(syren)).toBeNull();
+    expect(targetModeForCard(syren)).toBe('NONE');
   });
 
   it('marks Gust playable only when chain play and a legal Gust target are available', () => {

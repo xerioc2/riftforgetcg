@@ -8,6 +8,7 @@ import com.riftforge.model.Phase;
 import com.riftforge.model.RuneState;
 import com.riftforge.model.ShowdownStep;
 import com.riftforge.model.ZoneName;
+import com.riftforge.engine.ActivatedAbilityService;
 import com.riftforge.engine.CombatStatsService;
 import com.riftforge.engine.CombatStatsService.CombatContext;
 import com.riftforge.service.CardDataService;
@@ -23,20 +24,26 @@ public class LegalActionsService {
   private final CardDataService cardDataService;
   private final ShowdownParticipantRules showdownParticipantRules;
   private final CombatStatsService combatStatsService;
+  private final ActivatedAbilityService activatedAbilityService;
 
   public LegalActionsService() {
-    this(null, new ShowdownParticipantRules(), null);
+    this(null, new ShowdownParticipantRules(), null, null);
   }
 
   public LegalActionsService(CardDataService cardDataService) {
-    this(cardDataService, new ShowdownParticipantRules(), cardDataService == null ? null : new CombatStatsService(cardDataService));
+    this(
+        cardDataService,
+        new ShowdownParticipantRules(),
+        cardDataService == null ? null : new CombatStatsService(cardDataService),
+        cardDataService == null ? null : new ActivatedAbilityService(cardDataService));
   }
 
   @Autowired
-  public LegalActionsService(CardDataService cardDataService, ShowdownParticipantRules showdownParticipantRules, CombatStatsService combatStatsService) {
+  public LegalActionsService(CardDataService cardDataService, ShowdownParticipantRules showdownParticipantRules, CombatStatsService combatStatsService, ActivatedAbilityService activatedAbilityService) {
     this.cardDataService = cardDataService;
     this.showdownParticipantRules = showdownParticipantRules;
     this.combatStatsService = combatStatsService;
+    this.activatedAbilityService = activatedAbilityService;
   }
 
   public Set<LegalAction> legalActionsFor(LiveGameState state, String playerId) {
@@ -126,6 +133,7 @@ public class LegalActionsService {
       actions.add(LegalAction.VISION_CHOICE);
       if (hasHideableCardInHand(state, playerId) && hasReadyRune(state, playerId)) actions.add(LegalAction.HIDE_CARD);
       if (hasEquippableGearAtBase(state, playerId) && hasLegalEquipTarget(state, playerId)) actions.add(LegalAction.EQUIP_GEAR);
+      if (hasActivatableAbilityAtBase(state, playerId)) actions.add(LegalAction.ACTIVATE_ABILITY);
       return actions;
     }
 
@@ -315,6 +323,10 @@ public class LegalActionsService {
   }
 
   private boolean canPay(LiveGameState state, String playerId, CardDefinition def) {
+    return canPayEnergy(state, playerId, Math.max(0, def.cost()));
+  }
+
+  private boolean canPayEnergy(LiveGameState state, String playerId, int cost) {
     int availableEnergy = state.getPlayers().stream()
         .filter(player -> playerId.equals(player.getUserId()))
         .findFirst()
@@ -324,7 +336,7 @@ public class LegalActionsService {
         .filter(rune -> playerId.equals(rune.getOwnerId()) && !rune.isTapped())
         .mapToInt(rune -> Math.max(0, rune.getNormalEnergy()))
         .sum();
-    return availableEnergy + readyRuneEnergy >= Math.max(0, def.cost());
+    return availableEnergy + readyRuneEnergy >= Math.max(0, cost);
   }
 
   private boolean hasHideableCardInHand(LiveGameState state, String playerId) {
@@ -348,6 +360,10 @@ public class LegalActionsService {
         .filter(card -> card.getAttachedToInstanceId() == null || card.getAttachedToInstanceId().isBlank())
         .map(card -> cardDataService.getCard(card.getCardId()))
         .anyMatch(def -> cardDataService.isEquip(def) && canPayEquip(state, playerId, def));
+  }
+
+  private boolean hasActivatableAbilityAtBase(LiveGameState state, String playerId) {
+    return activatedAbilityService != null && activatedAbilityService.hasLegalActivation(state, playerId);
   }
 
   private boolean hasLegalEquipTarget(LiveGameState state, String playerId) {

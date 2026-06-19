@@ -27,7 +27,7 @@ import {
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
 import { readableHttpError } from '../lib/http';
-import { canUseSupportedChainResponse, hasUnsupportedAdditionalCost, isActionCard, isAmbushCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isEquipCard, isGustReactionCard, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
+import { canUseSupportedChainResponse, hasUnsupportedAdditionalCost, isActionCard, isAmbushCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isEquipCard, isGustReactionCard, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isTheSyrenActivatedAbility, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
 import { appBuildLabel, APP_VERSION, BUILD_DATE, BUILD_TAG } from '../lib/appMetadata';
 import { buildDebugInfo } from '../lib/debugInfo';
 import { attachedGearDisplayPosition, attachedGearDisplayScale, attachedGearIsIndependentBoardPiece, attachedGearNamesForHost } from '../lib/attachments';
@@ -555,6 +555,40 @@ export function GameBoard() {
     }
     setPendingRuneTaps(new Set());
     return { paymentRuneIds: [...selectedRunes], premiumRuneIds };
+  };
+
+  const selectPaymentRunesForEnergyCost = (label: string, energyCost: number) => {
+    const playerEnergy = state?.players.find((statePlayer) => statePlayer.userId === player.id)?.availableEnergy ?? 0;
+    const selectedRunes = new Set<string>();
+    let plannedEnergy = 0;
+    const neededEnergy = Math.max(0, energyCost - playerEnergy);
+    for (const runeId of pendingRuneTaps) {
+      if (plannedEnergy >= neededEnergy) break;
+      const rune = state?.runes?.find((candidate) => candidate.instanceId === runeId);
+      if (!rune || rune.ownerId !== player.id || rune.tapped) continue;
+      selectedRunes.add(rune.instanceId);
+      plannedEnergy += rune.normalEnergy;
+    }
+    for (const rune of state?.runes ?? []) {
+      if (plannedEnergy >= neededEnergy) break;
+      if (rune.ownerId !== player.id || rune.tapped || selectedRunes.has(rune.instanceId)) continue;
+      selectedRunes.add(rune.instanceId);
+      plannedEnergy += rune.normalEnergy;
+    }
+    if (plannedEnergy < neededEnergy) {
+      notifyWarning('Insufficient energy', `${label} needs ${neededEnergy} energy from ready runes.`);
+      return null;
+    }
+    setPendingRuneTaps(new Set());
+    return { paymentRuneIds: [...selectedRunes], premiumRuneIds: [] as string[] };
+  };
+
+  const canPayEnergyCost = (energyCost: number) => {
+    const playerEnergy = state?.players.find((statePlayer) => statePlayer.userId === player.id)?.availableEnergy ?? 0;
+    const readyRuneEnergy = (state?.runes ?? [])
+      .filter((rune) => rune.ownerId === player.id && !rune.tapped)
+      .reduce((sum, rune) => sum + Math.max(0, rune.normalEnergy), 0);
+    return playerEnergy + readyRuneEnergy >= energyCost;
   };
 
   const equipPaymentForCard = (cardDef: RiftCard | undefined, showWarnings: boolean) => {
@@ -1103,6 +1137,17 @@ export function GameBoard() {
         setPendingTargetSelection(null);
         return;
       }
+      if (isTheSyrenActivatedAbility(spellDef) && sameZone(spellInstance.zone, 'base')) {
+        if (!canTakeAction(state, 'ACTIVATE_ABILITY')) {
+          notifyWarning('Ability unavailable', 'The Syren can activate during your Main Phase when it is ready, paid for, and has a legal target.');
+          return;
+        }
+        const payment = selectPaymentRunesForEnergyCost(spellDef?.name ?? 'The Syren', 1);
+        if (!payment) return;
+        publishMove({ type: 'ACTIVATE_ABILITY', playerId: player.id, sourceInstanceId: pendingTargetSelection.instanceId, abilityKey: 'THE_SYREN_RECALL', targetInstanceId: instanceId, ...payment });
+        setPendingTargetSelection(null);
+        return;
+      }
       playCardToBase(pendingTargetSelection.instanceId, spellDef, false, instanceId);
       setPendingTargetSelection(null);
       return;
@@ -1133,6 +1178,27 @@ export function GameBoard() {
         return;
       }
       beginTargetSelection(instanceId, 'FRIENDLY_UNIT_FOR_EQUIP');
+      return;
+    }
+
+    if (instance.ownerId === player.id && sameZone(instance.zone, 'base') && isTheSyrenActivatedAbility(targetCard)) {
+      if (instance.tapped) {
+        notifyWarning('Ability unavailable', 'The Syren is already exhausted.');
+        return;
+      }
+      if (legalTargetsForMode('FRIENDLY_UNIT').length === 0) {
+        notifyWarning('No legal targets', 'The Syren needs a friendly Unit or Champion at a battlefield.');
+        return;
+      }
+      if (!canPayEnergyCost(1)) {
+        notifyWarning('Ability unavailable', 'The Syren needs 1 energy to activate.');
+        return;
+      }
+      if (!canTakeAction(state, 'ACTIVATE_ABILITY')) {
+        notifyWarning('Ability unavailable', 'The Syren can activate during your Main Phase when a legal target and payment are available.');
+        return;
+      }
+      beginTargetSelection(instanceId, 'FRIENDLY_UNIT');
       return;
     }
 

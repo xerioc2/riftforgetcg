@@ -305,9 +305,9 @@
         }
       },
       "support": {
-        "status": "UNSUPPORTED",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
-        "blocked": true
+        "status": "PARTIAL",
+        "reason": "Partial: alpha support moves one enemy public battlefield Unit/Champion to Base. Broader official movement choices, control/location edge cases, and non-battlefield destinations remain deferred.",
+        "blocked": false
       },
       "keywords": [],
       "bucket": "Movement / location"
@@ -335,9 +335,9 @@
         }
       },
       "support": {
-        "status": "UNSUPPORTED",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
-        "blocked": true
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists for giving one public battlefield Unit/Champion +2 Might and another public battlefield Unit/Champion -2 Might this turn. Full official any-time Reaction timing remains incomplete.",
+        "blocked": false
       },
       "keywords": [
         "Reaction"
@@ -791,26 +791,14 @@
     "uniqueCards": 24,
     "counts": {
       "SUPPORTED": 3,
-      "PARTIAL": 19,
-      "UNSUPPORTED": 2,
+      "PARTIAL": 21,
+      "UNSUPPORTED": 0,
       "BANNED": 0,
       "NOT_AUDITED": 0
     },
     "unresolved": [],
-    "canUseInEnforced": false,
+    "canUseInEnforced": true,
     "topBlockers": [
-      {
-        "cardName": "Charm",
-        "status": "UNSUPPORTED",
-        "bucket": "Movement / location",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet."
-      },
-      {
-        "cardName": "Defiant Dance",
-        "status": "UNSUPPORTED",
-        "bucket": "Reaction / chain / counter",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet."
-      },
       {
         "cardName": "Abandoned Hall",
         "status": "PARTIAL",
@@ -828,6 +816,18 @@
         "status": "PARTIAL",
         "bucket": "Battlefield effect",
         "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      },
+      {
+        "cardName": "Fizz - Trickster",
+        "status": "PARTIAL",
+        "bucket": "Champion text",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      },
+      {
+        "cardName": "Irelia - Fervent",
+        "status": "PARTIAL",
+        "bucket": "Champion text",
+        "reason": "Partial: Deflect targeting tax is heuristic, and the choose/ready +1 Might trigger is not implemented yet."
       }
     ]
   },

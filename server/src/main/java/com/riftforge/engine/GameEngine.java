@@ -39,6 +39,7 @@ public class GameEngine {
   private final TokenFactory tokenFactory;
   private final TriggerDispatcher triggerDispatcher;
   private final PriorityWindowService priorityWindowService;
+  private final ActivatedAbilityService activatedAbilityService;
   private final ShowdownParticipantRules showdownParticipantRules = new ShowdownParticipantRules();
   private final int targetScore;
 
@@ -55,11 +56,12 @@ public class GameEngine {
             new NoxianDrummerMoveTrigger(cardDataService, tokenFactory),
             new StellacornHerderMoveTrigger(cardDataService))),
         new PriorityWindowService(cardDataService),
+        new ActivatedAbilityService(cardDataService),
         targetScore);
   }
 
   @Autowired
-  public GameEngine(RulesValidator rulesValidator, CombatResolver combatResolver, CardZoneService cardZoneService, CardDataService cardDataService, CardEffectRegistry effects, DeathTriggerService deathTriggerService, TokenFactory tokenFactory, TriggerDispatcher triggerDispatcher, PriorityWindowService priorityWindowService, @Value("${riftforge.target-score}") int targetScore) {
+  public GameEngine(RulesValidator rulesValidator, CombatResolver combatResolver, CardZoneService cardZoneService, CardDataService cardDataService, CardEffectRegistry effects, DeathTriggerService deathTriggerService, TokenFactory tokenFactory, TriggerDispatcher triggerDispatcher, PriorityWindowService priorityWindowService, ActivatedAbilityService activatedAbilityService, @Value("${riftforge.target-score}") int targetScore) {
     this.rulesValidator = rulesValidator;
     this.combatResolver = combatResolver;
     this.cardZoneService = cardZoneService;
@@ -69,6 +71,7 @@ public class GameEngine {
     this.tokenFactory = tokenFactory;
     this.triggerDispatcher = triggerDispatcher;
     this.priorityWindowService = priorityWindowService;
+    this.activatedAbilityService = activatedAbilityService;
     this.targetScore = targetScore;
   }
 
@@ -98,6 +101,7 @@ public class GameEngine {
       case DismissRevealedMove m -> applyDismissRevealed(state, m);
       case HideCardMove m -> applyHideCard(state, m);
       case EquipGearMove m -> applyEquipGear(state, m);
+      case ActivateAbilityMove m -> applyActivateAbility(state, m);
       case ResolveChoiceMove m -> applyResolveChoice(state, m);
     };
     next.setUpdatedAt(Instant.now().toString());
@@ -258,6 +262,20 @@ public class GameEngine {
     CardInstance target = findCard(state, move.targetInstanceId());
     applyPayment(state, move.playerId(), move.paymentRuneIds(), move.premiumRuneIds(), EquipmentRules.equipCost(gearDef).energyCost());
     attachGear(state, gear, gearDef, target, move.playerId());
+    return state;
+  }
+
+  private LiveGameState applyActivateAbility(LiveGameState state, ActivateAbilityMove move) {
+    CardInstance source = findCard(state, move.sourceInstanceId());
+    CardDefinition sourceDef = cardDataService.getCard(source.getCardId());
+    ActivatedAbilityDefinition definition = activatedAbilityService.definitionFor(sourceDef, move.abilityKey())
+        .orElseThrow(() -> new IllegalMoveException("That activated ability is not supported yet."));
+    CardInstance target = activatedAbilityService.validateTarget(state, move, definition);
+    applyPayment(state, move.playerId(), move.paymentRuneIds(), move.premiumRuneIds(), definition.energyCost());
+    if (definition.requiresExhaust()) source.setTapped(true);
+    if (ActivatedAbilityService.THE_SYREN_RECALL.equals(definition.abilityKey())) {
+      recallUnitToBase(state, source, sourceDef, target);
+    }
     return state;
   }
 

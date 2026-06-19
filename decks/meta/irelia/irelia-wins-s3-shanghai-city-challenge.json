@@ -329,9 +329,9 @@
         }
       },
       "support": {
-        "status": "UNSUPPORTED",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
-        "blocked": true
+        "status": "PARTIAL",
+        "reason": "Partial: alpha support moves one enemy public battlefield Unit/Champion to Base. Broader official movement choices, control/location edge cases, and non-battlefield destinations remain deferred.",
+        "blocked": false
       },
       "keywords": [],
       "bucket": "Movement / location"
@@ -359,9 +359,9 @@
         }
       },
       "support": {
-        "status": "UNSUPPORTED",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
-        "blocked": true
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists for giving one public battlefield Unit/Champion +2 Might and another public battlefield Unit/Champion -2 Might this turn. Full official any-time Reaction timing remains incomplete.",
+        "blocked": false
       },
       "keywords": [
         "Reaction"
@@ -550,9 +550,9 @@
         }
       },
       "support": {
-        "status": "UNSUPPORTED",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
-        "blocked": true
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists for moving up to two friendly battlefield Unit/Champion cards to Base. Full official any-time Reaction timing remains incomplete.",
+        "blocked": false
       },
       "keywords": [
         "Reaction"
@@ -962,9 +962,9 @@
         }
       },
       "support": {
-        "status": "UNSUPPORTED",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
-        "blocked": true
+        "status": "PARTIAL",
+        "reason": "Partial: The Syren can be played to Base and activated during your Main Phase by paying 1 energy and exhausting it to move a friendly public battlefield Unit/Champion to Base. Broader activated ability timing and ability-chain support remain deferred.",
+        "blocked": false
       },
       "keywords": [],
       "bucket": "Equipment lifecycle/effect"
@@ -1098,32 +1098,14 @@
     "uniqueCards": 33,
     "counts": {
       "SUPPORTED": 5,
-      "PARTIAL": 20,
-      "UNSUPPORTED": 8,
+      "PARTIAL": 24,
+      "UNSUPPORTED": 4,
       "BANNED": 0,
       "NOT_AUDITED": 0
     },
     "unresolved": [],
     "canUseInEnforced": false,
     "topBlockers": [
-      {
-        "cardName": "Charm",
-        "status": "UNSUPPORTED",
-        "bucket": "Movement / location",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet."
-      },
-      {
-        "cardName": "Defiant Dance",
-        "status": "UNSUPPORTED",
-        "bucket": "Reaction / chain / counter",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet."
-      },
-      {
-        "cardName": "Flash",
-        "status": "UNSUPPORTED",
-        "bucket": "Reaction / chain / counter",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet."
-      },
       {
         "cardName": "Hard Bargain",
         "status": "UNSUPPORTED",
@@ -1135,6 +1117,24 @@
         "status": "UNSUPPORTED",
         "bucket": "Equipment lifecycle/effect",
         "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Switcheroo",
+        "status": "UNSUPPORTED",
+        "bucket": "Hidden / facedown",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Zhonya's Hourglass",
+        "status": "UNSUPPORTED",
+        "bucket": "Equipment lifecycle/effect",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Abandoned Hall",
+        "status": "PARTIAL",
+        "bucket": "Battlefield effect",
+        "reason": "Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely."
       }
     ]
   },

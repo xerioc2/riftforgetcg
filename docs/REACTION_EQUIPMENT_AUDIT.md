@@ -142,7 +142,7 @@ chain items exist.
 1. Star-Crossed chain hookup
    - Effect is already staged and scripted.
    - Add chain-backed Reaction entry point, then keep Partial for official timing.
-2. Zhonya's Hourglass / The Syren Gear-effect blockers
+2. Zhonya's Hourglass Gear-effect blocker; The Syren is now a narrow Partial activated Gear slice
    - Biggest remaining Irelia Unsupported blockers after Charm's narrow movement slice.
 3. Riposte
    - Higher risk because it combines a unit target, spell chain target, counter,

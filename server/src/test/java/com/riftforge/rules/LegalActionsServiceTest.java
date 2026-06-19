@@ -114,6 +114,45 @@ class LegalActionsServiceTest {
   }
 
   @Test
+  void theSyrenActivationRequiresReadyBaseSourceLegalTargetAndPayment() {
+    CardDefinition syren = new CardDefinition(
+        "syren",
+        "The Syren",
+        "Gear",
+        null,
+        List.of(),
+        2,
+        0,
+        null,
+        null,
+        null,
+        ":rb_energy_1:, :rb_exhaust:: Move a friendly unit at a battlefield to its base.",
+        0,
+        0,
+        List.of());
+    when(cardDataService.getCard("syren")).thenReturn(syren);
+    when(cardDataService.getCard("friendly")).thenReturn(unitDef("friendly", 2, 2));
+    when(cardDataService.isTheSyrenActivatedAbility(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      return def != null && "The Syren".equalsIgnoreCase(def.name());
+    });
+    LegalActionsService legalActions = new LegalActionsService(cardDataService);
+    LiveGameState state = state(Phase.MAIN, "p1");
+    state.getCards().add(card("syren-1", "p1", "syren", ZoneName.BASE));
+    state.getCards().add(card("friendly-1", "p1", "friendly", ZoneName.BATTLEFIELD));
+
+    assertThat(legalActions.legalActionsFor(state, "p1")).doesNotContain(LegalAction.ACTIVATE_ABILITY);
+
+    state.setRunes(new ArrayList<>(List.of(rune("rune-1", "p1", false))));
+
+    assertThat(legalActions.legalActionsFor(state, "p1")).contains(LegalAction.ACTIVATE_ABILITY);
+
+    state.getCards().getFirst().setTapped(true);
+
+    assertThat(legalActions.legalActionsFor(state, "p1")).doesNotContain(LegalAction.ACTIVATE_ABILITY);
+  }
+
+  @Test
   void pendingChoiceExposesOnlyResolveChoiceToOwner() {
     LiveGameState state = state(Phase.MAIN, "p1");
     state.setPendingChoice(PendingChoice.optionalDrawOne("choice-1", "p1", "source", "Draw a card?"));

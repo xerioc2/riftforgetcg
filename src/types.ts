@@ -90,6 +90,7 @@ export type LegalAction =
   | 'RESOLVE_CHOICE'
   | 'HIDE_CARD'
   | 'EQUIP_GEAR'
+  | 'ACTIVATE_ABILITY'
   | 'SANDBOX_DEAL_CARD'
   | 'SANDBOX_ADJUST_SCORE'
   | 'SANDBOX_TAP_CARD'

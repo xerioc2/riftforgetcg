@@ -14,8 +14,8 @@ Extraction status: Extracted
 
 | Deck slug | Deck name | Unique cards | Supported | Partial | Unsupported | Not Audited | Enforced playable |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| irelia-wins-s3-shanghai-city-challenge | Irelia Wins S3 Shanghai City Challenge | 33 | 5 | 20 | 8 | 0 | No |
-| irelia-wins-sydney-regional-qualifier | Irelia wins Sydney Regional Qualifier | 24 | 3 | 19 | 2 | 0 | No |
+| irelia-wins-s3-shanghai-city-challenge | Irelia Wins S3 Shanghai City Challenge | 33 | 5 | 24 | 4 | 0 | No |
+| irelia-wins-sydney-regional-qualifier | Irelia wins Sydney Regional Qualifier | 24 | 3 | 21 | 0 | 0 | Yes |
 
 ## Unresolved Cards
 
@@ -23,14 +23,15 @@ Extraction status: Extracted
 
 ## Shared Top Blockers
 
-- Charm: PARTIAL - Movement / location. Alpha support moves one enemy public battlefield Unit/Champion to Base; broader movement choices and destination control remain deferred.
-- Defiant Dance: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
-- Flash: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Hard Bargain: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Heart of Dark Ice: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
+- Switcheroo: UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
+- Zhonya's Hourglass: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Abandoned Hall: PARTIAL - Battlefield effect. Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.
 - Sunken Temple: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Targon's Peak: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Fizz - Trickster: PARTIAL - Champion text. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Irelia - Fervent: PARTIAL - Champion text. Partial: Deflect targeting tax is heuristic, and the choose/ready +1 Might trigger is not implemented yet.
 
 ## Decklists
 
@@ -50,11 +51,11 @@ Extraction status: Extracted
 
 Top blockers:
 
-- Charm: PARTIAL - Movement / location. Alpha support moves one enemy public battlefield Unit/Champion to Base; broader movement choices and destination control remain deferred.
-- Defiant Dance: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
-- Flash: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Hard Bargain: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Heart of Dark Ice: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
+- Switcheroo: UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
+- Zhonya's Hourglass: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
+- Abandoned Hall: PARTIAL - Battlefield effect. Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.
 
 ### Irelia wins Sydney Regional Qualifier
 
@@ -72,11 +73,11 @@ Top blockers:
 
 Top blockers:
 
-- Charm: PARTIAL - Movement / location. Alpha support moves one enemy public battlefield Unit/Champion to Base; broader movement choices and destination control remain deferred.
-- Defiant Dance: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Abandoned Hall: PARTIAL - Battlefield effect. Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.
 - Sunken Temple: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Targon's Peak: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Fizz - Trickster: PARTIAL - Champion text. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Irelia - Fervent: PARTIAL - Champion text. Partial: Deflect targeting tax is heuristic, and the choose/ready +1 Might trigger is not implemented yet.
 
 ## Recommended Implementation Order
 

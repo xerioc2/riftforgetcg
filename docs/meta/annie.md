@@ -14,7 +14,7 @@ Extraction status: Extracted
 
 | Deck slug | Deck name | Unique cards | Supported | Partial | Unsupported | Not Audited | Enforced playable |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| annie-4th-at-lille-regional-qualifier | Annie 4th at Lille Regional Qualifier | 27 | 1 | 21 | 5 | 0 | No |
+| annie-4th-at-lille-regional-qualifier | Annie 4th at Lille Regional Qualifier | 27 | 1 | 22 | 4 | 0 | No |
 
 ## Unresolved Cards
 
@@ -23,10 +23,10 @@ Extraction status: Extracted
 ## Shared Top Blockers
 
 - Factory Recall: UNSUPPORTED - Bounce / return. Blocked in enforced play: this card's effect is not supported yet.
-- Flash: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Hard Bargain: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Switcheroo: UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
 - Thermo Beam: UNSUPPORTED - Damage / destroy. Blocked in enforced play: this card's effect is not supported yet.
+- Seat of Power: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 
 ## Decklists
 
@@ -46,10 +46,10 @@ Extraction status: Extracted
 Top blockers:
 
 - Factory Recall: UNSUPPORTED - Bounce / return. Blocked in enforced play: this card's effect is not supported yet.
-- Flash: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Hard Bargain: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Switcheroo: UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
 - Thermo Beam: UNSUPPORTED - Damage / destroy. Blocked in enforced play: this card's effect is not supported yet.
+- Seat of Power: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 
 ## Recommended Implementation Order
 

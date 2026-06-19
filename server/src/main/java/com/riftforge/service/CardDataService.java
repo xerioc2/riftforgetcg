@@ -347,6 +347,15 @@ public class CardDataService {
         && text.equals("move an enemy unit.");
   }
 
+  public boolean isTheSyrenActivatedAbility(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().trim().toLowerCase();
+    return "Gear".equalsIgnoreCase(def.type())
+        && def.name() != null
+        && def.name().trim().equalsIgnoreCase("The Syren")
+        && text.equals(":rb_energy_1:, :rb_exhaust:: move a friendly unit at a battlefield to its base.");
+  }
+
   public boolean isDefyCounterReaction(CardDefinition def) {
     if (def == null || def.rulesText() == null) return false;
     String text = def.rulesText().toLowerCase();
@@ -401,7 +410,7 @@ public class CardDataService {
     String text = def.rulesText();
     if (text == null) return false;
     String normalized = text.toLowerCase();
-    if ("Gear".equalsIgnoreCase(def.type())) return !isEquip(def);
+    if ("Gear".equalsIgnoreCase(def.type())) return !isEquip(def) && !isTheSyrenActivatedAbility(def);
     if (!"Spell".equalsIgnoreCase(def.type())) return false;
     boolean supportedFriendlyEnemyReturn = normalized.contains("return")
         && normalized.contains("friendly unit")

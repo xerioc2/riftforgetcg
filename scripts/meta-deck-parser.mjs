@@ -50,6 +50,7 @@ const PARTIAL_REASONS = new Map([
   ['DEFIANT DANCE', 'Partial: alpha chain-window Reaction support exists for giving one public battlefield Unit/Champion +2 Might and another public battlefield Unit/Champion -2 Might this turn. Full official any-time Reaction timing remains incomplete.'],
   ['FLASH', 'Partial: alpha chain-window Reaction support exists for moving up to two friendly battlefield Unit/Champion cards to Base. Full official any-time Reaction timing remains incomplete.'],
   ['CHARM', 'Partial: alpha support moves one enemy public battlefield Unit/Champion to Base. Broader official movement choices, control/location edge cases, and non-battlefield destinations remain deferred.'],
+  ['THE SYREN', 'Partial: The Syren can be played to Base and activated during your Main Phase by paying 1 energy and exhausting it to move a friendly public battlefield Unit/Champion to Base. Broader activated ability timing and ability-chain support remain deferred.'],
   ['DEFY', 'Partial: Defy can counter supported public pending spell chain items that cost no more than 4 energy and no more than 1 premium rune during the current alpha chain window. Full official Reaction timing, broad spell/ability targets, and countering counters remain deferred.'],
   ['NOT SO FAST', 'Partial: Not So Fast can counter a supported public pending enemy spell chain item only when that item chooses your friendly Unit/Champion Unit or Gear. Ability-chain targets, broad official Reaction timing, and countering counters remain deferred.'],
   ['GUST', 'Partial: alpha chain-window Reaction support exists through Stacked Deck for returning a battlefield Unit/Champion with 3 Might or less, but full official any-time Reaction timing remains incomplete.'],
@@ -265,7 +266,7 @@ function isUnsupportedAction(card) {
   if (!card) return false;
   const type = String(card.type ?? '').toLowerCase();
   const text = String(card.rulesText ?? '').toLowerCase();
-  if (type === 'gear') return !text.includes('[equip]');
+  if (type === 'gear') return !text.includes('[equip]') && !isTheSyren(card);
   if (type !== 'spell') return false;
   const supportedFriendlyEnemyReturn = text.includes('return')
     && text.includes('friendly unit')
@@ -279,6 +280,7 @@ function isUnsupportedAction(card) {
     || text.includes('ready it')
     || text.includes('draw 1')
     || isCharm(card)
+    || isTheSyren(card)
     || isDefy(card)
     || isNotSoFast(card)
     || isDiscipline(card)
@@ -333,6 +335,12 @@ function isCharm(card) {
   const text = String(card?.rulesText ?? '').trim().toLowerCase();
   return normalizeName(card?.name) === 'CHARM'
     && text === 'move an enemy unit.';
+}
+
+function isTheSyren(card) {
+  const text = String(card?.rulesText ?? '').trim().toLowerCase();
+  return normalizeName(card?.name) === 'THE SYREN'
+    && text === ':rb_energy_1:, :rb_exhaust:: move a friendly unit at a battlefield to its base.';
 }
 
 function isStackedDeck(card) {

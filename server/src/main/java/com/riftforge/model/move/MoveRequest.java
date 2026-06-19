@@ -28,8 +28,9 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
   @JsonSubTypes.Type(value = DismissRevealedMove.class, name = "DISMISS_REVEALED"),
   @JsonSubTypes.Type(value = HideCardMove.class, name = "HIDE_CARD"),
   @JsonSubTypes.Type(value = EquipGearMove.class, name = "EQUIP_GEAR"),
+  @JsonSubTypes.Type(value = ActivateAbilityMove.class, name = "ACTIVATE_ABILITY"),
   @JsonSubTypes.Type(value = ResolveChoiceMove.class, name = "RESOLVE_CHOICE")
 })
-public sealed interface MoveRequest permits DealCardMove, TapCardMove, FlipCardMove, PlayCardMove, MoveCardMove, RepositionCardMove, TapRuneMove, DiscardRuneMove, MoveToBattlefieldMove, SelectBattlefieldMove, MulliganMove, UndoRunesMove, PassPhaseMove, PassChainFocusMove, ResolveChainTopMove, PassShowdownFocusMove, ResolveShowdownMove, AssignCombatDamageMove, AdjustScoreMove, VisionChoiceMove, DismissRevealedMove, HideCardMove, EquipGearMove, ResolveChoiceMove {
+public sealed interface MoveRequest permits DealCardMove, TapCardMove, FlipCardMove, PlayCardMove, MoveCardMove, RepositionCardMove, TapRuneMove, DiscardRuneMove, MoveToBattlefieldMove, SelectBattlefieldMove, MulliganMove, UndoRunesMove, PassPhaseMove, PassChainFocusMove, ResolveChainTopMove, PassShowdownFocusMove, ResolveShowdownMove, AssignCombatDamageMove, AdjustScoreMove, VisionChoiceMove, DismissRevealedMove, HideCardMove, EquipGearMove, ActivateAbilityMove, ResolveChoiceMove {
   String playerId();
 }

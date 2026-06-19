@@ -596,9 +596,9 @@
         }
       },
       "support": {
-        "status": "UNSUPPORTED",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
-        "blocked": true
+        "status": "PARTIAL",
+        "reason": "Partial: The Syren can be played to Base and activated during your Main Phase by paying 1 energy and exhausting it to move a friendly public battlefield Unit/Champion to Base. Broader activated ability timing and ability-chain support remain deferred.",
+        "blocked": false
       },
       "bucket": "Equipment lifecycle/effect"
     },
@@ -693,8 +693,8 @@
     "uniqueCards": 27,
     "counts": {
       "SUPPORTED": 4,
-      "PARTIAL": 21,
-      "UNSUPPORTED": 2,
+      "PARTIAL": 22,
+      "UNSUPPORTED": 1,
       "BANNED": 0,
       "NOT_AUDITED": 0
     },
@@ -704,13 +704,6 @@
       {
         "cardName": "Zhonya's Hourglass",
         "sourceCardId": "OGN-077",
-        "status": "UNSUPPORTED",
-        "bucket": "Equipment lifecycle/effect",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet."
-      },
-      {
-        "cardName": "The Syren",
-        "sourceCardId": "OGN-184",
         "status": "UNSUPPORTED",
         "bucket": "Equipment lifecycle/effect",
         "reason": "Blocked in enforced play: this card's effect is not supported yet."
@@ -735,6 +728,13 @@
         "status": "PARTIAL",
         "bucket": "Battlefield effect",
         "reason": "Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely."
+      },
+      {
+        "cardName": "Vex - Apathetic",
+        "sourceCardId": "UNL-150",
+        "status": "PARTIAL",
+        "bucket": "Champion text",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
       }
     ]
   },
