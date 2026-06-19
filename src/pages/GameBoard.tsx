@@ -34,6 +34,7 @@ import { attachedGearDisplayPosition, attachedGearDisplayScale, attachedGearIsIn
 import { battlefieldLaneDisplays } from '../lib/battlefieldDisplay';
 import { buildCombatDamageAssignments } from '../lib/combatDamageAssignments';
 import { isBotPlayer, legalActionHint, phaseGuidance, waitingStatusText } from '../lib/gameGuidance';
+import { equipCostForCard, equipCostLabel, runeMatchesEquipDomain } from '../lib/equipment';
 import { useLocalPlayer } from '../lib/playerContext';
 import { getServerBuildInfo } from '../lib/serverBuildInfo';
 import { getRoomSessionToken } from '../lib/roomSession';
@@ -82,33 +83,6 @@ function sharesDomain(card: RiftCard | undefined, rune: RiftCard | undefined) {
   return rune.domains
     .filter((domain) => domain !== 'COLORLESS')
     .some((domain) => card.domains.some((cardDomain) => cardDomain.toUpperCase() === domain.toUpperCase()));
-}
-
-type EquipCost = {
-  energyCost: number;
-  premiumDomains: string[];
-};
-
-function normalizeDomain(domain: string) {
-  return domain.trim().replace('-', '_').toUpperCase();
-}
-
-function equipCostForCard(card: RiftCard | undefined): EquipCost {
-  const text = card?.rulesText ?? '';
-  const header = text.match(/\[equip\]\s*([^\(\[]*)/i)?.[1] ?? '';
-  const energyCost = [...header.matchAll(/:rb_energy_(\d+):/gi)]
-    .reduce((total, match) => total + Number(match[1] ?? 0), 0);
-  const premiumDomains = [...header.matchAll(/:rb_rune_([a-z_]+):/gi)]
-    .map((match) => normalizeDomain(match[1] ?? ''));
-  return { energyCost, premiumDomains };
-}
-
-function runeMatchesEquipDomain(requiredDomain: string, rune: RiftCard | undefined) {
-  if (!rune) return false;
-  const required = normalizeDomain(requiredDomain);
-  return rune.domains
-    .filter((domain) => domain !== 'COLORLESS')
-    .some((domain) => required === 'RAINBOW' || normalizeDomain(domain) === required);
 }
 
 function hasMaskedOwnHand(state: LiveGameState, playerId: string) {
@@ -1104,8 +1078,7 @@ export function GameBoard() {
       }
       if (!canPayEquipCost(targetCard)) {
         const cost = equipCostForCard(targetCard);
-        const runeText = cost.premiumDomains.length > 0 ? ` and ${cost.premiumDomains.join('/').toLowerCase()} rune payment` : '';
-        notifyWarning('Equip unavailable', `${targetCard?.name ?? 'That Equipment'} needs ${cost.energyCost > 0 ? `${cost.energyCost} energy` : 'its printed equip cost'}${runeText}.`);
+        notifyWarning('Equip unavailable', `${targetCard?.name ?? 'That Equipment'} needs ${equipCostLabel(cost)}.`);
         return;
       }
       if (!canTakeAction(state, 'EQUIP_GEAR')) {
@@ -1448,7 +1421,15 @@ export function GameBoard() {
 
   return (
     <main className="relative overflow-hidden bg-ink text-slate-100" style={{ height: `calc(100vh - ${NAV_HEIGHT}px)` }}>
-      {inspectCard ? <CardInspectModal card={inspectCard} cardDef={cardsById.get(inspectCard.cardId)} onClose={() => setInspectCard(null)} /> : null}
+      {inspectCard ? (
+        <CardInspectModal
+          card={inspectCard}
+          cardDef={cardsById.get(inspectCard.cardId)}
+          allInstances={state.cards}
+          cardsById={cardsById}
+          onClose={() => setInspectCard(null)}
+        />
+      ) : null}
       <div ref={boardFrameRef} className="absolute left-0 top-0 overflow-hidden" style={{ right: `${SIDEBAR_WIDTH}px`, bottom: handHeight + PHASE_BAR_HEIGHT }}>
         <Stage
           width={size.width}
@@ -1558,6 +1539,8 @@ export function GameBoard() {
                   animate={pendingAnimations.current.delete(instance.instanceId)}
                   scale={displayScale ?? cardScale}
                   attachedGearNames={attachedGearNames}
+                  allInstances={state.cards}
+                  cardsById={cardsById}
                   onHover={handleCardHover}
                 />
               );
@@ -1764,7 +1747,13 @@ export function GameBoard() {
           maxHeight={handHeight}
         />
       </div>
-      <CardPreview card={hoveredCard} instance={hoveredInstance} onInspect={setInspectCard} />
+      <CardPreview
+        card={hoveredCard}
+        instance={hoveredInstance}
+        allInstances={state.cards}
+        cardsById={cardsById}
+        onInspect={setInspectCard}
+      />
       {pendingAccelerate ? (
         <div className="absolute inset-0 z-40 grid place-items-center bg-ink/80 px-5">
           <section className="w-full max-w-sm border border-line bg-panel p-5 shadow-glow">

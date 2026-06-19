@@ -312,11 +312,14 @@ Priority: P0.
 Status: Partial
 
 Current implementation notes:
-- The alpha Equipment lifecycle is finalized for the current single-location
+- The alpha Equipment lifecycle is finalized for the current active-lane
   model.
 - Basic `[Equip]` gear is played from hand to Base first, then attached with a
   separate Equip action from Base to a friendly Unit/Champion in Base or at the
   battlefield by paying its printed Equip cost.
+- Gear play cost and Equip cost are validated separately: playing Gear from
+  hand uses the card's normal play cost, while the later Equip action pays the
+  parsed `[Equip]` header cost.
 - Equip target validation is intentionally strict: Equipment cannot attach to
   enemy cards, Battlefields, Runes, Legends, other Gear, hidden/face-down cards,
   or cards outside Base/Battlefield public play.
@@ -324,6 +327,10 @@ Current implementation notes:
   Base or the battlefield.
 - Attached Gear remains in Base with an attachment link, follows its host in the
   board display, and host cards show a compact attached-Gear label.
+- `CombatStatsService` now has a state-aware effective-stat foundation for
+  attached Gear modifiers. It only applies modifiers listed in explicit support
+  metadata; current audited starter Gear has no stat-modifier entry, so no
+  bonus is inferred from raw rules text.
 - Gear cannot move to the battlefield or fight as a unit.
 - Non-equip gear is treated as unsupported.
 - Gear attached to a unit/champion returns to Base and detaches when its host
@@ -335,7 +342,9 @@ Current implementation notes:
 Known gaps:
 - Official equipment timing, Quick-Draw, Weaponmaster,
   replacement/reattachment edge cases, voluntary detach rules, and many
-  card-specific gear effects are incomplete.
+  card-specific gear effects are incomplete. Health-increasing Gear is not
+  enabled for current audited cards; the foundation preserves current health
+  and raises effective max health only for explicit future registry entries.
 
 Test coverage:
 - `GameEnginePlayCardTypeTest`

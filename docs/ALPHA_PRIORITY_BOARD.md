@@ -31,7 +31,7 @@ will raise regression risk faster than playtest value.
 | Constructed deck correction | High | Medium | Pre-playtest | Done | Role-separated Legend, chosen Champion, main deck, runes, and battlefields unblock real deck testing. |
 | Pre-mulligan Battlefield selection | High | Low | Pre-playtest | Done | Constructed games now reveal/lock one selected Battlefield per player before mulligans while keeping full multi-location Battlefield play deferred. |
 | Champion deployment payment | High | Medium | Pre-playtest | Done | Makes chosen Champions usable without treating them as normal hand cards. |
-| Equipment lifecycle | High | Medium | Pre-playtest | Done | Gear can be played to Base, equipped to friendly public Unit/Champion hosts, cleaned up from hosts, displayed with attachment labels, and tested with starter decks. |
+| Equipment lifecycle | High | Medium | Pre-playtest | Done | Gear can be played to Base, equipped to friendly public Unit/Champion hosts, cleaned up from hosts, displayed with attachment labels, and tested with starter decks. Equip cost/payment is covered for audited Gear, and explicit Gear stat-modifier plumbing exists without guessing unsupported card text. |
 | Illegal drag snapback | High | Low | Pre-playtest | Done | Prevents UI confusion when server rejects a move. |
 | Pending choice prompts | High | Medium | Pre-playtest | Done | Owner-only yes/no, optional payment, Stacked Deck top-card choice, and Predict-style ordering prompts exist; Stacked Deck now creates its private choice after resolving from the narrow alpha chain. |
 | Target selection | High | Medium | Pre-playtest | Done | Required for simple spells, Equip, and many bug reports to be meaningful. |
@@ -86,7 +86,8 @@ will raise regression risk faster than playtest value.
 
 The alpha should be described as:
 
-- Single-battlefield playtest model.
+- 1v1 active-lane playtest model with Battlefield effects and full official
+  location rules still deferred.
 - Constructed deck setup enforced, with role-separated Legend, chosen Champion, and pre-mulligan Battlefield selection.
 - Starter-deck-oriented card support, with badges and warnings.
 - Partial Action/showdown support with focus/pass v1 and a narrow priority/chain foundation, not full Reaction/counterspell priority.

@@ -266,6 +266,44 @@ class CombatResolverTest {
   }
 
   @Test
+  void combatDamageUsesAttachedSupportedGearMightModifier() {
+    CardInstance attacker = card("a", "attacker", "p1");
+    CardInstance defender = card("d", "defender", "p2");
+    CardInstance gear = card("g", "might-gear", "p1");
+    gear.setZone(ZoneName.BASE);
+    gear.setAttachedToInstanceId("a");
+    stub(attacker, 1, 3);
+    stub(defender, 0, 3);
+    stubCard("might-gear", "Might Gear", "Gear", 0, 0, List.of());
+    CombatStatsService statsService = new CombatStatsService(
+        cardDataService,
+        new EquipmentStatModifierRegistry(java.util.Map.of("might-gear", new EquipmentStatModifierRegistry.StatModifier(2, 0))));
+    CombatResolver resolverWithGearStats = new CombatResolver(
+        cardDataService,
+        effects,
+        cardZoneService,
+        statsService,
+        deathTriggerService,
+        new CombatDamageRules(cardDataService, statsService));
+
+    resolverWithGearStats.resolve(state(attacker, defender, gear), "p1");
+
+    assertThat(defender.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(gear.getAttachedToInstanceId()).isEqualTo("a");
+  }
+
+  @Test
+  void attachedSupportedGearRemainsExcludedFromCombatParticipants() {
+    CardInstance gear = card("g", "might-gear", "p1");
+    gear.setZone(ZoneName.BASE);
+    gear.setAttachedToInstanceId("host");
+    stubCard("might-gear", "Might Gear", "Gear", 0, 0, List.of());
+
+    assertThat(resolver.battlefieldCombatants(state(gear), "p1")).isEmpty();
+  }
+
+  @Test
   void championDestroyedInCombatReturnsToChampionZoneAndGearReturnsToBase() {
     CardInstance attacker = card("a", "attacker", "p1");
     CardInstance champion = card("c", "friendly-champion", "p2");

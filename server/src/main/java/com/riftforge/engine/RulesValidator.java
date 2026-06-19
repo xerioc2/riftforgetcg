@@ -899,17 +899,17 @@ public class RulesValidator {
     CombatContext context = attackingAssignment ? CombatContext.ATTACKING : CombatContext.DEFENDING;
     int totalMight = 0;
     for (CardInstance source : sources) {
-      int might = combatStatsService.effectiveMight(source, context);
+      int might = combatStatsService.effectiveMight(state, source, context);
       totalMight += might;
       int assigned = assignedBySource.getOrDefault(source.getInstanceId(), 0);
       if (assigned > might) throw new IllegalMoveException("A unit cannot assign more damage than its Might.");
     }
     int totalAssigned = assignedBySource.values().stream().mapToInt(Integer::intValue).sum();
     if (totalAssigned != totalMight) throw new IllegalMoveException("Assign all available combat damage.");
-    enforceTankAndLethal(targets, assignedByTarget);
+    enforceTankAndLethal(state, targets, assignedByTarget);
   }
 
-  private void enforceTankAndLethal(List<CardInstance> targets, Map<String, Integer> assignedByTarget) {
+  private void enforceTankAndLethal(LiveGameState state, List<CardInstance> targets, Map<String, Integer> assignedByTarget) {
     List<CardInstance> tanks = targets.stream()
         .filter(card -> cardDataService.hasKeyword(card, "TANK"))
         .toList();
@@ -918,20 +918,20 @@ public class RulesValidator {
         .anyMatch(card -> assignedByTarget.getOrDefault(card.getInstanceId(), 0) > 0);
     if (nonTankDamaged) {
       for (CardInstance tank : tanks) {
-        if (assignedByTarget.getOrDefault(tank.getInstanceId(), 0) < lethalDamage(tank)) {
+        if (assignedByTarget.getOrDefault(tank.getInstanceId(), 0) < lethalDamage(state, tank)) {
           throw new IllegalMoveException("Assign lethal damage to Tank units before non-Tank units.");
         }
       }
     }
     long overAssigned = targets.stream()
-        .filter(card -> assignedByTarget.getOrDefault(card.getInstanceId(), 0) > lethalDamage(card))
+        .filter(card -> assignedByTarget.getOrDefault(card.getInstanceId(), 0) > lethalDamage(state, card))
         .count();
     if (overAssigned > 1) throw new IllegalMoveException("Excess damage can only be assigned to one final target.");
     if (overAssigned == 1) {
       for (CardInstance target : targets) {
         int assigned = assignedByTarget.getOrDefault(target.getInstanceId(), 0);
         if (assigned == 0) throw new IllegalMoveException("Assign lethal damage before assigning excess damage.");
-        if (assigned < lethalDamage(target)) throw new IllegalMoveException("Assign lethal damage before assigning excess damage.");
+        if (assigned < lethalDamage(state, target)) throw new IllegalMoveException("Assign lethal damage before assigning excess damage.");
       }
     }
     long damagedTargets = targets.stream()
@@ -940,7 +940,7 @@ public class RulesValidator {
     if (damagedTargets > 1) {
       for (CardInstance target : targets) {
         int assigned = assignedByTarget.getOrDefault(target.getInstanceId(), 0);
-        if (assigned > 0 && assigned < lethalDamage(target)) {
+        if (assigned > 0 && assigned < lethalDamage(state, target)) {
           throw new IllegalMoveException("Assign lethal damage before spreading damage.");
         }
       }
@@ -963,6 +963,10 @@ public class RulesValidator {
 
   private int lethalDamage(CardInstance card) {
     return combatDamageRules.lethalDamage(card);
+  }
+
+  private int lethalDamage(LiveGameState state, CardInstance card) {
+    return combatDamageRules.lethalDamage(state, card);
   }
 
   private void validateUndoRunes(LiveGameState state, UndoRunesMove move) {

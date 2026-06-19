@@ -60,4 +60,56 @@ describe('cardDisplayStats', () => {
     expect(cardDisplayStats(unit(), instance({ currentHealth: -3 })).healthLabel).toBe('0/4 HP');
     expect(cardDisplayStats(unit(), instance({ currentHealth: 9 })).healthLabel).toBe('4/4 HP');
   });
+
+  it('does not invent modifiers for attached unsupported gear', () => {
+    const host = instance();
+    const gear = instance({ instanceId: 'gear-1', cardId: 'gear', attachedToInstanceId: host.instanceId });
+    const cardsById = new Map<string, RiftCard>([
+      ['unit', unit()],
+      ['gear', { id: 'gear', name: 'Unsupported Gear', type: 'Gear', domains: [] }],
+    ]);
+
+    const stats = cardDisplayStats(unit(), host, { allInstances: [host, gear], cardsById });
+
+    expect(stats.effectiveMight).toBe(3);
+    expect(stats.equipmentModifierLabels).toEqual([]);
+  });
+
+  it('shows base to effective Might for explicitly supported attached gear modifiers', () => {
+    const host = instance();
+    const gear = instance({ instanceId: 'gear-1', cardId: 'might-gear', attachedToInstanceId: host.instanceId });
+    const cardsById = new Map<string, RiftCard>([
+      ['unit', unit()],
+      ['might-gear', { id: 'might-gear', name: 'Might Gear', type: 'Gear', domains: [] }],
+    ]);
+
+    const stats = cardDisplayStats(unit(), host, {
+      allInstances: [host, gear],
+      cardsById,
+      equipmentStatModifiers: { 'might-gear': { mightBonus: 2, maxHealthBonus: 0 } },
+    });
+
+    expect(stats.effectiveMight).toBe(5);
+    expect(stats.mightLabel).toBe('Might 3 -> 5');
+    expect(stats.equipmentModifierLabels).toEqual(['Might Gear: +2 Might']);
+  });
+
+  it('shows effective max HP for explicitly supported health modifiers', () => {
+    const host = instance({ currentHealth: 4 });
+    const gear = instance({ instanceId: 'gear-1', cardId: 'health-gear', attachedToInstanceId: host.instanceId });
+    const cardsById = new Map<string, RiftCard>([
+      ['unit', unit()],
+      ['health-gear', { id: 'health-gear', name: 'Health Gear', type: 'Gear', domains: [] }],
+    ]);
+
+    const stats = cardDisplayStats(unit(), host, {
+      allInstances: [host, gear],
+      cardsById,
+      equipmentStatModifiers: { 'health-gear': { mightBonus: 0, maxHealthBonus: 2 } },
+    });
+
+    expect(stats.healthLabel).toBe('4/4->6 HP');
+    expect(stats.markedDamage).toBe(2);
+    expect(stats.equipmentModifierLabels).toEqual(['Health Gear: +2 max HP']);
+  });
 });

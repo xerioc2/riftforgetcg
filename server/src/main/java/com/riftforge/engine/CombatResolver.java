@@ -51,8 +51,8 @@ public class CombatResolver {
     if (attackers.isEmpty() || defenders.isEmpty()) return new CombatResult(!attackers.isEmpty(), defenders.isEmpty());
 
     Map<String, Integer> damage = new HashMap<>();
-    assignDamage(attackers, defenders, damage, true);
-    assignDamage(defenders, attackers, damage, false);
+    assignDamage(state, attackers, defenders, damage, true);
+    assignDamage(state, defenders, attackers, damage, false);
 
     applyDamage(state, damage);
 
@@ -116,21 +116,25 @@ public class CombatResolver {
     return combatDamageRules.lethalDamage(card);
   }
 
+  public int lethalDamage(LiveGameState state, CardInstance card) {
+    return combatDamageRules.lethalDamage(state, card);
+  }
+
   public boolean isCombatant(CardInstance card) {
     if (card == null || card.getZone() != ZoneName.BATTLEFIELD || card.isFaceDown()) return false;
     CardDefinition def = cardDataService.getCard(card.getCardId());
     return def != null && ("Unit".equalsIgnoreCase(def.type()) || "Champion".equalsIgnoreCase(def.type()));
   }
 
-  private void assignDamage(List<CardInstance> sources, List<CardInstance> targets, Map<String, Integer> damage, boolean attacking) {
+  private void assignDamage(LiveGameState state, List<CardInstance> sources, List<CardInstance> targets, Map<String, Integer> damage, boolean attacking) {
     CombatContext context = attacking ? CombatContext.ATTACKING : CombatContext.DEFENDING;
-    int pool = sources.stream().mapToInt(card -> combatStatsService.effectiveMight(card, context)).sum();
+    int pool = sources.stream().mapToInt(card -> combatStatsService.effectiveMight(state, card, context)).sum();
     List<CardInstance> ordered = targets.stream()
         .sorted(Comparator.comparingInt(this::assignmentPriority))
         .toList();
     for (CardInstance target : ordered) {
       if (pool <= 0) break;
-      int lethal = lethalDamage(target);
+      int lethal = lethalDamage(state, target);
       int assigned = Math.min(pool, lethal);
       damage.merge(target.getInstanceId(), assigned, Integer::sum);
       pool -= assigned;
@@ -142,7 +146,7 @@ public class CombatResolver {
     for (CardInstance card : state.getCards().stream().filter(c -> c.getZone() == ZoneName.BATTLEFIELD).toList()) {
       int assigned = damage.getOrDefault(card.getInstanceId(), 0);
       if (assigned <= 0) continue;
-      int currentHealth = card.getCurrentHealth() > 0 ? card.getCurrentHealth() : cardDataService.getCard(card.getCardId()).health();
+      int currentHealth = card.getCurrentHealth() > 0 ? card.getCurrentHealth() : combatStatsService.effectiveMaxHealth(state, card);
       card.setCurrentHealth(Math.max(0, currentHealth - assigned));
     }
     for (CardInstance card : state.getCards().stream().filter(c -> c.getZone() == ZoneName.BATTLEFIELD).toList()) {
@@ -185,7 +189,7 @@ public class CombatResolver {
     state.getCards().stream()
         .filter(card -> card.getZone() == ZoneName.BATTLEFIELD)
         .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
-        .forEach(card -> card.setCurrentHealth(cardDataService.getCard(card.getCardId()).health()));
+        .forEach(card -> card.setCurrentHealth(combatStatsService.effectiveMaxHealth(state, card)));
   }
 
   private List<CardInstance> battlefieldCards(LiveGameState state, String playerId, String locationId) {

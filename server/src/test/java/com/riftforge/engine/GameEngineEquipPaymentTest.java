@@ -15,6 +15,7 @@ import com.riftforge.model.PlayerState;
 import com.riftforge.model.RuneState;
 import com.riftforge.model.ZoneName;
 import com.riftforge.model.move.EquipGearMove;
+import com.riftforge.model.move.PlayCardMove;
 import com.riftforge.service.CardDataService;
 import java.util.ArrayList;
 import java.util.List;
@@ -197,6 +198,54 @@ class GameEngineEquipPaymentTest {
     assertNoEquipMutation(state, "gear-i");
   }
 
+  @Test
+  void playingGearFromHandUsesPlayCostNotEquipCost() {
+    CardInstance gear = gear("gear-i", "split-cost-gear");
+    gear.setZone(ZoneName.HAND);
+    LiveGameState state = state(gear, unit("unit-i", "unit"));
+    player(state).setAvailableEnergy(1);
+    stubGear("split-cost-gear", ENERGY_GEAR_TEXT, 1);
+    stubUnit("unit");
+
+    engine.applyMove(state, new PlayCardMove("p1", "gear-i", ZoneName.BASE, 12, 24, null));
+
+    CardInstance played = findCard(state, "gear-i");
+    assertThat(played.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(played.getAttachedToInstanceId()).isNull();
+    assertThat(player(state).getAvailableEnergy()).isZero();
+  }
+
+  @Test
+  void equippingGearFromBaseUsesEquipCostNotPlayCost() {
+    LiveGameState state = state(gear("gear-i", "split-cost-gear"), unit("unit-i", "unit"));
+    player(state).setAvailableEnergy(1);
+    stubGear("split-cost-gear", "[Equip] :rb_energy_1:", 3);
+    stubUnit("unit");
+
+    engine.applyMove(state, equip("gear-i", "unit-i", List.of(), List.of()));
+
+    assertThat(findCard(state, "gear-i").getAttachedToInstanceId()).isEqualTo("unit-i");
+    assertThat(player(state).getAvailableEnergy()).isZero();
+  }
+
+  @Test
+  void exactEnergyEquipCostCanUseSelectedNormalRune() {
+    LiveGameState state = state(
+        gear("gear-i", "energy-gear"),
+        unit("unit-i", "unit"),
+        rune("normal-r", "calm-rune", "p1"));
+    player(state).setAvailableEnergy(1);
+    stubGear("energy-gear", ENERGY_GEAR_TEXT);
+    stubUnit("unit");
+    stubRune("calm-rune", "CALM");
+
+    engine.applyMove(state, equip("gear-i", "unit-i", List.of("normal-r"), List.of()));
+
+    assertThat(findCard(state, "gear-i").getAttachedToInstanceId()).isEqualTo("unit-i");
+    assertThat(state.getRunes()).singleElement().satisfies(rune -> assertThat(rune.isTapped()).isTrue());
+    assertThat(player(state).getAvailableEnergy()).isZero();
+  }
+
   private void assertNoEquipMutation(LiveGameState state, String gearInstanceId) {
     CardInstance gear = findCard(state, gearInstanceId);
     assertThat(gear.getAttachedToInstanceId()).isNull();
@@ -275,8 +324,12 @@ class GameEngineEquipPaymentTest {
   }
 
   private void stubGear(String cardId, String rulesText) {
+    stubGear(cardId, rulesText, 0);
+  }
+
+  private void stubGear(String cardId, String rulesText, int playCost) {
     when(cardDataService.getCard(cardId)).thenReturn(
-        new CardDefinition(cardId, cardId, "Gear", null, List.of(), 0, 0, null, null, null, rulesText, 0, 0, List.of()));
+        new CardDefinition(cardId, cardId, "Gear", null, List.of(), playCost, 0, null, null, null, rulesText, 0, 0, List.of()));
   }
 
   private void stubUnit(String cardId) {

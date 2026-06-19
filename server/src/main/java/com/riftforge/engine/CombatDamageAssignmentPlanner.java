@@ -50,17 +50,17 @@ public class CombatDamageAssignmentPlanner {
     Map<String, Integer> sourceMight = new LinkedHashMap<>();
     int totalMight = 0;
     for (CardInstance source : sources) {
-      int might = combatStatsService.effectiveMight(source, context);
+      int might = combatStatsService.effectiveMight(state, source, context);
       sourceMight.put(source.getInstanceId(), might);
       totalMight += might;
     }
     if (totalMight == 0) return Optional.of(List.of());
 
-    Optional<Map<String, Integer>> quotas = targetQuotas(targets, totalMight);
+    Optional<Map<String, Integer>> quotas = targetQuotas(state, targets, totalMight);
     return quotas.map(targetQuotas -> splitSourceDamage(sources, sourceMight, targets, targetQuotas));
   }
 
-  private Optional<Map<String, Integer>> targetQuotas(List<CardInstance> targets, int totalMight) {
+  private Optional<Map<String, Integer>> targetQuotas(LiveGameState state, List<CardInstance> targets, int totalMight) {
     if (targets.size() == 1) {
       return Optional.of(Map.of(targets.getFirst().getInstanceId(), totalMight));
     }
@@ -68,12 +68,12 @@ public class CombatDamageAssignmentPlanner {
     int prefixLethal = 0;
     Map<String, Integer> quotas = new LinkedHashMap<>();
     for (CardInstance target : targets) {
-      int lethal = combatDamageRules.lethalDamage(target);
+      int lethal = combatDamageRules.lethalDamage(state, target);
       prefixLethal += lethal;
       quotas.put(target.getInstanceId(), lethal);
       if (totalMight == prefixLethal) return Optional.of(quotas);
       if (totalMight < prefixLethal) {
-        return singleTargetQuota(targets, totalMight);
+        return singleTargetQuota(state, targets, totalMight);
       }
     }
 
@@ -85,11 +85,11 @@ public class CombatDamageAssignmentPlanner {
     return Optional.of(quotas);
   }
 
-  private Optional<Map<String, Integer>> singleTargetQuota(List<CardInstance> targets, int totalMight) {
+  private Optional<Map<String, Integer>> singleTargetQuota(LiveGameState state, List<CardInstance> targets, int totalMight) {
     boolean hasTank = targets.stream().anyMatch(this::hasTank);
     return targets.stream()
         .filter(target -> !hasTank || hasTank(target))
-        .filter(target -> combatDamageRules.lethalDamage(target) >= totalMight)
+        .filter(target -> combatDamageRules.lethalDamage(state, target) >= totalMight)
         .findFirst()
         .map(target -> Map.of(target.getInstanceId(), totalMight));
   }

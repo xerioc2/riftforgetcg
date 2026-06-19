@@ -40,6 +40,8 @@ export function CardSprite({
   animate,
   scale = 1,
   attachedGearNames = [],
+  allInstances,
+  cardsById,
   onHover,
 }: {
   instance: CardInstance;
@@ -53,13 +55,15 @@ export function CardSprite({
   animate?: boolean;
   scale?: number;
   attachedGearNames?: string[];
+  allInstances?: CardInstance[];
+  cardsById?: Map<string, RiftCard>;
   onHover?: (card: RiftCard | null, instance?: CardInstance) => void;
 }) {
   const [image] = useImage(instance.faceDown ? CARD_BACK_URL : cardDef.imageUrl ?? '');
   const groupRef = useRef<KonvaGroup | null>(null);
   const isDiscarded = instance.zone.toLowerCase() === 'discard';
   const isBoardUnit = ['base', 'battlefield'].includes(instance.zone.toLowerCase());
-  const stats = cardDisplayStats(cardDef, instance);
+  const stats = cardDisplayStats(cardDef, instance, { allInstances, cardsById });
   const isDamaged = isBoardUnit && stats.markedDamage > 0;
   const healthRatio = stats.maxHealth > 0 ? Math.max(0, Math.min(1, stats.currentHealth / stats.maxHealth)) : 0;
   const isSick = instance.zone.toLowerCase() === 'battlefield' && instance.hasSummoningSickness === true;

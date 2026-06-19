@@ -86,8 +86,9 @@ Sources checked:
 
 | Item | Status | Why it matters | Likely files | Suggested first test |
 | --- | --- | --- | --- | --- |
-| Equip target/payment rules | Partial | Guardian Angel and Boots of Swiftness are starter deck cards. Basic play-to-Base/equip-from-Base lifecycle and printed Equip rune payments exist with strict friendly public Unit/Champion target validation, but official timing and replacement edge cases are still generic. | `RulesValidator`, `GameEngine`, `CardZoneService`, payment UI | Boots requires the correct Chaos power payment and cannot attach outside the official Equip window. |
+| Equip target/payment rules | Partial | Guardian Angel and Boots of Swiftness are starter deck cards. Basic play-to-Base/equip-from-Base lifecycle and printed Equip rune payments exist with strict friendly public Unit/Champion target validation. Gear play cost and Equip cost are separate, but official timing and replacement edge cases are still generic. | `RulesValidator`, `GameEngine`, `CardZoneService`, payment UI | Boots requires the correct Chaos power payment and cannot attach outside the official Equip window. |
 | Attachment lifecycle | Partial | Gear now follows host movement/death/return-to-hand cleanup deterministically and the board displays host attachment labels, but voluntary detach, replacement, and reattachment edge cases are not fully modeled. | `CardZoneService`, `CombatResolver`, `GameEngine`, `GameBoard.tsx` | Reattaching a second gear handles the official replacement rule and clears stale attachment IDs. |
+| Equipment stat modifiers | Partial foundation | Effective stat calculation can now include attached Gear modifiers from explicit support metadata, and combat/UI call the same foundation. No current audited starter Gear has an enabled stat modifier entry, so unsupported Gear still grants no fake bonus. | `EquipmentStatModifierRegistry`, `CombatStatsService`, `CombatResolver`, `cardDisplayStats.ts` | An explicitly registered +Might Gear modifies host combat damage and stops modifying it after detach. |
 
 ### Tokens
 
