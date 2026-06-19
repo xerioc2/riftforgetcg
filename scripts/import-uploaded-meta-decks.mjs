@@ -121,7 +121,7 @@ function docFor(deck) {
 
 function recommendation(key) {
   const recommendations = {
-    irelia: '- Continue current Irelia polish: Zhonya\'s Hourglass remains the last Unsupported Gear blocker from the uploaded list; The Syren now has narrow Partial activated-ability support.',
+    irelia: '- Continue current Irelia polish: Zhonya\'s Hourglass now has narrow Partial would-die replacement support; remaining blockers should focus on broader timing/replacement caveats and other Partial meta-card text.',
     diana: '- Diana remains next: start with repeated interaction blockers such as Abandon/Hard Bargain or a shared Gear/effect blocker if it appears in the chosen support slice.',
     annie: '- Use Annie as the first Aurora-shell list while waiting for Miss Fortune; focus on shared Reaction/bounce/damage blockers only after MF is available.',
     'master-yi': '- Review gameplay notes before implementation; likely blockers are Gear, Champion/Legend text, and remaining movement/location edge cases beyond Charm\'s narrow alpha support.',

@@ -230,7 +230,7 @@ Known gaps:
   windows, but hidden Reaction play, unsupported Reaction text, counter-only
   Reactions without an active chain target, and broader official timing remain
   blocked with explicit errors.
-- No official priority, invitation, trigger-ordering, replacement/prevention, or multiplayer focus policy is implemented.
+- No official priority, invitation, trigger-ordering, full replacement/prevention, or multiplayer focus policy is implemented. A narrow server-side would-die replacement hook exists, but no production replacement card is connected yet.
 - Unsupported, unreviewed, and ordinary cards do not automatically open
   priority windows; future cards must opt in through the priority service and
   server validation.
@@ -501,8 +501,11 @@ Current implementation notes:
 - SHIELD, TANK priority, and STUN have partial support.
 
 Known gaps:
-- Fine-grained player-chosen damage UI, prevention/replacement, combat
+- Fine-grained player-chosen damage UI, full prevention/replacement, combat
   designation cleanup, and many official multi-unit edge cases are incomplete.
+- Combat death cleanup now routes through `DeathService`, which can consult the
+  narrow would-die replacement hook before recording a death event or firing
+  Deathknell. No production replacement card is connected yet.
 - Combat is scoped to the active lane, but official multi-location Battlefield
   effects and location-specific card text remain deferred.
 
@@ -649,8 +652,11 @@ Current implementation notes:
 - Effect architecture scaffolding exists for keyword, on-play, triggered,
   activated, static modifier, and replacement handlers.
 - `ActivatedAbilityService` is the v1 server-authoritative activated ability
-  primitive for exact-card immediate Main Phase abilities; The Syren is the
-  first registered production ability.
+  primitive for exact-card immediate Main Phase abilities; The Syren and
+  Zhonya's Hourglass are the first registered production abilities.
+- `DeathService` centralizes real Unit/Champion death cleanup for combat and
+  explicit destroy paths, and `ReplacementEffectService` provides a narrow
+  server-only would-die replacement hook for future exact-card effects.
 - `EffectHandlerRegistry` centralizes support-status decisions for tracked
   keywords and unsupported generic spell/gear shapes.
 - `CardSupportService` is the current card-support metadata source for deck
@@ -673,6 +679,11 @@ Known gaps:
   optional-payment, and narrow follow-up board-target prompts exist, but complex
   targeting decisions, linked choices, trigger ordering, and real card chain items are
   incomplete.
+- Replacement/prevention effects remain partial. The v1 hook can consume
+  explicit server registrations only, and Zhonya's Hourglass uses that path for
+  a narrow Main Phase alpha activation. It does not parse generic "instead"
+  text, provide Hidden Reaction-for-0 timing, or handle competing replacement
+  choices.
 
 Test coverage:
 - Scattered validator/engine tests.

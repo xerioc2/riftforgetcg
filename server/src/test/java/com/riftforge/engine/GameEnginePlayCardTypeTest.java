@@ -95,6 +95,19 @@ class GameEnginePlayCardTypeTest {
           && "The Syren".equalsIgnoreCase(def.name())
           && text.equals(":rb_energy_1:, :rb_exhaust:: move a friendly unit at a battlefield to its base.");
     });
+    when(cardDataService.isZhonyasHourglass(any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      String text = def == null || def.rulesText() == null ? "" : def.rulesText().trim().toLowerCase();
+      return def != null
+          && "Gear".equalsIgnoreCase(def.type())
+          && "Zhonya's Hourglass".equalsIgnoreCase(def.name())
+          && text.contains("[hidden]")
+          && text.contains("if a friendly unit would die")
+          && text.contains("kill this instead")
+          && text.contains("heal that unit")
+          && text.contains("exhaust it")
+          && text.contains("recall it");
+    });
     when(cardDataService.isHiddenCard(any(CardDefinition.class))).thenAnswer(invocation -> {
       CardDefinition def = invocation.getArgument(0);
       return def != null && (
@@ -2319,6 +2332,85 @@ class GameEnginePlayCardTypeTest {
     assertThat(find(state, "syren").isTapped()).isFalse();
   }
 
+  @Test
+  void zhonyasHourglassActivatesFromBaseToRegisterDeathProtection() {
+    stubCard("zhonya", "Zhonya's Hourglass", "Gear", 2, 0, 0, zhonyasText());
+    stubCard("unit", "Friendly Unit", "Unit", 0, 2, 2, "");
+    LiveGameState state = state(card("zhonya", "p1", ZoneName.BASE), atLocation(card("unit", "p1", ZoneName.BATTLEFIELD), "bf-1"));
+
+    engine.applyMove(state, new ActivateAbilityMove("p1", "zhonya", ActivatedAbilityService.ZHONYAS_HOURGLASS_PROTECT, "unit", List.of(), List.of()));
+
+    assertThat(state.getReplacementEffects()).singleElement().satisfies(effect -> {
+      assertThat(effect.getSourceInstanceId()).isEqualTo("zhonya");
+      assertThat(effect.getProtectedInstanceId()).isEqualTo("unit");
+    });
+    assertThat(find(state, "zhonya").getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(find(state, "zhonya").isTapped()).isFalse();
+    assertThat(find(state, "unit").getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(find(state, "unit").getBattlefieldLocationId()).isEqualTo("bf-1");
+    assertThat(state.getLog()).extracting(LiveGameState.LogEntry::text)
+        .contains("Zhonya's Hourglass is protecting Friendly Unit.");
+  }
+
+  @Test
+  void zhonyasHourglassRejectsEnemyTargetWithoutMutation() {
+    stubCard("zhonya", "Zhonya's Hourglass", "Gear", 2, 0, 0, zhonyasText());
+    stubCard("enemy", "Enemy Unit", "Unit", 0, 2, 2, "");
+    LiveGameState state = state(card("zhonya", "p1", ZoneName.BASE), atLocation(card("enemy", "p2", ZoneName.BATTLEFIELD), "bf-0"));
+
+    assertThatThrownBy(() -> engine.applyMove(state, new ActivateAbilityMove("p1", "zhonya", ActivatedAbilityService.ZHONYAS_HOURGLASS_PROTECT, "enemy", List.of(), List.of())))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessageContaining("friendly public Unit or Champion");
+
+    assertThat(state.getReplacementEffects()).isEmpty();
+    assertThat(find(state, "zhonya").getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(find(state, "enemy").getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(find(state, "enemy").getBattlefieldLocationId()).isEqualTo("bf-0");
+  }
+
+  @Test
+  void zhonyasHourglassReplacementDestroysSourceAndHealsExhaustsRecallsProtectedUnit() {
+    stubCard("zhonya", "Zhonya's Hourglass", "Gear", 2, 0, 0, zhonyasText());
+    stubCard("unit", "Friendly Unit", "Unit", 0, 2, 3, "");
+    stubCard("trigger", "Trigger Unit", "Unit", 0, 1, 1, "");
+    CardInstance unit = atLocation(card("unit", "p1", ZoneName.BATTLEFIELD), "bf-1");
+    unit.setCurrentHealth(0);
+    LiveGameState state = state(card("zhonya", "p1", ZoneName.BASE), unit, card("trigger", "p1", ZoneName.HAND));
+
+    engine.applyMove(state, new ActivateAbilityMove("p1", "zhonya", ActivatedAbilityService.ZHONYAS_HOURGLASS_PROTECT, "unit", List.of(), List.of()));
+    engine.applyMove(state, play("trigger", ZoneName.BASE));
+
+    assertThat(find(state, "zhonya").getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(find(state, "unit").getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(find(state, "unit").getBattlefieldLocationId()).isNull();
+    assertThat(find(state, "unit").getCurrentHealth()).isEqualTo(3);
+    assertThat(find(state, "unit").isTapped()).isTrue();
+    assertThat(state.getReplacementEffects()).isEmpty();
+    assertThat(state.getLog()).extracting(LiveGameState.LogEntry::text)
+        .contains("Zhonya's Hourglass was destroyed by a replacement effect.");
+  }
+
+  @Test
+  void nonDeathRecallDoesNotConsumeZhonyasHourglassReplacement() {
+    stubCard("zhonya", "Zhonya's Hourglass", "Gear", 2, 0, 0, zhonyasText());
+    stubCard("syren", "The Syren", "Gear", 2, 0, 0, ":rb_energy_1:, :rb_exhaust:: Move a friendly unit at a battlefield to its base.");
+    stubCard("unit", "Friendly Unit", "Unit", 0, 2, 2, "");
+    LiveGameState state = state(
+        card("zhonya", "p1", ZoneName.BASE),
+        card("syren", "p1", ZoneName.BASE),
+        atLocation(card("unit", "p1", ZoneName.BATTLEFIELD), "bf-0"));
+    state.getPlayers().getFirst().setAvailableEnergy(1);
+
+    engine.applyMove(state, new ActivateAbilityMove("p1", "zhonya", ActivatedAbilityService.ZHONYAS_HOURGLASS_PROTECT, "unit", List.of(), List.of()));
+    engine.applyMove(state, new ActivateAbilityMove("p1", "syren", ActivatedAbilityService.THE_SYREN_RECALL, "unit", List.of(), List.of()));
+
+    assertThat(find(state, "unit").getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(find(state, "zhonya").getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(state.getReplacementEffects()).singleElement()
+        .extracting(effect -> effect.getProtectedInstanceId())
+        .isEqualTo("unit");
+  }
+
   private LiveGameState state(CardInstance... cards) {
     PlayerState p1 = new PlayerState();
     p1.setUserId("p1");
@@ -2473,6 +2565,11 @@ class GameEnginePlayCardTypeTest {
   private void stubCard(String id, String name, String type, int cost, int power, int health, String rulesText, List<String> keywords, List<String> domains) {
     when(cardDataService.getCard(id)).thenReturn(
         new CardDefinition(id, name, type, null, domains, cost, 0, null, null, null, rulesText, power, health, keywords));
+  }
+
+  private String zhonyasText() {
+    return "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)"
+        + "If a friendly unit would die, kill this instead. Heal that unit, exhaust it, and recall it. (Send it to base. This isn't a move.)";
   }
 
   private RevealedHandSnapshot revealedHand(String toPlayerId, String ownerId, String... instanceIds) {

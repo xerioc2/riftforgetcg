@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class ActivatedAbilityService {
   public static final String THE_SYREN_RECALL = "THE_SYREN_RECALL";
+  public static final String ZHONYAS_HOURGLASS_PROTECT = "ZHONYAS_HOURGLASS_PROTECT";
 
   private final CardDataService cardDataService;
 
@@ -37,6 +38,18 @@ public class ActivatedAbilityService {
           ActivatedAbilityTargetKind.FRIENDLY_PUBLIC_BATTLEFIELD_UNIT,
           false,
           "Move a friendly battlefield unit to Base."));
+    }
+    if (cardDataService.isZhonyasHourglass(sourceDef)) {
+      return List.of(new ActivatedAbilityDefinition(
+          ZHONYAS_HOURGLASS_PROTECT,
+          "Protect a friendly unit from the next supported death.",
+          ZoneName.BASE,
+          0,
+          false,
+          ActivatedAbilityTiming.MAIN_PHASE_IMMEDIATE,
+          ActivatedAbilityTargetKind.FRIENDLY_PUBLIC_PLAY_UNIT,
+          false,
+          "Protect a friendly unit from the next supported death."));
     }
     return List.of();
   }
@@ -90,6 +103,16 @@ public class ActivatedAbilityService {
       }
       return target;
     }
+    if (definition.targetKind() == ActivatedAbilityTargetKind.FRIENDLY_PUBLIC_PLAY_UNIT) {
+      if (move.targetInstanceId() == null || move.targetInstanceId().isBlank()) {
+        throw new IllegalMoveException("This ability requires a friendly public Unit or Champion in play.");
+      }
+      CardInstance target = findCard(state, move.targetInstanceId());
+      if (!isFriendlyPublicPlayUnit(target, move.playerId())) {
+        throw new IllegalMoveException("This ability can only target a friendly public Unit or Champion in Base or at a battlefield.");
+      }
+      return target;
+    }
     throw new IllegalMoveException("That activated ability target is not supported yet.");
   }
 
@@ -106,6 +129,9 @@ public class ActivatedAbilityService {
   private boolean hasLegalTarget(LiveGameState state, String playerId, ActivatedAbilityDefinition definition) {
     if (definition.targetKind() == ActivatedAbilityTargetKind.FRIENDLY_PUBLIC_BATTLEFIELD_UNIT) {
       return state.getCards().stream().anyMatch(card -> isFriendlyPublicBattlefieldUnit(card, playerId));
+    }
+    if (definition.targetKind() == ActivatedAbilityTargetKind.FRIENDLY_PUBLIC_PLAY_UNIT) {
+      return state.getCards().stream().anyMatch(card -> isFriendlyPublicPlayUnit(card, playerId));
     }
     return false;
   }
@@ -188,6 +214,14 @@ public class ActivatedAbilityService {
   private boolean isFriendlyPublicBattlefieldUnit(CardInstance card, String playerId) {
     if (!playerId.equals(card.getOwnerId())) return false;
     if (card.getZone() != ZoneName.BATTLEFIELD) return false;
+    if (card.isFaceDown()) return false;
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    return def != null && isUnitOrChampion(def);
+  }
+
+  private boolean isFriendlyPublicPlayUnit(CardInstance card, String playerId) {
+    if (!playerId.equals(card.getOwnerId())) return false;
+    if (card.getZone() != ZoneName.BASE && card.getZone() != ZoneName.BATTLEFIELD) return false;
     if (card.isFaceDown()) return false;
     CardDefinition def = cardDataService.getCard(card.getCardId());
     return def != null && isUnitOrChampion(def);

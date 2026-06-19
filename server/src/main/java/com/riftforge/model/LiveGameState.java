@@ -31,6 +31,7 @@ public class LiveGameState {
   private PendingChoice pendingChoice;
   private ChainState chainState;
   private CombatAssignmentState combatAssignmentState;
+  private List<ReplacementEffect> replacementEffects = new ArrayList<>();
 
   public record LogEntry(String id, String timestamp, String userId, String text) {}
   public record ShowdownState(
@@ -359,4 +360,8 @@ public class LiveGameState {
   public void setChainState(ChainState chainState) { this.chainState = chainState; }
   public CombatAssignmentState getCombatAssignmentState() { return combatAssignmentState; }
   public void setCombatAssignmentState(CombatAssignmentState combatAssignmentState) { this.combatAssignmentState = combatAssignmentState; }
+  public List<ReplacementEffect> getReplacementEffects() { return replacementEffects; }
+  public void setReplacementEffects(List<ReplacementEffect> replacementEffects) {
+    this.replacementEffects = replacementEffects == null ? new ArrayList<>() : replacementEffects;
+  }
 }

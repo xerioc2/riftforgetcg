@@ -48,7 +48,7 @@ Extraction status: Extracted
 | Battlefields | 1x Dusk Rose Lab, 1x Star Spring, 1x Windswept Hillock |
 | Champion / MainDeck candidate | 3x Karthus - Eternal, 3x LeBlanc - Fragmented, 2x Vi - Peacekeeper |
 | Legend | 1x LeBlanc - Deceiver |
-| Main Deck | 3x Black Rose Dignitary, 3x Carrion Dredger, 3x Cull the Weak, 2x Deadly Flourish, 3x Deathgrip, 3x Glasc Mixologist, 2x Hidden Blade, 2x Imperial Decree, 3x Mirror Image, 2x Rift Herald, 3x Ruined Rex, 1x Sacrifice, 3x Soaring Scout, 2x Thousand-Tailed Watcher, 3x Watchful Sentry |
+| Main Deck | 3x Black Rose Dignitary, 3x Carrion Dredger, 3x Cull the Weak, 2x Deadly Flourish, 3x Deathgrip, 3x Glasc Mixologist, 2x Hidden Blade, 2x Imperial Decree, 3x Mirror Image, 2x Rift Herald, 3x Ruined Rex, 2x Sacrifice, 3x Soaring Scout, 2x Thousand-Tailed Watcher, 3x Watchful Sentry |
 | Rune Deck | 5x Mind Rune, 7x Order Rune |
 
 Top blockers:

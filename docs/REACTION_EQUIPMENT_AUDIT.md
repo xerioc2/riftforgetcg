@@ -41,7 +41,7 @@ targeting, replacement, or card-specific edge cases remain missing.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Guardian Angel | Irelia Tempo | Gear | 2 | CALM / premium 0 | `[Equip] :rb_rune_calm: (:rb_rune_calm:: Attach this to a unit you control.)` | Partial | Partial | Partial | Equipment lifecycle only | Partial | Alpha lifecycle works: play Gear to Base, pay the printed Calm Equip cost, attach to friendly Unit/Champion, and return to Base when host leaves. This card has no enabled stat modifier entry; server-projected effective stats remain unchanged while attached. Full official Equip timing and replacement/reattachment edge cases remain incomplete. |
 | Boots of Swiftness | Irelia Tempo | Gear | 3 | CHAOS / premium 0 | `[Equip] :rb_rune_chaos: (:rb_rune_chaos:: Attach this to a unit you control.)` | Partial | Partial | Partial | Equipment lifecycle only | Partial | Alpha lifecycle works: play Gear to Base, pay the printed Chaos Equip cost, attach to friendly Unit/Champion, and return to Base when host leaves. This card has no enabled stat modifier entry; server-projected effective stats remain unchanged while attached. Full official Equip timing and replacement/reattachment edge cases remain incomplete. |
-| Zhonya's Hourglass | Explicit audit/test pool, not starter main | Gear | 2 | CALM / premium 0 | `[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)If a friendly unit would die, kill this instead. Heal that unit, exhaust it, and recall it. (Send it to base. This isn't a move.)` | Unsupported | Unsupported | Not listed | Equipment effect / replacement / prevention | Unsupported | This is not an Equip lifecycle card. It needs Hidden, replacement/prevention timing, death prevention, heal, exhaust, and recall. Keep blocked. |
+| Zhonya's Hourglass | Explicit audit/test pool, not starter main | Gear | 2 | CALM / premium 0 | `[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)If a friendly unit would die, kill this instead. Heal that unit, exhaust it, and recall it. (Send it to base. This isn't a move.)` | Partial | Partial | Partial | Equipment effect / replacement / prevention | Partial | Not an Equip lifecycle card. Alpha support plays it to Base and arms it during Main Phase for 0 energy to protect a friendly public Unit/Champion from the next supported death. When used, Zhonya is destroyed instead, the unit heals, exhausts, and recalls to Base. Hidden Reaction-for-0 timing, competing replacement choices, and broad replacement timing remain deferred. |
 | Edge of Night | Explicit audit/test pool, not starter main | Gear | 3 | CHAOS / premium 0 | `[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)When you play this from face down, attach it to a unit you control (here).[Equip] :rb_rune_chaos: (:rb_rune_chaos:: Attach this to a unit you control.)` | Partial | Partial | Not listed | Equipment lifecycle plus Hidden play-from-hidden | Partial | Basic Equip lifecycle applies only after the card is in Base. Face-down attach remains deferred. |
 | Disarming Rake | Irelia sideboard / playtest pool | Unit | 3 | CALM / premium 0 | `When you play me, you may kill a gear.` | Supported | Supported | Supported | Trigger plus optional prompt plus Gear destroy | Supported | Not Gear itself, but it is the main tested Gear-interaction card. Frontend/backend/docs support status now agree. |
 
@@ -103,13 +103,17 @@ replacement/reattachment edge cases remain Partial.
 
 - Zhonya's Hourglass
 
-Keep Unsupported. It is a replacement/prevention card, not a basic Equip card.
+Keep Partial. It is a replacement/prevention card, not a basic Equip card.
+The v1 slice uses an exact-card Main Phase activation to register a single
+would-die replacement, destroy Zhonya instead, then heal, exhaust, and recall
+the protected unit. Hidden Reaction-for-0 timing, competing replacement choices,
+and broader prevention/replacement timing are still missing.
 
 ### Needs Optional Prompt
 
 - Disarming Rake already uses the prompt framework.
-- Zhonya's Hourglass may eventually need prevention/replacement prompt timing if
-the effect is optional or has competing replacement effects.
+- Zhonya's Hourglass still needs prevention/replacement prompt timing if the
+effect becomes optional or if competing replacement effects are present.
 
 ### Needs Trigger Framework
 
@@ -133,7 +137,7 @@ chain items exist.
 ### Keep Unsupported For Now
 
 - Switcheroo
-- Zhonya's Hourglass
+- Hidden Reaction-for-0 Zhonya's Hourglass timing
 - Charm
 - Stalking Wolf in enforced play
 
@@ -142,15 +146,15 @@ chain items exist.
 1. Star-Crossed chain hookup
    - Effect is already staged and scripted.
    - Add chain-backed Reaction entry point, then keep Partial for official timing.
-2. Zhonya's Hourglass Gear-effect blocker; The Syren is now a narrow Partial activated Gear slice
-   - Biggest remaining Irelia Unsupported blockers after Charm's narrow movement slice.
+2. Zhonya's Hourglass official timing polish; The Syren is now a narrow Partial activated Gear slice
+   - Zhonya has a narrow Main Phase alpha replacement path; Hidden Reaction-for-0 and replacement-choice timing remain larger systems.
 3. Riposte
    - Higher risk because it combines a unit target, spell chain target, counter,
      and variable Might based on Energy cost.
 4. Edge of Night Hidden attach
    - Depends on Hidden play-from-hidden timing and same-location checks.
-5. Zhonya's Hourglass
-   - Defer. Replacement/prevention effects are a larger timing system.
+5. Replacement/prevention broadening
+   - Defer. Generic replacement/prevention effects are a larger timing system beyond the Zhonya exact-card slice.
 
 ## Support-Map Mismatches To Resolve Later
 

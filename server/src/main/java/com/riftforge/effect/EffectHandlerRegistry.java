@@ -74,7 +74,7 @@ public class EffectHandlerRegistry {
   }
 
   private boolean isSupportedGear(CardDefinition card) {
-    return isSupportedEquip(card) || isTheSyrenActivatedAbility(card);
+    return isSupportedEquip(card) || isTheSyrenActivatedAbility(card) || isZhonyasHourglass(card);
   }
 
   private boolean isTheSyrenActivatedAbility(CardDefinition card) {
@@ -83,6 +83,19 @@ public class EffectHandlerRegistry {
         && card.name() != null
         && card.name().trim().equalsIgnoreCase("The Syren")
         && normalized.equals(":rb_energy_1:, :rb_exhaust:: move a friendly unit at a battlefield to its base.");
+  }
+
+  private boolean isZhonyasHourglass(CardDefinition card) {
+    String normalized = card.rulesText() == null ? "" : card.rulesText().trim().toLowerCase(Locale.ROOT);
+    return "Gear".equalsIgnoreCase(card.type())
+        && card.name() != null
+        && card.name().trim().equalsIgnoreCase("Zhonya's Hourglass")
+        && normalized.contains("[hidden]")
+        && normalized.contains("if a friendly unit would die")
+        && normalized.contains("kill this instead")
+        && normalized.contains("heal that unit")
+        && normalized.contains("exhaust it")
+        && normalized.contains("recall it");
   }
 
   private boolean isSupportedSpell(CardDefinition card) {

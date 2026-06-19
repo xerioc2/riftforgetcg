@@ -59,7 +59,14 @@ function isUnsupportedAction(card) {
   if (type === 'gear') {
     const isTheSyren = String(card.name ?? '').trim().toUpperCase() === 'THE SYREN'
       && text.trim() === ':rb_energy_1:, :rb_exhaust:: move a friendly unit at a battlefield to its base.';
-    return !text.includes('[equip]') && !isTheSyren;
+    const isZhonyasHourglass = String(card.name ?? '').trim().toUpperCase() === "ZHONYA'S HOURGLASS"
+      && text.includes('[hidden]')
+      && text.includes('if a friendly unit would die')
+      && text.includes('kill this instead')
+      && text.includes('heal that unit')
+      && text.includes('exhaust it')
+      && text.includes('recall it');
+    return !text.includes('[equip]') && !isTheSyren && !isZhonyasHourglass;
   }
   if (type !== 'spell') return false;
   const isCharm = String(card.name ?? '').trim().toUpperCase() === 'CHARM'

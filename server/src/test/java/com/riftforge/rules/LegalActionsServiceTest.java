@@ -153,6 +153,41 @@ class LegalActionsServiceTest {
   }
 
   @Test
+  void zhonyasHourglassActivationRequiresBaseSourceAndFriendlyPublicTarget() {
+    CardDefinition zhonya = new CardDefinition(
+        "zhonya",
+        "Zhonya's Hourglass",
+        "Gear",
+        null,
+        List.of("CALM"),
+        2,
+        0,
+        null,
+        null,
+        null,
+        "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)If a friendly unit would die, kill this instead. Heal that unit, exhaust it, and recall it. (Send it to base. This isn't a move.)",
+        0,
+        0,
+        List.of());
+    when(cardDataService.getCard("zhonya")).thenReturn(zhonya);
+    when(cardDataService.getCard("friendly")).thenReturn(unitDef("friendly", 2, 2));
+    when(cardDataService.isZhonyasHourglass(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      return def != null && "Zhonya's Hourglass".equalsIgnoreCase(def.name());
+    });
+    LegalActionsService legalActions = new LegalActionsService(cardDataService);
+    LiveGameState state = state(Phase.MAIN, "p1");
+    state.getCards().add(card("zhonya-1", "p1", "zhonya", ZoneName.BASE));
+    state.getCards().add(card("friendly-1", "p1", "friendly", ZoneName.BASE));
+
+    assertThat(legalActions.legalActionsFor(state, "p1")).contains(LegalAction.ACTIVATE_ABILITY);
+
+    state.getCards().get(1).setZone(ZoneName.HAND);
+
+    assertThat(legalActions.legalActionsFor(state, "p1")).doesNotContain(LegalAction.ACTIVATE_ABILITY);
+  }
+
+  @Test
   void pendingChoiceExposesOnlyResolveChoiceToOwner() {
     LiveGameState state = state(Phase.MAIN, "p1");
     state.setPendingChoice(PendingChoice.optionalDrawOne("choice-1", "p1", "source", "Draw a card?"));

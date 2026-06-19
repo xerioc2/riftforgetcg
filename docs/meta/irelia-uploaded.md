@@ -18,12 +18,12 @@ Event/result: irelia wins s3 shanghai city challenge
 
 ## Support Summary
 
-- Status: Blocked
+- Status: Partial
 - Supported: 4
-- Partial: 22
-- Unsupported: 1
+- Partial: 23
+- Unsupported: 0
 - Not Audited: 0
-- Enforced playable: No
+- Enforced playable: Yes
 
 ## Unresolved Cards
 
@@ -31,11 +31,11 @@ Event/result: irelia wins s3 shanghai city challenge
 
 ## Top Blockers
 
-- Zhonya's Hourglass (OGN-077): UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Irelia - Blade Dancer (SFD-195): PARTIAL - Legend text. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Not So Fast (SFD-045): PARTIAL - Reaction / chain / counter. Partial: Not So Fast can counter a supported public pending enemy spell chain item only when that item chooses your friendly Unit/Champion Unit or Gear. Ability-chain targets, broad official Reaction timing, and countering counters remain deferred.
 - Abandoned Hall (UNL-205): PARTIAL - Battlefield effect. Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.
 - Vex - Apathetic (UNL-150): PARTIAL - Champion text. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Scuttle Crab (UNL-053): PARTIAL - Hidden / facedown. Partial: on-play draw and 1v1 private hand reveal Deathknell are implemented, but XP and facedown-card viewing are deferred.
 
 ## Normalized Sections
 
@@ -49,4 +49,4 @@ Event/result: irelia wins s3 shanghai city challenge
 
 ## Recommended Implementation Order
 
-- Continue current Irelia polish: Zhonya's Hourglass remains the last Unsupported Gear blocker from the uploaded list; The Syren now has narrow Partial activated-ability support.
+- Continue current Irelia polish: Zhonya's Hourglass now has narrow Partial would-die replacement support; remaining blockers should focus on broader timing/replacement caveats and other Partial meta-card text.

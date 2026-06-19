@@ -82,6 +82,10 @@ class CardSupportServiceTest {
         .contains("paying 1 energy")
         .contains("friendly public battlefield Unit/Champion")
         .contains("activated ability timing");
+    assertThat(service.summarize(card("zhonya", "Zhonya's Hourglass", "Gear", "[Hidden] If a friendly unit would die, kill this instead. Heal that unit, exhaust it, and recall it.")).reason())
+        .contains("protect a friendly public Unit/Champion")
+        .contains("Hidden Reaction-for-0 timing")
+        .contains("competing replacement choices");
     assertThat(service.summarize(card("defy", "Defy", "Spell", "[Reaction] Counter a spell.")).reason())
         .contains("no more than 4 energy")
         .contains("no more than 1 premium rune")

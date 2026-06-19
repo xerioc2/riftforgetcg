@@ -59,6 +59,10 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
   public play in a supported path.
 - If The Syren is in Base, activate it during Main Phase by paying 1 energy and
   confirm a friendly battlefield Unit/Champion moves back to Base.
+- If Zhonya's Hourglass is in Base, activate it during Main Phase on a friendly
+  public Unit/Champion, then confirm the next supported death destroys Zhonya
+  instead and heals/exhausts/recalls that unit. Hidden Reaction-for-0 timing is
+  still deferred.
 - Hide a card if you draw a `[Hidden]` card.
 - Try Ambush if the UI says it is available.
 - Move a Unit to the battlefield.

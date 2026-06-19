@@ -14,7 +14,7 @@ Extraction status: Extracted
 
 | Deck slug | Deck name | Unique cards | Supported | Partial | Unsupported | Not Audited | Enforced playable |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| irelia-wins-s3-shanghai-city-challenge | Irelia Wins S3 Shanghai City Challenge | 33 | 5 | 24 | 4 | 0 | No |
+| irelia-wins-s3-shanghai-city-challenge | Irelia Wins S3 Shanghai City Challenge | 33 | 5 | 25 | 3 | 0 | No |
 | irelia-wins-sydney-regional-qualifier | Irelia wins Sydney Regional Qualifier | 24 | 3 | 21 | 0 | 0 | Yes |
 
 ## Unresolved Cards
@@ -26,7 +26,6 @@ Extraction status: Extracted
 - Hard Bargain: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Heart of Dark Ice: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Switcheroo: UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
-- Zhonya's Hourglass: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Abandoned Hall: PARTIAL - Battlefield effect. Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.
 - Sunken Temple: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Targon's Peak: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
@@ -54,8 +53,8 @@ Top blockers:
 - Hard Bargain: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Heart of Dark Ice: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Switcheroo: UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
-- Zhonya's Hourglass: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Abandoned Hall: PARTIAL - Battlefield effect. Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.
+- Sunken Temple: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 
 ### Irelia wins Sydney Regional Qualifier
 

@@ -356,6 +356,20 @@ public class CardDataService {
         && text.equals(":rb_energy_1:, :rb_exhaust:: move a friendly unit at a battlefield to its base.");
   }
 
+  public boolean isZhonyasHourglass(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().trim().toLowerCase();
+    return "Gear".equalsIgnoreCase(def.type())
+        && def.name() != null
+        && def.name().trim().equalsIgnoreCase("Zhonya's Hourglass")
+        && text.contains("[hidden]")
+        && text.contains("if a friendly unit would die")
+        && text.contains("kill this instead")
+        && text.contains("heal that unit")
+        && text.contains("exhaust it")
+        && text.contains("recall it");
+  }
+
   public boolean isDefyCounterReaction(CardDefinition def) {
     if (def == null || def.rulesText() == null) return false;
     String text = def.rulesText().toLowerCase();
@@ -410,7 +424,7 @@ public class CardDataService {
     String text = def.rulesText();
     if (text == null) return false;
     String normalized = text.toLowerCase();
-    if ("Gear".equalsIgnoreCase(def.type())) return !isEquip(def) && !isTheSyrenActivatedAbility(def);
+    if ("Gear".equalsIgnoreCase(def.type())) return !isEquip(def) && !isTheSyrenActivatedAbility(def) && !isZhonyasHourglass(def);
     if (!"Spell".equalsIgnoreCase(def.type())) return false;
     boolean supportedFriendlyEnemyReturn = normalized.contains("return")
         && normalized.contains("friendly unit")

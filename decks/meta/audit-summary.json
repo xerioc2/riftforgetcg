@@ -30,8 +30,8 @@
             "uniqueCards": 33,
             "counts": {
               "SUPPORTED": 5,
-              "PARTIAL": 24,
-              "UNSUPPORTED": 4,
+              "PARTIAL": 25,
+              "UNSUPPORTED": 3,
               "BANNED": 0,
               "NOT_AUDITED": 0
             },
@@ -57,16 +57,16 @@
                 "reason": "Blocked in enforced play: this card's effect is not supported yet."
               },
               {
-                "cardName": "Zhonya's Hourglass",
-                "status": "UNSUPPORTED",
-                "bucket": "Equipment lifecycle/effect",
-                "reason": "Blocked in enforced play: this card's effect is not supported yet."
-              },
-              {
                 "cardName": "Abandoned Hall",
                 "status": "PARTIAL",
                 "bucket": "Battlefield effect",
                 "reason": "Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely."
+              },
+              {
+                "cardName": "Sunken Temple",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
               }
             ]
           }
@@ -291,8 +291,8 @@
             "uniqueCards": 27,
             "counts": {
               "SUPPORTED": 4,
-              "PARTIAL": 21,
-              "UNSUPPORTED": 2,
+              "PARTIAL": 22,
+              "UNSUPPORTED": 1,
               "BANNED": 0,
               "NOT_AUDITED": 0
             },
@@ -303,12 +303,6 @@
                 "cardName": "Repulse",
                 "status": "UNSUPPORTED",
                 "bucket": "Reaction / chain / counter",
-                "reason": "Blocked in enforced play: this card's effect is not supported yet."
-              },
-              {
-                "cardName": "Zhonya's Hourglass",
-                "status": "UNSUPPORTED",
-                "bucket": "Equipment lifecycle/effect",
                 "reason": "Blocked in enforced play: this card's effect is not supported yet."
               },
               {
@@ -328,6 +322,12 @@
                 "status": "PARTIAL",
                 "bucket": "Battlefield effect",
                 "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              },
+              {
+                "cardName": "Janna - Savior",
+                "status": "PARTIAL",
+                "bucket": "Champion text",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
               }
             ]
           }
@@ -340,8 +340,8 @@
             "uniqueCards": 26,
             "counts": {
               "SUPPORTED": 3,
-              "PARTIAL": 19,
-              "UNSUPPORTED": 4,
+              "PARTIAL": 20,
+              "UNSUPPORTED": 3,
               "BANNED": 0,
               "NOT_AUDITED": 0
             },
@@ -367,13 +367,13 @@
                 "reason": "Blocked in enforced play: this card's effect is not supported yet."
               },
               {
-                "cardName": "Zhonya's Hourglass",
-                "status": "UNSUPPORTED",
-                "bucket": "Equipment lifecycle/effect",
-                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+                "cardName": "Altar to Unity",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
               },
               {
-                "cardName": "Altar to Unity",
+                "cardName": "Star Spring",
                 "status": "PARTIAL",
                 "bucket": "Battlefield effect",
                 "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
@@ -389,8 +389,8 @@
             "uniqueCards": 24,
             "counts": {
               "SUPPORTED": 3,
-              "PARTIAL": 19,
-              "UNSUPPORTED": 2,
+              "PARTIAL": 20,
+              "UNSUPPORTED": 1,
               "BANNED": 0,
               "NOT_AUDITED": 0
             },
@@ -401,12 +401,6 @@
                 "cardName": "Alpha Strike",
                 "status": "UNSUPPORTED",
                 "bucket": "XP / Hunt / Level / Buff",
-                "reason": "Blocked in enforced play: this card's effect is not supported yet."
-              },
-              {
-                "cardName": "Zhonya's Hourglass",
-                "status": "UNSUPPORTED",
-                "bucket": "Equipment lifecycle/effect",
                 "reason": "Blocked in enforced play: this card's effect is not supported yet."
               },
               {
@@ -425,6 +419,12 @@
                 "cardName": "Vilemaw's Lair",
                 "status": "PARTIAL",
                 "bucket": "Battlefield effect",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              },
+              {
+                "cardName": "Master Yi - Tempered",
+                "status": "PARTIAL",
+                "bucket": "Champion text",
                 "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
               }
             ]
@@ -560,8 +560,8 @@
             "uniqueCards": 33,
             "counts": {
               "SUPPORTED": 3,
-              "PARTIAL": 22,
-              "UNSUPPORTED": 7,
+              "PARTIAL": 23,
+              "UNSUPPORTED": 6,
               "BANNED": 0,
               "NOT_AUDITED": 1
             },
@@ -619,8 +619,8 @@
             "uniqueCards": 28,
             "counts": {
               "SUPPORTED": 3,
-              "PARTIAL": 21,
-              "UNSUPPORTED": 4,
+              "PARTIAL": 22,
+              "UNSUPPORTED": 3,
               "BANNED": 0,
               "NOT_AUDITED": 0
             },
@@ -646,16 +646,16 @@
                 "reason": "Blocked in enforced play: this card's effect is not supported yet."
               },
               {
-                "cardName": "Zhonya's Hourglass",
-                "status": "UNSUPPORTED",
-                "bucket": "Equipment lifecycle/effect",
-                "reason": "Blocked in enforced play: this card's effect is not supported yet."
-              },
-              {
                 "cardName": "Abandoned Hall",
                 "status": "PARTIAL",
                 "bucket": "Battlefield effect",
                 "reason": "Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely."
+              },
+              {
+                "cardName": "Aspirant's Climb",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
               }
             ]
           }

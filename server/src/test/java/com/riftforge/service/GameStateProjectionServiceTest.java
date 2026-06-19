@@ -18,6 +18,7 @@ import com.riftforge.model.LiveGameState;
 import com.riftforge.model.PendingChoice;
 import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
+import com.riftforge.model.ReplacementEffect;
 import com.riftforge.model.RevealedHandSnapshot;
 import com.riftforge.model.RuneState;
 import com.riftforge.model.ShowdownStep;
@@ -1090,6 +1091,30 @@ class GameStateProjectionServiceTest {
 
     assertThat(json)
         .doesNotContain("bot-private-top-a", "Bot Private Top A", "bot-private-top-b", "Bot Private Top B", "bot-stacked-deck");
+  }
+
+  @Test
+  void replacementEffectsRemainServerOnlyInProjection() throws Exception {
+    LiveGameState state = state(card("protected", "p1", "protected-unit", ZoneName.BATTLEFIELD));
+    ReplacementEffect effect = new ReplacementEffect();
+    effect.setReplacementEffectId("replacement-1");
+    effect.setEffectType(ReplacementEffect.WOULD_DIE_DESTROY_SOURCE_INSTEAD);
+    effect.setControllerId("p1");
+    effect.setSourceInstanceId("secret-source");
+    effect.setProtectedInstanceId("protected");
+    state.setReplacementEffects(List.of(effect));
+
+    LiveGameState ownerView = projectionService.toPublicView(state, "p1");
+    LiveGameState opponentView = projectionService.toPublicView(state, "p2");
+    LiveGameState spectatorView = projectionService.toPublicView(state, null);
+
+    assertThat(ownerView.getReplacementEffects()).isEmpty();
+    assertThat(opponentView.getReplacementEffects()).isEmpty();
+    assertThat(spectatorView.getReplacementEffects()).isEmpty();
+    assertThat(objectMapper.writeValueAsString(opponentView))
+        .doesNotContain("replacement-1", "secret-source", "WOULD_DIE_DESTROY_SOURCE_INSTEAD");
+    assertThat(objectMapper.writeValueAsString(spectatorView))
+        .doesNotContain("replacement-1", "secret-source", "WOULD_DIE_DESTROY_SOURCE_INSTEAD");
   }
 
   private LiveGameState state(CardInstance... cards) {

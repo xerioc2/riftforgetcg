@@ -19,21 +19,14 @@
         "uniqueCards": 27,
         "counts": {
           "SUPPORTED": 4,
-          "PARTIAL": 22,
-          "UNSUPPORTED": 1,
+          "PARTIAL": 23,
+          "UNSUPPORTED": 0,
           "BANNED": 0,
           "NOT_AUDITED": 0
         },
-        "canUseInEnforced": false,
+        "canUseInEnforced": true,
         "unresolvedCards": [],
         "topBlockers": [
-          {
-            "cardName": "Zhonya's Hourglass",
-            "sourceCardId": "OGN-077",
-            "status": "UNSUPPORTED",
-            "bucket": "Equipment lifecycle/effect",
-            "reason": "Blocked in enforced play: this card's effect is not supported yet."
-          },
           {
             "cardName": "Irelia - Blade Dancer",
             "sourceCardId": "SFD-195",
@@ -61,6 +54,13 @@
             "status": "PARTIAL",
             "bucket": "Champion text",
             "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+          },
+          {
+            "cardName": "Scuttle Crab",
+            "sourceCardId": "UNL-053",
+            "status": "PARTIAL",
+            "bucket": "Hidden / facedown",
+            "reason": "Partial: on-play draw and 1v1 private hand reveal Deathknell are implemented, but XP and facedown-card viewing are deferred."
           }
         ]
       }
@@ -221,8 +221,8 @@
         "uniqueCards": 23,
         "counts": {
           "SUPPORTED": 3,
-          "PARTIAL": 18,
-          "UNSUPPORTED": 1,
+          "PARTIAL": 19,
+          "UNSUPPORTED": 0,
           "BANNED": 0,
           "NOT_AUDITED": 1
         },
@@ -243,13 +243,6 @@
             "reason": "No local RiftForge card matched Master Yi - Wuju Bladesman - Starter in Proving Grounds."
           },
           {
-            "cardName": "Zhonya's Hourglass",
-            "sourceCardId": "OGN-077",
-            "status": "UNSUPPORTED",
-            "bucket": "Equipment lifecycle/effect",
-            "reason": "Blocked in enforced play: this card's effect is not supported yet."
-          },
-          {
             "cardName": "Amateur Recital",
             "sourceCardId": "UNL-207",
             "status": "PARTIAL",
@@ -268,6 +261,13 @@
             "sourceCardId": "UNL-113",
             "status": "PARTIAL",
             "bucket": "Champion text",
+            "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+          },
+          {
+            "cardName": "Dragonsoul Sage",
+            "sourceCardId": "UNL-093",
+            "status": "PARTIAL",
+            "bucket": "Reaction / chain / counter",
             "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
           }
         ]
@@ -357,8 +357,8 @@
         "uniqueCards": 27,
         "counts": {
           "SUPPORTED": 2,
-          "PARTIAL": 20,
-          "UNSUPPORTED": 4,
+          "PARTIAL": 21,
+          "UNSUPPORTED": 3,
           "BANNED": 0,
           "NOT_AUDITED": 1
         },
@@ -400,11 +400,11 @@
             "reason": "Blocked in enforced play: this card's effect is not supported yet."
           },
           {
-            "cardName": "Zhonya's Hourglass",
-            "sourceCardId": "OGN-077",
-            "status": "UNSUPPORTED",
-            "bucket": "Equipment lifecycle/effect",
-            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+            "cardName": "Vex - Gloomist",
+            "sourceCardId": "UNL-193",
+            "status": "PARTIAL",
+            "bucket": "Legend text",
+            "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
           }
         ]
       }

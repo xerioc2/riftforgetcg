@@ -27,7 +27,7 @@ import {
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
 import { readableHttpError } from '../lib/http';
-import { canUseSupportedChainResponse, hasUnsupportedAdditionalCost, isActionCard, isAmbushCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isEquipCard, isGustReactionCard, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isTheSyrenActivatedAbility, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
+import { canUseSupportedChainResponse, hasUnsupportedAdditionalCost, isActionCard, isAmbushCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isEquipCard, isGustReactionCard, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
 import { appBuildLabel, APP_VERSION, BUILD_DATE, BUILD_TAG } from '../lib/appMetadata';
 import { buildDebugInfo } from '../lib/debugInfo';
 import { attachedGearDisplayPosition, attachedGearDisplayScale, attachedGearIsIndependentBoardPiece, attachedGearNamesForHost } from '../lib/attachments';
@@ -1148,6 +1148,17 @@ export function GameBoard() {
         setPendingTargetSelection(null);
         return;
       }
+      if (isZhonyasHourglassActivatedAbility(spellDef) && sameZone(spellInstance.zone, 'base')) {
+        if (!canTakeAction(state, 'ACTIVATE_ABILITY')) {
+          notifyWarning('Ability unavailable', 'Zhonya\'s Hourglass can be armed during your Main Phase when it has a legal friendly target.');
+          return;
+        }
+        const payment = selectPaymentRunesForEnergyCost(spellDef?.name ?? 'Zhonya\'s Hourglass', 0);
+        if (!payment) return;
+        publishMove({ type: 'ACTIVATE_ABILITY', playerId: player.id, sourceInstanceId: pendingTargetSelection.instanceId, abilityKey: 'ZHONYAS_HOURGLASS_PROTECT', targetInstanceId: instanceId, ...payment });
+        setPendingTargetSelection(null);
+        return;
+      }
       playCardToBase(pendingTargetSelection.instanceId, spellDef, false, instanceId);
       setPendingTargetSelection(null);
       return;
@@ -1199,6 +1210,19 @@ export function GameBoard() {
         return;
       }
       beginTargetSelection(instanceId, 'FRIENDLY_UNIT');
+      return;
+    }
+
+    if (instance.ownerId === player.id && sameZone(instance.zone, 'base') && isZhonyasHourglassActivatedAbility(targetCard)) {
+      if (legalTargetsForMode('FRIENDLY_PUBLIC_UNIT').length === 0) {
+        notifyWarning('No legal targets', 'Zhonya\'s Hourglass needs a friendly public Unit or Champion in Base or at a battlefield.');
+        return;
+      }
+      if (!canTakeAction(state, 'ACTIVATE_ABILITY')) {
+        notifyWarning('Ability unavailable', 'Zhonya\'s Hourglass can be armed during your Main Phase when a legal target is available.');
+        return;
+      }
+      beginTargetSelection(instanceId, 'FRIENDLY_PUBLIC_UNIT');
       return;
     }
 

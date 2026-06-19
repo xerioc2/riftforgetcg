@@ -439,9 +439,9 @@
         }
       },
       "support": {
-        "status": "UNSUPPORTED",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
-        "blocked": true
+        "status": "PARTIAL",
+        "reason": "Partial: Zhonya's Hourglass can be played to Base and armed during your Main Phase to protect a friendly public Unit/Champion from the next supported death, destroying Zhonya instead, then healing, exhausting, and recalling that unit. Hidden Reaction-for-0 timing, competing replacement choices, and broad replacement timing remain deferred.",
+        "blocked": false
       },
       "bucket": "Equipment lifecycle/effect"
     },
@@ -588,8 +588,8 @@
     "uniqueCards": 23,
     "counts": {
       "SUPPORTED": 3,
-      "PARTIAL": 18,
-      "UNSUPPORTED": 1,
+      "PARTIAL": 19,
+      "UNSUPPORTED": 0,
       "BANNED": 0,
       "NOT_AUDITED": 1
     },
@@ -610,13 +610,6 @@
         "reason": "No local RiftForge card matched Master Yi - Wuju Bladesman - Starter in Proving Grounds."
       },
       {
-        "cardName": "Zhonya's Hourglass",
-        "sourceCardId": "OGN-077",
-        "status": "UNSUPPORTED",
-        "bucket": "Equipment lifecycle/effect",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet."
-      },
-      {
         "cardName": "Amateur Recital",
         "sourceCardId": "UNL-207",
         "status": "PARTIAL",
@@ -635,6 +628,13 @@
         "sourceCardId": "UNL-113",
         "status": "PARTIAL",
         "bucket": "Champion text",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      },
+      {
+        "cardName": "Dragonsoul Sage",
+        "sourceCardId": "UNL-093",
+        "status": "PARTIAL",
+        "bucket": "Reaction / chain / counter",
         "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
       }
     ]

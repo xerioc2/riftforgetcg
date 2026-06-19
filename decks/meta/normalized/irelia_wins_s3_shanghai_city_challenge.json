@@ -521,9 +521,9 @@
         }
       },
       "support": {
-        "status": "UNSUPPORTED",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
-        "blocked": true
+        "status": "PARTIAL",
+        "reason": "Partial: Zhonya's Hourglass can be played to Base and armed during your Main Phase to protect a friendly public Unit/Champion from the next supported death, destroying Zhonya instead, then healing, exhausting, and recalling that unit. Hidden Reaction-for-0 timing, competing replacement choices, and broad replacement timing remain deferred.",
+        "blocked": false
       },
       "bucket": "Equipment lifecycle/effect"
     },
@@ -693,21 +693,14 @@
     "uniqueCards": 27,
     "counts": {
       "SUPPORTED": 4,
-      "PARTIAL": 22,
-      "UNSUPPORTED": 1,
+      "PARTIAL": 23,
+      "UNSUPPORTED": 0,
       "BANNED": 0,
       "NOT_AUDITED": 0
     },
-    "canUseInEnforced": false,
+    "canUseInEnforced": true,
     "unresolvedCards": [],
     "topBlockers": [
-      {
-        "cardName": "Zhonya's Hourglass",
-        "sourceCardId": "OGN-077",
-        "status": "UNSUPPORTED",
-        "bucket": "Equipment lifecycle/effect",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet."
-      },
       {
         "cardName": "Irelia - Blade Dancer",
         "sourceCardId": "SFD-195",
@@ -735,6 +728,13 @@
         "status": "PARTIAL",
         "bucket": "Champion text",
         "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      },
+      {
+        "cardName": "Scuttle Crab",
+        "sourceCardId": "UNL-053",
+        "status": "PARTIAL",
+        "bucket": "Hidden / facedown",
+        "reason": "Partial: on-play draw and 1v1 private hand reveal Deathknell are implemented, but XP and facedown-card viewing are deferred."
       }
     ]
   },

@@ -15,7 +15,7 @@
       "OGN-075": "3",
       "OGN-077": "3",
       "OGN-126": "7",
-      "OGN-128": "1",
+      "OGN-128": "2",
       "OGN-132": "3",
       "OGN-156": "3",
       "OGN-275": "1",
@@ -308,7 +308,7 @@
         "rulesText": "[Action] (Play on your turn or in showdowns.)\nChoose a friendly unit and an enemy unit. They deal damage equal to their Mights to each other.",
         "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-128.webp"
       },
-      "quantity": 1,
+      "quantity": 2,
       "role": "Main Deck",
       "resolution": {
         "status": "RESOLVED",
@@ -795,9 +795,9 @@
         }
       },
       "support": {
-        "status": "UNSUPPORTED",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
-        "blocked": true
+        "status": "PARTIAL",
+        "reason": "Partial: Zhonya's Hourglass can be played to Base and armed during your Main Phase to protect a friendly public Unit/Champion from the next supported death, destroying Zhonya instead, then healing, exhausting, and recalling that unit. Hidden Reaction-for-0 timing, competing replacement choices, and broad replacement timing remain deferred.",
+        "blocked": false
       },
       "keywords": [
         "Hidden"
@@ -869,8 +869,8 @@
     "uniqueCards": 26,
     "counts": {
       "SUPPORTED": 3,
-      "PARTIAL": 19,
-      "UNSUPPORTED": 4,
+      "PARTIAL": 20,
+      "UNSUPPORTED": 3,
       "BANNED": 0,
       "NOT_AUDITED": 0
     },
@@ -896,13 +896,13 @@
         "reason": "Blocked in enforced play: this card's effect is not supported yet."
       },
       {
-        "cardName": "Zhonya's Hourglass",
-        "status": "UNSUPPORTED",
-        "bucket": "Equipment lifecycle/effect",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+        "cardName": "Altar to Unity",
+        "status": "PARTIAL",
+        "bucket": "Battlefield effect",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
       },
       {
-        "cardName": "Altar to Unity",
+        "cardName": "Star Spring",
         "status": "PARTIAL",
         "bucket": "Battlefield effect",
         "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."

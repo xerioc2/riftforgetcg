@@ -1025,9 +1025,9 @@
         }
       },
       "support": {
-        "status": "UNSUPPORTED",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
-        "blocked": true
+        "status": "PARTIAL",
+        "reason": "Partial: Zhonya's Hourglass can be played to Base and armed during your Main Phase to protect a friendly public Unit/Champion from the next supported death, destroying Zhonya instead, then healing, exhausting, and recalling that unit. Hidden Reaction-for-0 timing, competing replacement choices, and broad replacement timing remain deferred.",
+        "blocked": false
       },
       "keywords": [
         "Hidden"
@@ -1099,8 +1099,8 @@
     "uniqueCards": 33,
     "counts": {
       "SUPPORTED": 3,
-      "PARTIAL": 22,
-      "UNSUPPORTED": 7,
+      "PARTIAL": 23,
+      "UNSUPPORTED": 6,
       "BANNED": 0,
       "NOT_AUDITED": 1
     },

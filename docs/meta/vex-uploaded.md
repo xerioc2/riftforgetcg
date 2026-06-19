@@ -20,8 +20,8 @@ Event/result: vex top 8 at s3 zhongshan city challenge
 
 - Status: Blocked
 - Supported: 2
-- Partial: 20
-- Unsupported: 4
+- Partial: 21
+- Unsupported: 3
 - Not Audited: 1
 - Enforced playable: No
 
@@ -35,7 +35,7 @@ Event/result: vex top 8 at s3 zhongshan city challenge
 - Blast Cone (UNL-133): UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Allay - Eager Admirer (UNL-041): NOT_AUDITED - Unresolved / missing card data. No local RiftForge card matched Allay - Eager Admirer in Unleashed.
 - Switcheroo (SFD-145): UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
-- Zhonya's Hourglass (OGN-077): UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
+- Vex - Gloomist (UNL-193): PARTIAL - Legend text. Playable for alpha testing, but card-specific behavior may be incomplete.
 
 ## Normalized Sections
 

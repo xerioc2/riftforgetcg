@@ -14,9 +14,9 @@ Extraction status: Extracted
 
 | Deck slug | Deck name | Unique cards | Supported | Partial | Unsupported | Not Audited | Enforced playable |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| master-yi-wins-s3-guangzhou-city-challenge | Master Yi Wins S3 Guangzhou City Challenge | 27 | 4 | 21 | 2 | 0 | No |
-| master-yi-wins-s3-chongqing-city-challenge | Master Yi Wins S3 Chongqing City Challenge | 26 | 3 | 19 | 4 | 0 | No |
-| master-yi-top-16-at-sydney-regional-qualifier | Master Yi Top 16 at Sydney Regional Qualifier | 24 | 3 | 19 | 2 | 0 | No |
+| master-yi-wins-s3-guangzhou-city-challenge | Master Yi Wins S3 Guangzhou City Challenge | 27 | 4 | 22 | 1 | 0 | No |
+| master-yi-wins-s3-chongqing-city-challenge | Master Yi Wins S3 Chongqing City Challenge | 26 | 3 | 20 | 3 | 0 | No |
+| master-yi-top-16-at-sydney-regional-qualifier | Master Yi Top 16 at Sydney Regional Qualifier | 24 | 3 | 20 | 1 | 0 | No |
 
 ## Unresolved Cards
 
@@ -25,16 +25,18 @@ Extraction status: Extracted
 ## Shared Top Blockers
 
 - Repulse: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
-- Zhonya's Hourglass: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Amateur Recital: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Grove of the God-Willow: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Startipped Peak: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Janna - Savior: PARTIAL - Champion text. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Challenge: UNSUPPORTED - Damage / destroy. Blocked in enforced play: this card's effect is not supported yet.
 - Sabotage: UNSUPPORTED - Draw / reveal / deck selection. Blocked in enforced play: this card's effect is not supported yet.
 - Altar to Unity: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Star Spring: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Alpha Strike: UNSUPPORTED - XP / Hunt / Level / Buff. Blocked in enforced play: this card's effect is not supported yet.
 - The Arena's Greatest: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Vilemaw's Lair: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Master Yi - Tempered: PARTIAL - Champion text. Playable for alpha testing, but card-specific behavior may be incomplete.
 
 ## Decklists
 
@@ -54,10 +56,10 @@ Extraction status: Extracted
 Top blockers:
 
 - Repulse: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
-- Zhonya's Hourglass: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Amateur Recital: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Grove of the God-Willow: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Startipped Peak: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Janna - Savior: PARTIAL - Champion text. Playable for alpha testing, but card-specific behavior may be incomplete.
 
 ### Master Yi Wins S3 Chongqing City Challenge
 
@@ -69,7 +71,7 @@ Top blockers:
 | --- | --- |
 | Battlefields | 1x Altar to Unity, 1x Star Spring, 1x Treasure Hoard |
 | Champion / MainDeck candidate | 3x Akshan - Mischievous, 1x Master Yi - Tempered, 1x Master Yi - Wuju Bladesman - Starter, 3x Rengar - Trophy Hunter |
-| Main Deck | 1x Back Off, 1x Challenge, 3x Charm, 3x Defy, 3x Discipline, 2x En Garde, 3x First Mate, 2x Guardian Angel, 3x Lonely Poro, 2x Punch First, 1x Repulse, 1x Ruin Runner, 3x Sabotage, 3x Scuttle Crab, 3x Tasty Faefolk, 2x Vilemaw, 3x Zhonya's Hourglass |
+| Main Deck | 1x Back Off, 2x Challenge, 3x Charm, 3x Defy, 3x Discipline, 2x En Garde, 3x First Mate, 2x Guardian Angel, 3x Lonely Poro, 2x Punch First, 1x Repulse, 1x Ruin Runner, 3x Sabotage, 3x Scuttle Crab, 3x Tasty Faefolk, 2x Vilemaw, 3x Zhonya's Hourglass |
 | Rune Deck | 7x Body Rune, 5x Calm Rune |
 
 Top blockers:
@@ -77,8 +79,8 @@ Top blockers:
 - Challenge: UNSUPPORTED - Damage / destroy. Blocked in enforced play: this card's effect is not supported yet.
 - Repulse: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Sabotage: UNSUPPORTED - Draw / reveal / deck selection. Blocked in enforced play: this card's effect is not supported yet.
-- Zhonya's Hourglass: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Altar to Unity: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Star Spring: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 
 ### Master Yi Top 16 at Sydney Regional Qualifier
 
@@ -96,10 +98,10 @@ Top blockers:
 Top blockers:
 
 - Alpha Strike: UNSUPPORTED - XP / Hunt / Level / Buff. Blocked in enforced play: this card's effect is not supported yet.
-- Zhonya's Hourglass: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Startipped Peak: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - The Arena's Greatest: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Vilemaw's Lair: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Master Yi - Tempered: PARTIAL - Champion text. Playable for alpha testing, but card-specific behavior may be incomplete.
 
 ## Recommended Implementation Order
 

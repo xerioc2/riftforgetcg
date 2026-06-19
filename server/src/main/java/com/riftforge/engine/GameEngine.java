@@ -40,6 +40,7 @@ public class GameEngine {
   private final TriggerDispatcher triggerDispatcher;
   private final PriorityWindowService priorityWindowService;
   private final ActivatedAbilityService activatedAbilityService;
+  private final DeathService deathService;
   private final ShowdownParticipantRules showdownParticipantRules = new ShowdownParticipantRules();
   private final int targetScore;
 
@@ -57,11 +58,17 @@ public class GameEngine {
             new StellacornHerderMoveTrigger(cardDataService))),
         new PriorityWindowService(cardDataService),
         new ActivatedAbilityService(cardDataService),
+        new DeathService(
+            cardDataService,
+            effects,
+            cardZoneService,
+            deathTriggerService,
+            new ReplacementEffectService(cardDataService, cardZoneService)),
         targetScore);
   }
 
   @Autowired
-  public GameEngine(RulesValidator rulesValidator, CombatResolver combatResolver, CardZoneService cardZoneService, CardDataService cardDataService, CardEffectRegistry effects, DeathTriggerService deathTriggerService, TokenFactory tokenFactory, TriggerDispatcher triggerDispatcher, PriorityWindowService priorityWindowService, ActivatedAbilityService activatedAbilityService, @Value("${riftforge.target-score}") int targetScore) {
+  public GameEngine(RulesValidator rulesValidator, CombatResolver combatResolver, CardZoneService cardZoneService, CardDataService cardDataService, CardEffectRegistry effects, DeathTriggerService deathTriggerService, TokenFactory tokenFactory, TriggerDispatcher triggerDispatcher, PriorityWindowService priorityWindowService, ActivatedAbilityService activatedAbilityService, DeathService deathService, @Value("${riftforge.target-score}") int targetScore) {
     this.rulesValidator = rulesValidator;
     this.combatResolver = combatResolver;
     this.cardZoneService = cardZoneService;
@@ -72,6 +79,7 @@ public class GameEngine {
     this.triggerDispatcher = triggerDispatcher;
     this.priorityWindowService = priorityWindowService;
     this.activatedAbilityService = activatedAbilityService;
+    this.deathService = deathService;
     this.targetScore = targetScore;
   }
 
@@ -275,6 +283,13 @@ public class GameEngine {
     if (definition.requiresExhaust()) source.setTapped(true);
     if (ActivatedAbilityService.THE_SYREN_RECALL.equals(definition.abilityKey())) {
       recallUnitToBase(state, source, sourceDef, target);
+    } else if (ActivatedAbilityService.ZHONYAS_HOURGLASS_PROTECT.equals(definition.abilityKey())) {
+      deathService.replacementEffects().registerWouldDieDestroySourceInstead(
+          state,
+          move.playerId(),
+          source.getInstanceId(),
+          target.getInstanceId());
+      log(state, move.playerId(), sourceDef.name() + " is protecting " + cardDataService.getCard(target.getCardId()).name() + ".");
     }
     return state;
   }
@@ -1833,15 +1848,7 @@ public class GameEngine {
               && card.getCurrentHealth() <= 0;
         })
         .toList();
-    List<DeathEvent> deaths = destroyed.stream()
-        .map(card -> deathTriggerService.capture(card, state, DeathEvent.DeathCause.EFFECT))
-        .toList();
-    for (CardInstance card : destroyed) {
-      returnAttachmentsToBase(state, card);
-      cardZoneService.moveToGraveyard(card);
-      effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onDestroy(card, state));
-    }
-    deathTriggerService.process(state, deaths);
+    deathService.resolveDeaths(state, destroyed, DeathEvent.DeathCause.EFFECT, "was destroyed.");
   }
 
   private void applyRulesTextEffect(CardInstance card, CardInstance target, LiveGameState state, CardDefinition def) {

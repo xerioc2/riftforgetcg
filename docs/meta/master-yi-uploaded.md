@@ -20,8 +20,8 @@ Event/result: master yi wins s3 guangzhou city challenge
 
 - Status: Blocked
 - Supported: 3
-- Partial: 18
-- Unsupported: 1
+- Partial: 19
+- Unsupported: 0
 - Not Audited: 1
 - Enforced playable: No
 
@@ -32,10 +32,10 @@ Event/result: master yi wins s3 guangzhou city challenge
 ## Top Blockers
 
 - Master Yi - Wuju Bladesman - Starter (OGS-019): NOT_AUDITED - Unresolved / missing card data. No local RiftForge card matched Master Yi - Wuju Bladesman - Starter in Proving Grounds.
-- Zhonya's Hourglass (OGN-077): UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Amateur Recital (UNL-207): PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Rengar - Trophy Hunter (UNL-120): PARTIAL - Champion text. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Master Yi - Tempered (UNL-113): PARTIAL - Champion text. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Dragonsoul Sage (UNL-093): PARTIAL - Reaction / chain / counter. Playable for alpha testing, but card-specific behavior may be incomplete.
 
 ## Normalized Sections
 

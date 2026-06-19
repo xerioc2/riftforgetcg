@@ -22,12 +22,12 @@ See `docs/meta/UPLOADED_META_DECKS.md` for the complete table.
 
 | Archetype | Uploaded source | Shape check | Support status | S/P/U/NA | Top blockers |
 | --- | --- | --- | --- | --- | --- |
-| Irelia, Blade Dancer | decks/meta/raw/irelia_wins_s3_shanghai_city_challenge.txt | Pass | Blocked | 4/22/1/0 | Zhonya's Hourglass, Irelia - Blade Dancer, Not So Fast, Abandoned Hall, Vex - Apathetic |
+| Irelia, Blade Dancer | decks/meta/raw/irelia_wins_s3_shanghai_city_challenge.txt | Pass | Playable | 4/23/0/0 | Irelia - Blade Dancer, Not So Fast, Abandoned Hall, Vex - Apathetic, Scuttle Crab |
 | Diana, Scorn of the Moon | decks/meta/raw/diana_wins_s3_suzhou_city_challenge.txt | Pass | Blocked | 1/22/2/0 | Hard Bargain, Abandon, Diana - Scorn of the Moon, Star Spring, Abandoned Hall |
 | Annie, Dark Child | decks/meta/raw/annie_4th_at_lille_regional_qualifier.txt | Needs review | Blocked | 1/20/1/1 | Annie - Dark Child - Starter, Hard Bargain, The Arena's Greatest, Seat of Power, Rek'Sai - Breacher |
-| Master Yi, Wuju Bladesman | decks/meta/raw/master_yi_wins_s3_guangzhou_city_challenge.txt | Needs review | Blocked | 3/18/1/1 | Master Yi - Wuju Bladesman - Starter, Zhonya's Hourglass, Amateur Recital, Rengar - Trophy Hunter, Master Yi - Tempered |
+| Master Yi, Wuju Bladesman | decks/meta/raw/master_yi_wins_s3_guangzhou_city_challenge.txt | Needs review | Blocked | 3/19/0/1 | Master Yi - Wuju Bladesman - Starter, Amateur Recital, Rengar - Trophy Hunter, Master Yi - Tempered, Dragonsoul Sage |
 | LeBlanc, Deceiver | decks/meta/raw/leblanc_wins_s3_zhongshan_city_challenge.txt | Pass | Blocked | 1/16/4/0 | Mirror Image, Deadly Flourish, Hidden Blade, Cull the Weak, LeBlanc - Deceiver |
-| Vex, Gloomist | decks/meta/raw/vex_top_8_at_s3_zhongshan_city_challenge.txt | Needs review | Blocked | 2/20/4/1 | Existential Dread, Blast Cone, Allay - Eager Admirer, Switcheroo, Zhonya's Hourglass |
+| Vex, Gloomist | decks/meta/raw/vex_top_8_at_s3_zhongshan_city_challenge.txt | Needs review | Blocked | 2/21/3/1 | Existential Dread, Blast Cone, Allay - Eager Admirer, Switcheroo, Vex - Gloomist |
 | Azir, Emperor of the Sands | decks/meta/raw/azir_wins_lille_regional_qualifier.txt | Pass | Blocked | 2/19/2/0 | Facebreaker, Hidden Blade, Azir - Emperor of the Sands, Trifarian War Camp, Seat of Power |
 | Sivir, Battle Mistress | decks/meta/raw/sivir_2nd_at_sydney_regional_qualifier.txt | Pass | Blocked | 2/13/7/0 | Scryer's Bloom, Lunar Boon, Treasure Trove, Pack of Wonders, Dazzling Aurora |
 | Fiora, Grand Duelist | decks/meta/raw/fiora_wins_s3_beijing_city_challenge.txt | Pass | Blocked | 2/20/2/0 | Hidden Blade, Challenge, Fiora - Grand Duelist, Punch First, Sacrifice |
@@ -37,9 +37,9 @@ See `docs/meta/UPLOADED_META_DECKS.md` for the complete table.
 
 | Legend / archetype | Meta share | Win rate | Deck count | Current support status | Guide list status | Top blockers | Next implementation target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Irelia, Blade Dancer | 8% | 54% | 1637 | Blocked | 2 list(s) extracted | Hard Bargain (UNSUPPORTED), Heart of Dark Ice (UNSUPPORTED), Switcheroo (UNSUPPORTED), Zhonya's Hourglass (UNSUPPORTED), Abandoned Hall (PARTIAL) | Finish current/Irelia support slice |
+| Irelia, Blade Dancer | 8% | 54% | 1637 | Blocked | 2 list(s) extracted | Hard Bargain (UNSUPPORTED), Heart of Dark Ice (UNSUPPORTED), Switcheroo (UNSUPPORTED), Abandoned Hall (PARTIAL), Sunken Temple (PARTIAL) | Finish current/Irelia support slice |
 | Diana, Scorn of the Moon | 7% | 54% | 1438 | Blocked | 3 list(s) extracted | Abandon (UNSUPPORTED), Hard Bargain (UNSUPPORTED), Invert Timelines (UNSUPPORTED), Turn to Dust (UNSUPPORTED), Unchecked Power (UNSUPPORTED) | Reviewer-prioritized next interaction deck |
-| Master Yi, Wuju Bladesman | 9% | 60% | 1710 | Blocked | 3 list(s) extracted | Repulse (UNSUPPORTED), Zhonya's Hourglass (UNSUPPORTED), Amateur Recital (PARTIAL), Grove of the God-Willow (PARTIAL), Startipped Peak (PARTIAL) | Raw meta leader; audit after gameplay notes |
+| Master Yi, Wuju Bladesman | 9% | 60% | 1710 | Blocked | 3 list(s) extracted | Repulse (UNSUPPORTED), Amateur Recital (PARTIAL), Grove of the God-Willow (PARTIAL), Startipped Peak (PARTIAL), Janna - Savior (PARTIAL) | Raw meta leader; audit after gameplay notes |
 | Azir, Emperor of the Sands | 4% | 51% | 728 | Blocked | 1 list(s) extracted | Cull the Weak (UNSUPPORTED), Facebreaker (UNSUPPORTED), Hidden Blade (UNSUPPORTED), Wind Wall (UNSUPPORTED), Hall of Legends (PARTIAL) | Later raw-meta audit |
 | Sivir, Battle Mistress | n/a | n/a | n/a | Blocked | 1 list(s) extracted | Dazzling Aurora (UNSUPPORTED), Flurry of Blades (UNSUPPORTED), Lunar Boon (UNSUPPORTED), Pack of Wonders (UNSUPPORTED), Sabotage (UNSUPPORTED) | Additional guide-sourced archetype |
 | Vex, Gloomist | 5% | 46% | 971 | Blocked | 3 list(s) extracted | Abandon (UNSUPPORTED), Allay - Eager Admirer (NOT_AUDITED), Blast Cone (UNSUPPORTED), Emperor's Divide (UNSUPPORTED), Existential Dread (UNSUPPORTED) | Later raw-meta audit |

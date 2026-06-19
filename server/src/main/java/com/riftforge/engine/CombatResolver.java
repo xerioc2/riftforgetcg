@@ -25,19 +25,49 @@ public class CombatResolver {
   private final CombatStatsService combatStatsService;
   private final DeathTriggerService deathTriggerService;
   private final CombatDamageRules combatDamageRules;
+  private final DeathService deathService;
 
   public CombatResolver(CardDataService cardDataService, CardEffectRegistry effects, CardZoneService cardZoneService, CombatStatsService combatStatsService, DeathTriggerService deathTriggerService) {
-    this(cardDataService, effects, cardZoneService, combatStatsService, deathTriggerService, new CombatDamageRules(cardDataService));
+    this(
+        cardDataService,
+        effects,
+        cardZoneService,
+        combatStatsService,
+        deathTriggerService,
+        new CombatDamageRules(cardDataService),
+        new DeathService(
+            cardDataService,
+            effects,
+            cardZoneService,
+            deathTriggerService,
+            new ReplacementEffectService(cardDataService, cardZoneService)));
+  }
+
+  public CombatResolver(CardDataService cardDataService, CardEffectRegistry effects, CardZoneService cardZoneService, CombatStatsService combatStatsService, DeathTriggerService deathTriggerService, CombatDamageRules combatDamageRules) {
+    this(
+        cardDataService,
+        effects,
+        cardZoneService,
+        combatStatsService,
+        deathTriggerService,
+        combatDamageRules,
+        new DeathService(
+            cardDataService,
+            effects,
+            cardZoneService,
+            deathTriggerService,
+            new ReplacementEffectService(cardDataService, cardZoneService)));
   }
 
   @Autowired
-  public CombatResolver(CardDataService cardDataService, CardEffectRegistry effects, CardZoneService cardZoneService, CombatStatsService combatStatsService, DeathTriggerService deathTriggerService, CombatDamageRules combatDamageRules) {
+  public CombatResolver(CardDataService cardDataService, CardEffectRegistry effects, CardZoneService cardZoneService, CombatStatsService combatStatsService, DeathTriggerService deathTriggerService, CombatDamageRules combatDamageRules, DeathService deathService) {
     this.cardDataService = cardDataService;
     this.effects = effects;
     this.cardZoneService = cardZoneService;
     this.combatStatsService = combatStatsService;
     this.deathTriggerService = deathTriggerService;
     this.combatDamageRules = combatDamageRules;
+    this.deathService = deathService;
   }
 
   public CombatResult resolve(LiveGameState state, String attackingPlayerId) {
@@ -154,11 +184,7 @@ public class CombatResolver {
         destroyed.add(card);
       }
     }
-    List<DeathEvent> deaths = destroyed.stream()
-        .map(card -> deathTriggerService.capture(card, state, DeathEvent.DeathCause.COMBAT))
-        .toList();
-    destroyed.forEach(card -> destroy(state, card));
-    deathTriggerService.process(state, deaths);
+    deathService.resolveDeaths(state, destroyed, DeathEvent.DeathCause.COMBAT, "was destroyed in combat.");
   }
 
   private CombatContext combatContextFor(String attackingPlayerId, CardInstance card) {
@@ -171,19 +197,6 @@ public class CombatResolver {
     if (cardDataService.hasKeyword(card, "TANK")) return 0;
     if (cardDataService.hasKeyword(card, "BACKLINE")) return 2;
     return 1;
-  }
-
-  private void destroy(LiveGameState state, CardInstance card) {
-    CardDefinition def = cardDataService.getCard(card.getCardId());
-    List<CardInstance> returnedAttachments = cardZoneService.returnAttachmentsToBase(state, card);
-    if (returnedAttachments != null) {
-      for (CardInstance attachment : returnedAttachments) {
-        GameEngine.log(state, attachment.getOwnerId(), cardName(attachment) + " returned to Base.");
-      }
-    }
-    cardZoneService.moveToGraveyard(card);
-    effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onDestroy(card, state));
-    GameEngine.log(state, card.getOwnerId(), def.name() + " was destroyed in combat.");
   }
 
   private String cardName(CardInstance card) {

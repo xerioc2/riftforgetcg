@@ -12,7 +12,7 @@ export type TargetRequirement = {
 export function targetModeForCard(card: RiftCard | undefined): TargetMode {
   if (!card || !['spell', 'gear'].includes(card.type?.toLowerCase())) return 'NONE';
   const text = (card.rulesText ?? '').toLowerCase();
-  if (card.type?.toLowerCase() === 'gear') return text.includes('[equip]') || isTheSyrenActivatedAbility(card) ? 'NONE' : 'UNSUPPORTED';
+  if (card.type?.toLowerCase() === 'gear') return text.includes('[equip]') || isTheSyrenActivatedAbility(card) || isZhonyasHourglassActivatedAbility(card) ? 'NONE' : 'UNSUPPORTED';
   if (multiTargetRequirementsForCard(card).length > 0) return 'NONE';
   if (isSupportedChainReactionCard(card)) return 'NONE';
   if (isCharmMoveCard(card)) return 'ENEMY_UNIT';
@@ -95,6 +95,18 @@ export function isTheSyrenActivatedAbility(card: RiftCard | undefined) {
   return card?.type?.toLowerCase() === 'gear'
     && card.name?.trim().toLowerCase() === 'the syren'
     && text === ':rb_energy_1:, :rb_exhaust:: move a friendly unit at a battlefield to its base.';
+}
+
+export function isZhonyasHourglassActivatedAbility(card: RiftCard | undefined) {
+  const text = (card?.rulesText ?? '').trim().toLowerCase();
+  return card?.type?.toLowerCase() === 'gear'
+    && card.name?.trim().toLowerCase() === "zhonya's hourglass"
+    && text.includes('[hidden]')
+    && text.includes('if a friendly unit would die')
+    && text.includes('kill this instead')
+    && text.includes('heal that unit')
+    && text.includes('exhaust it')
+    && text.includes('recall it');
 }
 
 export function isActionCard(card: RiftCard | undefined) {
@@ -330,7 +342,7 @@ export function unsupportedCardReason(card: RiftCard | undefined): string | null
   const type = card.type?.toLowerCase();
   const text = (card.rulesText ?? '').toLowerCase();
   if (hasUnsupportedAdditionalCost(card)) return 'Additional-cost cards are not supported yet.';
-  if (type === 'gear') return text.includes('[equip]') || isTheSyrenActivatedAbility(card) ? null : 'That gear ability is not supported yet.';
+  if (type === 'gear') return text.includes('[equip]') || isTheSyrenActivatedAbility(card) || isZhonyasHourglassActivatedAbility(card) ? null : 'That gear ability is not supported yet.';
   if (type !== 'spell') return null;
   const supported = text.includes(':rb_might:')
     || text.includes('return a unit')

@@ -106,4 +106,13 @@ describe('deckSupport', () => {
     expect(syren.reason).toContain('friendly public battlefield Unit/Champion');
     expect(syren.reason).toContain('activated ability timing');
   });
+
+  it('uses a Zhonyas Hourglass-specific Partial reason for the alpha would-die replacement', () => {
+    const zhonya = cardSupportStatus(gear("Zhonya's Hourglass", "[Hidden] If a friendly unit would die, kill this instead. Heal that unit, exhaust it, and recall it."));
+
+    expect(zhonya.status).toBe('PARTIAL');
+    expect(zhonya.reason).toContain('protect a friendly public Unit/Champion');
+    expect(zhonya.reason).toContain('Hidden Reaction-for-0 timing');
+    expect(zhonya.reason).toContain('competing replacement choices');
+  });
 });

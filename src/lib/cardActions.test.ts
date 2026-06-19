@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canUseSupportedChainResponse, isCharmMoveCard, isDefiantDanceReactionCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isFlashReactionCard, isGustReactionCard, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isSupportedChainReactionCard, isTheSyrenActivatedAbility, multiTargetRequirementsForCard, shouldShowRespondAction, targetModeForCard, unsupportedCardReason } from './cardActions';
+import { canUseSupportedChainResponse, isCharmMoveCard, isDefiantDanceReactionCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isFlashReactionCard, isGustReactionCard, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isSupportedChainReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, shouldShowRespondAction, targetModeForCard, unsupportedCardReason } from './cardActions';
 import type { CardInstance, RiftCard } from '../types';
 
 describe('cardActions', () => {
@@ -154,6 +154,21 @@ describe('cardActions', () => {
     expect(isTheSyrenActivatedAbility(syren)).toBe(true);
     expect(unsupportedCardReason(syren)).toBeNull();
     expect(targetModeForCard(syren)).toBe('NONE');
+  });
+
+  it('recognizes Zhonyas Hourglass as the narrow alpha activated Gear helper', () => {
+    const zhonya: RiftCard = {
+      id: 'zhonya',
+      name: "Zhonya's Hourglass",
+      type: 'Gear',
+      domains: ['CALM'],
+      cost: 2,
+      rulesText: "[Hidden] If a friendly unit would die, kill this instead. Heal that unit, exhaust it, and recall it.",
+    };
+
+    expect(isZhonyasHourglassActivatedAbility(zhonya)).toBe(true);
+    expect(unsupportedCardReason(zhonya)).toBeNull();
+    expect(targetModeForCard(zhonya)).toBe('NONE');
   });
 
   it('marks Gust playable only when chain play and a legal Gust target are available', () => {

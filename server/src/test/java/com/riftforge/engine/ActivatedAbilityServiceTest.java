@@ -21,6 +21,8 @@ import org.junit.jupiter.api.Test;
 
 class ActivatedAbilityServiceTest {
   private static final String SYREN_TEXT = ":rb_energy_1:, :rb_exhaust:: Move a friendly unit at a battlefield to its base.";
+  private static final String ZHONYA_TEXT = "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)"
+      + "If a friendly unit would die, kill this instead. Heal that unit, exhaust it, and recall it. (Send it to base. This isn't a move.)";
 
   private CardDataService cardDataService;
   private ActivatedAbilityService service;
@@ -33,7 +35,12 @@ class ActivatedAbilityServiceTest {
       CardDefinition def = invocation.getArgument(0);
       return def != null && "The Syren".equals(def.name());
     });
+    when(cardDataService.isZhonyasHourglass(any())).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      return def != null && "Zhonya's Hourglass".equals(def.name());
+    });
     when(cardDataService.getCard("syren-card")).thenReturn(card("syren-card", "The Syren", "Gear", SYREN_TEXT));
+    when(cardDataService.getCard("zhonya-card")).thenReturn(card("zhonya-card", "Zhonya's Hourglass", "Gear", ZHONYA_TEXT));
     when(cardDataService.getCard("unit-card")).thenReturn(card("unit-card", "Friendly Unit", "Unit", ""));
     when(cardDataService.getCard("enemy-card")).thenReturn(card("enemy-card", "Enemy Unit", "Unit", ""));
   }
@@ -54,6 +61,21 @@ class ActivatedAbilityServiceTest {
   }
 
   @Test
+  void exactCardRegistryExposesZhonyasHourglassAbilityDefinition() {
+    List<ActivatedAbilityDefinition> definitions = service.definitionsFor(card("zhonya-card", "Zhonya's Hourglass", "Gear", ZHONYA_TEXT));
+
+    assertThat(definitions).singleElement().satisfies(definition -> {
+      assertThat(definition.abilityKey()).isEqualTo(ActivatedAbilityService.ZHONYAS_HOURGLASS_PROTECT);
+      assertThat(definition.sourceZone()).isEqualTo(ZoneName.BASE);
+      assertThat(definition.energyCost()).isZero();
+      assertThat(definition.requiresExhaust()).isFalse();
+      assertThat(definition.timing()).isEqualTo(ActivatedAbilityTiming.MAIN_PHASE_IMMEDIATE);
+      assertThat(definition.targetKind()).isEqualTo(ActivatedAbilityTargetKind.FRIENDLY_PUBLIC_PLAY_UNIT);
+      assertThat(definition.reactable()).isFalse();
+    });
+  }
+
+  @Test
   void validatesLegalImmediateActivation() {
     LiveGameState state = state(source("syren", "p1", ZoneName.BASE), unit("unit", "p1", ZoneName.BATTLEFIELD));
     state.getPlayers().getFirst().setAvailableEnergy(1);
@@ -63,6 +85,17 @@ class ActivatedAbilityServiceTest {
         new ActivateAbilityMove("p1", "syren", ActivatedAbilityService.THE_SYREN_RECALL, "unit", List.of(), List.of()));
 
     assertThat(definition.abilityKey()).isEqualTo(ActivatedAbilityService.THE_SYREN_RECALL);
+  }
+
+  @Test
+  void validatesLegalZhonyasHourglassActivationWithoutPayment() {
+    LiveGameState state = state(source("zhonya", "zhonya-card", "p1", ZoneName.BASE), unit("unit", "p1", ZoneName.BASE));
+
+    ActivatedAbilityDefinition definition = service.validate(
+        state,
+        new ActivateAbilityMove("p1", "zhonya", ActivatedAbilityService.ZHONYAS_HOURGLASS_PROTECT, "unit", List.of(), List.of()));
+
+    assertThat(definition.abilityKey()).isEqualTo(ActivatedAbilityService.ZHONYAS_HOURGLASS_PROTECT);
   }
 
   @Test
@@ -116,6 +149,32 @@ class ActivatedAbilityServiceTest {
   }
 
   @Test
+  void rejectsZhonyasHourglassEnemyOrPrivateTargetWithoutMutation() {
+    CardInstance zhonya = source("zhonya", "zhonya-card", "p1", ZoneName.BASE);
+    CardInstance enemy = unit("enemy", "p2", ZoneName.BATTLEFIELD);
+    LiveGameState state = state(zhonya, enemy);
+
+    assertThatThrownBy(() -> service.validate(
+        state,
+        new ActivateAbilityMove("p1", "zhonya", ActivatedAbilityService.ZHONYAS_HOURGLASS_PROTECT, "enemy", List.of(), List.of())))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessageContaining("friendly public Unit or Champion");
+    assertThat(zhonya.isTapped()).isFalse();
+    assertThat(enemy.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+
+    CardInstance hidden = unit("hidden", "p1", ZoneName.BASE);
+    hidden.setFaceDown(true);
+    state.getCards().add(hidden);
+
+    assertThatThrownBy(() -> service.validate(
+        state,
+        new ActivateAbilityMove("p1", "zhonya", ActivatedAbilityService.ZHONYAS_HOURGLASS_PROTECT, "hidden", List.of(), List.of())))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessageContaining("friendly public Unit or Champion");
+    assertThat(hidden.getZone()).isEqualTo(ZoneName.BASE);
+  }
+
+  @Test
   void legalActivationRequiresPublicMainPhaseSourceTargetAndPayment() {
     LiveGameState state = state(source("syren", "p1", ZoneName.BASE), unit("unit", "p1", ZoneName.BATTLEFIELD));
     assertThat(service.hasLegalActivation(state, "p1")).isFalse();
@@ -124,6 +183,20 @@ class ActivatedAbilityServiceTest {
     assertThat(service.hasLegalActivation(state, "p1")).isTrue();
 
     state.setCurrentPhase(Phase.AWAKEN);
+    assertThat(service.hasLegalActivation(state, "p1")).isFalse();
+  }
+
+  @Test
+  void legalActivationIncludesZhonyasHourglassWithFriendlyBaseOrBattlefieldTarget() {
+    LiveGameState state = state(source("zhonya", "zhonya-card", "p1", ZoneName.BASE), unit("unit", "p1", ZoneName.BASE));
+
+    assertThat(service.hasLegalActivation(state, "p1")).isTrue();
+
+    state.getCards().stream()
+        .filter(card -> "unit".equals(card.getInstanceId()))
+        .findFirst()
+        .orElseThrow()
+        .setZone(ZoneName.HAND);
     assertThat(service.hasLegalActivation(state, "p1")).isFalse();
   }
 
@@ -142,9 +215,13 @@ class ActivatedAbilityServiceTest {
   }
 
   private CardInstance source(String instanceId, String ownerId, ZoneName zone) {
+    return source(instanceId, "syren-card", ownerId, zone);
+  }
+
+  private CardInstance source(String instanceId, String cardId, String ownerId, ZoneName zone) {
     CardInstance card = new CardInstance();
     card.setInstanceId(instanceId);
-    card.setCardId("syren-card");
+    card.setCardId(cardId);
     card.setOwnerId(ownerId);
     card.setZone(zone);
     return card;
