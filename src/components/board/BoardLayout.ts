@@ -82,7 +82,7 @@ export function computeLayout(width: number, height: number, playerIds: string[]
     const rightPadding = Math.max(12, Math.min(24, width * 0.015));
     const actionWidth = Math.max(420, width - actionX - rightPadding);
     const runeStrip = 78;
-    const runeWidth = Math.min(actionWidth, Math.max(560, actionWidth * 0.82));
+    const runeWidth = Math.min(actionWidth, Math.max(560, actionWidth * 0.91));
     const baseHeight = Math.max(100, Math.min(124, height * 0.145));
     const rowGap = 14;
     const utilityHeight = runeStrip + baseHeight + 12;

@@ -124,6 +124,18 @@ export function isSupportedChainReactionCard(card: RiftCard | undefined) {
     || isNotSoFastCounterCard(card);
 }
 
+export function shouldShowRespondAction(
+  card: RiftCard | undefined,
+  options: {
+    canPlayReactions: boolean;
+    canPlayReactionCard?: boolean;
+  },
+) {
+  return options.canPlayReactions
+    && isSupportedChainReactionCard(card)
+    && (options.canPlayReactionCard ?? true);
+}
+
 export function canUseSupportedChainResponse(
   card: RiftCard | undefined,
   options: {

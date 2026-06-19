@@ -30,6 +30,19 @@ public class CombatDamageAssignmentPlanner {
   }
 
   public Optional<List<LiveGameState.CombatDamageAssignment>> plan(LiveGameState state, String playerId) {
+    return assignmentState(state, playerId)
+        .filter(LiveGameState.CombatAssignmentState::canAutoAssign)
+        .map(LiveGameState.CombatAssignmentState::suggestedAssignments);
+  }
+
+  public Optional<LiveGameState.CombatAssignmentState> assignmentState(LiveGameState state) {
+    if (state == null || state.getActiveShowdown() == null) return Optional.empty();
+    String assigningPlayerId = state.getActiveShowdown().assigningPlayerId();
+    if (assigningPlayerId == null || assigningPlayerId.isBlank()) return Optional.empty();
+    return assignmentState(state, assigningPlayerId);
+  }
+
+  public Optional<LiveGameState.CombatAssignmentState> assignmentState(LiveGameState state, String playerId) {
     if (state == null || state.getActiveShowdown() == null) return Optional.empty();
     String locationId = BattlefieldLocationRules.normalize(state.getActiveShowdown().locationId());
     boolean attacking = playerId.equals(state.getActiveShowdown().attackingPlayerId());
@@ -43,9 +56,11 @@ public class CombatDamageAssignmentPlanner {
         .filter(card -> !playerId.equals(card.getOwnerId()))
         .filter(this::isCombatant)
         .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
-        .sorted(targetOrder())
+        .sorted(targetOrder(state, attacking))
         .toList();
-    if (sources.isEmpty() || targets.isEmpty()) return Optional.empty();
+    if (sources.isEmpty() || targets.isEmpty()) {
+      return Optional.of(combatAssignmentState(state, playerId, locationId, sources, targets, List.of(), false));
+    }
 
     Map<String, Integer> sourceMight = new LinkedHashMap<>();
     int totalMight = 0;
@@ -54,26 +69,97 @@ public class CombatDamageAssignmentPlanner {
       sourceMight.put(source.getInstanceId(), might);
       totalMight += might;
     }
-    if (totalMight == 0) return Optional.of(List.of());
+    if (totalMight == 0) {
+      return Optional.of(combatAssignmentState(state, playerId, locationId, sources, targets, List.of(), true, sourceMight));
+    }
 
-    Optional<Map<String, Integer>> quotas = targetQuotas(state, targets, totalMight);
-    return quotas.map(targetQuotas -> splitSourceDamage(sources, sourceMight, targets, targetQuotas));
+    Optional<Map<String, Integer>> quotas = targetQuotas(state, targets, totalMight, attacking);
+    List<LiveGameState.CombatDamageAssignment> assignments = quotas
+        .map(targetQuotas -> poolAssignments(playerId, targets, targetQuotas))
+        .orElse(List.of());
+    return Optional.of(combatAssignmentState(state, playerId, locationId, sources, targets, assignments, quotas.isPresent(), sourceMight));
   }
 
-  private Optional<Map<String, Integer>> targetQuotas(LiveGameState state, List<CardInstance> targets, int totalMight) {
+  private LiveGameState.CombatAssignmentState combatAssignmentState(
+      LiveGameState state,
+      String playerId,
+      String locationId,
+      List<CardInstance> sources,
+      List<CardInstance> targets,
+      List<LiveGameState.CombatDamageAssignment> assignments,
+      boolean canAutoAssign) {
+    return combatAssignmentState(state, playerId, locationId, sources, targets, assignments, canAutoAssign, Map.of());
+  }
+
+  private LiveGameState.CombatAssignmentState combatAssignmentState(
+      LiveGameState state,
+      String playerId,
+      String locationId,
+      List<CardInstance> sources,
+      List<CardInstance> targets,
+      List<LiveGameState.CombatDamageAssignment> assignments,
+      boolean canAutoAssign,
+      Map<String, Integer> sourceMight) {
+    List<String> validTargetIds = targets.stream()
+        .map(CardInstance::getInstanceId)
+        .toList();
+    boolean attacking = playerId.equals(state.getActiveShowdown().attackingPlayerId());
+    CombatStatsService.CombatContext context = attacking
+        ? CombatStatsService.CombatContext.ATTACKING
+        : CombatStatsService.CombatContext.DEFENDING;
+    List<LiveGameState.CombatDamageSourceOption> validSources = sources.stream()
+        .map(source -> new LiveGameState.CombatDamageSourceOption(
+            source.getInstanceId(),
+            sourceMight.containsKey(source.getInstanceId())
+                ? sourceMight.get(source.getInstanceId())
+                : combatStatsService.effectiveMight(state, source, context),
+            validTargetIds))
+        .toList();
+    int damagePool = validSources.stream()
+        .mapToInt(LiveGameState.CombatDamageSourceOption::availableDamage)
+        .sum();
+    CombatStatsService.CombatContext targetContext = attacking
+        ? CombatStatsService.CombatContext.DEFENDING
+        : CombatStatsService.CombatContext.ATTACKING;
+    List<LiveGameState.CombatDamageTargetOption> validTargets = targets.stream()
+        .map(target -> new LiveGameState.CombatDamageTargetOption(
+            target.getInstanceId(),
+            combatDamageRules.combatLethalDamage(state, target, targetContext),
+            hasTank(target)))
+        .toList();
+    return new LiveGameState.CombatAssignmentState(
+        locationId,
+        playerId,
+        state.getActiveShowdown().step().name(),
+        damagePool,
+        validSources,
+        validTargets,
+        validTargetIds,
+        assignments,
+        canAutoAssign);
+  }
+
+  private Optional<Map<String, Integer>> targetQuotas(
+      LiveGameState state,
+      List<CardInstance> targets,
+      int totalMight,
+      boolean attackingAssignment) {
     if (targets.size() == 1) {
       return Optional.of(Map.of(targets.getFirst().getInstanceId(), totalMight));
     }
 
+    CombatStatsService.CombatContext targetContext = attackingAssignment
+        ? CombatStatsService.CombatContext.DEFENDING
+        : CombatStatsService.CombatContext.ATTACKING;
     int prefixLethal = 0;
     Map<String, Integer> quotas = new LinkedHashMap<>();
     for (CardInstance target : targets) {
-      int lethal = combatDamageRules.lethalDamage(state, target);
+      int lethal = combatDamageRules.combatLethalDamage(state, target, targetContext);
       prefixLethal += lethal;
       quotas.put(target.getInstanceId(), lethal);
       if (totalMight == prefixLethal) return Optional.of(quotas);
       if (totalMight < prefixLethal) {
-        return singleTargetQuota(state, targets, totalMight);
+        return singleTargetQuota(state, targets, totalMight, targetContext);
       }
     }
 
@@ -85,42 +171,31 @@ public class CombatDamageAssignmentPlanner {
     return Optional.of(quotas);
   }
 
-  private Optional<Map<String, Integer>> singleTargetQuota(LiveGameState state, List<CardInstance> targets, int totalMight) {
+  private Optional<Map<String, Integer>> singleTargetQuota(
+      LiveGameState state,
+      List<CardInstance> targets,
+      int totalMight,
+      CombatStatsService.CombatContext targetContext) {
     boolean hasTank = targets.stream().anyMatch(this::hasTank);
     return targets.stream()
         .filter(target -> !hasTank || hasTank(target))
-        .filter(target -> combatDamageRules.lethalDamage(state, target) >= totalMight)
+        .filter(target -> combatDamageRules.combatLethalDamage(state, target, targetContext) >= totalMight)
         .findFirst()
         .map(target -> Map.of(target.getInstanceId(), totalMight));
   }
 
-  private List<LiveGameState.CombatDamageAssignment> splitSourceDamage(
-      List<CardInstance> sources,
-      Map<String, Integer> sourceMight,
+  private List<LiveGameState.CombatDamageAssignment> poolAssignments(
+      String playerId,
       List<CardInstance> targets,
       Map<String, Integer> targetQuotas) {
     List<LiveGameState.CombatDamageAssignment> assignments = new ArrayList<>();
-    Map<String, Integer> assignedByTarget = new LinkedHashMap<>();
-    int targetIndex = 0;
-    for (CardInstance source : sources) {
-      int remaining = sourceMight.getOrDefault(source.getInstanceId(), 0);
-      while (remaining > 0 && targetIndex < targets.size()) {
-        CardInstance target = targets.get(targetIndex);
-        int quota = targetQuotas.getOrDefault(target.getInstanceId(), 0);
-        int assigned = assignedByTarget.getOrDefault(target.getInstanceId(), 0);
-        int needed = quota - assigned;
-        if (needed <= 0) {
-          targetIndex++;
-          continue;
-        }
-        int amount = Math.min(remaining, needed);
-        assignments.add(new LiveGameState.CombatDamageAssignment(
-            source.getInstanceId(),
-            target.getInstanceId(),
-            amount));
-        remaining -= amount;
-        assignedByTarget.merge(target.getInstanceId(), amount, Integer::sum);
-      }
+    for (CardInstance target : targets) {
+      int amount = targetQuotas.getOrDefault(target.getInstanceId(), 0);
+      if (amount <= 0) continue;
+      assignments.add(new LiveGameState.CombatDamageAssignment(
+          playerId,
+          target.getInstanceId(),
+          amount));
     }
     return assignments;
   }
@@ -139,9 +214,13 @@ public class CombatDamageAssignmentPlanner {
     return def != null && ("Unit".equalsIgnoreCase(def.type()) || "Champion".equalsIgnoreCase(def.type()));
   }
 
-  private Comparator<CardInstance> targetOrder() {
+  private Comparator<CardInstance> targetOrder(LiveGameState state, boolean attackingAssignment) {
+    CombatStatsService.CombatContext targetContext = attackingAssignment
+        ? CombatStatsService.CombatContext.DEFENDING
+        : CombatStatsService.CombatContext.ATTACKING;
     return Comparator
         .comparing((CardInstance card) -> !hasTank(card))
+        .thenComparingInt(card -> combatDamageRules.combatLethalDamage(state, card, targetContext))
         .thenComparing(CardInstance::getInstanceId);
   }
 

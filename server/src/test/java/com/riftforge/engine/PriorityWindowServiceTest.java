@@ -51,6 +51,40 @@ class PriorityWindowServiceTest {
   }
 
   @Test
+  void simplePublicDrawOneSpellOpensReactionWindow() {
+    CardDefinition draw = card("draw", "Simple Insight", "Spell", "Draw 1.");
+    when(cardDataService.isStackedDeckEffect(draw)).thenReturn(false);
+    when(cardDataService.isReactionCard(draw)).thenReturn(false);
+    when(cardDataService.isUnsupportedAction("draw")).thenReturn(false);
+    PriorityWindowService service = new PriorityWindowService(cardDataService);
+
+    PriorityWindowService.PriorityWindow window = service.openingWindowForPlayedCard(state(), draw, false).orElseThrow();
+
+    assertThat(service.chainOpenReasonForPlayedCard(draw)).contains(PriorityWindowService.ChainOpenReason.SIMPLE_DRAW_ONE_SPELL);
+    assertThat(window.type()).isEqualTo(PriorityWindowService.PriorityWindowType.SPELL_PLAYED);
+    assertThat(window.effectKey()).isEqualTo(LiveGameState.ChainItem.EFFECT_DRAW_1);
+    assertThat(window.chainItemType()).isEqualTo(LiveGameState.ChainItem.TYPE_SPELL);
+    assertThat(window.visibility()).isEqualTo(LiveGameState.ChainItem.VISIBILITY_PUBLIC);
+    assertThat(window.counterable()).isTrue();
+    assertThat(window.targetableOnChain()).isTrue();
+    assertThat(window.publicDescription()).isEqualTo("Simple Insight");
+  }
+
+  @Test
+  void unsupportedAndPrivateChoiceSpellsDoNotOpenReactionWindowByPolicy() {
+    CardDefinition unsupported = card("unsupported", "Unsupported Trick", "Spell", "Draw 1.");
+    CardDefinition choice = card("choice", "Choice Trick", "Spell", "Choose a unit. Draw 1.");
+    when(cardDataService.isStackedDeckEffect(unsupported)).thenReturn(false);
+    when(cardDataService.isStackedDeckEffect(choice)).thenReturn(false);
+    when(cardDataService.isUnsupportedAction("unsupported")).thenReturn(true);
+    when(cardDataService.isUnsupportedAction("choice")).thenReturn(false);
+    PriorityWindowService service = new PriorityWindowService(cardDataService);
+
+    assertThat(service.openingWindowForPlayedCard(state(), unsupported, false)).isEmpty();
+    assertThat(service.openingWindowForPlayedCard(state(), choice, false)).isEmpty();
+  }
+
+  @Test
   void normalCardsDoNotOpenPriorityByDefault() {
     CardDefinition unit = card("unit", "Tideturner", "Unit", "A normal unit.");
     when(cardDataService.isStackedDeckEffect(unit)).thenReturn(false);

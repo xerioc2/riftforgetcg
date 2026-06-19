@@ -27,12 +27,24 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
   before the top-card choice appears; after players pass/resolve the chain, only you see the
   top-card options, one card goes to hand, and the rest recycle without
   appearing in the public log.
+- If you play a simple public `Draw 1` spell, confirm it opens a chain before
+  drawing and the draw happens only after the chain item resolves.
 - If the chain panel appears, confirm it lists public-safe chain items
   top-to-bottom, shows focus/ready status clearly, and does not expose hidden
   or private card names.
-- If neither player has a legal Gust/Discipline/En Garde/Defy/Not So Fast response, confirm the chain skips
-  dead response windows and leaves the top item ready to resolve instead of
-  requiring extra Pass Chain clicks.
+- Confirm supported targeted Reactions such as Gust, Discipline, and En Garde
+  can be played on your own Main Phase or focused showdown window, then resolve
+  from the chain. They should show `Respond` only while you have chain focus.
+- With a human opponent, confirm priority focus does not skip just because the
+  focused player has no legal Reaction. The focused player should still be able
+  to pass priority manually, and opponents should only see that priority is
+  waiting, not whether a response exists.
+- Confirm the local Priority Stops panel can keep manual stops by default and
+  can optionally auto-pass your own empty windows without changing server
+  legality. RiftBot may still auto-pass empty windows.
+- While a chain is active, try tapping or recycling a Rune and confirm the
+  server/UI keeps the chain paused instead of allowing Rune innate actions as
+  responses.
 - If Defy is in hand during chain focus, confirm it can target a supported
   public spell chain item such as Stacked Deck, counters that item, and prevents
   the Stacked Deck top-card choice from appearing.
@@ -49,7 +61,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Try Ambush if the UI says it is available.
 - Move a Unit to the battlefield.
 - During a showdown, confirm the focused player can either play a supported `[Action]` card or click `Pass Focus`.
-- After both relevant players pass focus, resolve the showdown, then use `Assign Damage` when prompted.
+- After both relevant players pass focus, resolve the showdown, then use `Resolve Damage` / `Resolve Combat Damage` when prompted.
 - Trigger or inspect an unsupported-card message.
 - Check support badges in the deck builder, hand, hover preview, and inspect modal.
 - Use Report issue or Copy debug info if anything looks stuck or confusing. Include the build version from Alpha limits or copied debug info.
@@ -78,6 +90,8 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - If Stacked Deck appears, confirm it first waits on the chain, then resolve
   the top-3 private prompt and confirm opponent/spectator views do not reveal
   those card names.
+- If a simple public `Draw 1` spell appears, confirm it opens the chain and
+  can be responded to before the draw resolves.
 - Play Gear to Base, equip it to a valid friendly Unit/Champion, and confirm the log says what was equipped.
 - Confirm illegal Equip targets, such as opponent units, Gear, Battlefields, Runes, Legends, hidden cards, and Champion-zone identity cards, show readable warnings/rejections.
 - Confirm Gear cannot target the Champion while it is still in the Champion zone; it can target a Champion only after the Champion has moved into Base or the battlefield.
@@ -88,16 +102,16 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - If a showdown starts and you have focus, try a supported `[Action]` card or click `Pass Focus`.
 - Confirm the attacker cannot resolve until both relevant players pass focus.
 - If a chain prompt/status appears, confirm only the focused player sees `Pass Chain` or `Resolve Chain` and normal game actions stay paused until it clears.
-- Confirm the chain panel status updates do not imply counterspells are
-  broadly supported yet; Gust, Defy, and narrow Not So Fast are the only real
-  alpha Reaction responses.
-- Confirm unsupported Reactions such as Defiant Dance do not appear playable,
-  even while the chain panel is active.
+- Confirm the chain panel status updates do not imply counterspells or
+  Reaction timing are broadly supported yet; Gust, Discipline, En Garde, Defy,
+  and narrow Not So Fast are the only real alpha Reaction responses.
+- Confirm unsupported Reactions such as Defiant Dance do not appear as legal
+  responses, even while the chain panel is active.
 - During human vs RiftBot, try clicking an unsupported Reaction such as Defiant
   Dance during a no-chain or opponent-turn window; confirm a local warning
   appears, the UI does not stay stuck waiting for a server update, and RiftBot
   continues or ends its turn.
-- Resolve a showdown after the focus/pass cycle completes, then assign combat damage when prompted.
+- Resolve a showdown after the focus/pass cycle completes, then resolve the server-planned combat damage when prompted.
 - In human vs RiftBot, create a multi-unit combat where RiftBot has more combatants than the opposing side; confirm RiftBot assigns all damage, the showdown resolves, and the game does not freeze.
 - If practical, smoke both paths: RiftBot attacking with multiple units and RiftBot defending with multiple units.
 - If Deathknell/token cards appear, confirm the log and board state update clearly.
@@ -148,15 +162,16 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - If the opponent has Not So Fast in hand, confirm it cannot select untargeted
   Stacked Deck but can select an enemy Gust chain item that chooses that
   opponent's friendly Unit/Champion Unit or Gear.
-- If no player has Gust, Defy, or Not So Fast available, confirm the chain advances directly
-  to `Resolve Chain` without making players click through empty response
-  windows.
+- If no human stop is holding priority and no legal response is available,
+  confirm the chain can advance cleanly to `Resolve Chain`. In human-vs-human
+  testing, empty public priority windows may still wait for the focused player
+  to pass manually so hand contents are not implied by auto-pass.
 - While RiftBot is active in Main, click an unsupported Reaction card in your
   hand and confirm the warning does not freeze the client; Copy debug info
   should include awaiting update, last submitted action, last failure, active
   showdown location, battlefield controllers, public card locations,
   attachments, chain, choice, and legal-action fields.
-- Resolve a showdown after the focus/pass cycle completes, then confirm `Assign Damage` appears before cleanup.
+- Resolve a showdown after the focus/pass cycle completes, then confirm `Resolve Damage` appears before cleanup.
 - Confirm attached Gear returns to Base if its host leaves play in a supported path.
 - Confirm the game log shows readable entries for play, move, target, showdown, scoring, and unsupported-effect messages.
 

@@ -1,5 +1,7 @@
 package com.riftforge.service;
 
+import static com.riftforge.bot.BotConstants.ALL_BOT_IDS;
+
 import com.riftforge.engine.GameEngine;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.move.PassChainFocusMove;
@@ -22,6 +24,7 @@ public class ChainFastPassService {
     if (chain == null || chain.topItem() == null || chain.readyToResolveTop()) return false;
     String focusedPlayerId = chain.focusedPlayerId();
     if (focusedPlayerId == null || focusedPlayerId.isBlank()) return false;
+    if (!ALL_BOT_IDS.contains(focusedPlayerId)) return false;
     Set<LegalAction> actions = legalActionsService.legalActionsFor(state, focusedPlayerId);
     return actions.size() == 1 && actions.contains(LegalAction.PASS_CHAIN_FOCUS);
   }

@@ -165,10 +165,14 @@ class GameEngineShowdownTest {
     LiveGameState state = state(card("attacker", "p1", ZoneName.BASE, 3), card("defender", "p2", ZoneName.BATTLEFIELD, 3));
     stubUnit("attacker", 1, 3);
     stubUnit("defender", 1, 3);
+    when(cardDataService.hasKeyword(eq(cardById(state, "attacker")), eq("STUN"))).thenReturn(true);
+    when(cardDataService.hasKeyword(eq(cardById(state, "defender")), eq("STUN"))).thenReturn(true);
 
     engine.applyMove(state, new MoveToBattlefieldMove("p1", "attacker"));
     passShowdownFocusCycle(state);
-    resolveShowdownWithAssignments(state, "attacker", "defender", 1, 1);
+    engine.applyMove(state, new ResolveShowdownMove("p1"));
+    engine.applyMove(state, new AssignCombatDamageMove("p1", List.of()));
+    engine.applyMove(state, new AssignCombatDamageMove("p2", List.of()));
 
     assertThat(state.getActiveShowdown()).isNull();
     assertThat(cardById(state, "attacker").getZone()).isEqualTo(ZoneName.BASE);
@@ -328,7 +332,7 @@ class GameEngineShowdownTest {
         card("action", "p2", ZoneName.HAND, 0));
     stubUnit("attacker", 1, 3);
     stubUnit("defender", 1, 3);
-    CardDefinition action = new CardDefinition("action", "Focus Action", "Spell", null, List.of(), 0, 0, null, null, null, "[Action] Draw 1.", 0, 0, List.of());
+    CardDefinition action = new CardDefinition("action", "Focus Action", "Spell", null, List.of(), 0, 0, null, null, null, "[Action] Focus.", 0, 0, List.of());
     when(cardDataService.getCard("action")).thenReturn(action);
     when(cardDataService.isActionCard(action)).thenReturn(true);
     when(cardDataService.isReactionCard(action)).thenReturn(false);
@@ -419,7 +423,7 @@ class GameEngineShowdownTest {
 
     assertThatThrownBy(() -> engine.applyMove(state, illegalSplit))
         .isInstanceOf(IllegalMoveException.class)
-        .hasMessage("Assign lethal damage before spreading damage.");
+        .hasMessage("Assign lethal damage before assigning excess damage.");
   }
 
   @Test
@@ -492,10 +496,14 @@ class GameEngineShowdownTest {
     when(cardDataService.getCard("lonely-poro")).thenReturn(new CardDefinition("lonely-poro", "Lonely Poro", "Unit", null, List.of(), 0, 0, null, null, null, "[Deathknell] If I died alone, draw 1.", 1, 3, List.of("DEATHKNELL")));
     stubUnit("defender", 1, 3);
     when(cardDataService.hasKeyword("lonely-poro", "DEATHKNELL")).thenReturn(true);
+    when(cardDataService.hasKeyword(eq(cardById(state, "lonely-poro")), eq("STUN"))).thenReturn(true);
+    when(cardDataService.hasKeyword(eq(cardById(state, "defender")), eq("STUN"))).thenReturn(true);
 
     engine.applyMove(state, new MoveToBattlefieldMove("p1", "lonely-poro"));
     passShowdownFocusCycle(state);
-    resolveShowdownWithAssignments(state, "lonely-poro", "defender", 1, 1);
+    engine.applyMove(state, new ResolveShowdownMove("p1"));
+    engine.applyMove(state, new AssignCombatDamageMove("p1", List.of()));
+    engine.applyMove(state, new AssignCombatDamageMove("p2", List.of()));
 
     assertThat(cardById(state, "lonely-poro").getZone()).isEqualTo(ZoneName.BASE);
     assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("Lonely Poro's Deathknell"));
@@ -532,10 +540,14 @@ class GameEngineShowdownTest {
     stubUnit("host", 1, 3);
     stubUnit("defender", 1, 3);
     when(cardDataService.getCard("gear")).thenReturn(new CardDefinition("gear", "Attached Gear", "Gear", null, List.of(), 0, 0, null, null, null, "[Equip]", 0, 0, List.of()));
+    when(cardDataService.hasKeyword(eq(cardById(state, "host")), eq("STUN"))).thenReturn(true);
+    when(cardDataService.hasKeyword(eq(cardById(state, "defender")), eq("STUN"))).thenReturn(true);
 
     engine.applyMove(state, new MoveToBattlefieldMove("p1", "host"));
     passShowdownFocusCycle(state);
-    resolveShowdownWithAssignments(state, "host", "defender", 1, 1);
+    engine.applyMove(state, new ResolveShowdownMove("p1"));
+    engine.applyMove(state, new AssignCombatDamageMove("p1", List.of()));
+    engine.applyMove(state, new AssignCombatDamageMove("p2", List.of()));
 
     CardInstance gear = cardById(state, "gear");
     assertThat(cardById(state, "host").getZone()).isEqualTo(ZoneName.BASE);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { phaseGuidance } from './gameGuidance';
+import { legalActionHint, phaseGuidance } from './gameGuidance';
 
 describe('gameGuidance', () => {
   it('explains that Stacked Deck creates its private choice after chain responses resolve', () => {
@@ -33,5 +33,14 @@ describe('gameGuidance', () => {
       publicDescription: 'Gust',
       status: 'FIZZLED',
     })).toBe('Fizzled items are cleared when they reach the top of the chain.');
+  });
+
+  it('uses server legal actions for chain pass and resolve hints', () => {
+    const playerOptions = { isPlayer: true, isMyTurn: true };
+
+    expect(legalActionHint(['PASS_CHAIN_FOCUS'], playerOptions)).toBe('You can pass priority.');
+    expect(legalActionHint(['PASS_CHAIN_FOCUS', 'PLAY_CARD'], playerOptions)).toBe('You may respond or pass priority.');
+    expect(legalActionHint(['RESOLVE_CHAIN_TOP'], playerOptions)).toBe('You can resolve the top chain item.');
+    expect(legalActionHint([], playerOptions)).toBe('No server-approved actions are available right now.');
   });
 });

@@ -2,6 +2,7 @@ package com.riftforge.service;
 
 import com.riftforge.engine.CombatStatsService;
 import com.riftforge.engine.CombatStatsService.CombatContext;
+import com.riftforge.engine.CombatDamageAssignmentPlanner;
 import com.riftforge.model.CardInstance;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.PendingChoice;
@@ -15,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Set;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -24,15 +26,24 @@ public class GameStateProjectionService {
   public static final String HIDDEN_CARD_ID = "hidden";
   private final LegalActionsService legalActionsService;
   private final CombatStatsService combatStatsService;
+  private final CombatDamageAssignmentPlanner combatDamageAssignmentPlanner;
 
   public GameStateProjectionService(LegalActionsService legalActionsService) {
-    this(legalActionsService, null);
+    this(legalActionsService, null, null);
+  }
+
+  public GameStateProjectionService(LegalActionsService legalActionsService, CombatStatsService combatStatsService) {
+    this(legalActionsService, combatStatsService, null);
   }
 
   @Autowired
-  public GameStateProjectionService(LegalActionsService legalActionsService, CombatStatsService combatStatsService) {
+  public GameStateProjectionService(
+      LegalActionsService legalActionsService,
+      CombatStatsService combatStatsService,
+      CombatDamageAssignmentPlanner combatDamageAssignmentPlanner) {
     this.legalActionsService = legalActionsService;
     this.combatStatsService = combatStatsService;
+    this.combatDamageAssignmentPlanner = combatDamageAssignmentPlanner;
   }
 
   public LiveGameState toPublicView(LiveGameState state, String viewerPlayerId) {
@@ -48,7 +59,8 @@ public class GameStateProjectionService {
     view.setCardPlayedThisTurn(state.isCardPlayedThisTurn());
     view.setBattlefieldController(new HashMap<>(state.getBattlefieldController()));
     view.setScoredBattlefieldsThisTurn(new HashSet<>(state.getScoredBattlefieldsThisTurn()));
-    view.setActiveShowdown(copyShowdown(state.getActiveShowdown()));
+    view.setActiveShowdown(copyShowdown(state.getActiveShowdown(), viewerPlayerId));
+    view.setCombatAssignmentState(copyCombatAssignmentState(state, viewerPlayerId));
     view.setChainState(copyChain(state.getChainState(), viewerPlayerId));
     view.setGameMode(state.getGameMode());
     view.setPendingChoice(copyChoiceForViewer(state.getPendingChoice(), viewerPlayerId));
@@ -168,8 +180,18 @@ public class GameStateProjectionService {
     return copy;
   }
 
-  private LiveGameState.ShowdownState copyShowdown(LiveGameState.ShowdownState showdown) {
+  private LiveGameState.ShowdownState copyShowdown(LiveGameState.ShowdownState showdown, String viewerPlayerId) {
     if (showdown == null) return null;
+    ArrayList<LiveGameState.CombatDamageAssignment> attackerAssignments = new ArrayList<>(showdown.attackerAssignments());
+    ArrayList<LiveGameState.CombatDamageAssignment> defenderAssignments = new ArrayList<>(showdown.defenderAssignments());
+    if (showdown.step() == com.riftforge.model.ShowdownStep.ASSIGN_DAMAGE) {
+      boolean viewerIsAttacker = Objects.equals(viewerPlayerId, showdown.attackingPlayerId());
+      boolean viewerIsDefender = viewerPlayerId != null
+          && showdown.relevantPlayerIds().contains(viewerPlayerId)
+          && !viewerIsAttacker;
+      if (!viewerIsAttacker) attackerAssignments.clear();
+      if (!viewerIsDefender) defenderAssignments.clear();
+    }
     return new LiveGameState.ShowdownState(
         showdown.attackingPlayerId(),
         new ArrayList<>(showdown.attackerInstanceIds()),
@@ -180,9 +202,28 @@ public class GameStateProjectionService {
         showdown.consecutivePasses(),
         showdown.readyToResolve(),
         showdown.assigningPlayerId(),
-        new ArrayList<>(showdown.attackerAssignments()),
-        new ArrayList<>(showdown.defenderAssignments()),
+        attackerAssignments,
+        defenderAssignments,
         showdown.locationId());
+  }
+
+  private LiveGameState.CombatAssignmentState copyCombatAssignmentState(LiveGameState state, String viewerPlayerId) {
+    if (combatDamageAssignmentPlanner == null) return null;
+    return combatDamageAssignmentPlanner.assignmentState(state)
+        .map(assignmentState -> {
+          if (Objects.equals(viewerPlayerId, assignmentState.assigningPlayerId())) return assignmentState;
+          return new LiveGameState.CombatAssignmentState(
+              assignmentState.locationId(),
+              assignmentState.assigningPlayerId(),
+              assignmentState.step(),
+              assignmentState.damagePool(),
+              assignmentState.validSources(),
+              assignmentState.validTargets(),
+              assignmentState.validTargetInstanceIds(),
+              List.of(),
+              false);
+        })
+        .orElse(null);
   }
 
   private LiveGameState.ChainState copyChain(LiveGameState.ChainState chain, String viewerPlayerId) {

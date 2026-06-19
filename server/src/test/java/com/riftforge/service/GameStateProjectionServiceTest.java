@@ -7,6 +7,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.riftforge.engine.CombatDamageAssignmentPlanner;
+import com.riftforge.engine.CombatDamageRules;
 import com.riftforge.engine.CombatStatsService;
 import com.riftforge.engine.EquipmentStatModifierRegistry;
 import com.riftforge.model.CardDefinition;
@@ -592,13 +594,78 @@ class GameStateProjectionServiceTest {
         List.of(assignment),
         List.of()));
 
-    LiveGameState view = projectionService.toPublicView(state, "p2");
+    LiveGameState attackerView = projectionService.toPublicView(state, "p1");
+    LiveGameState defenderView = projectionService.toPublicView(state, "p2");
 
-    assertThat(view.getActiveShowdown()).isNotNull();
-    assertThat(view.getActiveShowdown().step()).isEqualTo(ShowdownStep.ASSIGN_DAMAGE);
-    assertThat(view.getActiveShowdown().assigningPlayerId()).isEqualTo("p2");
-    assertThat(view.getActiveShowdown().attackerAssignments()).containsExactly(assignment);
-    assertThat(view.getLegalActions()).containsExactly(LegalAction.ASSIGN_COMBAT_DAMAGE);
+    assertThat(attackerView.getActiveShowdown()).isNotNull();
+    assertThat(attackerView.getActiveShowdown().step()).isEqualTo(ShowdownStep.ASSIGN_DAMAGE);
+    assertThat(attackerView.getActiveShowdown().assigningPlayerId()).isEqualTo("p2");
+    assertThat(attackerView.getActiveShowdown().attackerAssignments()).containsExactly(assignment);
+    assertThat(attackerView.getActiveShowdown().defenderAssignments()).isEmpty();
+
+    assertThat(defenderView.getActiveShowdown()).isNotNull();
+    assertThat(defenderView.getActiveShowdown().attackerAssignments()).isEmpty();
+    assertThat(defenderView.getLegalActions()).containsExactly(LegalAction.ASSIGN_COMBAT_DAMAGE);
+  }
+
+  @Test
+  void combatAssignmentProjectionUsesPlannerCombatantsAtActiveLocation() {
+    CardDataService cardDataService = mock(CardDataService.class);
+    when(cardDataService.getCard(anyString())).thenAnswer(invocation -> {
+      String id = invocation.getArgument(0);
+      if ("attached-gear-card".equals(id)) {
+        return new CardDefinition(id, "Attached Gear", "Gear", null, List.of(), 0, 0, null, null, null, "[Equip]", 0, 0, List.of());
+      }
+      return new CardDefinition(id, id, "Unit", null, List.of(), 0, 0, null, null, null, "", 3, 3, List.of());
+    });
+    when(cardDataService.hasKeyword(any(CardInstance.class), anyString())).thenReturn(false);
+    CombatStatsService stats = new CombatStatsService(cardDataService);
+    CombatDamageRules damageRules = new CombatDamageRules(cardDataService, stats);
+    GameStateProjectionService service = new GameStateProjectionService(
+        new LegalActionsService(cardDataService),
+        stats,
+        new CombatDamageAssignmentPlanner(cardDataService, stats, damageRules));
+    LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.ENFORCED);
+    CardInstance attacker = card("attacker", "p1", "attacker-card", ZoneName.BATTLEFIELD);
+    attacker.setBattlefieldLocationId("bf-1");
+    CardInstance defender = card("defender", "p2", "defender-card", ZoneName.BATTLEFIELD);
+    defender.setBattlefieldLocationId("bf-1");
+    CardInstance offLocation = card("off-location-defender", "p2", "off-location-card", ZoneName.BATTLEFIELD);
+    offLocation.setBattlefieldLocationId("bf-2");
+    CardInstance attachedGear = card("attached-gear", "p1", "attached-gear-card", ZoneName.BATTLEFIELD);
+    attachedGear.setBattlefieldLocationId("bf-1");
+    attachedGear.setAttachedToInstanceId("attacker");
+    state.setCards(new ArrayList<>(List.of(attacker, defender, offLocation, attachedGear)));
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        "p1",
+        List.of("attacker"),
+        Map.of(),
+        ShowdownStep.ASSIGN_DAMAGE,
+        List.of("p1", "p2"),
+        "p1",
+        2,
+        true,
+        "p1",
+        List.of(),
+        List.of(),
+        "bf-1"));
+
+    LiveGameState view = service.toPublicView(state, "p1");
+
+    assertThat(view.getCombatAssignmentState()).isNotNull();
+    assertThat(view.getCombatAssignmentState().locationId()).isEqualTo("bf-1");
+    assertThat(view.getCombatAssignmentState().assigningPlayerId()).isEqualTo("p1");
+    assertThat(view.getCombatAssignmentState().validSources())
+        .extracting(LiveGameState.CombatDamageSourceOption::sourceInstanceId)
+        .containsExactly("attacker");
+    assertThat(view.getCombatAssignmentState().validTargetInstanceIds()).containsExactly("defender");
+    assertThat(view.getCombatAssignmentState().suggestedAssignments()).containsExactly(
+        new LiveGameState.CombatDamageAssignment("p1", "defender", 3));
+    assertThat(view.getCombatAssignmentState().canAutoAssign()).isTrue();
+
+    LiveGameState opponentView = service.toPublicView(state, "p2");
+    assertThat(opponentView.getCombatAssignmentState().suggestedAssignments()).isEmpty();
+    assertThat(opponentView.getCombatAssignmentState().canAutoAssign()).isFalse();
   }
 
   @Test
@@ -638,6 +705,51 @@ class GameStateProjectionServiceTest {
     assertThat(otherView.getLegalActions()).isEmpty();
     assertThat(spectatorView.getChainState()).isNotNull();
     assertThat(spectatorView.getLegalActions()).isEmpty();
+  }
+
+  @Test
+  void priorityFocusProjectionDoesNotRevealWhetherFocusedPlayerHasResponses() {
+    LiveGameState state = stateWithPlayers(Phase.MAIN, "p1", GameMode.ENFORCED);
+    state.getCards().add(handCard("p2-hand-reaction", "p2", "secret-reaction"));
+    state.setChainState(new LiveGameState.ChainState(
+        "chain-1",
+        List.of(new LiveGameState.ChainItem(
+            "item-1",
+            "p1",
+            "source-1",
+            "source-card",
+            "Source Card",
+            LiveGameState.ChainItem.EFFECT_NO_OP_TEST,
+            List.of(),
+            1,
+            "public chain item")),
+        List.of("p1", "p2"),
+        "p2",
+        0,
+        false,
+        "MAIN_ACTION"));
+
+    LiveGameState focusedView = projectionService.toPublicView(state, "p2");
+    LiveGameState opponentView = projectionService.toPublicView(state, "p1");
+    LiveGameState spectatorView = projectionService.toPublicView(state, null);
+
+    assertThat(focusedView.getChainState().focusedPlayerId()).isEqualTo("p2");
+    assertThat(focusedView.getLegalActions()).containsExactly(LegalAction.PASS_CHAIN_FOCUS);
+    assertThat(focusedView.getCards()).filteredOn(card -> "p2-hand-reaction".equals(card.getInstanceId()))
+        .singleElement()
+        .satisfies(card -> assertThat(card.getCardId()).isEqualTo("secret-reaction"));
+
+    assertThat(opponentView.getChainState().focusedPlayerId()).isEqualTo("p2");
+    assertThat(opponentView.getLegalActions()).isEmpty();
+    assertThat(opponentView.getCards()).filteredOn(card -> "p2-hand-reaction".equals(card.getInstanceId()))
+        .singleElement()
+        .satisfies(card -> assertThat(card.getCardId()).isEqualTo(GameStateProjectionService.HIDDEN_CARD_ID));
+
+    assertThat(spectatorView.getChainState().focusedPlayerId()).isEqualTo("p2");
+    assertThat(spectatorView.getLegalActions()).isEmpty();
+    assertThat(spectatorView.getCards()).filteredOn(card -> "p2-hand-reaction".equals(card.getInstanceId()))
+        .singleElement()
+        .satisfies(card -> assertThat(card.getCardId()).isEqualTo(GameStateProjectionService.HIDDEN_CARD_ID));
   }
 
   @Test

@@ -196,6 +196,7 @@ export type LiveGameState = {
   currentPhase?: string;
   gameMode?: GameMode;
   activeShowdown?: ShowdownState | null;
+  combatAssignmentState?: CombatAssignmentState | null;
   chainState?: ChainState | null;
   activePlayerId?: string;
   firstPlayerId?: string;
@@ -309,9 +310,31 @@ export type ChainState = {
 };
 
 export type CombatDamageAssignment = {
-  sourceInstanceId: string;
+  sourceInstanceId?: string | null;
   targetInstanceId: string;
   amount: number;
+};
+
+export type CombatDamageSourceOption = {
+  sourceInstanceId: string;
+  availableDamage: number;
+  validTargetInstanceIds: string[];
+};
+
+export type CombatAssignmentState = {
+  locationId: string;
+  assigningPlayerId: string;
+  step: string;
+  damagePool: number;
+  validSources: CombatDamageSourceOption[];
+  validTargets?: Array<{
+    targetInstanceId: string;
+    lethalDamage: number;
+    tank: boolean;
+  }>;
+  validTargetInstanceIds: string[];
+  suggestedAssignments: CombatDamageAssignment[];
+  canAutoAssign: boolean;
 };
 
 export type RevealedHandSnapshot = {

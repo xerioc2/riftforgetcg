@@ -69,7 +69,10 @@ Current implementation notes:
 - Deck/rune counts are projected without exposing hidden deck contents.
 
 Known gaps:
-- Battlefield play/control is still simplified to a single battlefield key in several engine paths after the pre-mulligan selection step.
+- Battlefield setup and play now use stable location ids, and current 1v1
+  Duel/bot games expose two active shared lanes. Printed Battlefield effects,
+  hidden slots, official "here" targeting, and non-Duel active-lane counts are
+  still simplified.
 - Starting player selection is not fully derived from battlefield ownership/randomization.
 - 2-4 player setup is not fully rules-complete.
 
@@ -123,7 +126,9 @@ Known gaps:
 - Official cleanup/HOT FEPR sequencing is not fully modeled.
 - The engine still uses `END` while current official terminology uses Ending/expiration details.
 - Trigger and chain timing is highly simplified.
-- Full Reaction timing, counterspell targeting, and official priority/chain timing are not represented yet.
+- Full official any-time Reaction timing, broad counterspell targeting, and
+  official priority/chain timing are not represented yet. A narrow server-created
+  chain window exists for Stacked Deck plus the listed supported Reaction cards.
 - Choice support covers private yes/no, generic optional-payment prompts, Stacked Deck-style top-3 pick-one, and a Predict-style top/bottom ordering foundation; required two-target spell selection has a narrow paired friendly/enemy foundation, while optional targets, linked choices, and full timing windows remain incomplete.
 
 Test coverage:
@@ -148,18 +153,26 @@ Current implementation notes:
   path, and remains the foundation for future counterspell work.
 - `PASS_CHAIN_FOCUS` and `RESOLVE_CHAIN_TOP` are server-validated moves.
 - Pending choices still take priority over chain actions. While a chain is active, normal phase/showdown actions are blocked until the chain item is resolved.
+- Rune innate Energy/Power actions are ordinary resource actions, not chain
+  items. They cannot be used while a chain is active and do not open response
+  windows.
 - `PriorityWindowService` now centralizes the narrow alpha timing decision for
   whether a played card/effect opens a response window and what chain metadata
-  it receives. Production opt-ins remain conservative: Stacked Deck is the only
-  real opener, while Gust, Discipline, En Garde, Defy, and Not So Fast are the
-  only real chain-backed Reactions.
+  it receives. Production opt-ins remain conservative: Stacked Deck and simple
+  public `Draw 1` spells are the only real opener patterns, while Gust,
+  Discipline, En Garde, Defy, and Not So Fast are the only real chain-backed
+  Reactions.
 - `LegalActionsService` exposes `PASS_CHAIN_FOCUS`, `RESOLVE_CHAIN_TOP`,
-  and narrowly supported focused Reaction play to the focused player.
+  narrowly supported focused Reaction play to the focused chain player, and
+  narrowly supported targeted Reaction play to focused showdown participants.
   Spectators and non-focused players receive no chain actions.
-- Chain focus can fast-pass only when the focused player's only legal chain
-  action is `PASS_CHAIN_FOCUS`. It does not auto-pass pending choices, ready
-  top-item resolution, or windows where Gust/Discipline/En Garde/Defy/Not So Fast is a legal
-  response.
+- Chain focus is bluff-safe for human players: priority windows are based on
+  public timing opportunities, the focused player can pass even with no legal
+  Reaction, and the server does not broadcast whether a player has responses.
+  Only bot players may be server auto-passed through empty chain windows.
+- The client has local priority-stop toggles for empty-window auto-pass and
+  common hold stops. These settings are local convenience only; the server
+  remains authoritative about legal moves.
 - RiftBot can pass chain focus or resolve a ready top item through the same server legal-action contract.
 - Current effect resolution is deliberately limited to deterministic test/no-op
   and draw-one harness items, Stacked Deck as the first real chain opener, and
@@ -168,20 +181,24 @@ Current implementation notes:
 - Stacked Deck opens the narrow alpha chain when played in supported gameplay,
   becomes a public chain item, and creates its existing owner-only private
   top-card choice only after that chain item resolves.
-- Gust can be played only while the controller is focused during an active
-  chain. It creates a public chain item and, when resolved, returns a
-  battlefield Unit/Champion with 3 Might or less to its owner's hand. If the
-  target is no longer legal at resolution, Gust fizzles safely.
-- Discipline can be played only while the controller is focused during an active
-  chain. It creates a public chain item targeting a public battlefield
-  Unit/Champion, gives that target +2 Might this turn, and draws 1 privately on
-  resolution. If the target is no longer legal at resolution, Discipline
-  fizzles safely.
-- En Garde can be played only while the controller is focused during an active
-  chain. It creates a public chain item targeting a friendly battlefield
-  Unit/Champion, gives +1 Might this turn, and gives +2 instead if that target
-  is the controller's only unit at that location in the current single-
-  battlefield alpha.
+- Simple public `Draw 1` spells now open the narrow alpha chain when played in
+  supported gameplay. They draw only when their public chain item resolves, so
+  supported Reactions can respond first. Choice-based, optional, unsupported,
+  and private-information spell flows do not opt in automatically.
+- Gust can be played in the current narrow alpha Reaction windows: active
+  player's own Main Phase, focused showdown windows, or while the controller is
+  focused during an active chain. It creates a public chain item and, when
+  resolved, returns a battlefield Unit/Champion with 3 Might or less to its
+  owner's hand. If the target is no longer legal at resolution, Gust fizzles
+  safely.
+- Discipline can be played in those same narrow targeted-Reaction windows. It
+  creates a public chain item targeting a public battlefield Unit/Champion,
+  gives that target +2 Might this turn, and draws 1 privately on resolution. If
+  the target is no longer legal at resolution, Discipline fizzles safely.
+- En Garde can be played in those same narrow targeted-Reaction windows. It
+  creates a public chain item targeting a friendly battlefield Unit/Champion,
+  gives +1 Might this turn, and gives +2 instead if that target is the
+  controller's only unit at that location in the current active-lane alpha.
 - Defy can be played only while the controller is focused during an active
   chain and can target a pending, public, counterable spell chain item whose
   source card cost is within Defy's alpha limits. Defy itself is not
@@ -206,9 +223,13 @@ Current implementation notes:
 
 Known gaps:
 - Gust, Discipline, En Garde, Defy, and Not So Fast are the only real Reaction
-  cards connected to the chain. Star-Crossed/Defiant Dance multi-target
+  cards connected to server-created chain windows. Star-Crossed/Defiant Dance multi-target
   Reactions, Riposte counter behavior, Ambush-as-Reaction, hidden play windows,
   and ability-counter targets are not connected yet.
+- Supported targeted Reactions now have narrow own-turn and focused showdown
+  windows, but hidden Reaction play, unsupported Reaction text, counter-only
+  Reactions without an active chain target, and broader official timing remain
+  blocked with explicit errors.
 - No official priority, invitation, trigger-ordering, replacement/prevention, or multiplayer focus policy is implemented.
 - Unsupported, unreviewed, and ordinary cards do not automatically open
   priority windows; future cards must opt in through the priority service and
@@ -299,7 +320,7 @@ Current implementation notes:
 
 Known gaps:
 - Chain timing, Reaction timing, broad countering spells/abilities, optional/three-plus/conditional multi-target spells, full optional trigger ordering, replacement/prevention, and many spell-specific effects are not complete.
-- Active-showdown `[Action]` play is lightweight: focused showdown participants can play supported Action cards or pass focus. Once both relevant players pass in succession, the showdown becomes ready for the attacker to resolve. A narrow priority/chain foundation exists, with Stacked Deck as the only real opener and Gust/Discipline/En Garde/Defy/Not So Fast as the only connected Reactions; broader response-card support remains deferred.
+- Active-showdown `[Action]` play is lightweight: focused showdown participants can play supported Action cards or pass focus. Once both relevant players pass in succession, the showdown becomes ready for the attacker to resolve. A narrow bluff-safe priority/chain foundation exists, with Stacked Deck and simple public `Draw 1` spells as the only real opener patterns and Gust/Discipline/En Garde/Defy/Not So Fast as the only connected Reactions; broader response-card support and unrestricted Reaction timing remain deferred.
 
 Test coverage:
 - Rules validator keyword/target tests.
@@ -371,8 +392,10 @@ Current implementation notes:
 
 Known gaps:
 - Player-facing multi-location Battlefield lanes and drag-to-lane movement
-  destination sending exist for `bf-0`/`bf-1`/`bf-2`; hidden slots,
-  Battlefield effects, and official "here" targeting remain deferred.
+  destination sending exist for the active format lanes. Current 1v1 Duel/bot
+  games expose `bf-0` and `bf-1`, while `bf-2` remains reserved for future or
+  non-Duel formats. Hidden slots, Battlefield effects, and official "here"
+  targeting remain deferred.
 - Movement costs, readiness/exhaustion edge cases, Ganking exceptions, and
   effect-driven movement still need more precision in the current simplified
   battlefield flow.
@@ -440,10 +463,11 @@ Current implementation notes:
 
 Known gaps:
 - Non-combat showdowns, full priority/chain timing, staged combat conversion,
-  initial attack/defend trigger chain, invitations, and reaction timing
+  initial attack/defend trigger chain, invitations, and broad Reaction timing
   permissions remain simplified or deferred.
-- Multiple battlefield showdowns are deferred until the post-alpha location
-  model.
+- Showdowns are lane-scoped for the current active-lane alpha, but official
+  multi-location Battlefield effects, hidden slots, and richer "here" text
+  remain deferred.
 
 Test coverage:
 - `GameEngineShowdownTest`
@@ -460,14 +484,16 @@ Current implementation notes:
   `ASSIGN_DAMAGE` step instead of resolving combat immediately.
 - The assigning player submits `ASSIGN_COMBAT_DAMAGE`; attacker assignments are
   stored first, then defender assignments resolve simultaneous damage.
-- Server validation requires each side to assign all available combat Might,
-  enforces Tank-priority lethal assignment, rejects duplicate source-target
-  assignments, and allows excess damage on only one target after legal targets
-  have lethal.
-- The current client and RiftBot use deterministic Tank-first assignment
-  helpers; full manual damage-splitting UI is deferred.
-- Damage is simultaneous; killed units move to trash after both sides assign
-  damage.
+- Server validation treats each player's eligible units at the active location
+  as one combat damage pool. It requires each side to assign all available
+  combat Might, enforces Tank-priority and lethal-before-spread assignment,
+  rejects duplicate target assignments, and allows excess damage on only one
+  target after legal targets have lethal.
+- The current client and RiftBot use server-projected deterministic Tank-first
+  assignments; full manual damage-splitting UI is deferred.
+- Damage is simultaneous; units are killed when assigned combat damage meets or
+  exceeds their combat Might threshold, then move to trash after both sides
+  assign damage.
 - Survivors heal during combat cleanup.
 - ASSAULT / ASSAULT X is supported for descriptor-only starter units
   Daring Poro and Laurent Duelist.
@@ -476,7 +502,8 @@ Current implementation notes:
 Known gaps:
 - Fine-grained player-chosen damage UI, prevention/replacement, combat
   designation cleanup, and many official multi-unit edge cases are incomplete.
-- Multiple battlefield combat is intentionally post-alpha work.
+- Combat is scoped to the active lane, but official multi-location Battlefield
+  effects and location-specific card text remain deferred.
 
 Test coverage:
 - `CombatResolverTest`
@@ -499,9 +526,10 @@ Current implementation notes:
   battlefield in one turn.
 
 Known gaps:
-- Multiple named Battlefield keys may exist internally, but the official-style
-  multi-location Battlefield model, assignment, and cleanup timing are
-  intentionally deferred until after the single shared-Battlefield alpha stabilizes.
+- The official-style multi-location Battlefield model remains partial even
+  though current alpha scoring is keyed by active lane. Battlefield effects,
+  hidden slots, richer "here" targeting, and non-Duel active-lane setup are
+  intentionally deferred.
 
 Test coverage:
 - `GameEngineScoringTest`
@@ -696,12 +724,13 @@ Current implementation notes:
 - The frontend consumes `state.legalActions` to gate Battlefield selection, mulligan/keep, pass phase, play card, move to battlefield, rune actions, chain focus passing/resolution, showdown focus passing, gated active showdown resolution, and sandbox-only controls.
 - `RulesValidator` remains the source of enforcement.
 - The service intentionally does not claim support for card-specific or reaction windows that are not implemented.
-- Currently modeled windows: Battlefield selection, mulligan, basic phase pass, Main Phase active-player actions, Stacked Deck's narrow priority-window opener, chain focus/pass/resolve, focused participant supported Action play/pass during active showdowns, gated active showdown resolution, and SANDBOX-only developer actions.
+- Currently modeled windows: Battlefield selection, mulligan, basic phase pass, Main Phase active-player actions, Stacked Deck/simple public `Draw 1` narrow priority-window openers, chain focus/pass/resolve, focused participant supported Action play/pass during active showdowns, gated active showdown resolution, and SANDBOX-only developer actions.
 
 Known gaps:
 - Actions are not card-instance-specific.
-- Full Reaction windows, official chain priority, and broad counterspell
-  support remain future work.
+- Full official Reaction windows, unrestricted priority, and broad counterspell
+  support remain future work. Current chain windows are server-created and
+  narrow; rune innate actions do not open or enter the chain.
 - Card-specific legal action prompts are not generated.
 - Target-specific and payment-specific legal action generation is incomplete.
 - Broad chain/timing permissions for real card responses and full official

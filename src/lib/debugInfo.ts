@@ -28,6 +28,30 @@ export type DebugInfoPayload = {
     focusedPlayerId: string | null;
     readyToResolve: boolean;
   };
+  combatAssignmentState: {
+    active: boolean;
+    locationId: string | null;
+    assigningPlayerId: string | null;
+    step: string | null;
+    damagePool: number;
+    validSources: Array<{
+      sourceInstanceId: string;
+      availableDamage: number;
+      validTargetInstanceIds: string[];
+    }>;
+    validTargets: Array<{
+      targetInstanceId: string;
+      lethalDamage: number;
+      tank: boolean;
+    }>;
+    validTargetInstanceIds: string[];
+    suggestedAssignments: Array<{
+      sourceInstanceId?: string | null;
+      targetInstanceId: string;
+      amount: number;
+    }>;
+    canAutoAssign: boolean;
+  };
   battlefieldController: Record<string, string>;
   selectedBattlefields: Array<{
     playerId: string;
@@ -63,6 +87,20 @@ export type DebugInfoPayload = {
     itemCount: number;
     focusedPlayerId: string | null;
     readyToResolveTop: boolean;
+    relevantPlayerIds: string[];
+    consecutivePasses: number | null;
+    sourceContext: string | null;
+    entries: Array<{
+      itemId: string;
+      controllerPlayerId: string;
+      sourceCardId: string | null;
+      sourceCardName: string | null;
+      effectKey: string | null;
+      publicDescription: string | null;
+      status: string | null;
+      chainItemType: string | null;
+      targetCount: number;
+    }>;
   };
   pendingChoice: {
     active: boolean;
@@ -101,9 +139,27 @@ type BuildDebugInfoInput = {
 };
 
 const PUBLIC_DEBUG_ZONES = new Set(['base', 'battlefield', 'champion', 'legend', 'discard', 'limbo']);
+const PUBLIC_CHAIN_VISIBILITY = 'PUBLIC';
 
 function isPublicDebugCard(card: LiveGameState['cards'][number]) {
   return PUBLIC_DEBUG_ZONES.has(card.zone.toLowerCase());
+}
+
+function safeChainEntries(chainState: LiveGameState['chainState']) {
+  return (chainState?.chainItems ?? []).map((item) => {
+    const publicItem = item.visibility === PUBLIC_CHAIN_VISIBILITY;
+    return {
+      itemId: item.itemId,
+      controllerPlayerId: item.controllerPlayerId,
+      sourceCardId: publicItem ? item.sourceCardId ?? null : null,
+      sourceCardName: publicItem ? item.sourceCardName ?? null : null,
+      effectKey: publicItem ? item.effectKey ?? null : null,
+      publicDescription: item.publicDescription ?? null,
+      status: item.status ?? null,
+      chainItemType: publicItem ? item.chainItemType ?? null : null,
+      targetCount: item.chainTargets?.filter((target) => target.publicSafe).length ?? item.targetInstanceIds?.length ?? 0,
+    };
+  });
 }
 
 export function buildDebugInfo({
@@ -155,6 +211,18 @@ export function buildDebugInfo({
       focusedPlayerId: state?.activeShowdown?.focusedPlayerId ?? null,
       readyToResolve: state?.activeShowdown?.readyToResolve ?? false,
     },
+    combatAssignmentState: {
+      active: Boolean(state?.combatAssignmentState),
+      locationId: state?.combatAssignmentState?.locationId ?? null,
+      assigningPlayerId: state?.combatAssignmentState?.assigningPlayerId ?? null,
+      step: state?.combatAssignmentState?.step ?? null,
+      damagePool: state?.combatAssignmentState?.damagePool ?? 0,
+      validSources: state?.combatAssignmentState?.validSources ?? [],
+      validTargets: state?.combatAssignmentState?.validTargets ?? [],
+      validTargetInstanceIds: state?.combatAssignmentState?.validTargetInstanceIds ?? [],
+      suggestedAssignments: state?.combatAssignmentState?.suggestedAssignments ?? [],
+      canAutoAssign: state?.combatAssignmentState?.canAutoAssign ?? false,
+    },
     battlefieldController: state?.battlefieldController ?? {},
     selectedBattlefields: state?.players.map((statePlayer) => ({
       playerId: statePlayer.userId,
@@ -196,6 +264,10 @@ export function buildDebugInfo({
       itemCount: state?.chainState?.chainItems?.length ?? 0,
       focusedPlayerId: state?.chainState?.focusedPlayerId ?? null,
       readyToResolveTop: state?.chainState?.readyToResolveTop ?? false,
+      relevantPlayerIds: state?.chainState?.relevantPlayerIds ?? [],
+      consecutivePasses: state?.chainState?.consecutivePasses ?? null,
+      sourceContext: state?.chainState?.sourceContext ?? null,
+      entries: safeChainEntries(state?.chainState),
     },
     pendingChoice: {
       active: Boolean(state?.pendingChoice),

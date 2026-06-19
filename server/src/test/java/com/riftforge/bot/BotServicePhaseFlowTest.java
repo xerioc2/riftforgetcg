@@ -28,6 +28,7 @@ import com.riftforge.model.ShowdownStep;
 import com.riftforge.model.ZoneName;
 import com.riftforge.rules.LegalAction;
 import com.riftforge.model.move.AssignCombatDamageMove;
+import com.riftforge.model.move.PassChainFocusMove;
 import com.riftforge.model.move.PassPhaseMove;
 import com.riftforge.model.move.PassShowdownFocusMove;
 import com.riftforge.model.move.PlayCardMove;
@@ -558,7 +559,7 @@ class BotServicePhaseFlowTest {
 
     assertThat(latest.getActiveShowdown()).isNotNull();
     assertThat(latest.getActiveShowdown().attackerAssignments()).containsExactly(
-        new LiveGameState.CombatDamageAssignment("bot-attacker", "human-defender", 1));
+        new LiveGameState.CombatDamageAssignment(BOT_ID, "human-defender", 1));
     assertThat(latest.getLog()).anyMatch(entry -> entry.text().equals("Assigned attacking combat damage."));
   }
 
@@ -599,8 +600,7 @@ class BotServicePhaseFlowTest {
     assertThat(latest.getActiveShowdown()).isNotNull();
     assertThat(latest.getActiveShowdown().attackerAssignments())
         .containsExactly(
-            new LiveGameState.CombatDamageAssignment("bot-one", "human-defender", 3),
-            new LiveGameState.CombatDamageAssignment("bot-two", "human-defender", 3));
+            new LiveGameState.CombatDamageAssignment(BOT_ID, "human-defender", 6));
     assertThat(latest.getActiveShowdown().attackerAssignments().stream().mapToInt(LiveGameState.CombatDamageAssignment::amount).sum())
         .isEqualTo(6);
   }
@@ -644,8 +644,8 @@ class BotServicePhaseFlowTest {
     assertThat(latest.getActiveShowdown()).isNotNull();
     assertThat(latest.getActiveShowdown().attackerAssignments())
         .containsExactly(
-            new LiveGameState.CombatDamageAssignment("bot-one", "human-large", 2),
-            new LiveGameState.CombatDamageAssignment("bot-two", "human-large", 2));
+            new LiveGameState.CombatDamageAssignment(BOT_ID, "human-large", 1),
+            new LiveGameState.CombatDamageAssignment(BOT_ID, "human-small", 3));
     assertThat(latest.getLog()).anyMatch(entry -> entry.text().equals("Assigned attacking combat damage."));
   }
 
@@ -691,9 +691,8 @@ class BotServicePhaseFlowTest {
 
     assertThat(latest.getActiveShowdown().attackerAssignments())
         .containsExactly(
-            new LiveGameState.CombatDamageAssignment("bot-one", "human-tank", 2),
-            new LiveGameState.CombatDamageAssignment("bot-three", "human-other", 2),
-            new LiveGameState.CombatDamageAssignment("bot-two", "human-other", 2));
+            new LiveGameState.CombatDamageAssignment(BOT_ID, "human-tank", 1),
+            new LiveGameState.CombatDamageAssignment(BOT_ID, "human-other", 5));
   }
 
   @Test
@@ -1224,6 +1223,12 @@ class BotServicePhaseFlowTest {
     state.getCards().add(stackedDeckInstance);
 
     botService.onStateChanged(new GameStateChangedEvent(this, roomCode, state));
+
+    LiveGameState waitingOnHuman = waitUntilChainFocus(gameService, roomCode, "human");
+    assertThat(waitingOnHuman.getChainState()).isNotNull();
+    assertThat(waitingOnHuman.getChainState().readyToResolveTop()).isFalse();
+
+    gameService.processMove(roomCode, new PassChainFocusMove("human"));
 
     LiveGameState latest = waitUntilBotStackedDeckFlowResolved(gameService, roomCode);
     latest.setWinnerId("test-complete");

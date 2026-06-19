@@ -98,7 +98,10 @@ public class LegalActionsService {
         return actions;
       }
       actions.add(LegalAction.PASS_SHOWDOWN_FOCUS);
-      if (!state.getActiveShowdown().readyToResolve() && hasSupportedActionCardInHand(state, playerId)) actions.add(LegalAction.PLAY_CARD);
+      if (!state.getActiveShowdown().readyToResolve()
+          && (hasSupportedActionCardInHand(state, playerId) || hasPlayableTargetedReactionInHand(state, playerId))) {
+        actions.add(LegalAction.PLAY_CARD);
+      }
       return actions;
     }
 
@@ -214,6 +217,12 @@ public class LegalActionsService {
             && cardDataService.isNotSoFastCounterReaction(def)
             && !cardDataService.isUnsupportedAction(def.id())
             && canPay(state, playerId, def));
+  }
+
+  private boolean hasPlayableTargetedReactionInHand(LiveGameState state, String playerId) {
+    return hasPlayableGustInHand(state, playerId)
+        || hasPlayableDisciplineInHand(state, playerId)
+        || hasPlayableEnGardeInHand(state, playerId);
   }
 
   private boolean hasLegalDefyTarget(LiveGameState state, String playerId) {

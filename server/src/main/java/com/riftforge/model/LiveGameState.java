@@ -30,6 +30,7 @@ public class LiveGameState {
   private Set<LegalAction> legalActions = new HashSet<>();
   private PendingChoice pendingChoice;
   private ChainState chainState;
+  private CombatAssignmentState combatAssignmentState;
 
   public record LogEntry(String id, String timestamp, String userId, String text) {}
   public record ShowdownState(
@@ -89,6 +90,41 @@ public class LiveGameState {
 
   public record CombatDamageAssignment(String sourceInstanceId, String targetInstanceId, int amount) {}
 
+  public record CombatDamageSourceOption(
+      String sourceInstanceId,
+      int availableDamage,
+      List<String> validTargetInstanceIds) {
+    public CombatDamageSourceOption {
+      validTargetInstanceIds = validTargetInstanceIds == null ? List.of() : List.copyOf(validTargetInstanceIds);
+    }
+  }
+
+  public record CombatDamageTargetOption(
+      String targetInstanceId,
+      int lethalDamage,
+      boolean tank) {}
+
+  public record CombatAssignmentState(
+      String locationId,
+      String assigningPlayerId,
+      String step,
+      int damagePool,
+      List<CombatDamageSourceOption> validSources,
+      List<CombatDamageTargetOption> validTargets,
+      List<String> validTargetInstanceIds,
+      List<CombatDamageAssignment> suggestedAssignments,
+      boolean canAutoAssign) {
+    public CombatAssignmentState {
+      locationId = locationId == null || locationId.isBlank()
+          ? CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID
+          : locationId;
+      validSources = validSources == null ? List.of() : List.copyOf(validSources);
+      validTargets = validTargets == null ? List.of() : List.copyOf(validTargets);
+      validTargetInstanceIds = validTargetInstanceIds == null ? List.of() : List.copyOf(validTargetInstanceIds);
+      suggestedAssignments = suggestedAssignments == null ? List.of() : List.copyOf(suggestedAssignments);
+    }
+  }
+
   public record ChainState(
       String chainId,
       List<ChainItem> chainItems,
@@ -135,6 +171,7 @@ public class LiveGameState {
     public static final String TYPE_TEST = "TEST";
     public static final String EFFECT_NO_OP_TEST = "NO_OP_TEST";
     public static final String EFFECT_DRAW_1_TEST = "DRAW_1_TEST";
+    public static final String EFFECT_DRAW_1 = "DRAW_1";
     public static final String EFFECT_GUST_RETURN = "GUST_RETURN";
     public static final String EFFECT_DISCIPLINE_BOOST_DRAW = "DISCIPLINE_BOOST_DRAW";
     public static final String EFFECT_EN_GARDE_BOOST = "EN_GARDE_BOOST";
@@ -318,4 +355,6 @@ public class LiveGameState {
   public void setPendingChoice(PendingChoice pendingChoice) { this.pendingChoice = pendingChoice; }
   public ChainState getChainState() { return chainState; }
   public void setChainState(ChainState chainState) { this.chainState = chainState; }
+  public CombatAssignmentState getCombatAssignmentState() { return combatAssignmentState; }
+  public void setCombatAssignmentState(CombatAssignmentState combatAssignmentState) { this.combatAssignmentState = combatAssignmentState; }
 }

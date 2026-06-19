@@ -105,6 +105,9 @@ public class RulesValidator {
       return;
     }
     if (!move.playerId().equals(state.getActivePlayerId())) {
+      if (move instanceof PlayCardMove play && isReactionPlayFromHand(state, play)) {
+        throw new IllegalMoveException("No reaction window is active.");
+      }
       throw new IllegalMoveException("Not your turn.");
     }
     if (move instanceof VisionChoiceMove vision) { validateVisionChoice(state, vision); return; }
@@ -326,7 +329,18 @@ public class RulesValidator {
       return;
     }
     if (state.getActiveShowdown() == null) {
-      if (cardDataService.isReactionCard(def)) throw new IllegalMoveException("Reaction timing is not implemented yet.");
+      if (cardDataService.isReactionCard(def)) {
+        if (!move.playerId().equals(state.getActivePlayerId())) {
+          throw new IllegalMoveException("No reaction window is active.");
+        }
+        if (!isSupportedReaction(def)) {
+          throw new IllegalMoveException("That Reaction's effect is not supported yet.");
+        }
+        if (!isSupportedTargetedReaction(def)) {
+          throw new IllegalMoveException("No reaction window is active.");
+        }
+        return;
+      }
       if (!move.playerId().equals(state.getActivePlayerId())) throw new IllegalMoveException("Not your turn.");
       return;
     }
@@ -334,7 +348,19 @@ public class RulesValidator {
       throw new IllegalMoveException("Only showdown participants can play Action cards here.");
     }
     if (cardDataService.isReactionCard(def)) {
-      throw new IllegalMoveException("Reaction timing is not implemented yet.");
+      if (!isSupportedReaction(def)) {
+        throw new IllegalMoveException("That Reaction's effect is not supported yet.");
+      }
+      if (!isSupportedTargetedReaction(def)) {
+        throw new IllegalMoveException("No reaction window is active.");
+      }
+      if (!showdownParticipantRules.isFocusedPlayer(state, move.playerId())) {
+        throw new IllegalMoveException("Wait for your showdown focus.");
+      }
+      if (state.getActiveShowdown().readyToResolve()) {
+        throw new IllegalMoveException("Resolve the showdown before playing more Reactions.");
+      }
+      return;
     }
     if (!cardDataService.isActionCard(def)) {
       throw new IllegalMoveException("Only supported Action cards can be played during this showdown window.");
@@ -345,6 +371,27 @@ public class RulesValidator {
     if (state.getActiveShowdown().readyToResolve()) {
       throw new IllegalMoveException("Resolve the showdown before playing more Actions.");
     }
+  }
+
+  private boolean isSupportedReaction(CardDefinition def) {
+    return isSupportedTargetedReaction(def)
+        || cardDataService.isDefyCounterReaction(def)
+        || cardDataService.isNotSoFastCounterReaction(def);
+  }
+
+  private boolean isSupportedTargetedReaction(CardDefinition def) {
+    return cardDataService.isGustReaction(def)
+        || cardDataService.isDisciplineReaction(def)
+        || cardDataService.isEnGardeReaction(def);
+  }
+
+  private boolean isReactionPlayFromHand(LiveGameState state, PlayCardMove move) {
+    return state.getCards().stream()
+        .filter(card -> move.instanceId().equals(card.getInstanceId()))
+        .filter(card -> move.playerId().equals(card.getOwnerId()))
+        .filter(card -> card.getZone() == ZoneName.HAND)
+        .map(card -> cardDataService.getCard(card.getCardId()))
+        .anyMatch(def -> def != null && cardDataService.isReactionCard(def));
   }
 
   private void validateDefyCounterTarget(LiveGameState state, PlayCardMove move) {
@@ -880,20 +927,13 @@ public class RulesValidator {
         .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
         .filter(card -> !sourceOwnerId.equals(card.getOwnerId()))
         .toList();
-    Map<String, CardInstance> sourceById = sources.stream().collect(Collectors.toMap(CardInstance::getInstanceId, card -> card));
     Map<String, CardInstance> targetById = targets.stream().collect(Collectors.toMap(CardInstance::getInstanceId, card -> card));
-    Set<String> pairs = new HashSet<>();
-    Map<String, Integer> assignedBySource = new HashMap<>();
     Map<String, Integer> assignedByTarget = new HashMap<>();
     for (LiveGameState.CombatDamageAssignment assignment : assignments) {
       if (assignment.amount() <= 0) throw new IllegalMoveException("Combat damage assignments must be positive.");
-      CardInstance source = sourceById.get(assignment.sourceInstanceId());
       CardInstance target = targetById.get(assignment.targetInstanceId());
-      if (source == null) throw new IllegalMoveException("Damage source is not a valid combatant.");
       if (target == null) throw new IllegalMoveException("Damage target is not a valid opposing combatant.");
-      String pair = assignment.sourceInstanceId() + "->" + assignment.targetInstanceId();
-      if (!pairs.add(pair)) throw new IllegalMoveException("Duplicate damage assignment.");
-      assignedBySource.merge(source.getInstanceId(), assignment.amount(), Integer::sum);
+      if (assignedByTarget.containsKey(target.getInstanceId())) throw new IllegalMoveException("Duplicate damage assignment.");
       assignedByTarget.merge(target.getInstanceId(), assignment.amount(), Integer::sum);
     }
     CombatContext context = attackingAssignment ? CombatContext.ATTACKING : CombatContext.DEFENDING;
@@ -901,15 +941,18 @@ public class RulesValidator {
     for (CardInstance source : sources) {
       int might = combatStatsService.effectiveMight(state, source, context);
       totalMight += might;
-      int assigned = assignedBySource.getOrDefault(source.getInstanceId(), 0);
-      if (assigned > might) throw new IllegalMoveException("A unit cannot assign more damage than its Might.");
     }
-    int totalAssigned = assignedBySource.values().stream().mapToInt(Integer::intValue).sum();
+    int totalAssigned = assignedByTarget.values().stream().mapToInt(Integer::intValue).sum();
     if (totalAssigned != totalMight) throw new IllegalMoveException("Assign all available combat damage.");
-    enforceTankAndLethal(state, targets, assignedByTarget);
+    CombatContext targetContext = attackingAssignment ? CombatContext.DEFENDING : CombatContext.ATTACKING;
+    enforceTankAndLethal(state, targets, assignedByTarget, targetContext);
   }
 
-  private void enforceTankAndLethal(LiveGameState state, List<CardInstance> targets, Map<String, Integer> assignedByTarget) {
+  private void enforceTankAndLethal(
+      LiveGameState state,
+      List<CardInstance> targets,
+      Map<String, Integer> assignedByTarget,
+      CombatContext targetContext) {
     List<CardInstance> tanks = targets.stream()
         .filter(card -> cardDataService.hasKeyword(card, "TANK"))
         .toList();
@@ -918,20 +961,20 @@ public class RulesValidator {
         .anyMatch(card -> assignedByTarget.getOrDefault(card.getInstanceId(), 0) > 0);
     if (nonTankDamaged) {
       for (CardInstance tank : tanks) {
-        if (assignedByTarget.getOrDefault(tank.getInstanceId(), 0) < lethalDamage(state, tank)) {
+        if (assignedByTarget.getOrDefault(tank.getInstanceId(), 0) < combatLethalDamage(state, tank, targetContext)) {
           throw new IllegalMoveException("Assign lethal damage to Tank units before non-Tank units.");
         }
       }
     }
     long overAssigned = targets.stream()
-        .filter(card -> assignedByTarget.getOrDefault(card.getInstanceId(), 0) > lethalDamage(state, card))
+        .filter(card -> assignedByTarget.getOrDefault(card.getInstanceId(), 0) > combatLethalDamage(state, card, targetContext))
         .count();
     if (overAssigned > 1) throw new IllegalMoveException("Excess damage can only be assigned to one final target.");
     if (overAssigned == 1) {
       for (CardInstance target : targets) {
         int assigned = assignedByTarget.getOrDefault(target.getInstanceId(), 0);
         if (assigned == 0) throw new IllegalMoveException("Assign lethal damage before assigning excess damage.");
-        if (assigned < lethalDamage(state, target)) throw new IllegalMoveException("Assign lethal damage before assigning excess damage.");
+        if (assigned < combatLethalDamage(state, target, targetContext)) throw new IllegalMoveException("Assign lethal damage before assigning excess damage.");
       }
     }
     long damagedTargets = targets.stream()
@@ -940,7 +983,7 @@ public class RulesValidator {
     if (damagedTargets > 1) {
       for (CardInstance target : targets) {
         int assigned = assignedByTarget.getOrDefault(target.getInstanceId(), 0);
-        if (assigned > 0 && assigned < lethalDamage(state, target)) {
+        if (assigned > 0 && assigned < combatLethalDamage(state, target, targetContext)) {
           throw new IllegalMoveException("Assign lethal damage before spreading damage.");
         }
       }
@@ -967,6 +1010,10 @@ public class RulesValidator {
 
   private int lethalDamage(LiveGameState state, CardInstance card) {
     return combatDamageRules.lethalDamage(state, card);
+  }
+
+  private int combatLethalDamage(LiveGameState state, CardInstance card, CombatContext context) {
+    return combatDamageRules.combatLethalDamage(state, card, context);
   }
 
   private void validateUndoRunes(LiveGameState state, UndoRunesMove move) {

@@ -78,7 +78,8 @@ Status: Planned / Partial
 - Showdown timing precision edge cases.
 - Interactive combat damage assignment.
 - Keyword/effect registry expansion beyond the initial scaffold.
-- Starter deck cards fully supported.
+- Starter deck cards audited and promoted only when full printed text is
+  implemented and directly tested.
 - Popular tournament cards implemented.
 
 ## Starter Deck Completion Plan

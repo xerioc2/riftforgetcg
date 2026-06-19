@@ -10,6 +10,7 @@ import com.riftforge.model.ShowdownStep;
 import com.riftforge.model.ZoneName;
 import com.riftforge.model.move.MoveToBattlefieldMove;
 import com.riftforge.model.move.MulliganMove;
+import com.riftforge.model.move.PassChainFocusMove;
 import com.riftforge.model.move.PassPhaseMove;
 import com.riftforge.model.move.PlayCardMove;
 import com.riftforge.model.move.SelectBattlefieldMove;
@@ -215,7 +216,7 @@ class LegalActionsFlowIntegrationTest {
   }
 
   @Test
-  void stackedDeckWithNoResponseFastPassesToReadyThroughProcessMove() {
+  void stackedDeckWithNoResponseHoldsHumanPriorityUntilManualPass() {
     completeMulligans();
     advanceToMain(active);
     fx.addCard("stacked-deck", "Stacked Deck", "Spell",
@@ -225,12 +226,19 @@ class LegalActionsFlowIntegrationTest {
     fx.gameService.processMove(ROOM, new PlayCardMove(active, "stacked-instance", ZoneName.BASE, 0, 0, null));
 
     LiveGameState afterPlay = fx.gameService.currentState(ROOM);
-    // Neither player can respond, so the dead windows auto-pass server-side and the chain becomes
-    // ready to resolve with focus back on the opener's controller -- no manual passes required.
     assertThat(afterPlay.getChainState()).isNotNull();
-    assertThat(afterPlay.getChainState().readyToResolveTop()).isTrue();
-    assertThat(afterPlay.getChainState().focusedPlayerId()).isEqualTo(active);
+    assertThat(afterPlay.getChainState().readyToResolveTop()).isFalse();
+    assertThat(afterPlay.getChainState().focusedPlayerId()).isEqualTo(idle);
     assertThat(afterPlay.getPendingChoice()).isNull();
+    assertThat(legalActionsFor(idle)).containsExactly(LegalAction.PASS_CHAIN_FOCUS);
+    assertThat(legalActionsFor(active)).isEmpty();
+
+    fx.gameService.processMove(ROOM, new PassChainFocusMove(idle));
+    fx.gameService.processMove(ROOM, new PassChainFocusMove(active));
+
+    LiveGameState afterPasses = fx.gameService.currentState(ROOM);
+    assertThat(afterPasses.getChainState().readyToResolveTop()).isTrue();
+    assertThat(afterPasses.getChainState().focusedPlayerId()).isEqualTo(active);
     assertThat(legalActionsFor(active)).containsExactly(LegalAction.RESOLVE_CHAIN_TOP);
   }
 

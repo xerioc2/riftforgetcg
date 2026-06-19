@@ -54,7 +54,8 @@ class CombatDamageAssignmentPlannerTest {
     List<LiveGameState.CombatDamageAssignment> assignments = plan(state, "bot");
 
     assertThat(assignments).containsExactly(
-        new LiveGameState.CombatDamageAssignment("source", "target-one", 2));
+        new LiveGameState.CombatDamageAssignment("bot", "target-one", 1),
+        new LiveGameState.CombatDamageAssignment("bot", "target-two", 1));
     assertAccepted(state, "bot", assignments);
   }
 
@@ -69,8 +70,8 @@ class CombatDamageAssignmentPlannerTest {
     List<LiveGameState.CombatDamageAssignment> assignments = plan(state, "bot");
 
     assertThat(assignments).containsExactly(
-        new LiveGameState.CombatDamageAssignment("source-one", "target-one", 2),
-        new LiveGameState.CombatDamageAssignment("source-two", "target-two", 2));
+        new LiveGameState.CombatDamageAssignment("bot", "target-one", 1),
+        new LiveGameState.CombatDamageAssignment("bot", "target-two", 3));
     assertAccepted(state, "bot", assignments);
   }
 
@@ -85,8 +86,8 @@ class CombatDamageAssignmentPlannerTest {
     List<LiveGameState.CombatDamageAssignment> assignments = plan(state, "bot");
 
     assertThat(assignments).containsExactly(
-        new LiveGameState.CombatDamageAssignment("source-one", "target-two", 2),
-        new LiveGameState.CombatDamageAssignment("source-two", "target-two", 2));
+        new LiveGameState.CombatDamageAssignment("bot", "target-one", 1),
+        new LiveGameState.CombatDamageAssignment("bot", "target-two", 3));
     assertAccepted(state, "bot", assignments);
   }
 
@@ -103,8 +104,8 @@ class CombatDamageAssignmentPlannerTest {
     List<LiveGameState.CombatDamageAssignment> assignments = plan(state, "bot");
 
     assertThat(assignments).containsExactly(
-        new LiveGameState.CombatDamageAssignment("source-one", "tank", 2),
-        new LiveGameState.CombatDamageAssignment("source-two", "non-tank", 5));
+        new LiveGameState.CombatDamageAssignment("bot", "tank", 1),
+        new LiveGameState.CombatDamageAssignment("bot", "non-tank", 6));
     assertAccepted(state, "bot", assignments);
   }
 
@@ -120,7 +121,8 @@ class CombatDamageAssignmentPlannerTest {
     List<LiveGameState.CombatDamageAssignment> assignments = plan(state, "bot");
 
     assertThat(assignments).containsExactly(
-        new LiveGameState.CombatDamageAssignment("defender", "attacker-two", 4));
+        new LiveGameState.CombatDamageAssignment("bot", "attacker-one", 1),
+        new LiveGameState.CombatDamageAssignment("bot", "attacker-two", 3));
     assertAccepted(state, "bot", assignments);
   }
 
@@ -134,8 +136,7 @@ class CombatDamageAssignmentPlannerTest {
     List<LiveGameState.CombatDamageAssignment> assignments = plan(state, "bot");
 
     assertThat(assignments).containsExactly(
-        new LiveGameState.CombatDamageAssignment("source-one", "target", 3),
-        new LiveGameState.CombatDamageAssignment("source-two", "target", 3));
+        new LiveGameState.CombatDamageAssignment("bot", "target", 6));
     assertAccepted(state, "bot", assignments);
   }
 
@@ -157,23 +158,57 @@ class CombatDamageAssignmentPlannerTest {
     List<LiveGameState.CombatDamageAssignment> assignments = plan(state, "bot");
 
     assertThat(assignments).containsExactly(
-        new LiveGameState.CombatDamageAssignment("source-here", "target-here", 3));
+        new LiveGameState.CombatDamageAssignment("bot", "target-here", 3));
     assertAccepted(state, "bot", assignments);
   }
 
   @Test
-  void returnsEmptyWhenStrictPolicyHasNoValidAssignment() {
-    CardInstance tank = unit("tank", "human", 1, 2);
+  void projectedAssignmentStateExcludesOffLocationCardsAndAttachedGear() {
+    CardInstance sourceHere = atLocation(unit("source-here", "bot", 3, 3), "bf-1");
+    CardInstance sourceElsewhere = atLocation(unit("source-elsewhere", "bot", 9, 9), "bf-2");
+    CardInstance targetHere = atLocation(unit("target-here", "human", 1, 3), "bf-1");
+    CardInstance targetElsewhere = atLocation(unit("target-elsewhere", "human", 1, 9), "bf-2");
+    CardInstance attachedGear = atLocation(card("attached-gear", "bot", "attached-gear-card", ZoneName.BATTLEFIELD), "bf-1");
+    attachedGear.setAttachedToInstanceId("source-here");
+    when(cardDataService.getCard("attached-gear-card"))
+        .thenReturn(new CardDefinition("attached-gear-card", "Attached Gear", "Gear", null, List.of(), 0, 0, null, null, null, "[Equip]", 0, 0, List.of()));
+    LiveGameState state = assignmentState(
+        "human",
+        "bot",
+        "bf-1",
+        sourceHere,
+        sourceElsewhere,
+        targetHere,
+        targetElsewhere,
+        attachedGear);
+
+    LiveGameState.CombatAssignmentState assignmentState = planner.assignmentState(state, "bot").orElseThrow();
+
+    assertThat(assignmentState.locationId()).isEqualTo("bf-1");
+    assertThat(assignmentState.assigningPlayerId()).isEqualTo("bot");
+    assertThat(assignmentState.validSources())
+        .extracting(LiveGameState.CombatDamageSourceOption::sourceInstanceId)
+        .containsExactly("source-here");
+    assertThat(assignmentState.validTargetInstanceIds()).containsExactly("target-here");
+    assertThat(assignmentState.damagePool()).isEqualTo(3);
+    assertThat(assignmentState.validTargets()).containsExactly(
+        new LiveGameState.CombatDamageTargetOption("target-here", 1, false));
+    assertThat(assignmentState.suggestedAssignments()).containsExactly(
+        new LiveGameState.CombatDamageAssignment("bot", "target-here", 3));
+    assertThat(assignmentState.canAutoAssign()).isTrue();
+  }
+
+  @Test
+  void zeroDamagePoolReturnsEmptyAutoAssignment() {
+    CardInstance stunned = unit("stunned", "bot", 2, 2);
     LiveGameState state = assignmentState("bot", "bot",
-        unit("source-one", "bot", 2, 2),
-        unit("source-two", "bot", 2, 2),
-        tank,
-        unit("non-tank", "human", 1, 5));
-    when(cardDataService.hasKeyword(eq(tank), eq("TANK"))).thenReturn(true);
+        stunned,
+        unit("target", "human", 1, 5));
+    when(cardDataService.hasKeyword(eq(stunned), eq("STUN"))).thenReturn(true);
 
     Optional<List<LiveGameState.CombatDamageAssignment>> assignments = planner.plan(state, "bot");
 
-    assertThat(assignments).isEmpty();
+    assertThat(assignments).contains(List.of());
   }
 
   private List<LiveGameState.CombatDamageAssignment> plan(LiveGameState state, String playerId) {
@@ -221,14 +256,19 @@ class CombatDamageAssignmentPlannerTest {
   }
 
   private CardInstance unit(String id, String ownerId, int might, int health) {
-    CardInstance card = new CardInstance();
-    card.setInstanceId(id);
-    card.setCardId(id);
-    card.setOwnerId(ownerId);
-    card.setZone(ZoneName.BATTLEFIELD);
+    CardInstance card = card(id, ownerId, id, ZoneName.BATTLEFIELD);
     card.setCurrentHealth(health);
     when(cardDataService.getCard(id)).thenReturn(
         new CardDefinition(id, id, "Unit", null, List.of(), 0, 0, null, null, null, null, might, health, List.of()));
+    return card;
+  }
+
+  private CardInstance card(String instanceId, String ownerId, String cardId, ZoneName zone) {
+    CardInstance card = new CardInstance();
+    card.setInstanceId(instanceId);
+    card.setCardId(cardId);
+    card.setOwnerId(ownerId);
+    card.setZone(zone);
     return card;
   }
 

@@ -255,6 +255,12 @@ class GameEnginePlayCardTypeTest {
 
     engine.applyMove(state, play("draw-spell", ZoneName.BASE));
 
+    assertThat(state.getChainState()).isNotNull();
+    assertThat(state.getCards()).noneMatch(card -> card.getCardId().equals("drawn-one"));
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new ResolveChainTopMove("p1"));
+
     assertThat(state.getCards()).anyMatch(card -> card.getCardId().equals("drawn-one") && card.getZone() == ZoneName.HAND);
     assertThat(state.getCards()).noneMatch(card -> card.getCardId().equals("drawn-two"));
     assertThat(state.getPlayers().getFirst().getDeckPool()).containsExactly("drawn-two");
@@ -1014,7 +1020,7 @@ class GameEnginePlayCardTypeTest {
 
     assertThatThrownBy(() -> engine.applyMove(state, play("reaction", ZoneName.BASE)))
         .isInstanceOf(IllegalMoveException.class)
-        .hasMessage("Reaction timing is not implemented yet.");
+        .hasMessage("That Reaction's effect is not supported yet.");
   }
 
   @Test
@@ -1357,7 +1363,7 @@ class GameEnginePlayCardTypeTest {
     CardInstance gear = card("equip", "p2", ZoneName.BASE);
     gear.setAttachedToInstanceId("host");
     LiveGameState state = state(spell, host, gear);
-    stubCard("spell", "Simple Spell", "Spell", 0, 0, 0, "Draw 1.");
+    stubCard("spell", "Simple Spell", "Spell", 0, 0, 0, "Check cleanup.");
     stubCard("host", "Destroyed Unit", "Unit", 0, 2, 2, null);
     stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
 
@@ -1376,7 +1382,7 @@ class GameEnginePlayCardTypeTest {
     CardInstance gear = card("equip", "p2", ZoneName.BASE);
     gear.setAttachedToInstanceId("host");
     LiveGameState state = state(spell, host, gear);
-    stubCard("spell", "Simple Spell", "Spell", 0, 0, 0, "Draw 1.");
+    stubCard("spell", "Simple Spell", "Spell", 0, 0, 0, "Check cleanup.");
     stubCard("host", "Destroyed Unit", "Unit", 0, 2, 2, null);
     stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] [Deathknell] Attached unit gets +1.");
     when(cardDataService.hasKeyword("equip", "DEATHKNELL")).thenReturn(true);
@@ -1398,7 +1404,7 @@ class GameEnginePlayCardTypeTest {
     CardInstance gear = card("equip", "p2", ZoneName.BASE);
     gear.setAttachedToInstanceId("champion");
     LiveGameState state = state(spell, champion, gear);
-    stubCard("spell", "Simple Spell", "Spell", 0, 0, 0, "Draw 1.");
+    stubCard("spell", "Simple Spell", "Spell", 0, 0, 0, "Check cleanup.");
     stubCard("champion", "Equipped Champion", "Champion", 0, 3, 4, null);
     stubCard("equip", "Equip Gear", "Gear", 0, 0, 0, "[Equip] Attached unit gets +1.");
 
@@ -1712,7 +1718,8 @@ class GameEnginePlayCardTypeTest {
     LiveGameState state = state(herder, defender);
     state.getPlayers().getFirst().setDeckPool(new ArrayList<>(List.of("battlefield-draw", "return-draw", "remaining")));
     stubCard("herder", "Stellacorn Herder", "Unit", 0, 2, 2, "When I move, draw 1.");
-    stubCard("defender", "Defender", "Unit", 0, 0, 5, null);
+    stubCard("defender", "Defender", "Unit", 0, 3, 5, null);
+    when(cardDataService.hasKeyword(defender, "STUN")).thenReturn(true);
     stubCard("battlefield-draw", "Battlefield Draw", "Unit", 0, 1, 1, null);
     stubCard("return-draw", "Return Draw", "Unit", 0, 1, 1, null);
     stubCard("remaining", "Remaining", "Unit", 0, 1, 1, null);

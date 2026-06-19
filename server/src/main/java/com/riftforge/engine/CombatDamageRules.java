@@ -38,4 +38,17 @@ public class CombatDamageRules {
     }
     return Math.max(1, currentHealth);
   }
+
+  public int combatLethalDamage(LiveGameState state, CardInstance card, CombatStatsService.CombatContext context) {
+    int lethalMight = combatStatsService.effectiveMight(state, card, context);
+    if (cardDataService.hasKeyword(card, "STUN") || cardDataService.hasKeyword(card, "STUNNED")) {
+      lethalMight = combatStatsService.effectiveMight(state, card, CombatStatsService.CombatContext.IDLE);
+      lethalMight += switch (context) {
+        case ATTACKING -> cardDataService.getKeywordValue(card, "ASSAULT");
+        case DEFENDING -> cardDataService.getKeywordValue(card, "SHIELD");
+        case IDLE -> 0;
+      };
+    }
+    return Math.max(1, lethalMight);
+  }
 }

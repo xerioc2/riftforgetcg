@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canUseSupportedChainResponse, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isGustReactionCard, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isSupportedChainReactionCard, unsupportedCardReason } from './cardActions';
+import { canUseSupportedChainResponse, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isGustReactionCard, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isSupportedChainReactionCard, shouldShowRespondAction, unsupportedCardReason } from './cardActions';
 import type { CardInstance, RiftCard } from '../types';
 
 describe('cardActions', () => {
@@ -198,6 +198,40 @@ describe('cardActions', () => {
       hasLegalGustTarget: false,
       hasLegalEnGardeTarget: true,
       hasLegalDefyTarget: false,
+    })).toBe(false);
+  });
+
+  it('shows Respond only for supported Reactions when server legal actions allow chain play', () => {
+    const gust: RiftCard = {
+      id: 'gust',
+      name: 'Gust',
+      type: 'Spell',
+      domains: [],
+      rulesText: "[Reaction] Return a unit at a battlefield with 3 Might or less to its owner's hand.",
+    };
+    const unsupportedReaction: RiftCard = {
+      id: 'unsupported-reaction',
+      name: 'Mystery Response',
+      type: 'Spell',
+      domains: [],
+      rulesText: '[Reaction] Do a future thing.',
+    };
+
+    expect(shouldShowRespondAction(gust, {
+      canPlayReactions: true,
+      canPlayReactionCard: true,
+    })).toBe(true);
+    expect(shouldShowRespondAction(gust, {
+      canPlayReactions: false,
+      canPlayReactionCard: true,
+    })).toBe(false);
+    expect(shouldShowRespondAction(gust, {
+      canPlayReactions: true,
+      canPlayReactionCard: false,
+    })).toBe(false);
+    expect(shouldShowRespondAction(unsupportedReaction, {
+      canPlayReactions: true,
+      canPlayReactionCard: true,
     })).toBe(false);
   });
 

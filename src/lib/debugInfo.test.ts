@@ -11,13 +11,60 @@ describe('buildDebugInfo', () => {
       activePlayerId: 'bot-player-riftbot',
       turnNumber: 3,
       activeShowdown: null,
+      combatAssignmentState: {
+        locationId: 'bf-1',
+        assigningPlayerId: 'p1',
+        step: 'ASSIGN_DAMAGE',
+        damagePool: 5,
+        validSources: [{ sourceInstanceId: 'public-unit', availableDamage: 5, validTargetInstanceIds: ['enemy-unit'] }],
+        validTargets: [{ targetInstanceId: 'enemy-unit', lethalDamage: 3, tank: false }],
+        validTargetInstanceIds: ['enemy-unit'],
+        suggestedAssignments: [{ sourceInstanceId: 'public-unit', targetInstanceId: 'enemy-unit', amount: 5 }],
+        canAutoAssign: true,
+      },
       battlefieldController: { 'bf-1': 'p1' },
       chainState: {
         chainId: 'chain-1',
-        chainItems: [{ itemId: 'item-1', controllerPlayerId: 'p1' }],
+        chainItems: [
+          {
+            itemId: 'item-1',
+            controllerPlayerId: 'p1',
+            sourceCardId: 'stacked-deck',
+            sourceCardName: 'Stacked Deck',
+            effectKey: 'STACKED_DECK_PICK_ONE',
+            publicDescription: 'Stacked Deck',
+            status: 'PENDING',
+            visibility: 'PUBLIC',
+            chainItemType: 'SPELL',
+            chainTargets: [{ role: 'source', targetInstanceId: 'public-unit', targetKind: 'UNIT', publicSafe: true }],
+          },
+          {
+            itemId: 'item-secret',
+            controllerPlayerId: 'p1',
+            sourceCardId: 'secret-reaction-card',
+            sourceCardName: 'Secret Reaction',
+            effectKey: 'SECRET_HIDDEN_EFFECT',
+            publicDescription: 'Hidden response',
+            status: 'PENDING',
+            visibility: 'CONTROLLER_ONLY',
+            chainItemType: 'SPELL',
+            targetInstanceIds: ['private-hidden-target'],
+            chainTargets: [
+              {
+                role: 'target',
+                targetInstanceId: 'private-hidden-target',
+                targetKind: 'HIDDEN_CARD',
+                publicLabel: 'Secret target',
+                publicSafe: false,
+              },
+            ],
+          },
+        ],
         relevantPlayerIds: ['p1', 'bot-player-riftbot'],
         focusedPlayerId: 'bot-player-riftbot',
+        consecutivePasses: 1,
         readyToResolveTop: false,
+        sourceContext: 'MAIN_ACTION',
       },
       pendingChoice: {
         choiceId: 'choice-1',
@@ -106,9 +153,36 @@ describe('buildDebugInfo', () => {
 
     expect(debug.chainState).toEqual({
       active: true,
-      itemCount: 1,
+      itemCount: 2,
       focusedPlayerId: 'bot-player-riftbot',
       readyToResolveTop: false,
+      relevantPlayerIds: ['p1', 'bot-player-riftbot'],
+      consecutivePasses: 1,
+      sourceContext: 'MAIN_ACTION',
+      entries: [
+        {
+          itemId: 'item-1',
+          controllerPlayerId: 'p1',
+          sourceCardId: 'stacked-deck',
+          sourceCardName: 'Stacked Deck',
+          effectKey: 'STACKED_DECK_PICK_ONE',
+          publicDescription: 'Stacked Deck',
+          status: 'PENDING',
+          chainItemType: 'SPELL',
+          targetCount: 1,
+        },
+        {
+          itemId: 'item-secret',
+          controllerPlayerId: 'p1',
+          sourceCardId: null,
+          sourceCardName: null,
+          effectKey: null,
+          publicDescription: 'Hidden response',
+          status: 'PENDING',
+          chainItemType: null,
+          targetCount: 0,
+        },
+      ],
     });
     expect(debug.pendingChoice).toEqual({
       active: true,
@@ -122,6 +196,18 @@ describe('buildDebugInfo', () => {
       attackingPlayerId: null,
       focusedPlayerId: null,
       readyToResolve: false,
+    });
+    expect(debug.combatAssignmentState).toEqual({
+      active: true,
+      locationId: 'bf-1',
+      assigningPlayerId: 'p1',
+      step: 'ASSIGN_DAMAGE',
+      damagePool: 5,
+      validSources: [{ sourceInstanceId: 'public-unit', availableDamage: 5, validTargetInstanceIds: ['enemy-unit'] }],
+      validTargets: [{ targetInstanceId: 'enemy-unit', lethalDamage: 3, tank: false }],
+      validTargetInstanceIds: ['enemy-unit'],
+      suggestedAssignments: [{ sourceInstanceId: 'public-unit', targetInstanceId: 'enemy-unit', amount: 5 }],
+      canAutoAssign: true,
     });
     expect(debug.battlefieldController).toEqual({ 'bf-1': 'p1' });
     expect(debug.selectedBattlefields).toEqual([
@@ -168,6 +254,11 @@ describe('buildDebugInfo', () => {
     expect(JSON.stringify(debug)).not.toContain('private-card');
     expect(JSON.stringify(debug)).not.toContain('secret-card');
     expect(JSON.stringify(debug)).not.toContain('private-hand-card');
+    expect(JSON.stringify(debug)).not.toContain('secret-reaction-card');
+    expect(JSON.stringify(debug)).not.toContain('Secret Reaction');
+    expect(JSON.stringify(debug)).not.toContain('SECRET_HIDDEN_EFFECT');
+    expect(JSON.stringify(debug)).not.toContain('private-hidden-target');
+    expect(JSON.stringify(debug)).not.toContain('Secret target');
     expect(JSON.stringify(debug)).not.toContain('runeDeckPool');
   });
 });

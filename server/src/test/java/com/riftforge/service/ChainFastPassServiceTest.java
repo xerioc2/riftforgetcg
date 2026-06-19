@@ -41,8 +41,15 @@ class ChainFastPassServiceTest {
   }
 
   @Test
-  void focusedPlayerWithOnlyPassCanAutoPassSafely() {
+  void focusedHumanPlayerWithOnlyPassIsNotAutoPassed() {
     LiveGameState state = state(chain(false, "p1"));
+
+    assertThat(service.shouldAutoPass(state)).isFalse();
+  }
+
+  @Test
+  void focusedBotPlayerWithOnlyPassCanAutoPassSafely() {
+    LiveGameState state = state(chain(false, "bot-player-riftbot"));
 
     assertThat(service.shouldAutoPass(state)).isTrue();
   }
@@ -148,7 +155,7 @@ class ChainFastPassServiceTest {
 
   @Test
   void autoPassSafeWindowsMarksStackedDeckReadyWhenNoResponsesExist() {
-    LiveGameState state = state(chain(false, "p2"));
+    LiveGameState state = state(botOnlyChain(false, "bot-player-riftbot"));
     when(engine.applyMove(any(LiveGameState.class), any(PassChainFocusMove.class))).thenAnswer(invocation -> {
       LiveGameState current = invocation.getArgument(0);
       PassChainFocusMove move = invocation.getArgument(1);
@@ -159,9 +166,27 @@ class ChainFastPassServiceTest {
     service.autoPassSafeWindows(engine, state);
 
     assertThat(state.getChainState().readyToResolveTop()).isTrue();
-    assertThat(state.getChainState().focusedPlayerId()).isEqualTo("p1");
+    assertThat(state.getChainState().focusedPlayerId()).isEqualTo("bot-player-codex");
     assertThat(state.getChainState().consecutivePasses()).isEqualTo(2);
     verify(engine, times(2)).applyMove(any(LiveGameState.class), any(PassChainFocusMove.class));
+  }
+
+  @Test
+  void autoPassSafeWindowsStopsOnFocusedHumanToPreserveBluffWindow() {
+    LiveGameState state = state(chain(false, "bot-player-riftbot"));
+    when(engine.applyMove(any(LiveGameState.class), any(PassChainFocusMove.class))).thenAnswer(invocation -> {
+      LiveGameState current = invocation.getArgument(0);
+      PassChainFocusMove move = invocation.getArgument(1);
+      applyPass(current, move.playerId());
+      return current;
+    });
+
+    service.autoPassSafeWindows(engine, state);
+
+    assertThat(state.getChainState().readyToResolveTop()).isFalse();
+    assertThat(state.getChainState().focusedPlayerId()).isEqualTo("p1");
+    assertThat(state.getChainState().consecutivePasses()).isEqualTo(1);
+    verify(engine).applyMove(any(LiveGameState.class), any(PassChainFocusMove.class));
   }
 
   private void applyPass(LiveGameState state, String playerId) {
@@ -188,7 +213,7 @@ class ChainFastPassServiceTest {
     LiveGameState state = new LiveGameState();
     state.setCurrentPhase(Phase.MAIN);
     state.setActivePlayerId("p1");
-    state.setPlayers(new ArrayList<>(List.of(player("p1"), player("p2"))));
+    state.setPlayers(new ArrayList<>(List.of(player("p1"), player("p2"), player("bot-player-riftbot"), player("bot-player-codex"))));
     state.setChainState(chain);
     return state;
   }
@@ -214,7 +239,7 @@ class ChainFastPassServiceTest {
             List.of(),
             1,
             "Stacked Deck")),
-        List.of("p1", "p2"),
+        List.of("p1", "bot-player-riftbot"),
         focus,
         ready ? 2 : 0,
         ready,
@@ -223,6 +248,26 @@ class ChainFastPassServiceTest {
 
   private LiveGameState.ChainState stackedDeckChain(boolean ready, String focus) {
     return chain(ready, focus);
+  }
+
+  private LiveGameState.ChainState botOnlyChain(boolean ready, String focus) {
+    return new LiveGameState.ChainState(
+        "chain-1",
+        List.of(new LiveGameState.ChainItem(
+            "item-1",
+            "bot-player-codex",
+            "source-1",
+            "stacked",
+            "Stacked Deck",
+            LiveGameState.ChainItem.EFFECT_STACKED_DECK_PICK_ONE,
+            List.of(),
+            1,
+            "Stacked Deck")),
+        List.of("bot-player-codex", "bot-player-riftbot"),
+        focus,
+        ready ? 2 : 0,
+        ready,
+        "MAIN");
   }
 
   private LiveGameState.ChainState notSoFastTargetableGustChain(String focus) {

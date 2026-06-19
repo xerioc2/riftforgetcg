@@ -32,9 +32,9 @@ import { appBuildLabel, APP_VERSION, BUILD_DATE, BUILD_TAG } from '../lib/appMet
 import { buildDebugInfo } from '../lib/debugInfo';
 import { attachedGearDisplayPosition, attachedGearDisplayScale, attachedGearIsIndependentBoardPiece, attachedGearNamesForHost } from '../lib/attachments';
 import { battlefieldLaneDisplays } from '../lib/battlefieldDisplay';
-import { buildCombatDamageAssignments } from '../lib/combatDamageAssignments';
 import { isBotPlayer, legalActionHint, phaseGuidance, waitingStatusText } from '../lib/gameGuidance';
 import { equipCostForCard, equipCostLabel, runeMatchesEquipDomain } from '../lib/equipment';
+import { loadPriorityStopSettings, savePriorityStopSettings, shouldLocalAutoPassPriority, type PriorityStopSettings } from '../lib/priorityStops';
 import { useLocalPlayer } from '../lib/playerContext';
 import { getServerBuildInfo } from '../lib/serverBuildInfo';
 import { getRoomSessionToken } from '../lib/roomSession';
@@ -117,6 +117,20 @@ function shouldAutoPlacePublicCard(instance: CardInstance) {
   return instance.ownerId.toLowerCase().startsWith('bot-player-');
 }
 
+function PriorityStopToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
+  return (
+    <label className="flex items-center justify-between gap-2">
+      <span>{label}</span>
+      <input
+        type="checkbox"
+        className="h-3.5 w-3.5 accent-[#e0b15a]"
+        checked={checked}
+        onChange={(event) => onChange(event.currentTarget.checked)}
+      />
+    </label>
+  );
+}
+
 export function GameBoard() {
   const { code } = useParams();
   const navigate = useNavigate();
@@ -152,6 +166,7 @@ export function GameBoard() {
   const [awaitingServerUpdate, setAwaitingServerUpdate] = useState(false);
   const [lastSubmittedActionType, setLastSubmittedActionType] = useState<string | null>(null);
   const [lastActionFailureMessage, setLastActionFailureMessage] = useState<string | null>(null);
+  const [priorityStops, setPriorityStops] = useState<PriorityStopSettings>(() => loadPriorityStopSettings());
   const boardFrameRef = useRef<HTMLDivElement | null>(null);
   const stompClientRef = useRef<Client | null>(null);
   const prevCards = useRef<Map<string, CardInstance>>(new Map());
@@ -163,6 +178,7 @@ export function GameBoard() {
   const handledVisionLogRef = useRef<string | null>(null);
   const lastUserStateAt = useRef(0);
   const roomFallbackTimer = useRef<number | null>(null);
+  const lastLocalAutoPassKey = useRef<string | null>(null);
 
   const roomCode = code?.toUpperCase() ?? '';
   const cardsById = useMemo(() => new Map(cards.map((card) => [card.id, card])), [cards]);
@@ -205,6 +221,10 @@ export function GameBoard() {
       if (previewClearTimer.current != null) window.clearTimeout(previewClearTimer.current);
     };
   }, []);
+
+  useEffect(() => {
+    savePriorityStopSettings(priorityStops);
+  }, [priorityStops]);
 
   useEffect(() => {
     const element = boardFrameRef.current;
@@ -440,19 +460,15 @@ export function GameBoard() {
       return;
     }
     if (!state?.activeShowdown) return;
-    const assignments = buildCombatDamageAssignments(
-      state.cards,
-      cardsById,
-      player.id,
-      state.activeShowdown.attackingPlayerId === player.id,
-    );
-    if (assignments === null) {
+    const assignmentState = state.combatAssignmentState;
+    if (!assignmentState || assignmentState.assigningPlayerId !== player.id || !assignmentState.canAutoAssign) {
       notifyWarning(
         'Cannot auto-assign combat damage',
-        'The current strict alpha combat policy has no valid automatic assignment for this board state.',
+        'The server did not provide a valid automatic assignment for this board state.',
       );
       return;
     }
+    const assignments = assignmentState.suggestedAssignments ?? [];
     publishMove({ type: 'ASSIGN_COMBAT_DAMAGE', playerId: player.id, assignments });
   };
 
@@ -463,6 +479,26 @@ export function GameBoard() {
   useEffect(() => {
     if (!state?.chainState) setPendingChainTargetSelection(null);
   }, [state?.chainState]);
+
+  useEffect(() => {
+    const chain = state?.chainState;
+    const autoPassKey = chain
+      ? `${chain.chainId}:${chain.focusedPlayerId}:${chain.consecutivePasses ?? 0}:${chain.readyToResolveTop ? 'ready' : 'open'}:${state?.updatedAt ?? ''}`
+      : null;
+    if (!shouldLocalAutoPassPriority({
+      settings: priorityStops,
+      legalActions: state?.legalActions,
+      chainState: chain,
+      playerId: player.id,
+      activePlayerId: state?.activePlayerId,
+    })) {
+      lastLocalAutoPassKey.current = null;
+      return;
+    }
+    if (!autoPassKey || lastLocalAutoPassKey.current === autoPassKey) return;
+    lastLocalAutoPassKey.current = autoPassKey;
+    publishMove({ type: 'PASS_CHAIN_FOCUS', playerId: player.id });
+  }, [player.id, priorityStops, state?.activePlayerId, state?.chainState, state?.legalActions, state?.updatedAt]);
 
   const handleCardHover = (card: RiftCard | null, instance?: CardInstance) => {
     if (previewShowTimer.current != null) window.clearTimeout(previewShowTimer.current);
@@ -1278,7 +1314,7 @@ export function GameBoard() {
   const hasTappedOwnRune = (state.runes ?? []).some((rune) => rune.ownerId === player.id && rune.tapped);
   const canUndoRunes = canTakeAction(state, 'UNDO_RUNES') && hasTappedOwnRune;
   const canPass = canTakeAction(state, 'PASS_PHASE') || canResolveChainTop || canPassChainFocus || canAssignCombatDamage || canResolveShowdown || canPassShowdownFocus;
-  const passLabel = canResolveChainTop ? 'Resolve Chain' : canPassChainFocus ? 'Pass Chain' : canAssignCombatDamage ? 'Assign Damage' : canResolveShowdown ? 'Resolve Showdown' : canPassShowdownFocus ? 'Pass Focus' : 'Pass';
+  const passLabel = canResolveChainTop ? 'Resolve Chain' : canPassChainFocus ? 'Pass Chain' : canAssignCombatDamage ? 'Resolve Damage' : canResolveShowdown ? 'Resolve Showdown' : canPassShowdownFocus ? 'Pass Focus' : 'Pass';
   const canSelectBattlefield = canTakeAction(state, 'SELECT_BATTLEFIELD');
   const canMulligan = canTakeAction(state, 'MULLIGAN');
   const canKeepHand = canTakeAction(state, 'KEEP_HAND');
@@ -1330,6 +1366,11 @@ export function GameBoard() {
   const actionHintText = legalActionHint(state.legalActions, { isPlayer: Boolean(me), isMyTurn, activePlayerName, activePlayerIsBot });
   const waitingText = waitingStatusText({ isMyTurn, activePlayerName, activePlayerIsBot, waitingLong: waitingTooLong });
   const connectionText = wsConnected ? 'Connected.' : 'Reconnecting to player-specific updates...';
+  const priorityWindowIsMine = state.chainState?.focusedPlayerId === player.id && canPassChainFocus;
+  const localEmptyPriorityWindow = priorityWindowIsMine && !canPlayCards;
+  const updatePriorityStop = (key: keyof PriorityStopSettings, value: boolean) => {
+    setPriorityStops((previous) => ({ ...previous, [key]: value }));
+  };
   const boardCardRenderItems = [...state.cards]
     .filter((instance) => !sameZone(instance.zone, 'hand') && !sameZone(instance.zone, 'deck') && !sameZone(instance.zone, 'hidden'))
     .sort((a, b) => a.zIndex - b.zIndex)
@@ -1663,13 +1704,54 @@ export function GameBoard() {
         </div>
       ) : null}
 
+      {chainActive ? (
+        <div className="pointer-events-auto absolute right-[296px] z-30 w-64 border border-line bg-panel/95 p-3 text-xs text-slate-300 shadow-glow" style={{ bottom: handHeight + PHASE_BAR_HEIGHT + 118 }}>
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-semibold uppercase tracking-wide text-forge">Priority stops</p>
+            {priorityWindowIsMine ? <span className="text-[10px] uppercase text-mint">Your priority</span> : <span className="text-[10px] uppercase text-slate-500">Public window</span>}
+          </div>
+          {localEmptyPriorityWindow ? (
+            <p className="mt-1 text-[11px] text-slate-400">No legal responses are available to you. You may still pass manually.</p>
+          ) : null}
+          <div className="mt-2 grid gap-1.5">
+            <PriorityStopToggle
+              label="Auto-pass empty windows"
+              checked={priorityStops.autoPassEmptyWindows}
+              onChange={(value) => updatePriorityStop('autoPassEmptyWindows', value)}
+            />
+            <PriorityStopToggle
+              label="Hold opponent turn"
+              checked={priorityStops.holdOpponentTurn}
+              onChange={(value) => updatePriorityStop('holdOpponentTurn', value)}
+            />
+            <PriorityStopToggle
+              label="Hold showdowns"
+              checked={priorityStops.holdShowdowns}
+              onChange={(value) => updatePriorityStop('holdShowdowns', value)}
+            />
+            <PriorityStopToggle
+              label="Hold before my spells"
+              checked={priorityStops.holdBeforeMySpells}
+              onChange={(value) => updatePriorityStop('holdBeforeMySpells', value)}
+            />
+            <PriorityStopToggle
+              label="Hold before opponent spells"
+              checked={priorityStops.holdBeforeOpponentSpells}
+              onChange={(value) => updatePriorityStop('holdBeforeOpponentSpells', value)}
+            />
+          </div>
+        </div>
+      ) : null}
+
       {canAssignCombatDamage ? (
         <div className="pointer-events-auto absolute left-1/2 z-30 w-80 -translate-x-1/2 border border-forge/60 bg-[#05080d] p-3 text-sm text-slate-100 shadow-[0_14px_44px_rgba(0,0,0,0.7)]" style={{ bottom: handHeight + PHASE_BAR_HEIGHT + 12 }}>
           <p className="text-xs uppercase text-slate-500">Combat damage</p>
-          <p className="mt-1 font-semibold text-forge">Assign your combat damage</p>
-          <p className="mt-1 text-xs text-slate-400">RiftForge will assign lethal damage first, respecting Tank, then put any excess on one target.</p>
+          <p className="mt-1 font-semibold text-forge">Resolve your combat damage</p>
+          <p className="mt-1 text-xs text-slate-400">
+            Damage pool: {state.combatAssignmentState?.damagePool ?? 0}. RiftForge will use the server-planned assignment for this lane, respecting Tank and lethal-first rules.
+          </p>
           <button className="btn-primary mt-3 w-full" onClick={assignCombatDamage}>
-            Assign Damage
+            Resolve Combat Damage
           </button>
         </div>
       ) : null}

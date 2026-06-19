@@ -46,7 +46,7 @@ export function phaseGuidance(
     }
     return chainReady
       ? 'The top chain item is ready to resolve.'
-      : 'Chain focus window. The focused player may pass chain focus.';
+      : 'Priority window. The focused player may respond or pass priority.';
   }
   if (activeShowdown) return SHOWDOWN_GUIDANCE[showdownStep ?? 'STAGED'] ?? 'Showdown in progress. Resolve showdown to continue.';
   return PHASE_GUIDANCE[currentPhase ?? 'MAIN'] ?? 'Follow the available actions shown by the server.';
@@ -66,7 +66,8 @@ export function legalActionHint(
   if (actions.has('KEEP_HAND') || actions.has('MULLIGAN')) return 'You can keep or mulligan.';
   if (actions.has('RESOLVE_CHOICE')) return 'Choose an option to continue.';
   if (actions.has('RESOLVE_CHAIN_TOP')) return 'You can resolve the top chain item.';
-  if (actions.has('PASS_CHAIN_FOCUS')) return 'You can pass chain focus.';
+  if (actions.has('PASS_CHAIN_FOCUS') && actions.has('PLAY_CARD')) return 'You may respond or pass priority.';
+  if (actions.has('PASS_CHAIN_FOCUS')) return 'You can pass priority.';
   if (actions.has('ASSIGN_COMBAT_DAMAGE')) return 'Assign combat damage to continue the showdown.';
   if (actions.has('PASS_SHOWDOWN_FOCUS') && actions.has('PLAY_CARD')) return 'You may play a supported Action card or pass showdown focus.';
   if (actions.has('PASS_SHOWDOWN_FOCUS')) return 'You can pass showdown focus.';

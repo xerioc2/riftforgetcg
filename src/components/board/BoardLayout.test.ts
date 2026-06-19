@@ -23,7 +23,7 @@ describe('BoardLayout shared battlefield row', () => {
     expect(playerBase.x + playerBase.width).toBeGreaterThanOrEqual(1600);
     expect(opponentRune.x).toBe(playerBase.x);
     expect(opponentRune.width).toBeLessThan(playerBase.width);
-    expect(opponentRune.width).toBeGreaterThan(playerBase.width * 0.75);
+    expect(opponentRune.width).toBeGreaterThan(playerBase.width * 0.88);
     expect(opponentRune.height).toBeGreaterThanOrEqual(76);
   });
 
@@ -76,8 +76,8 @@ describe('BoardLayout shared battlefield row', () => {
     expect(playerRune?.ownerId).toBe('player');
     expect(opponentRune!.y + opponentRune!.height).toBeLessThanOrEqual(opponentBase!.y);
     expect(playerBase!.y + playerBase!.height).toBeLessThanOrEqual(playerRune!.y);
-    expect(opponentRune!.width).toBeGreaterThan(opponentBase!.width * 0.75);
-    expect(playerRune!.width).toBeGreaterThan(playerBase!.width * 0.75);
+    expect(opponentRune!.width).toBeGreaterThan(opponentBase!.width * 0.88);
+    expect(playerRune!.width).toBeGreaterThan(playerBase!.width * 0.88);
     expect(opponentRune!.height).toBeGreaterThan(70);
     expect(playerRune!.height).toBeGreaterThan(70);
     expect(opponentBase!.y + opponentBase!.height).toBeLessThanOrEqual(firstOpponentLane.y);
@@ -94,7 +94,7 @@ describe('BoardLayout shared battlefield row', () => {
 
     expect(playerRune.x).toBe(playerBase.x);
     expect(playerRune.x).toBeGreaterThan(playerChampion.x + playerChampion.width);
-    expect(playerRune.width).toBeGreaterThan(playerBase.width * 0.75);
+    expect(playerRune.width).toBeGreaterThan(playerBase.width * 0.88);
     expect(playerRune.x + playerRune.width).toBeLessThanOrEqual(playerBase.x + playerBase.width);
     expect(playerRune.y).toBeGreaterThanOrEqual(playerBase.y + playerBase.height);
     expect(playerRune.y).toBeGreaterThanOrEqual(Math.max(...playerLanes.map((lane) => lane.y + lane.height)));
@@ -169,7 +169,7 @@ describe('BoardLayout shared battlefield row', () => {
 
     expect(positions[0].x).toBeGreaterThan(runeZone.x);
     expect(positions[positions.length - 1].x).toBeLessThan(runeZone.x + runeZone.width);
-    expect(runeZone.width).toBeGreaterThan(1000);
+    expect(runeZone.width).toBeGreaterThan(1450);
     expect(runeZone.height).toBeGreaterThanOrEqual(76);
     expect(Math.max(...spacings)).toBeLessThanOrEqual(96);
     expect(Math.min(...spacings)).toBeGreaterThanOrEqual(34);

@@ -25,6 +25,11 @@ public class PriorityWindowService {
     TEST_FIXTURE
   }
 
+  public enum ChainOpenReason {
+    STACKED_DECK_ACTION,
+    SIMPLE_DRAW_ONE_SPELL
+  }
+
   public record PriorityWindow(
       PriorityWindowType type,
       String effectKey,
@@ -41,10 +46,15 @@ public class PriorityWindowService {
       CardDefinition def,
       boolean playedDuringShowdown) {
     if (state == null || def == null || state.getChainState() != null) return Optional.empty();
-    if (!cardDataService.isStackedDeckEffect(def)) return Optional.empty();
+    Optional<ChainOpenReason> reason = chainOpenReasonForPlayedCard(def);
+    if (reason.isEmpty()) return Optional.empty();
+    String effectKey = switch (reason.get()) {
+      case STACKED_DECK_ACTION -> LiveGameState.ChainItem.EFFECT_STACKED_DECK_PICK_ONE;
+      case SIMPLE_DRAW_ONE_SPELL -> LiveGameState.ChainItem.EFFECT_DRAW_1;
+    };
     return Optional.of(new PriorityWindow(
         playedDuringShowdown ? PriorityWindowType.SHOWDOWN_ACTION : PriorityWindowType.SPELL_PLAYED,
-        LiveGameState.ChainItem.EFFECT_STACKED_DECK_PICK_ONE,
+        effectKey,
         LiveGameState.ChainItem.TYPE_SPELL,
         LiveGameState.ChainItem.VISIBILITY_PUBLIC,
         true,
@@ -52,6 +62,29 @@ public class PriorityWindowService {
         ZoneName.HAND,
         def.name(),
         playedDuringShowdown ? "SHOWDOWN_ACTION" : "MAIN_ACTION"));
+  }
+
+  public Optional<ChainOpenReason> chainOpenReasonForPlayedCard(CardDefinition def) {
+    if (def == null) return Optional.empty();
+    if (cardDataService.isStackedDeckEffect(def)) return Optional.of(ChainOpenReason.STACKED_DECK_ACTION);
+    if (isSimplePublicDrawOneSpell(def)) return Optional.of(ChainOpenReason.SIMPLE_DRAW_ONE_SPELL);
+    return Optional.empty();
+  }
+
+  public boolean shouldOpenReactionWindow(LiveGameState state, CardDefinition def, boolean playedDuringShowdown) {
+    return openingWindowForPlayedCard(state, def, playedDuringShowdown).isPresent();
+  }
+
+  private boolean isSimplePublicDrawOneSpell(CardDefinition def) {
+    if (!"Spell".equalsIgnoreCase(def.type())) return false;
+    if (cardDataService.isReactionCard(def)) return false;
+    if (cardDataService.isUnsupportedAction(def.id())) return false;
+    String text = def.rulesText() == null ? "" : def.rulesText().toLowerCase();
+    String normalized = text
+        .replace("[action]", "")
+        .replaceAll("\\s+", " ")
+        .trim();
+    return normalized.equals("draw 1") || normalized.equals("draw 1.");
   }
 
   public Optional<PriorityWindow> reactionWindowFor(CardDefinition def) {

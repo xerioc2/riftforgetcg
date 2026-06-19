@@ -14,12 +14,16 @@ import com.riftforge.model.LiveGameState;
 import com.riftforge.model.PendingChoice;
 import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
+import com.riftforge.model.RuneState;
+import com.riftforge.model.ShowdownStep;
 import com.riftforge.model.ZoneName;
 import com.riftforge.model.move.PassChainFocusMove;
 import com.riftforge.model.move.PassPhaseMove;
 import com.riftforge.model.move.PlayCardMove;
 import com.riftforge.model.move.ResolveChoiceMove;
 import com.riftforge.model.move.ResolveChainTopMove;
+import com.riftforge.model.move.DiscardRuneMove;
+import com.riftforge.model.move.TapRuneMove;
 import com.riftforge.rules.LegalAction;
 import com.riftforge.rules.LegalActionsService;
 import com.riftforge.service.CardDataService;
@@ -56,6 +60,10 @@ class GameEngineChainTest {
     when(cardDataService.isReactionCard(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
       CardDefinition def = invocation.getArgument(0);
       return def != null && def.rulesText() != null && def.rulesText().toLowerCase().contains("[reaction]");
+    });
+    when(cardDataService.isActionCard(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      return def != null && def.rulesText() != null && def.rulesText().toLowerCase().contains("[action]");
     });
     when(cardDataService.isGustReaction(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
       CardDefinition def = invocation.getArgument(0);
@@ -279,6 +287,29 @@ class GameEngineChainTest {
   }
 
   @Test
+  void runeInnateEnergyAndPowerCannotBeUsedAsAChainResponse() {
+    LiveGameState state = state(chain(false, "p1"));
+    state.setRunes(new ArrayList<>(List.of(
+        rune("rune-1", "p1", false),
+        rune("rune-2", "p1", false))));
+    int initialEnergy = player(state, "p1").getAvailableEnergy();
+
+    assertThatThrownBy(() -> engine.applyMove(state, new TapRuneMove("p1", "rune-1")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Resolve the chain before taking another action.");
+    assertThatThrownBy(() -> engine.applyMove(state, new DiscardRuneMove("p1", "rune-2")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Resolve the chain before taking another action.");
+
+    assertThat(state.getRunes()).hasSize(2);
+    assertThat(state.getRunes()).allSatisfy(rune -> assertThat(rune.isTapped()).isFalse());
+    assertThat(player(state, "p1").getAvailableEnergy()).isEqualTo(initialEnergy);
+    assertThat(state.getChainState()).isNotNull();
+    assertThat(state.getChainState().focusedPlayerId()).isEqualTo("p1");
+    assertThat(state.getChainState().readyToResolveTop()).isFalse();
+  }
+
+  @Test
   void stackedDeckOpensPublicChainInRealGameplay() {
     stubCard("stacked", "Stacked Deck", "Spell", 0, 0, 0, stackedDeckText());
     LiveGameState state = state(null);
@@ -340,7 +371,7 @@ class GameEngineChainTest {
   }
 
   @Test
-  void normalDrawSpellResolvesWithoutOpeningChainState() {
+  void supportedOrdinaryDrawSpellOpensReactionWindowAndResolvesFromChain() {
     stubCard("draw-spell", "Simple Insight", "Spell", 0, 0, 0, "Draw 1.");
     LiveGameState state = state(null);
     player(state, "p1").setDeckPool(new ArrayList<>(List.of("drawn-card")));
@@ -348,8 +379,27 @@ class GameEngineChainTest {
 
     engine.applyMove(state, play("p1", "draw-spell-1"));
 
-    assertThat(state.getChainState()).isNull();
     assertThat(state.getPendingChoice()).isNull();
+    assertThat(state.getChainState()).isNotNull();
+    assertThat(state.getChainState().sourceContext()).isEqualTo("MAIN_ACTION");
+    assertThat(state.getChainState().focusedPlayerId()).isEqualTo("p2");
+    assertThat(state.getChainState().topItem()).satisfies(item -> {
+      assertThat(item.sourceCardId()).isEqualTo("draw-spell");
+      assertThat(item.sourceCardName()).isEqualTo("Simple Insight");
+      assertThat(item.effectKey()).isEqualTo(LiveGameState.ChainItem.EFFECT_DRAW_1);
+      assertThat(item.counterable()).isTrue();
+      assertThat(item.targetableOnChain()).isTrue();
+      assertThat(item.chainItemType()).isEqualTo(LiveGameState.ChainItem.TYPE_SPELL);
+    });
+    assertThat(state.getCards()).filteredOn(card -> card.getInstanceId().equals("draw-spell-1")).singleElement()
+        .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.LIMBO));
+    assertThat(state.getCards()).noneMatch(card -> card.getCardId().equals("drawn-card"));
+
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new ResolveChainTopMove("p1"));
+
+    assertThat(state.getChainState()).isNull();
     assertThat(state.getCards()).filteredOn(card -> card.getInstanceId().equals("draw-spell-1")).singleElement()
         .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.DISCARD));
     assertThat(state.getCards()).anySatisfy(card -> {
@@ -358,7 +408,68 @@ class GameEngineChainTest {
       assertThat(card.getZone()).isEqualTo(ZoneName.HAND);
     });
     assertThat(player(state, "p1").getDeckPool()).isEmpty();
-    assertThat(state.getLog()).anySatisfy(entry -> assertThat(entry.text()).isEqualTo("Played Simple Insight"));
+    assertThat(state.getLog()).anySatisfy(entry -> assertThat(entry.text()).isEqualTo("Played Simple Insight onto the chain."));
+    assertThat(state.getLog()).anySatisfy(entry -> assertThat(entry.text()).isEqualTo("Resolved Simple Insight: drew 1."));
+  }
+
+  @Test
+  void unsupportedSpellDoesNotOpenReactionWindow() {
+    stubCard("unsupported-spell", "Unsupported Trick", "Spell", 0, 0, 0, "Draw 1.");
+    when(cardDataService.isUnsupportedAction("unsupported-spell")).thenReturn(true);
+    LiveGameState state = state(null);
+    state.getCards().add(cardInstance("unsupported-spell-1", "p1", "unsupported-spell", ZoneName.HAND));
+
+    assertThatThrownBy(() -> engine.applyMove(state, play("p1", "unsupported-spell-1")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("That card's effect is not supported yet.");
+
+    assertThat(state.getChainState()).isNull();
+    assertThat(state.getCards()).filteredOn(card -> card.getInstanceId().equals("unsupported-spell-1")).singleElement()
+        .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.HAND));
+  }
+
+  @Test
+  void supportedDrawActionChainDuringShowdownPreservesLocationAndReturnsToShowdownFocus() {
+    stubCard("draw-action", "Battlefield Insight", "Spell", 0, 0, 0, "[Action] Draw 1.");
+    LiveGameState state = state(null);
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        "p1",
+        List.of("attacker-1"),
+        new HashMap<>(),
+        ShowdownStep.ACTION_WINDOW,
+        List.of("p1", "p2"),
+        "p1",
+        0,
+        false,
+        null,
+        List.of(),
+        List.of(),
+        "bf-1"));
+    player(state, "p1").setDeckPool(new ArrayList<>(List.of("drawn-card")));
+    state.getCards().add(cardInstance("draw-action-1", "p1", "draw-action", ZoneName.HAND));
+
+    engine.applyMove(state, play("p1", "draw-action-1"));
+
+    assertThat(state.getChainState()).isNotNull();
+    assertThat(state.getChainState().sourceContext()).isEqualTo("SHOWDOWN_ACTION");
+    assertThat(state.getActiveShowdown()).isNotNull();
+    assertThat(state.getActiveShowdown().locationId()).isEqualTo("bf-1");
+    assertThat(state.getChainState().topItem().effectKey()).isEqualTo(LiveGameState.ChainItem.EFFECT_DRAW_1);
+
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new ResolveChainTopMove("p1"));
+
+    assertThat(state.getChainState()).isNull();
+    assertThat(state.getActiveShowdown()).isNotNull();
+    assertThat(state.getActiveShowdown().locationId()).isEqualTo("bf-1");
+    assertThat(state.getActiveShowdown().focusedPlayerId()).isEqualTo("p2");
+    assertThat(state.getActiveShowdown().readyToResolve()).isFalse();
+    assertThat(state.getCards()).anySatisfy(card -> {
+      assertThat(card.getOwnerId()).isEqualTo("p1");
+      assertThat(card.getCardId()).isEqualTo("drawn-card");
+      assertThat(card.getZone()).isEqualTo(ZoneName.HAND);
+    });
   }
 
   @Test
@@ -748,7 +859,7 @@ class GameEngineChainTest {
 
     assertThatThrownBy(() -> engine.applyMove(state, counter("p1", "not-so-fast-1", "item-1")))
         .isInstanceOf(IllegalMoveException.class)
-        .hasMessage("Reaction timing is not implemented yet.");
+        .hasMessage("No reaction window is active.");
 
     assertThat(state.getCards()).filteredOn(card -> card.getInstanceId().equals("not-so-fast-1")).singleElement()
         .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.HAND));
@@ -885,11 +996,12 @@ class GameEngineChainTest {
   void gustCannotBePlayedOutsideSupportedChainWindow() {
     stubCard("gust", "Gust", "Spell", 0, 0, 0, "[Reaction] Return a unit at a battlefield with 3 Might or less to its owner's hand.");
     LiveGameState state = state(null);
+    state.setActivePlayerId("p2");
     state.getCards().add(cardInstance("gust-1", "p1", "gust", com.riftforge.model.ZoneName.HAND));
 
     assertThatThrownBy(() -> engine.applyMove(state, new com.riftforge.model.move.PlayCardMove("p1", "gust-1", com.riftforge.model.ZoneName.BASE, 0, 0, "target-1")))
         .isInstanceOf(IllegalMoveException.class)
-        .hasMessage("Reaction timing is not implemented yet.");
+        .hasMessage("No reaction window is active.");
   }
 
   @Test
@@ -1061,6 +1173,69 @@ class GameEngineChainTest {
   }
 
   @Test
+  void supportedReactionCanBePlayedOnActivePlayersOwnTurnAndOpensChainBeforeResolving() {
+    stubCard("discipline", "Discipline", "Spell", 0, 0, 0, disciplineText());
+    stubCard("target", "Target Unit", "Unit", 0, 2, 3, null);
+    LiveGameState state = state(null);
+    player(state, "p1").setDeckPool(new ArrayList<>(List.of("drawn-card")));
+    CardInstance discipline = cardInstance("discipline-1", "p1", "discipline", ZoneName.HAND);
+    CardInstance target = cardInstance("target-1", "p2", "target", ZoneName.BATTLEFIELD);
+    state.getCards().addAll(List.of(discipline, target));
+
+    engine.applyMove(state, new PlayCardMove("p1", "discipline-1", ZoneName.BASE, 0, 0, "target-1"));
+
+    assertThat(discipline.getZone()).isEqualTo(ZoneName.LIMBO);
+    assertThat(target.getTemporaryPowerModifier()).isZero();
+    assertThat(state.getChainState()).isNotNull();
+    assertThat(state.getChainState().sourceContext()).isEqualTo("MAIN_REACTION");
+    assertThat(state.getChainState().focusedPlayerId()).isEqualTo("p2");
+    assertThat(state.getChainState().topItem()).satisfies(item -> {
+      assertThat(item.effectKey()).isEqualTo(LiveGameState.ChainItem.EFFECT_DISCIPLINE_BOOST_DRAW);
+      assertThat(item.targetInstanceIds()).containsExactly("target-1");
+    });
+
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new ResolveChainTopMove("p1"));
+
+    assertThat(state.getChainState()).isNull();
+    assertThat(target.getTemporaryPowerModifier()).isEqualTo(2);
+    assertThat(discipline.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(state.getCards()).anySatisfy(card -> {
+      assertThat(card.getOwnerId()).isEqualTo("p1");
+      assertThat(card.getCardId()).isEqualTo("drawn-card");
+      assertThat(card.getZone()).isEqualTo(ZoneName.HAND);
+    });
+  }
+
+  @Test
+  void unsupportedAndCounterOnlyReactionsCannotBePlayedWithoutAnActiveWindow() {
+    stubCard("unsupported-reaction", "Mystery Response", "Spell", 0, 0, 0, "[Reaction] Do a future thing.");
+    stubCard("defy", "Defy", "Spell", 0, 0, 0, defyText());
+    stubCard("target", "Target Unit", "Unit", 0, 2, 3, null);
+    LiveGameState unsupported = state(null);
+    LiveGameState counterOnly = state(null);
+    unsupported.getCards().addAll(List.of(
+        cardInstance("unsupported-1", "p1", "unsupported-reaction", ZoneName.HAND),
+        cardInstance("target-1", "p2", "target", ZoneName.BATTLEFIELD)));
+    counterOnly.getCards().add(cardInstance("defy-1", "p1", "defy", ZoneName.HAND));
+
+    assertThatThrownBy(() -> engine.applyMove(unsupported, new PlayCardMove("p1", "unsupported-1", ZoneName.BASE, 0, 0, "target-1")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("That Reaction's effect is not supported yet.");
+    assertThatThrownBy(() -> engine.applyMove(counterOnly, new PlayCardMove("p1", "defy-1", ZoneName.BASE, 0, 0, null)))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("No reaction window is active.");
+
+    assertThat(unsupported.getChainState()).isNull();
+    assertThat(counterOnly.getChainState()).isNull();
+    assertThat(unsupported.getCards()).filteredOn(card -> card.getInstanceId().equals("unsupported-1")).singleElement()
+        .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.HAND));
+    assertThat(counterOnly.getCards()).filteredOn(card -> card.getInstanceId().equals("defy-1")).singleElement()
+        .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.HAND));
+  }
+
+  @Test
   void enGardeResolvesFromChainWithLoneFriendlyBonusOnlyWhenAlone() {
     stubCard("en-garde", "En Garde", "Spell", 0, 0, 0, enGardeText());
     stubCard("target", "Target Unit", "Unit", 0, 2, 3, null);
@@ -1088,6 +1263,49 @@ class GameEngineChainTest {
     engine.applyMove(crowded, new ResolveChainTopMove("p1"));
 
     assertThat(crowdedTarget.getTemporaryPowerModifier()).isEqualTo(1);
+  }
+
+  @Test
+  void focusedShowdownParticipantCanPlaySupportedReactionAndPreserveShowdownContext() {
+    stubCard("en-garde", "En Garde", "Spell", 0, 0, 0, enGardeText());
+    stubCard("target", "Target Unit", "Unit", 0, 2, 3, null);
+    LiveGameState state = state(null);
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        "p1",
+        List.of("attacker-1"),
+        new HashMap<>(),
+        ShowdownStep.ACTION_WINDOW,
+        List.of("p1", "p2"),
+        "p1",
+        0,
+        false,
+        null,
+        List.of(),
+        List.of(),
+        "bf-1"));
+    CardInstance enGarde = cardInstance("en-garde-1", "p1", "en-garde", ZoneName.HAND);
+    CardInstance target = cardInstance("target-1", "p1", "target", ZoneName.BATTLEFIELD);
+    target.setBattlefieldLocationId("bf-1");
+    state.getCards().addAll(List.of(enGarde, target));
+
+    engine.applyMove(state, new PlayCardMove("p1", "en-garde-1", ZoneName.BASE, 0, 0, "target-1"));
+
+    assertThat(state.getChainState()).isNotNull();
+    assertThat(state.getChainState().sourceContext()).isEqualTo("SHOWDOWN_ACTION");
+    assertThat(state.getChainState().focusedPlayerId()).isEqualTo("p2");
+    assertThat(state.getActiveShowdown()).isNotNull();
+    assertThat(state.getActiveShowdown().locationId()).isEqualTo("bf-1");
+
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new ResolveChainTopMove("p1"));
+
+    assertThat(state.getChainState()).isNull();
+    assertThat(state.getActiveShowdown()).isNotNull();
+    assertThat(state.getActiveShowdown().locationId()).isEqualTo("bf-1");
+    assertThat(state.getActiveShowdown().focusedPlayerId()).isEqualTo("p2");
+    assertThat(state.getActiveShowdown().readyToResolve()).isFalse();
+    assertThat(target.getTemporaryPowerModifier()).isEqualTo(2);
   }
 
   @Test
@@ -1472,6 +1690,17 @@ class GameEngineChainTest {
     card.setCurrentHealth(card(cardId).health());
     card.setTempKeywords(new ArrayList<>());
     return card;
+  }
+
+  private RuneState rune(String instanceId, String ownerId, boolean tapped) {
+    RuneState rune = new RuneState();
+    rune.setInstanceId(instanceId);
+    rune.setCardId("calm-rune");
+    rune.setOwnerId(ownerId);
+    rune.setTapped(tapped);
+    rune.setNormalEnergy(1);
+    rune.setPremiumEnergy(2);
+    return rune;
   }
 
   private PlayerState player(LiveGameState state, String playerId) {

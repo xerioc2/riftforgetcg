@@ -174,7 +174,7 @@ class CombatResolverTest {
 
     resolver.resolve(state(attacker, defender), "p1");
 
-    assertThat(defender.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(defender.getZone()).isEqualTo(ZoneName.DISCARD);
     assertThat(attacker.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
   }
 
@@ -227,6 +227,7 @@ class CombatResolverTest {
     CardInstance defender = card("d", "defender", "p2");
     stub(attacker, 1, 3);
     stub(defender, 0, 3);
+    when(cardDataService.hasKeyword(attacker, "STUN")).thenReturn(true);
 
     resolver.resolve(state(attacker, defender), "p1");
 

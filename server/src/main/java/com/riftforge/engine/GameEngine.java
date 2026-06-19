@@ -175,22 +175,27 @@ public class GameEngine {
       return state;
     }
     if (cardDataService.isDefyCounterReaction(def)) {
+      state.setCardPlayedThisTurn(true);
       addDefyToChain(state, move, card, def);
       return state;
     }
     if (cardDataService.isNotSoFastCounterReaction(def)) {
+      state.setCardPlayedThisTurn(true);
       addNotSoFastToChain(state, move, card, def);
       return state;
     }
     if (cardDataService.isGustReaction(def)) {
+      state.setCardPlayedThisTurn(true);
       addGustToChain(state, move, card, def);
       return state;
     }
     if (cardDataService.isDisciplineReaction(def)) {
+      state.setCardPlayedThisTurn(true);
       addTargetedReactionToChain(state, move, card, def, LiveGameState.ChainItem.EFFECT_DISCIPLINE_BOOST_DRAW);
       return state;
     }
     if (cardDataService.isEnGardeReaction(def)) {
+      state.setCardPlayedThisTurn(true);
       addTargetedReactionToChain(state, move, card, def, LiveGameState.ChainItem.EFFECT_EN_GARDE_BOOST);
       return state;
     }
@@ -679,6 +684,11 @@ public class GameEngine {
       moveChainSourceToTrash(state, item);
       return LiveGameState.ChainItem.STATUS_RESOLVED;
     }
+    if (LiveGameState.ChainItem.EFFECT_DRAW_1.equals(item.effectKey())) {
+      resolveDrawOneChainItem(state, item, description);
+      moveChainSourceToTrash(state, item);
+      return LiveGameState.ChainItem.STATUS_RESOLVED;
+    }
     if (LiveGameState.ChainItem.EFFECT_DRAW_1_TEST.equals(item.effectKey())) {
       applyDraw(state, item.controllerPlayerId(), 1);
       log(state, item.controllerPlayerId(), "Resolved " + description + ": drew 1.");
@@ -743,7 +753,7 @@ public class GameEngine {
     LiveGameState.ChainState chain = state.getChainState();
     PriorityWindowService.PriorityWindow priorityWindow = priorityWindowService.reactionWindowFor(def).orElseThrow();
     List<String> relevant = priorityWindowService.relevantPlayers(state, chain);
-    int order = chain.chainItems().size() + 1;
+    int order = chain == null ? 1 : chain.chainItems().size() + 1;
     card.setZone(ZoneName.LIMBO);
     card.setTapped(false);
     card.setHasSummoningSickness(false);
@@ -764,16 +774,18 @@ public class GameEngine {
         priorityWindow.chainItemType(),
         priorityWindow.sourceZoneBeforeChain(),
         chainTargetsForBoardCard(state, move.targetInstanceId(), "target"));
-    List<LiveGameState.ChainItem> items = new ArrayList<>(chain.chainItems());
+    List<LiveGameState.ChainItem> items = new ArrayList<>(chain == null ? List.of() : chain.chainItems());
     items.add(item);
     state.setChainState(new LiveGameState.ChainState(
-        chain.chainId(),
+        chain == null ? UUID.randomUUID().toString() : chain.chainId(),
         items,
         relevant,
         priorityWindowService.nextFocusedPlayerId(relevant, move.playerId()),
         0,
         false,
-        chain.sourceContext()));
+        chain == null
+            ? state.getActiveShowdown() == null ? "MAIN_REACTION" : "SHOWDOWN_ACTION"
+            : chain.sourceContext()));
     log(state, move.playerId(), "Played " + def.name() + " onto the chain.");
   }
 
@@ -920,6 +932,15 @@ public class GameEngine {
     }
   }
 
+  private void resolveDrawOneChainItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
+    applyDraw(state, item.controllerPlayerId(), 1);
+    log(state, item.controllerPlayerId(), "Resolved " + description + ": drew 1.");
+    if ("SHOWDOWN_ACTION".equalsIgnoreCase(state.getChainState() == null ? null : state.getChainState().sourceContext())
+        && state.getActiveShowdown() != null) {
+      advanceShowdownFocusAfterAction(state, item.controllerPlayerId());
+    }
+  }
+
   private boolean resolveGustChainItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
     CardInstance target = item.targetInstanceIds().stream()
         .findFirst()
@@ -939,6 +960,7 @@ public class GameEngine {
     target.setX(0);
     target.setY(0);
     log(state, item.controllerPlayerId(), "Resolved " + description + ": returned " + targetDef.name() + " to its owner's hand.");
+    advanceShowdownFocusAfterChainAction(state, item);
     return true;
   }
 
@@ -952,6 +974,7 @@ public class GameEngine {
     applyTemporaryMight(state, chainSourceOrFallback(state, item), sourceDef, target, 2);
     applyDraw(state, item.controllerPlayerId(), 1);
     log(state, item.controllerPlayerId(), "Resolved " + description + ": gave +2 Might and drew a card.");
+    advanceShowdownFocusAfterChainAction(state, item);
     return true;
   }
 
@@ -965,7 +988,15 @@ public class GameEngine {
     CardDefinition sourceDef = cardDataService.getCard(item.sourceCardId());
     applyTemporaryMight(state, chainSourceOrFallback(state, item), sourceDef, target, boost);
     log(state, item.controllerPlayerId(), "Resolved " + description + ": gave +" + boost + " Might.");
+    advanceShowdownFocusAfterChainAction(state, item);
     return true;
+  }
+
+  private void advanceShowdownFocusAfterChainAction(LiveGameState state, LiveGameState.ChainItem item) {
+    if ("SHOWDOWN_ACTION".equalsIgnoreCase(state.getChainState() == null ? null : state.getChainState().sourceContext())
+        && state.getActiveShowdown() != null) {
+      advanceShowdownFocusAfterAction(state, item.controllerPlayerId());
+    }
   }
 
   private CardInstance firstChainBoardTarget(LiveGameState state, LiveGameState.ChainItem item) {
