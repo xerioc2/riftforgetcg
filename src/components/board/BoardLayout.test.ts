@@ -23,7 +23,8 @@ describe('BoardLayout shared battlefield row', () => {
     expect(playerBase.x + playerBase.width).toBeGreaterThanOrEqual(1600);
     expect(opponentRune.x).toBe(playerBase.x);
     expect(opponentRune.width).toBeLessThan(playerBase.width);
-    expect(opponentRune.width).toBeGreaterThanOrEqual(360);
+    expect(opponentRune.width).toBeGreaterThan(playerBase.width * 0.75);
+    expect(opponentRune.height).toBeGreaterThanOrEqual(76);
   });
 
   it('gives Base rows enough height for denser card placement', () => {
@@ -75,8 +76,30 @@ describe('BoardLayout shared battlefield row', () => {
     expect(playerRune?.ownerId).toBe('player');
     expect(opponentRune!.y + opponentRune!.height).toBeLessThanOrEqual(opponentBase!.y);
     expect(playerBase!.y + playerBase!.height).toBeLessThanOrEqual(playerRune!.y);
+    expect(opponentRune!.width).toBeGreaterThan(opponentBase!.width * 0.75);
+    expect(playerRune!.width).toBeGreaterThan(playerBase!.width * 0.75);
+    expect(opponentRune!.height).toBeGreaterThan(70);
+    expect(playerRune!.height).toBeGreaterThan(70);
     expect(opponentBase!.y + opponentBase!.height).toBeLessThanOrEqual(firstOpponentLane.y);
     expect(playerBase!.y).toBeGreaterThanOrEqual(lastPlayerLane.y + lastPlayerLane.height);
+  });
+
+  it('keeps broader rune rows readable on laptop-ish widths without overlapping player panels or lanes', () => {
+    const zones = computeLayout(1180, 640, ['player', 'opponent']);
+    const playerBase = zones.find((zone) => zone.id === 'p0-base')!;
+    const playerRune = zones.find((zone) => zone.id === 'p0-rune')!;
+    const playerChampion = zones.find((zone) => zone.id === 'p0-champion')!;
+    const playerLanes = DUEL_BATTLEFIELD_LOCATIONS.map((locationId) => battlefieldZoneForCard(zones, 'player', locationId)!);
+    const runeSlots = runeSlotPositions(playerRune, 11);
+
+    expect(playerRune.x).toBe(playerBase.x);
+    expect(playerRune.x).toBeGreaterThan(playerChampion.x + playerChampion.width);
+    expect(playerRune.width).toBeGreaterThan(playerBase.width * 0.75);
+    expect(playerRune.x + playerRune.width).toBeLessThanOrEqual(playerBase.x + playerBase.width);
+    expect(playerRune.y).toBeGreaterThanOrEqual(playerBase.y + playerBase.height);
+    expect(playerRune.y).toBeGreaterThanOrEqual(Math.max(...playerLanes.map((lane) => lane.y + lane.height)));
+    expect(runeSlots[0].x).toBeGreaterThanOrEqual(playerRune.x + 20);
+    expect(runeSlots[runeSlots.length - 1].x).toBeLessThanOrEqual(playerRune.x + playerRune.width - 19.99);
   });
 
   it('keeps identity zones compact and outside the main board lanes', () => {
@@ -146,8 +169,10 @@ describe('BoardLayout shared battlefield row', () => {
 
     expect(positions[0].x).toBeGreaterThan(runeZone.x);
     expect(positions[positions.length - 1].x).toBeLessThan(runeZone.x + runeZone.width);
-    expect(Math.max(...spacings)).toBeLessThanOrEqual(72);
-    expect(Math.min(...spacings)).toBeGreaterThanOrEqual(30);
+    expect(runeZone.width).toBeGreaterThan(1000);
+    expect(runeZone.height).toBeGreaterThanOrEqual(76);
+    expect(Math.max(...spacings)).toBeLessThanOrEqual(96);
+    expect(Math.min(...spacings)).toBeGreaterThanOrEqual(34);
   });
 
   it('clamps legacy Base positions inside the expanded Base row', () => {

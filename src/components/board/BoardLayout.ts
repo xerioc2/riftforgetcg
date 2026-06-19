@@ -81,8 +81,8 @@ export function computeLayout(width: number, height: number, playerIds: string[]
     const actionX = identityStart + identityWidth * 2 + identityGap + 8;
     const rightPadding = Math.max(12, Math.min(24, width * 0.015));
     const actionWidth = Math.max(420, width - actionX - rightPadding);
-    const runeStrip = 64;
-    const runeWidth = Math.min(actionWidth, Math.max(360, Math.min(620, actionWidth * 0.58)));
+    const runeStrip = 78;
+    const runeWidth = Math.min(actionWidth, Math.max(560, actionWidth * 0.82));
     const baseHeight = Math.max(100, Math.min(124, height * 0.145));
     const rowGap = 14;
     const utilityHeight = runeStrip + baseHeight + 12;
@@ -200,11 +200,12 @@ export function battlefieldLocationForPoint(x: number, y: number, zones: ZoneRec
     ?.battlefieldLocationId as BattlefieldLocationId | undefined;
 }
 
-export function runeSlotPositions(zone: ZoneRect, slotCount: number, minSpacing = 30, maxSpacing = 72): ZonePlacement[] {
+export function runeSlotPositions(zone: ZoneRect, slotCount: number, minSpacing = 34, maxSpacing = 96): ZonePlacement[] {
   if (slotCount <= 0) return [];
   const paddingX = 20;
   const availableWidth = Math.max(0, zone.width - paddingX * 2);
-  const spacing = slotCount === 1 ? 0 : Math.min(maxSpacing, Math.max(minSpacing, availableWidth / (slotCount - 1)));
+  const naturalSpacing = slotCount === 1 ? 0 : availableWidth / (slotCount - 1);
+  const spacing = slotCount === 1 ? 0 : naturalSpacing >= minSpacing ? Math.min(maxSpacing, naturalSpacing) : naturalSpacing;
   const usedWidth = spacing * Math.max(0, slotCount - 1);
   const startX = zone.x + paddingX + Math.max(0, (availableWidth - usedWidth) / 2);
   const y = zone.y + zone.height / 2;
