@@ -81,7 +81,8 @@ export function computeLayout(width: number, height: number, playerIds: string[]
     const actionX = identityStart + identityWidth * 2 + identityGap + 8;
     const rightPadding = Math.max(12, Math.min(24, width * 0.015));
     const actionWidth = Math.max(420, width - actionX - rightPadding);
-    const runeStrip = 56;
+    const runeStrip = 64;
+    const runeWidth = Math.min(actionWidth, Math.max(360, Math.min(620, actionWidth * 0.58)));
     const baseHeight = Math.max(100, Math.min(124, height * 0.145));
     const rowGap = 14;
     const utilityHeight = runeStrip + baseHeight + 12;
@@ -100,8 +101,8 @@ export function computeLayout(width: number, height: number, playerIds: string[]
     // Opponent setup zones stay separate. The Battlefield itself is a shared row split into two controller sides.
     zones.push(zone('p1-legend', 'Legend', identityStart, opponentIdentityY, identityWidth, identityHeight, opponent, 'legend'));
     zones.push(zone('p1-champion', 'Champion', identityStart + identityWidth + identityGap, opponentIdentityY, identityWidth, identityHeight, opponent, 'champion'));
-    zones.push(zone('p1-rune', 'Runes', actionX, 0, actionWidth, runeStrip, opponent, 'rune'));
-    zones.push(zone('p1-base', 'Base', actionX, Math.max(runeStrip + 8, topUtilityHeight - baseHeight - 6), actionWidth, baseHeight, opponent, 'base'));
+    zones.push(zone('p1-rune', 'Runes', actionX, 0, runeWidth, runeStrip, opponent, 'rune'));
+    zones.push(zone('p1-base', 'Base', actionX, runeStrip + 8, actionWidth, baseHeight, opponent, 'base'));
     activeBattlefieldLocations.forEach((locationId, index) => {
       const x = actionX + index * (locationWidth + locationGap);
       const label = battlefieldLocationLabel(locationId);
@@ -113,7 +114,7 @@ export function computeLayout(width: number, height: number, playerIds: string[]
     zones.push(zone('p0-legend', 'Legend', identityStart, localUtilityY, identityWidth, Math.min(identityHeight, height - localUtilityY), local, 'legend'));
     zones.push(zone('p0-champion', 'Champion', identityStart + identityWidth + identityGap, localUtilityY, identityWidth, Math.min(identityHeight, height - localUtilityY), local, 'champion'));
     zones.push(zone('p0-base', 'Base', actionX, localUtilityY, actionWidth, baseHeight, local, 'base'));
-    zones.push(zone('p0-rune', 'Runes', actionX, Math.max(localUtilityY + baseHeight + 8, height - runeStrip), actionWidth, runeStrip, local, 'rune'));
+    zones.push(zone('p0-rune', 'Runes', actionX, Math.min(localUtilityY + baseHeight + 8, height - runeStrip), runeWidth, runeStrip, local, 'rune'));
     return zones;
   }
 

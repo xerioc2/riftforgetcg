@@ -17,6 +17,7 @@ import com.riftforge.model.PendingChoice;
 import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
 import com.riftforge.model.RevealedHandSnapshot;
+import com.riftforge.model.RuneState;
 import com.riftforge.model.ShowdownStep;
 import com.riftforge.model.ZoneName;
 import com.riftforge.rules.LegalAction;
@@ -75,6 +76,31 @@ class GameStateProjectionServiceTest {
     LiveGameState view = projectionService.toPublicView(state, "p1");
 
     assertThat(view.getCards()).extracting(CardInstance::getCardId).containsExactly("visible-card");
+  }
+
+  @Test
+  void publicInPlayRuneIdentityProjectsWithoutRuneDeckPoolLeak() throws Exception {
+    LiveGameState state = state();
+    state.setPlayers(List.of(player("p1"), player("p2")));
+    state.getPlayers().getFirst().setRuneDeckPool(List.of("private-rune-deck-card"));
+    state.getPlayers().getFirst().setRunePoolRemaining(10);
+    state.setRunes(List.of(rune("rune-1", "calm-rune", "p1", true)));
+
+    LiveGameState view = projectionService.toPublicView(state, "p2");
+    String json = objectMapper.writeValueAsString(view);
+
+    assertThat(view.getRunes()).singleElement()
+        .satisfies(rune -> {
+          assertThat(rune.getInstanceId()).isEqualTo("rune-1");
+          assertThat(rune.getCardId()).isEqualTo("calm-rune");
+          assertThat(rune.getOwnerId()).isEqualTo("p1");
+          assertThat(rune.isTapped()).isTrue();
+          assertThat(rune.getNormalEnergy()).isEqualTo(1);
+          assertThat(rune.getPremiumEnergy()).isEqualTo(2);
+        });
+    assertThat(view.getPlayers().getFirst().getRunePoolRemaining()).isEqualTo(10);
+    assertThat(json).contains("calm-rune");
+    assertThat(json).doesNotContain("private-rune-deck-card", "runeDeckPool");
   }
 
   @Test
@@ -991,6 +1017,17 @@ class GameStateProjectionServiceTest {
     card.setZone(zone);
     card.setCurrentHealth(3);
     return card;
+  }
+
+  private RuneState rune(String instanceId, String cardId, String ownerId, boolean tapped) {
+    RuneState rune = new RuneState();
+    rune.setInstanceId(instanceId);
+    rune.setCardId(cardId);
+    rune.setOwnerId(ownerId);
+    rune.setTapped(tapped);
+    rune.setNormalEnergy(1);
+    rune.setPremiumEnergy(2);
+    return rune;
   }
 
   private LiveGameState.LogEntry log(String id, String userId, String text) {

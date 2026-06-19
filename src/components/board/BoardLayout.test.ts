@@ -21,7 +21,9 @@ describe('BoardLayout shared battlefield row', () => {
 
     expect(playerBase.x).toBeLessThanOrEqual(400);
     expect(playerBase.x + playerBase.width).toBeGreaterThanOrEqual(1600);
-    expect(opponentRune.width).toBe(playerBase.width);
+    expect(opponentRune.x).toBe(playerBase.x);
+    expect(opponentRune.width).toBeLessThan(playerBase.width);
+    expect(opponentRune.width).toBeGreaterThanOrEqual(360);
   });
 
   it('gives Base rows enough height for denser card placement', () => {
@@ -71,6 +73,8 @@ describe('BoardLayout shared battlefield row', () => {
     expect(playerBase?.ownerId).toBe('player');
     expect(opponentRune?.ownerId).toBe('opponent');
     expect(playerRune?.ownerId).toBe('player');
+    expect(opponentRune!.y + opponentRune!.height).toBeLessThanOrEqual(opponentBase!.y);
+    expect(playerBase!.y + playerBase!.height).toBeLessThanOrEqual(playerRune!.y);
     expect(opponentBase!.y + opponentBase!.height).toBeLessThanOrEqual(firstOpponentLane.y);
     expect(playerBase!.y).toBeGreaterThanOrEqual(lastPlayerLane.y + lastPlayerLane.height);
   });

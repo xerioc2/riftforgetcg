@@ -7,13 +7,11 @@ not official rules order. It is intentionally conservative. "Supported" means
 implemented and tested in this repository. "Partial" means the common playtest
 path exists, but official edge cases or card-specific scripts are missing.
 
-RiftForge's alpha playtest target intentionally uses one shared Battlefield
-location. The deferred official-style work is the multi-location Battlefield
-model for 1v1 games: multiple shared Battlefield locations/objectives, each
-with each player's units, control, hidden slots, "here" targeting, scoring, and
-combat/showdown state. That is separate from 3+ player multiplayer support.
-It remains post-alpha because it touches movement, target selection, showdowns,
-control, scoring, bot decisions, and the board UI all at once.
+RiftForge's alpha playtest target now uses a narrow active-lane Battlefield
+foundation for 1v1 games. The remaining deferred official-style work is the full
+multi-location Battlefield model: Battlefield effects, hidden slots, richer
+"here" targeting, scoring nuance, bot strategy, and card-specific location
+rules. That is separate from 3+ player multiplayer support.
 
 Sources checked:
 - `docs/RULES_COVERAGE.md`
@@ -48,6 +46,7 @@ Sources checked:
 | Item | Status | Why it matters | Likely files | Suggested first test |
 | --- | --- | --- | --- | --- |
 | Domain/power payment validation | Partial | Constructed decks use domain runes and many card costs include more than generic energy. Current payment is not complete enough for competitive play. | `RulesValidator`, `GameEngine`, `CardDataService`, `MoveRequest`, payment UI | A card requiring Order power cannot be played using only Body runes. |
+| Public in-play Rune display/debugging | Partial | Channeled Rune card identity is now retained on public `RuneState`, projected safely, rendered in the board resource row, and included in copied debug info. Private rune deck contents remain hidden. Full official rune payment and recycling nuance remains incomplete. | `RuneState`, `GameEngine`, `GameStateProjectionService`, `GameBoard.tsx`, `debugInfo.ts` | A channeled Calm Rune renders as that card for both players while `runeDeckPool` stays absent from projection/debug info. |
 | Atomic selected-rune payment | Partial | Tapping/discarding runes separately is playable, but true card payment should validate and consume selected runes atomically with `PLAY_CARD`. | `PlayCardMove`, `RulesValidator`, `GameEngine`, `GameBoard.tsx` | Failed play leaves all selected runes unchanged; successful play exhausts/recycles exactly selected runes. |
 | Cost modifiers and alternate/additional costs | Partial | Hidden now uses a narrow "tap one ready own rune" foundation cost, and Ambush cards with unsupported additional costs are explicitly blocked. Later Hidden play, Spectral Matron, counterspells, equipment, and Stalking Wolf's sacrifice cost still need full extra/alternate cost support. | `RulesValidator`, `GameEngine`, card effect handlers | Stalking Wolf requires its additional kill cost and rejects if no legal sacrifice exists. |
 
@@ -64,7 +63,7 @@ Sources checked:
 | Item | Status | Why it matters | Likely files | Suggested first test |
 | --- | --- | --- | --- | --- |
 | Movement permissions by card/effect | Partial | Generic movement is sandbox-only, but effect-driven movement and location swaps are not card-accurate even within the active-lane alpha model. | `RulesValidator`, `GameEngine`, effect handlers | Tideturner swaps only with a friendly unit at another legal location and preserves both legal zones. |
-| Single-battlefield contested state | Partial | Showdown, control, conquer, and hold are now keyed by the active Battlefield location id while the visible alpha board still uses the default location. | `GameEngine`, `LiveGameState`, `CombatResolver` | The default alpha battlefield becomes contested when both players have units there and returns to controlled after showdown cleanup. |
+| Active-lane contested state | Partial | Showdown, control, conquer, and hold are keyed by active Battlefield location ids for the current 1v1 lane foundation. Battlefield card effects, hidden slots, and official location nuance remain deferred. | `GameEngine`, `LiveGameState`, `CombatResolver` | A lane becomes contested only when both players have units at that same location and returns to controlled after showdown cleanup. |
 
 ### Showdown and Combat
 

@@ -72,6 +72,16 @@ describe('buildDebugInfo', () => {
           y: 0,
         },
       ],
+      runes: [
+        {
+          instanceId: 'rune-1',
+          cardId: 'calm-rune',
+          ownerId: 'p1',
+          tapped: true,
+          normalEnergy: 1,
+          premiumEnergy: 1,
+        },
+      ],
       players: [
         { userId: 'p1', name: 'Human', score: 0, selectedBattlefieldId: 'sunken-temple' },
         { userId: 'bot-player-riftbot', name: 'RiftBot', score: 0, selectedBattlefieldId: 'training-grounds' },
@@ -118,6 +128,16 @@ describe('buildDebugInfo', () => {
       { playerId: 'p1', selectedBattlefieldId: 'sunken-temple' },
       { playerId: 'bot-player-riftbot', selectedBattlefieldId: 'training-grounds' },
     ]);
+    expect(debug.publicRunes).toEqual([
+      {
+        instanceId: 'rune-1',
+        cardId: 'calm-rune',
+        ownerId: 'p1',
+        tapped: true,
+        normalEnergy: 1,
+        premiumEnergy: 1,
+      },
+    ]);
     expect(debug.publicCards).toEqual([
       {
         instanceId: 'public-unit',
@@ -148,5 +168,6 @@ describe('buildDebugInfo', () => {
     expect(JSON.stringify(debug)).not.toContain('private-card');
     expect(JSON.stringify(debug)).not.toContain('secret-card');
     expect(JSON.stringify(debug)).not.toContain('private-hand-card');
+    expect(JSON.stringify(debug)).not.toContain('runeDeckPool');
   });
 });

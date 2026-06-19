@@ -14,6 +14,7 @@ import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
 import com.riftforge.model.RuneState;
 import com.riftforge.model.ZoneName;
+import com.riftforge.model.move.PassPhaseMove;
 import com.riftforge.model.move.PlayCardMove;
 import com.riftforge.service.CardDataService;
 import java.util.ArrayList;
@@ -120,6 +121,29 @@ class GameEnginePaymentTest {
     assertThatThrownBy(() -> engine.applyMove(state, play("unit", List.of("rune-1"), List.of())))
         .isInstanceOf(IllegalMoveException.class)
         .hasMessage("You cannot pay with an opponent's rune.");
+  }
+
+  @Test
+  void channelingCreatesInPlayRunesWithPublicCardIds() {
+    LiveGameState state = state(card("placeholder", "p1", ZoneName.HAND));
+    state.setCurrentPhase(Phase.CHANNEL);
+    state.setFirstPlayerId("p1");
+    state.setTurnNumber(1);
+    player(state).setRunePoolRemaining(2);
+    player(state).setRuneDeckPool(new ArrayList<>(List.of("calm-rune", "chaos-rune")));
+
+    engine.applyMove(state, new PassPhaseMove("p1"));
+
+    assertThat(state.getCurrentPhase()).isEqualTo(Phase.DRAW);
+    assertThat(state.getRunes()).extracting(RuneState::getCardId).containsExactly("calm-rune", "chaos-rune");
+    assertThat(state.getRunes()).allSatisfy(rune -> {
+      assertThat(rune.getOwnerId()).isEqualTo("p1");
+      assertThat(rune.isTapped()).isFalse();
+      assertThat(rune.getNormalEnergy()).isEqualTo(1);
+      assertThat(rune.getPremiumEnergy()).isEqualTo(2);
+    });
+    assertThat(player(state).getRuneDeckPool()).isEmpty();
+    assertThat(player(state).getRunePoolRemaining()).isZero();
   }
 
   private LiveGameState state(CardInstance card, RuneState... runes) {

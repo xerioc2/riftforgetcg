@@ -232,11 +232,12 @@ Status: Partial
 Current implementation notes:
 - Channel grants runes from a remaining rune pool.
 - Rune deck count starts from submitted runes for constructed setup.
+- Channeled in-play runes retain their public card IDs in `RuneState`, project to all viewers, and render as card-backed resource plaques in the board UI when card data/art is available.
+- Private rune deck contents remain hidden from projections and copied debug info; only public in-play rune summaries are included for playtest debugging.
 - Tapping and discarding runes can add energy.
 - Energy is cleared for all players on turn transition.
 
 Known gaps:
-- Domain-specific power costs are not enforced.
 - Rune recycling/exhaustion is simplified.
 - Cost reductions, same-rune payment for energy and power, and complex payment components are incomplete.
 

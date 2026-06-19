@@ -9,9 +9,10 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Select a deck in the lobby, review support warnings, then Ready and Start.
 - Start a human vs RiftBot or human vs human game.
 - Choose one Battlefield before mulligan and confirm the opponent's unchosen Battlefield pool is not visible.
-- After both players choose, confirm selected Battlefield plaques appear in the three-lane Battlefield area, can be hovered/read like cards, and cannot be targeted, moved, tapped, or fought.
+- After both players choose, confirm selected Battlefield plaques appear in the active Battlefield lane area, can be hovered/read like cards, and cannot be targeted, moved, tapped, or fought.
 - Remember the current 1v1 alpha has two active shared Battlefield lanes. Deck construction still requires three Battlefield cards, but that does not mean three active lanes are used in Duel/bot games. Battlefield effects, hidden slots, official "here" targeting, and full location rules remain deferred.
 - Keep your opening hand or mulligan at least one card.
+- During Channel and payment, confirm in-play Rune cards show their card art/name when known, can be hovered like cards, and still tap or recycle with the existing click/right-click controls.
 - Play a Unit and confirm it stays visible in Base.
 - Confirm your Legend starts in the Legend zone and your chosen Champion starts in the Champion zone.
 - Confirm the Legend cannot be dragged to the battlefield, and the chosen Champion only deploys after you have enough available energy.
@@ -60,6 +61,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Create a human vs RiftBot room.
 - Load or select a constructed deck, then ready and start.
 - Choose one Battlefield from the three-card setup prompt and confirm it appears on the board after both players choose.
+- Confirm in-play Rune cards display as card-backed resource plaques when they are channeled; hidden rune deck contents should not be visible.
 - Move one Unit into each visible active lane across a few turns and confirm the card lands in the lane you dropped it on.
 - Move opposing Units into the same lane and confirm a same-lane showdown starts with that lane highlighted.
 - Move opposing Units into different lanes and confirm no cross-lane showdown starts.
@@ -101,7 +103,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - If Deathknell/token cards appear, confirm the log and board state update clearly.
 - Check your hand remains visible to you and opponent hands remain masked.
 - Trigger one invalid action and confirm the visible error is understandable.
-- Use Copy debug info if stuck and confirm it omits hidden hand/deck contents.
+- Use Copy debug info if stuck and confirm it omits hidden hand/deck/rune deck contents while including public in-play rune summaries.
 - When filing a GitHub issue, include build version, room code, phase, active player, last error, expected behavior, actual behavior, whether supported-cards-only was enabled, and screenshots/logs if useful.
 
 ## Human vs RiftBot
@@ -111,6 +113,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Ready up, start the game, and confirm the Battlefield selection prompt appears before mulligan.
 - Choose one Battlefield, then confirm mulligan appears after both players have selected.
 - Confirm the selected Battlefield displays appear in the visible Battlefield lanes after setup, show hover previews, and remain non-interactive location displays.
+- Confirm the Rune row shows actual in-play Rune cards when known, generic fallback runes when art/card data is missing, and pending tapped/recycled selections remain visually distinct.
 - Move Units to `Battlefield 1` and `Battlefield 2` and confirm each card stays in the lane chosen by the drag/drop. In 1v1, confirm no `Battlefield 3` placeholder is shown.
 - During Main Phase with no active showdown, drag a ready Unit/Champion from `Battlefield 1` to `Battlefield 2` and confirm it moves lanes instead of snapping back.
 - Try dragging a Unit/Champion to the lane it already occupies and confirm it does not create a new move/showdown.
@@ -179,4 +182,4 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 
 - Trigger one invalid action, such as playing during a non-Main phase, and confirm a visible warning appears.
 - Disconnect/reconnect the local server if testing locally and confirm the reconnect/offline message is understandable.
-- Use the Copy debug info button after an error and confirm it does not include hidden hand or deck contents.
+- Use the Copy debug info button after an error and confirm it does not include hidden hand, deck, or rune deck contents.

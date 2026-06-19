@@ -33,6 +33,14 @@ export type DebugInfoPayload = {
     playerId: string;
     selectedBattlefieldId: string | null;
   }>;
+  publicRunes: Array<{
+    instanceId: string;
+    cardId: string | null;
+    ownerId: string;
+    tapped: boolean;
+    normalEnergy: number;
+    premiumEnergy: number;
+  }>;
   publicCards: Array<{
     instanceId: string;
     cardId: string | null;
@@ -151,6 +159,14 @@ export function buildDebugInfo({
     selectedBattlefields: state?.players.map((statePlayer) => ({
       playerId: statePlayer.userId,
       selectedBattlefieldId: statePlayer.selectedBattlefieldId ?? null,
+    })) ?? [],
+    publicRunes: state?.runes?.map((rune) => ({
+      instanceId: rune.instanceId,
+      cardId: rune.cardId ?? null,
+      ownerId: rune.ownerId,
+      tapped: rune.tapped,
+      normalEnergy: rune.normalEnergy,
+      premiumEnergy: rune.premiumEnergy,
     })) ?? [],
     publicCards: state?.cards
       .filter(isPublicDebugCard)

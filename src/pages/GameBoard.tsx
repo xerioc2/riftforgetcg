@@ -1476,13 +1476,17 @@ export function GameBoard() {
             {(state.runes ?? []).map((rune) => {
               const ownerRunes = (state.runes ?? []).filter((candidate) => candidate.ownerId === rune.ownerId);
               const position = runePositions.get(rune.ownerId)?.[ownerRunes.indexOf(rune)];
+              const runeCard = cardsById.get(rune.cardId);
               if (!position) return null;
               return (
                 <RuneSprite
                   key={rune.instanceId}
                   instanceId={rune.instanceId}
+                  cardId={rune.cardId}
+                  cardDef={runeCard}
                   tapped={rune.tapped}
                   normalEnergy={rune.normalEnergy}
+                  premiumEnergy={rune.premiumEnergy}
                   isOwner={rune.ownerId === player.id}
                   pending={pendingRuneTaps.has(rune.instanceId)}
                   x={position.x}
@@ -1492,6 +1496,7 @@ export function GameBoard() {
                     if (canTakeAction(state, 'DISCARD_RUNE')) publishMove({ type: 'DISCARD_RUNE', playerId: player.id, runeInstanceId: id });
                     else notifyWarning('Action unavailable', 'Discarding a rune is only legal during supported payment windows.');
                   }}
+                  onHover={handleCardHover}
                 />
               );
             })}
