@@ -1,0 +1,647 @@
+{
+  "sourceFilename": "azir_wins_lille_regional_qualifier.txt",
+  "parsedAt": "2026-06-19",
+  "entries": [
+    {
+      "sourceLine": 1,
+      "quantity": 1,
+      "originalName": "Azir - Emperor of the Sands",
+      "sourceCardId": "SFD-197",
+      "sourceSetCode": "SFD",
+      "section": "Legend",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bdad308c64675ca8838",
+          "name": "Azir - Emperor of the Sands",
+          "type": "Legend",
+          "set": "Spiritforged",
+          "rulesText": "Your Sand Soldiers have [Weaponmaster].:rb_energy_1:, :rb_exhaust:: Play a 2 :rb_might: Sand Soldier unit token to your base. Use only if you've played an Equipment this turn."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Legend text"
+    },
+    {
+      "sourceLine": 2,
+      "quantity": 1,
+      "originalName": "Trifarian War Camp",
+      "sourceCardId": "OGN-294",
+      "sourceSetCode": "OGN",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd6d308c64675ca87f3",
+          "name": "Trifarian War Camp",
+          "type": "Battlefield",
+          "set": "Origins",
+          "rulesText": "Units here have +1 :rb_might:. (This includes attackers.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 3,
+      "quantity": 1,
+      "originalName": "Seat of Power",
+      "sourceCardId": "SFD-217",
+      "sourceSetCode": "SFD",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be8d308c64675ca8939",
+          "name": "Seat of Power",
+          "type": "Battlefield",
+          "set": "Spiritforged",
+          "rulesText": "When you conquer here, draw 1 for each other battlefield you or allies control."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 4,
+      "quantity": 1,
+      "originalName": "Hall of Legends",
+      "sourceCardId": "SFD-210",
+      "sourceSetCode": "SFD",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be7d308c64675ca8935",
+          "name": "Hall of Legends",
+          "type": "Battlefield",
+          "set": "Spiritforged",
+          "rulesText": "When you conquer here, you may pay :rb_energy_1: to ready your legend."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 5,
+      "quantity": 3,
+      "originalName": "Arise!",
+      "sourceCardId": "SFD-198",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be5d308c64675ca8901",
+          "name": "Arise!",
+          "type": "Spell",
+          "set": "Spiritforged",
+          "rulesText": "Play a 2 :rb_might: Sand Soldier unit token for each Equipment you control. Then do this: Ready up to two of them."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Token creation"
+    },
+    {
+      "sourceLine": 6,
+      "quantity": 1,
+      "originalName": "Azir - Sovereign",
+      "sourceCardId": "SFD-177",
+      "sourceSetCode": "SFD",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be1d308c64675ca88b4",
+          "name": "Azir - Sovereign",
+          "type": "Champion",
+          "set": "Spiritforged",
+          "rulesText": "[Accelerate] (You may pay :rb_energy_1::rb_rune_order: as an additional cost to have me enter ready.)When I attack, you may move any number of your token units to this battlefield."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 7,
+      "quantity": 2,
+      "originalName": "Sacred Shears",
+      "sourceCardId": "SFD-172",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be1d308c64675ca88bf",
+          "name": "Sacred Shears",
+          "type": "Gear",
+          "set": "Spiritforged",
+          "rulesText": "[Equip] :rb_rune_order: (:rb_rune_order:: Attach this to a unit you control.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 8,
+      "quantity": 3,
+      "originalName": "Deathgrip",
+      "sourceCardId": "SFD-163",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be7d308c64675ca892d",
+          "name": "Deathgrip",
+          "type": "Spell",
+          "set": "Spiritforged",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Kill a friendly unit. If you do, give +:rb_might: equal to its Might to another friendly unit this turn.Draw 1."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 9,
+      "quantity": 3,
+      "originalName": "B.F. Sword",
+      "sourceCardId": "SFD-161",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bddd308c64675ca886f",
+          "name": "B.F. Sword",
+          "type": "Gear",
+          "set": "Spiritforged",
+          "rulesText": "[Equip] :rb_rune_order: (:rb_rune_order:: Attach this to a unit you control.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 10,
+      "quantity": 3,
+      "originalName": "Guards!",
+      "sourceCardId": "SFD-154",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be6d308c64675ca891f",
+          "name": "Guards!",
+          "type": "Spell",
+          "set": "Spiritforged",
+          "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)Play a 2 :rb_might: Sand Soldier unit token. You may pay :rb_rune_order: to ready it."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "sourceLine": 11,
+      "quantity": 3,
+      "originalName": "Eye of the Herald",
+      "sourceCardId": "SFD-153",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be6d308c64675ca891e",
+          "name": "Eye of the Herald",
+          "type": "Gear",
+          "set": "Spiritforged",
+          "rulesText": "[Equip] :rb_rune_order: (:rb_rune_order:: Attach this to a unit you control.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 12,
+      "quantity": 1,
+      "originalName": "Guardian Angel",
+      "sourceCardId": "SFD-051",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bdad308c64675ca8833",
+          "name": "Guardian Angel",
+          "type": "Gear",
+          "set": "Spiritforged",
+          "rulesText": "[Equip] :rb_rune_calm: (:rb_rune_calm:: Attach this to a unit you control.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha Equip lifecycle and printed Calm equip payment are implemented and tested. Full official Equip timing and replacement/reattachment edge cases remain deferred.",
+        "blocked": false
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 13,
+      "quantity": 3,
+      "originalName": "Brutalizer",
+      "sourceCardId": "SFD-042",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bdfd308c64675ca889b",
+          "name": "Brutalizer",
+          "type": "Gear",
+          "set": "Spiritforged",
+          "rulesText": "[Equip] :rb_rune_calm: (:rb_rune_calm:: Attach this to a unit you control.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 14,
+      "quantity": 3,
+      "originalName": "Doran's Shield",
+      "sourceCardId": "SFD-033",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bdad308c64675ca8835",
+          "name": "Doran's Shield",
+          "type": "Gear",
+          "set": "Spiritforged",
+          "rulesText": "[Equip] :rb_rune_calm: (:rb_rune_calm:: Attach this to a unit you control.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 15,
+      "quantity": 3,
+      "originalName": "Desert's Call",
+      "sourceCardId": "SFD-031",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be5d308c64675ca890f",
+          "name": "Desert's Call",
+          "type": "Spell",
+          "set": "Spiritforged",
+          "rulesText": "[Repeat] :rb_energy_2: (You may pay the additional cost to repeat this spell's effect.)Play a 2 :rb_might: Sand Soldier unit token."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Token creation"
+    },
+    {
+      "sourceLine": 16,
+      "quantity": 6,
+      "originalName": "Calm Rune",
+      "sourceCardId": "OGN-042",
+      "sourceSetCode": "OGN",
+      "section": "Rune Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc9d308c64675ca86e4",
+          "name": "Calm Rune",
+          "type": "Rune",
+          "set": "Origins",
+          "rulesText": null
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "bucket": "Rune/payment"
+    },
+    {
+      "sourceLine": 17,
+      "quantity": 1,
+      "originalName": "Salvage",
+      "sourceCardId": "OGN-224",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd3d308c64675ca87ad",
+          "name": "Salvage",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Action] (Play on your turn or in showdowns.)You may kill up to one gear. Draw 1."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Draw / reveal / deck selection"
+    },
+    {
+      "sourceLine": 18,
+      "quantity": 1,
+      "originalName": "Facebreaker",
+      "sourceCardId": "OGN-220",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd3d308c64675ca87a9",
+          "name": "Facebreaker",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)[Action] (Play on your turn or in showdowns.)Stun a friendly unit and an enemy unit at the same battlefield. (They don't deal combat damage this turn.)"
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "sourceLine": 19,
+      "quantity": 6,
+      "originalName": "Order Rune",
+      "sourceCardId": "OGN-214",
+      "sourceSetCode": "OGN",
+      "section": "Rune Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd2d308c64675ca87a2",
+          "name": "Order Rune",
+          "type": "Rune",
+          "set": "Origins",
+          "rulesText": null
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "bucket": "Rune/payment"
+    },
+    {
+      "sourceLine": 20,
+      "quantity": 3,
+      "originalName": "Hidden Blade",
+      "sourceCardId": "OGN-213",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd2d308c64675ca87a1",
+          "name": "Hidden Blade",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)[Action] (Play on your turn or in showdowns.)Kill a unit at a battlefield. Its controller draws 2."
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "sourceLine": 21,
+      "quantity": 3,
+      "originalName": "Discipline",
+      "sourceCardId": "OGN-058",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc9d308c64675ca86f5",
+          "name": "Discipline",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Give a unit +2 :rb_might: this turn. Draw 1."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists for giving a public battlefield Unit/Champion +2 Might this turn and drawing 1. Full official any-time Reaction timing remains incomplete.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 22,
+      "quantity": 2,
+      "originalName": "En Garde",
+      "sourceCardId": "OGN-046",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc9d308c64675ca86e9",
+          "name": "En Garde",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Give a friendly unit +1 :rb_might: this turn, then an additional +1 :rb_might: this turn if it is the only unit you control there."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists for giving a friendly battlefield Unit/Champion +1 Might, or +2 if it is your only unit there. Full official any-time Reaction timing remains incomplete.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 23,
+      "quantity": 2,
+      "originalName": "Defy",
+      "sourceCardId": "OGN-045",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc9d308c64675ca86e8",
+          "name": "Defy",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Counter a spell that costs no more than :rb_energy_4: and no more than :rb_rune_rainbow:."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: Defy can counter supported public pending spell chain items that cost no more than 4 energy and no more than 1 premium rune during the current alpha chain window. Full official Reaction timing, broad spell/ability targets, and countering counters remain deferred.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    }
+  ],
+  "malformedLines": [],
+  "validation": {
+    "totalCards": 56,
+    "legendCount": 1,
+    "championCandidateCount": 1,
+    "inferredMainDeckCount": 39,
+    "runeCount": 12,
+    "battlefieldCount": 3,
+    "validConstructedShape": true,
+    "issues": []
+  },
+  "supportSummary": {
+    "uniqueCards": 23,
+    "counts": {
+      "SUPPORTED": 2,
+      "PARTIAL": 19,
+      "UNSUPPORTED": 2,
+      "BANNED": 0,
+      "NOT_AUDITED": 0
+    },
+    "canUseInEnforced": false,
+    "unresolvedCards": [],
+    "topBlockers": [
+      {
+        "cardName": "Facebreaker",
+        "sourceCardId": "OGN-220",
+        "status": "UNSUPPORTED",
+        "bucket": "Hidden / facedown",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Hidden Blade",
+        "sourceCardId": "OGN-213",
+        "status": "UNSUPPORTED",
+        "bucket": "Hidden / facedown",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Azir - Emperor of the Sands",
+        "sourceCardId": "SFD-197",
+        "status": "PARTIAL",
+        "bucket": "Legend text",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      },
+      {
+        "cardName": "Trifarian War Camp",
+        "sourceCardId": "OGN-294",
+        "status": "PARTIAL",
+        "bucket": "Battlefield effect",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      },
+      {
+        "cardName": "Seat of Power",
+        "sourceCardId": "SFD-217",
+        "status": "PARTIAL",
+        "bucket": "Battlefield effect",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      }
+    ]
+  },
+  "archetype": "Azir, Emperor of the Sands",
+  "key": "azir",
+  "eventResult": "azir wins lille regional qualifier",
+  "priority": "Later raw-meta audit",
+  "rawSourceFile": "decks/meta/raw/azir_wins_lille_regional_qualifier.txt",
+  "normalizedFile": "decks/meta/normalized/azir_wins_lille_regional_qualifier.json"
+}

@@ -1,0 +1,748 @@
+{
+  "sourceFilename": "vex_top_8_at_s3_zhongshan_city_challenge.txt",
+  "parsedAt": "2026-06-19",
+  "entries": [
+    {
+      "sourceLine": 1,
+      "quantity": 1,
+      "originalName": "Vex - Gloomist",
+      "sourceCardId": "UNL-193",
+      "sourceSetCode": "UNL",
+      "section": "Legend",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bead308c64675ca8963",
+          "name": "Vex - Gloomist",
+          "type": "Legend",
+          "set": "Unleashed",
+          "rulesText": "When you or an ally hold, you may exhaust me to draw 1."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Legend text"
+    },
+    {
+      "sourceLine": 2,
+      "quantity": 2,
+      "originalName": "Charm",
+      "sourceCardId": "OGN-043",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc9d308c64675ca86e6",
+          "name": "Charm",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "Move an enemy unit."
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Movement / location"
+    },
+    {
+      "sourceLine": 3,
+      "quantity": 1,
+      "originalName": "Vex - Apathetic",
+      "sourceCardId": "UNL-150",
+      "sourceSetCode": "UNL",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69c5be6abf82ff7cb69f4299",
+          "name": "Vex - Apathetic",
+          "type": "Champion",
+          "set": "Unleashed",
+          "rulesText": "[Deflect] (Opponents must pay :rb_rune_rainbow: to choose me with a spell or ability.)When an opponent plays a unit while I'm at a battlefield, [Stun] it. They can't move it this turn. (It doesn't deal combat damage this turn.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 4,
+      "quantity": 3,
+      "originalName": "Evelynn - Entrancing",
+      "sourceCardId": "UNL-141",
+      "sourceSetCode": "UNL",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69c4407e9288b1e85d94dea8",
+          "name": "Evelynn - Entrancing",
+          "type": "Champion",
+          "set": "Unleashed",
+          "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)[Backline] (I must be assigned combat damage last.)When you play me from face down on your turn, you may move an enemy unit at a different location to my battlefield."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 5,
+      "quantity": 2,
+      "originalName": "Existential Dread",
+      "sourceCardId": "UNL-134",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bff35658d0fbca04e93721",
+          "name": "Existential Dread",
+          "type": "Spell",
+          "set": "Unleashed",
+          "rulesText": "[Action] (Play on your turn or in showdowns.)[Repeat] :rb_energy_2: (You may pay the additional cost to repeat this spell's effect.)[Stun] an attacking enemy unit. If it's already stunned, return it to its owner's hand instead. (A stunned unit doesn't deal combat damage this turn.)"
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Bounce / return"
+    },
+    {
+      "sourceLine": 6,
+      "quantity": 1,
+      "originalName": "Blast Cone",
+      "sourceCardId": "UNL-133",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69c4407c9288b1e85d94de8b",
+          "name": "Blast Cone",
+          "type": "Gear",
+          "set": "Unleashed",
+          "rulesText": "When you play this, you may move an enemy unit.When you move an enemy unit, you may exhaust this to [Stun] it. (It doesn't deal combat damage this turn.)"
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 7,
+      "quantity": 1,
+      "originalName": "Back Off",
+      "sourceCardId": "UNL-042",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bd162140ff39fe1396df89",
+          "name": "Back Off",
+          "type": "Spell",
+          "set": "Unleashed",
+          "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)[Action] (Play on your turn or in showdowns.)[Stun] a unit. (It doesn't deal combat damage this turn.)If you played this from your hand, draw 1."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "sourceLine": 8,
+      "quantity": 2,
+      "originalName": "Allay - Eager Admirer",
+      "sourceCardId": "UNL-041",
+      "sourceSetCode": "UNL",
+      "section": "Unresolved",
+      "resolved": {
+        "status": "UNRESOLVED",
+        "reason": "No local RiftForge card matched Allay - Eager Admirer in Unleashed."
+      },
+      "support": {
+        "status": "NOT_AUDITED",
+        "reason": "No local RiftForge card matched Allay - Eager Admirer in Unleashed.",
+        "blocked": true
+      },
+      "bucket": "Unresolved / missing card data"
+    },
+    {
+      "sourceLine": 9,
+      "quantity": 2,
+      "originalName": "Mutated Mouser",
+      "sourceCardId": "UNL-036",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be9d308c64675ca8953",
+          "name": "Mutated Mouser",
+          "type": "Unit",
+          "set": "Unleashed",
+          "rulesText": "[Shield 2] (+2 :rb_might: while I'm a defender.)[Tank] (I must be assigned combat damage first.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Damage / destroy"
+    },
+    {
+      "sourceLine": 10,
+      "quantity": 1,
+      "originalName": "The Papertree",
+      "sourceCardId": "SFD-219",
+      "sourceSetCode": "SFD",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be8d308c64675ca893b",
+          "name": "The Papertree",
+          "type": "Battlefield",
+          "set": "Spiritforged",
+          "rulesText": "When you hold here, each player channels 1 rune exhausted."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 11,
+      "quantity": 2,
+      "originalName": "Draven - Audacious",
+      "sourceCardId": "SFD-148",
+      "sourceSetCode": "SFD",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bded308c64675ca887c",
+          "name": "Draven - Audacious",
+          "type": "Champion",
+          "set": "Spiritforged",
+          "rulesText": "[Deflect] (Opponents must pay :rb_rune_rainbow: to choose me with a spell or ability.)The first time I win a combat each turn, you score 1 point.When I die in combat, choose an opponent. They score 1 point."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 12,
+      "quantity": 1,
+      "originalName": "Switcheroo",
+      "sourceCardId": "SFD-145",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bded308c64675ca887b",
+          "name": "Switcheroo",
+          "type": "Spell",
+          "set": "Spiritforged",
+          "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)[Action] (Play on your turn or in showdowns.)Swap the Might of two units at the same battlefield this turn."
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "sourceLine": 13,
+      "quantity": 2,
+      "originalName": "Edge of Night",
+      "sourceCardId": "SFD-139",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be3d308c64675ca88dd",
+          "name": "Edge of Night",
+          "type": "Gear",
+          "set": "Spiritforged",
+          "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)When you play this from face down, attach it to a unit you control (here).[Equip] :rb_rune_chaos: (:rb_rune_chaos:: Attach this to a unit you control.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 14,
+      "quantity": 3,
+      "originalName": "Overzealous Fan",
+      "sourceCardId": "SFD-128",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bdad308c64675ca883b",
+          "name": "Overzealous Fan",
+          "type": "Unit",
+          "set": "Spiritforged",
+          "rulesText": "When I defend, you may kill me to move an attacking unit to its base."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Movement / location"
+    },
+    {
+      "sourceLine": 15,
+      "quantity": 1,
+      "originalName": "Janna - Savior",
+      "sourceCardId": "SFD-053",
+      "sourceSetCode": "SFD",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be2d308c64675ca88d4",
+          "name": "Janna - Savior",
+          "type": "Champion",
+          "set": "Spiritforged",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve, including to a battlefield you control.)When you play me, heal your units here, then move up to one enemy unit from here to its base."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 16,
+      "quantity": 1,
+      "originalName": "Not So Fast",
+      "sourceCardId": "SFD-045",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bdfd308c64675ca8892",
+          "name": "Not So Fast",
+          "type": "Spell",
+          "set": "Spiritforged",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Counter an enemy spell or ability that chooses a friendly unit or gear."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: Not So Fast can counter a supported public pending enemy spell chain item only when that item chooses your friendly Unit/Champion Unit or Gear. Ability-chain targets, broad official Reaction timing, and countering counters remain deferred.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 17,
+      "quantity": 6,
+      "originalName": "Calm Rune",
+      "sourceCardId": "OGN-042",
+      "sourceSetCode": "OGN",
+      "section": "Rune Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc9d308c64675ca86e4",
+          "name": "Calm Rune",
+          "type": "Rune",
+          "set": "Origins",
+          "rulesText": null
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "bucket": "Rune/payment"
+    },
+    {
+      "sourceLine": 18,
+      "quantity": 2,
+      "originalName": "Defy",
+      "sourceCardId": "OGN-045",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc9d308c64675ca86e8",
+          "name": "Defy",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Counter a spell that costs no more than :rb_energy_4: and no more than :rb_rune_rainbow:."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: Defy can counter supported public pending spell chain items that cost no more than 4 energy and no more than 1 premium rune during the current alpha chain window. Full official Reaction timing, broad spell/ability targets, and countering counters remain deferred.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 19,
+      "quantity": 1,
+      "originalName": "Trifarian War Camp",
+      "sourceCardId": "OGN-294",
+      "sourceSetCode": "OGN",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd6d308c64675ca87f3",
+          "name": "Trifarian War Camp",
+          "type": "Battlefield",
+          "set": "Origins",
+          "rulesText": "Units here have +1 :rb_might:. (This includes attackers.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 20,
+      "quantity": 1,
+      "originalName": "Bandle Tree",
+      "sourceCardId": "OGN-278",
+      "sourceSetCode": "OGN",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd6d308c64675ca87e3",
+          "name": "Bandle Tree",
+          "type": "Battlefield",
+          "set": "Origins",
+          "rulesText": "You may hide an additional card here."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 21,
+      "quantity": 2,
+      "originalName": "Teemo - Scout",
+      "sourceCardId": "OGN-197",
+      "sourceSetCode": "OGN",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd1d308c64675ca878e",
+          "name": "Teemo - Scout",
+          "type": "Champion",
+          "set": "Origins",
+          "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)When you play me, give me +3 :rb_might: this turn."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 22,
+      "quantity": 2,
+      "originalName": "Gust",
+      "sourceCardId": "OGN-169",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd0d308c64675ca8771",
+          "name": "Gust",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Return a unit at a battlefield with 3 :rb_might: or less to its owner's hand."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists through Stacked Deck for returning a battlefield Unit/Champion with 3 Might or less, but full official any-time Reaction timing remains incomplete.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 23,
+      "quantity": 2,
+      "originalName": "Ember Monk",
+      "sourceCardId": "OGN-167",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd0d308c64675ca876f",
+          "name": "Ember Monk",
+          "type": "Unit",
+          "set": "Origins",
+          "rulesText": "When you play a card from [Hidden], give me +2 :rb_might: this turn."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "sourceLine": 24,
+      "quantity": 6,
+      "originalName": "Chaos Rune",
+      "sourceCardId": "OGN-166",
+      "sourceSetCode": "OGN",
+      "section": "Rune Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd0d308c64675ca876d",
+          "name": "Chaos Rune",
+          "type": "Rune",
+          "set": "Origins",
+          "rulesText": null
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "bucket": "Rune/payment"
+    },
+    {
+      "sourceLine": 25,
+      "quantity": 3,
+      "originalName": "Zhonya's Hourglass",
+      "sourceCardId": "OGN-077",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bcad308c64675ca870a",
+          "name": "Zhonya's Hourglass",
+          "type": "Gear",
+          "set": "Origins",
+          "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)If a friendly unit would die, kill this instead. Heal that unit, exhaust it, and recall it. (Send it to base. This isn't a move.)"
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 26,
+      "quantity": 3,
+      "originalName": "Discipline",
+      "sourceCardId": "OGN-058",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc9d308c64675ca86f5",
+          "name": "Discipline",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Give a unit +2 :rb_might: this turn. Draw 1."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists for giving a public battlefield Unit/Champion +2 Might this turn and drawing 1. Full official any-time Reaction timing remains incomplete.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 27,
+      "quantity": 2,
+      "originalName": "Sona - Harmonious",
+      "sourceCardId": "OGN-073",
+      "sourceSetCode": "OGN",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bcad308c64675ca8705",
+          "name": "Sona - Harmonious",
+          "type": "Champion",
+          "set": "Origins",
+          "rulesText": "At the end of your turn, if I'm at a battlefield, ready up to 4 friendly runes."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    }
+  ],
+  "malformedLines": [],
+  "validation": {
+    "totalCards": 56,
+    "legendCount": 1,
+    "championCandidateCount": 11,
+    "inferredMainDeckCount": 37,
+    "runeCount": 12,
+    "battlefieldCount": 3,
+    "validConstructedShape": false,
+    "issues": [
+      "Expected 39 Main Deck cards after one chosen Champion candidate, found 37."
+    ]
+  },
+  "supportSummary": {
+    "uniqueCards": 27,
+    "counts": {
+      "SUPPORTED": 2,
+      "PARTIAL": 19,
+      "UNSUPPORTED": 5,
+      "BANNED": 0,
+      "NOT_AUDITED": 1
+    },
+    "canUseInEnforced": false,
+    "unresolvedCards": [
+      {
+        "sourceCardId": "UNL-041",
+        "originalName": "Allay - Eager Admirer",
+        "reason": "No local RiftForge card matched Allay - Eager Admirer in Unleashed."
+      }
+    ],
+    "topBlockers": [
+      {
+        "cardName": "Charm",
+        "sourceCardId": "OGN-043",
+        "status": "UNSUPPORTED",
+        "bucket": "Movement / location",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Existential Dread",
+        "sourceCardId": "UNL-134",
+        "status": "UNSUPPORTED",
+        "bucket": "Bounce / return",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Blast Cone",
+        "sourceCardId": "UNL-133",
+        "status": "UNSUPPORTED",
+        "bucket": "Equipment lifecycle/effect",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Allay - Eager Admirer",
+        "sourceCardId": "UNL-041",
+        "status": "NOT_AUDITED",
+        "bucket": "Unresolved / missing card data",
+        "reason": "No local RiftForge card matched Allay - Eager Admirer in Unleashed."
+      },
+      {
+        "cardName": "Switcheroo",
+        "sourceCardId": "SFD-145",
+        "status": "UNSUPPORTED",
+        "bucket": "Hidden / facedown",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      }
+    ]
+  },
+  "archetype": "Vex, Gloomist",
+  "key": "vex",
+  "eventResult": "vex top 8 at s3 zhongshan city challenge",
+  "priority": "Later raw-meta audit",
+  "rawSourceFile": "decks/meta/raw/vex_top_8_at_s3_zhongshan_city_challenge.txt",
+  "normalizedFile": "decks/meta/normalized/vex_top_8_at_s3_zhongshan_city_challenge.json"
+}

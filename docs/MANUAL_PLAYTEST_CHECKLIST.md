@@ -193,6 +193,29 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Check that Banned cards say they are not legal in constructed.
 - Check that Not Audited or missing-data cards are not presented as supported.
 
+## Supported Meta Deck Intake
+
+- Use only a real representative list supplied by a reviewer/playtester/source;
+  do not assemble a "meta" list from memory.
+- For current guide-sourced lists, start from `decks/meta/` and
+  `docs/meta/`; these are extracted from Riftbound.gg guide embeds by
+  `npm.cmd run audit:meta-decks`.
+- For uploaded exact exports, start from `decks/meta/raw/` and
+  `decks/meta/normalized/`; regenerate with
+  `npm.cmd run import:uploaded-meta-decks`.
+- Import the list through Deck Builder using Legend, Champion, MainDeck, Rune
+  Pool, and Battlefields sections.
+- Confirm the validation report shows deck legality, missing cards,
+  Unsupported cards, Partial cards, and Not Audited cards.
+- If supported-cards-only mode is enabled, confirm Unsupported and Not Audited
+  cards block ready while Partial cards remain warnings.
+- Start human-vs-RiftBot with supported-cards-only off when the goal is to
+  discover blockers in a Partial meta deck.
+- Trigger at least one Unsupported-card warning if the deck contains unsupported
+  cards, then copy debug info.
+- Record repeated blockers in `docs/META_DECK_SUPPORT.md` before choosing the
+  next implementation sprint.
+
 ## Connection And Error Feedback
 
 - Trigger one invalid action, such as playing during a non-Main phase, and confirm a visible warning appears.

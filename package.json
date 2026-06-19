@@ -9,6 +9,8 @@
     "test:frontend": "vitest run",
     "lint": "eslint .",
     "preview": "vite preview --host 0.0.0.0",
+    "audit:meta-decks": "node scripts/meta-deck-audit.mjs",
+    "import:uploaded-meta-decks": "node scripts/import-uploaded-meta-decks.mjs",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "prepare:desktop": "node scripts/prepare-desktop.mjs",

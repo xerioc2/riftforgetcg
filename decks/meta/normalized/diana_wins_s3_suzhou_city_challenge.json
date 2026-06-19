@@ -1,0 +1,697 @@
+{
+  "sourceFilename": "diana_wins_s3_suzhou_city_challenge.txt",
+  "parsedAt": "2026-06-19",
+  "entries": [
+    {
+      "sourceLine": 1,
+      "quantity": 1,
+      "originalName": "Diana - Scorn of the Moon",
+      "sourceCardId": "UNL-197",
+      "sourceSetCode": "UNL",
+      "section": "Legend",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be9d308c64675ca894f",
+          "name": "Diana - Scorn of the Moon",
+          "type": "Legend",
+          "set": "Unleashed",
+          "rulesText": "[Reaction][&gt;] :rb_exhaust:: [Add] :rb_energy_1:. Spend this Energy only during showdowns. (Abilities that add resources can't be reacted to.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Legend text"
+    },
+    {
+      "sourceLine": 2,
+      "quantity": 1,
+      "originalName": "Hard Bargain",
+      "sourceCardId": "SFD-136",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be2d308c64675ca88cb",
+          "name": "Hard Bargain",
+          "type": "Spell",
+          "set": "Spiritforged",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)[Repeat] :rb_energy_2: (You may pay the additional cost to repeat this spell's effect.)Counter a spell unless its controller pays :rb_energy_2:."
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 3,
+      "quantity": 1,
+      "originalName": "Star Spring",
+      "sourceCardId": "UNL-215",
+      "sourceSetCode": "UNL",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69c4407d9288b1e85d94de9e",
+          "name": "Star Spring",
+          "type": "Battlefield",
+          "set": "Unleashed",
+          "rulesText": "The first time a player plays a non-token unit here each turn, they may move another unit they control here to its base."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 4,
+      "quantity": 1,
+      "originalName": "Abandoned Hall",
+      "sourceCardId": "UNL-205",
+      "sourceSetCode": "UNL",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69c4407e9288b1e85d94deb2",
+          "name": "Abandoned Hall",
+          "type": "Battlefield",
+          "set": "Unleashed",
+          "rulesText": "When a player plays a spell, they may give a unit they control here +1 :rb_might: this turn."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 5,
+      "quantity": 3,
+      "originalName": "Moonfall",
+      "sourceCardId": "UNL-198",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bff35458d0fbca04e93715",
+          "name": "Moonfall",
+          "type": "Spell",
+          "set": "Unleashed",
+          "rulesText": "[Action] (Play on your turn or in showdowns.)Choose a battlefield where you have units. You may move up to one enemy unit to that battlefield. Then give enemy units there -2 :rb_might: this turn."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Movement / location"
+    },
+    {
+      "sourceLine": 6,
+      "quantity": 1,
+      "originalName": "Abandon",
+      "sourceCardId": "UNL-131",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be9d308c64675ca8957",
+          "name": "Abandon",
+          "type": "Spell",
+          "set": "Unleashed",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Counter a spell. Return it to its owner's hand instead of putting it in their trash.[Predict]. (Look at the top card of your Main Deck. You may recycle it.)"
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 7,
+      "quantity": 2,
+      "originalName": "Star-Crossed",
+      "sourceCardId": "UNL-128",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bedd308c64675ca89a6",
+          "name": "Star-Crossed",
+          "type": "Spell",
+          "set": "Unleashed",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Return a friendly unit and an enemy unit to their owners' hands."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 8,
+      "quantity": 3,
+      "originalName": "Hwei - Brooding Painter",
+      "sourceCardId": "UNL-080",
+      "sourceSetCode": "UNL",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bead308c64675ca8966",
+          "name": "Hwei - Brooding Painter",
+          "type": "Champion",
+          "set": "Unleashed",
+          "rulesText": "When I move, draw 1, then discard 1. Then, do the following based on the discarded card's type:Spell — Draw 1.Gear — Ready up to 2 runes.Unit — Give me +3 :rb_might: this turn."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 9,
+      "quantity": 1,
+      "originalName": "Diana - Lunari",
+      "sourceCardId": "UNL-079",
+      "sourceSetCode": "UNL",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5becd308c64675ca898b",
+          "name": "Diana - Lunari",
+          "type": "Champion",
+          "set": "Unleashed",
+          "rulesText": "When a showdown begins here, you may pay :rb_energy_1:. If you do, [Predict], then reveal the top card of your Main Deck. If it's a spell, draw it. (To Predict, look at the top card of your Main Deck. You may recycle it.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 10,
+      "quantity": 2,
+      "originalName": "Eclipse",
+      "sourceCardId": "UNL-063",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69c4407e9288b1e85d94deae",
+          "name": "Eclipse",
+          "type": "Spell",
+          "set": "Unleashed",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Give a unit -4 :rb_might: this turn.[Predict]. (Look at the top card of your Main Deck. You may recycle it.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 11,
+      "quantity": 1,
+      "originalName": "Last Rites",
+      "sourceCardId": "SFD-150",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bded308c64675ca887e",
+          "name": "Last Rites",
+          "type": "Gear",
+          "set": "Spiritforged",
+          "rulesText": "[Equip] — :rb_rune_chaos:, Recycle 2 cards from your trash (Pay the cost: Attach this to a unit you control.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 12,
+      "quantity": 2,
+      "originalName": "Fizz - Trickster",
+      "sourceCardId": "SFD-140",
+      "sourceSetCode": "SFD",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be1d308c64675ca88c1",
+          "name": "Fizz - Trickster",
+          "type": "Champion",
+          "set": "Spiritforged",
+          "rulesText": "When you play me, you may play a spell from your trash with Energy cost no more than :rb_energy_3:, ignoring its Energy cost. Recycle that spell after you play it. (You must still pay its Power cost.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 13,
+      "quantity": 5,
+      "originalName": "Mind Rune",
+      "sourceCardId": "OGN-089",
+      "sourceSetCode": "OGN",
+      "section": "Rune Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bcbd308c64675ca8718",
+          "name": "Mind Rune",
+          "type": "Rune",
+          "set": "Origins",
+          "rulesText": null
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Rune/payment"
+    },
+    {
+      "sourceLine": 14,
+      "quantity": 2,
+      "originalName": "Flash",
+      "sourceCardId": "OGS-011",
+      "sourceSetCode": "OGS",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd9d308c64675ca8820",
+          "name": "Flash",
+          "type": "Spell",
+          "set": "Proving Grounds",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Move up to 2 friendly units to base."
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 15,
+      "quantity": 1,
+      "originalName": "Targon's Peak",
+      "sourceCardId": "OGN-289",
+      "sourceSetCode": "OGN",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd6d308c64675ca87ee",
+          "name": "Targon's Peak",
+          "type": "Battlefield",
+          "set": "Origins",
+          "rulesText": "When you conquer here, ready up to 2 runes at the end of this turn."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 16,
+      "quantity": 2,
+      "originalName": "Tideturner",
+      "sourceCardId": "OGN-199",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd1d308c64675ca8791",
+          "name": "Tideturner",
+          "type": "Unit",
+          "set": "Origins",
+          "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)When you play me, you may choose a unit you control at another location. Move me to its location and it to my original location."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: Hidden foundation exists, but later hidden play timing and the on-play location swap are not implemented yet.",
+        "blocked": false
+      },
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "sourceLine": 17,
+      "quantity": 2,
+      "originalName": "Traveling Merchant",
+      "sourceCardId": "OGN-185",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd1d308c64675ca8781",
+          "name": "Traveling Merchant",
+          "type": "Unit",
+          "set": "Origins",
+          "rulesText": "When I move, discard 1, then draw 1."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Movement / location"
+    },
+    {
+      "sourceLine": 18,
+      "quantity": 1,
+      "originalName": "The Syren",
+      "sourceCardId": "OGN-184",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd1d308c64675ca8780",
+          "name": "The Syren",
+          "type": "Gear",
+          "set": "Origins",
+          "rulesText": ":rb_energy_1:, :rb_exhaust:: Move a friendly unit at a battlefield to its base."
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 19,
+      "quantity": 3,
+      "originalName": "Stacked Deck",
+      "sourceCardId": "OGN-183",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd0d308c64675ca877f",
+          "name": "Stacked Deck",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Action] (Play on your turn or in showdowns.)Look at the top 3 cards of your Main Deck. Put 1 into your hand and recycle the rest."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: opens the narrow alpha chain, then resolves into a private top-3 choice; official ordering and broader timing remain incomplete.",
+        "blocked": false
+      },
+      "bucket": "Draw / reveal / deck selection"
+    },
+    {
+      "sourceLine": 20,
+      "quantity": 3,
+      "originalName": "Ride the Wind",
+      "sourceCardId": "OGN-173",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd0d308c64675ca8775",
+          "name": "Ride The Wind",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Action] (Play on your turn or in showdowns.)Move a friendly unit and ready it."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Movement / location"
+    },
+    {
+      "sourceLine": 21,
+      "quantity": 3,
+      "originalName": "Gust",
+      "sourceCardId": "OGN-169",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd0d308c64675ca8771",
+          "name": "Gust",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Return a unit at a battlefield with 3 :rb_might: or less to its owner's hand."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists through Stacked Deck for returning a battlefield Unit/Champion with 3 Might or less, but full official any-time Reaction timing remains incomplete.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 22,
+      "quantity": 7,
+      "originalName": "Chaos Rune",
+      "sourceCardId": "OGN-166",
+      "sourceSetCode": "OGN",
+      "section": "Rune Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd0d308c64675ca876d",
+          "name": "Chaos Rune",
+          "type": "Rune",
+          "set": "Origins",
+          "rulesText": null
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "bucket": "Rune/payment"
+    },
+    {
+      "sourceLine": 23,
+      "quantity": 2,
+      "originalName": "Thousand-Tailed Watcher",
+      "sourceCardId": "OGN-116",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bcdd308c64675ca8735",
+          "name": "Thousand-Tailed Watcher",
+          "type": "Unit",
+          "set": "Origins",
+          "rulesText": "[Accelerate] (You may pay :rb_energy_1::rb_rune_mind: as an additional cost to have me enter ready.)When you play me, give enemy units -3 :rb_might: this turn, to a minimum of 1 :rb_might:."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Triggered/static card text"
+    },
+    {
+      "sourceLine": 24,
+      "quantity": 3,
+      "originalName": "Ravenbloom Student",
+      "sourceCardId": "OGN-103",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bccd308c64675ca8727",
+          "name": "Ravenbloom Student",
+          "type": "Unit",
+          "set": "Origins",
+          "rulesText": "When you play a spell, give me +1 :rb_might: this turn."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Triggered/static card text"
+    },
+    {
+      "sourceLine": 25,
+      "quantity": 3,
+      "originalName": "Stupefy",
+      "sourceCardId": "OGN-095",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bccd308c64675ca871f",
+          "name": "Stupefy",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Give a unit -1 :rb_might: this turn, to a minimum of 1 :rb_might:. Draw 1."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    }
+  ],
+  "malformedLines": [],
+  "validation": {
+    "totalCards": 56,
+    "legendCount": 1,
+    "championCandidateCount": 6,
+    "inferredMainDeckCount": 39,
+    "runeCount": 12,
+    "battlefieldCount": 3,
+    "validConstructedShape": true,
+    "issues": []
+  },
+  "supportSummary": {
+    "uniqueCards": 25,
+    "counts": {
+      "SUPPORTED": 1,
+      "PARTIAL": 20,
+      "UNSUPPORTED": 4,
+      "BANNED": 0,
+      "NOT_AUDITED": 0
+    },
+    "canUseInEnforced": false,
+    "unresolvedCards": [],
+    "topBlockers": [
+      {
+        "cardName": "Hard Bargain",
+        "sourceCardId": "SFD-136",
+        "status": "UNSUPPORTED",
+        "bucket": "Reaction / chain / counter",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Abandon",
+        "sourceCardId": "UNL-131",
+        "status": "UNSUPPORTED",
+        "bucket": "Reaction / chain / counter",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Flash",
+        "sourceCardId": "OGS-011",
+        "status": "UNSUPPORTED",
+        "bucket": "Reaction / chain / counter",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "The Syren",
+        "sourceCardId": "OGN-184",
+        "status": "UNSUPPORTED",
+        "bucket": "Equipment lifecycle/effect",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Diana - Scorn of the Moon",
+        "sourceCardId": "UNL-197",
+        "status": "PARTIAL",
+        "bucket": "Legend text",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      }
+    ]
+  },
+  "archetype": "Diana, Scorn of the Moon",
+  "key": "diana",
+  "eventResult": "diana wins s3 suzhou city challenge",
+  "priority": "Next reviewer-prioritized interaction deck",
+  "rawSourceFile": "decks/meta/raw/diana_wins_s3_suzhou_city_challenge.txt",
+  "normalizedFile": "decks/meta/normalized/diana_wins_s3_suzhou_city_challenge.json"
+}

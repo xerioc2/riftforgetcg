@@ -1,0 +1,669 @@
+{
+  "capturedDate": "2026-06-19",
+  "decks": [
+    {
+      "archetype": "Irelia, Blade Dancer",
+      "rawSourceFile": "decks/meta/raw/irelia_wins_s3_shanghai_city_challenge.txt",
+      "normalizedFile": "decks/meta/normalized/irelia_wins_s3_shanghai_city_challenge.json",
+      "validation": {
+        "totalCards": 56,
+        "legendCount": 1,
+        "championCandidateCount": 3,
+        "inferredMainDeckCount": 39,
+        "runeCount": 12,
+        "battlefieldCount": 3,
+        "validConstructedShape": true,
+        "issues": []
+      },
+      "supportSummary": {
+        "uniqueCards": 27,
+        "counts": {
+          "SUPPORTED": 4,
+          "PARTIAL": 18,
+          "UNSUPPORTED": 5,
+          "BANNED": 0,
+          "NOT_AUDITED": 0
+        },
+        "canUseInEnforced": false,
+        "unresolvedCards": [],
+        "topBlockers": [
+          {
+            "cardName": "Defiant Dance",
+            "sourceCardId": "SFD-196",
+            "status": "UNSUPPORTED",
+            "bucket": "Reaction / chain / counter",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Flash",
+            "sourceCardId": "OGS-011",
+            "status": "UNSUPPORTED",
+            "bucket": "Reaction / chain / counter",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Charm",
+            "sourceCardId": "OGN-043",
+            "status": "UNSUPPORTED",
+            "bucket": "Movement / location",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Zhonya's Hourglass",
+            "sourceCardId": "OGN-077",
+            "status": "UNSUPPORTED",
+            "bucket": "Equipment lifecycle/effect",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "The Syren",
+            "sourceCardId": "OGN-184",
+            "status": "UNSUPPORTED",
+            "bucket": "Equipment lifecycle/effect",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          }
+        ]
+      }
+    },
+    {
+      "archetype": "Diana, Scorn of the Moon",
+      "rawSourceFile": "decks/meta/raw/diana_wins_s3_suzhou_city_challenge.txt",
+      "normalizedFile": "decks/meta/normalized/diana_wins_s3_suzhou_city_challenge.json",
+      "validation": {
+        "totalCards": 56,
+        "legendCount": 1,
+        "championCandidateCount": 6,
+        "inferredMainDeckCount": 39,
+        "runeCount": 12,
+        "battlefieldCount": 3,
+        "validConstructedShape": true,
+        "issues": []
+      },
+      "supportSummary": {
+        "uniqueCards": 25,
+        "counts": {
+          "SUPPORTED": 1,
+          "PARTIAL": 20,
+          "UNSUPPORTED": 4,
+          "BANNED": 0,
+          "NOT_AUDITED": 0
+        },
+        "canUseInEnforced": false,
+        "unresolvedCards": [],
+        "topBlockers": [
+          {
+            "cardName": "Hard Bargain",
+            "sourceCardId": "SFD-136",
+            "status": "UNSUPPORTED",
+            "bucket": "Reaction / chain / counter",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Abandon",
+            "sourceCardId": "UNL-131",
+            "status": "UNSUPPORTED",
+            "bucket": "Reaction / chain / counter",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Flash",
+            "sourceCardId": "OGS-011",
+            "status": "UNSUPPORTED",
+            "bucket": "Reaction / chain / counter",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "The Syren",
+            "sourceCardId": "OGN-184",
+            "status": "UNSUPPORTED",
+            "bucket": "Equipment lifecycle/effect",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Diana - Scorn of the Moon",
+            "sourceCardId": "UNL-197",
+            "status": "PARTIAL",
+            "bucket": "Legend text",
+            "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+          }
+        ]
+      }
+    },
+    {
+      "archetype": "Annie, Dark Child",
+      "rawSourceFile": "decks/meta/raw/annie_4th_at_lille_regional_qualifier.txt",
+      "normalizedFile": "decks/meta/normalized/annie_4th_at_lille_regional_qualifier.json",
+      "validation": {
+        "totalCards": 56,
+        "legendCount": 0,
+        "championCandidateCount": 10,
+        "inferredMainDeckCount": 39,
+        "runeCount": 12,
+        "battlefieldCount": 3,
+        "validConstructedShape": false,
+        "issues": [
+          "Expected exactly 1 Legend, found 0."
+        ]
+      },
+      "supportSummary": {
+        "uniqueCards": 23,
+        "counts": {
+          "SUPPORTED": 1,
+          "PARTIAL": 19,
+          "UNSUPPORTED": 2,
+          "BANNED": 0,
+          "NOT_AUDITED": 1
+        },
+        "canUseInEnforced": false,
+        "unresolvedCards": [
+          {
+            "sourceCardId": "OGS-017",
+            "originalName": "Annie - Dark Child - Starter",
+            "reason": "No local RiftForge card matched Annie - Dark Child - Starter in Proving Grounds."
+          }
+        ],
+        "topBlockers": [
+          {
+            "cardName": "Annie - Dark Child - Starter",
+            "sourceCardId": "OGS-017",
+            "status": "NOT_AUDITED",
+            "bucket": "Unresolved / missing card data",
+            "reason": "No local RiftForge card matched Annie - Dark Child - Starter in Proving Grounds."
+          },
+          {
+            "cardName": "Hard Bargain",
+            "sourceCardId": "SFD-136",
+            "status": "UNSUPPORTED",
+            "bucket": "Reaction / chain / counter",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Flash",
+            "sourceCardId": "OGS-011",
+            "status": "UNSUPPORTED",
+            "bucket": "Reaction / chain / counter",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "The Arena's Greatest",
+            "sourceCardId": "OGN-290",
+            "status": "PARTIAL",
+            "bucket": "Battlefield effect",
+            "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+          },
+          {
+            "cardName": "Seat of Power",
+            "sourceCardId": "SFD-217",
+            "status": "PARTIAL",
+            "bucket": "Battlefield effect",
+            "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+          }
+        ]
+      }
+    },
+    {
+      "archetype": "Master Yi, Wuju Bladesman",
+      "rawSourceFile": "decks/meta/raw/master_yi_wins_s3_guangzhou_city_challenge.txt",
+      "normalizedFile": "decks/meta/normalized/master_yi_wins_s3_guangzhou_city_challenge.json",
+      "validation": {
+        "totalCards": 56,
+        "legendCount": 0,
+        "championCandidateCount": 6,
+        "inferredMainDeckCount": 39,
+        "runeCount": 12,
+        "battlefieldCount": 3,
+        "validConstructedShape": false,
+        "issues": [
+          "Expected exactly 1 Legend, found 0."
+        ]
+      },
+      "supportSummary": {
+        "uniqueCards": 23,
+        "counts": {
+          "SUPPORTED": 3,
+          "PARTIAL": 17,
+          "UNSUPPORTED": 2,
+          "BANNED": 0,
+          "NOT_AUDITED": 1
+        },
+        "canUseInEnforced": false,
+        "unresolvedCards": [
+          {
+            "sourceCardId": "OGS-019",
+            "originalName": "Master Yi - Wuju Bladesman - Starter",
+            "reason": "No local RiftForge card matched Master Yi - Wuju Bladesman - Starter in Proving Grounds."
+          }
+        ],
+        "topBlockers": [
+          {
+            "cardName": "Master Yi - Wuju Bladesman - Starter",
+            "sourceCardId": "OGS-019",
+            "status": "NOT_AUDITED",
+            "bucket": "Unresolved / missing card data",
+            "reason": "No local RiftForge card matched Master Yi - Wuju Bladesman - Starter in Proving Grounds."
+          },
+          {
+            "cardName": "Zhonya's Hourglass",
+            "sourceCardId": "OGN-077",
+            "status": "UNSUPPORTED",
+            "bucket": "Equipment lifecycle/effect",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Charm",
+            "sourceCardId": "OGN-043",
+            "status": "UNSUPPORTED",
+            "bucket": "Movement / location",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Amateur Recital",
+            "sourceCardId": "UNL-207",
+            "status": "PARTIAL",
+            "bucket": "Battlefield effect",
+            "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+          },
+          {
+            "cardName": "Rengar - Trophy Hunter",
+            "sourceCardId": "UNL-120",
+            "status": "PARTIAL",
+            "bucket": "Champion text",
+            "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+          }
+        ]
+      }
+    },
+    {
+      "archetype": "LeBlanc, Deceiver",
+      "rawSourceFile": "decks/meta/raw/leblanc_wins_s3_zhongshan_city_challenge.txt",
+      "normalizedFile": "decks/meta/normalized/leblanc_wins_s3_zhongshan_city_challenge.json",
+      "validation": {
+        "totalCards": 56,
+        "legendCount": 1,
+        "championCandidateCount": 8,
+        "inferredMainDeckCount": 39,
+        "runeCount": 12,
+        "battlefieldCount": 3,
+        "validConstructedShape": true,
+        "issues": []
+      },
+      "supportSummary": {
+        "uniqueCards": 21,
+        "counts": {
+          "SUPPORTED": 1,
+          "PARTIAL": 16,
+          "UNSUPPORTED": 4,
+          "BANNED": 0,
+          "NOT_AUDITED": 0
+        },
+        "canUseInEnforced": false,
+        "unresolvedCards": [],
+        "topBlockers": [
+          {
+            "cardName": "Mirror Image",
+            "sourceCardId": "UNL-200",
+            "status": "UNSUPPORTED",
+            "bucket": "Damage / destroy",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Deadly Flourish",
+            "sourceCardId": "UNL-073",
+            "status": "UNSUPPORTED",
+            "bucket": "Reaction / chain / counter",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Hidden Blade",
+            "sourceCardId": "OGN-213",
+            "status": "UNSUPPORTED",
+            "bucket": "Hidden / facedown",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Cull the Weak",
+            "sourceCardId": "OGN-209",
+            "status": "UNSUPPORTED",
+            "bucket": "Damage / destroy",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "LeBlanc - Deceiver",
+            "sourceCardId": "UNL-199",
+            "status": "PARTIAL",
+            "bucket": "Legend text",
+            "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+          }
+        ]
+      }
+    },
+    {
+      "archetype": "Vex, Gloomist",
+      "rawSourceFile": "decks/meta/raw/vex_top_8_at_s3_zhongshan_city_challenge.txt",
+      "normalizedFile": "decks/meta/normalized/vex_top_8_at_s3_zhongshan_city_challenge.json",
+      "validation": {
+        "totalCards": 56,
+        "legendCount": 1,
+        "championCandidateCount": 11,
+        "inferredMainDeckCount": 37,
+        "runeCount": 12,
+        "battlefieldCount": 3,
+        "validConstructedShape": false,
+        "issues": [
+          "Expected 39 Main Deck cards after one chosen Champion candidate, found 37."
+        ]
+      },
+      "supportSummary": {
+        "uniqueCards": 27,
+        "counts": {
+          "SUPPORTED": 2,
+          "PARTIAL": 19,
+          "UNSUPPORTED": 5,
+          "BANNED": 0,
+          "NOT_AUDITED": 1
+        },
+        "canUseInEnforced": false,
+        "unresolvedCards": [
+          {
+            "sourceCardId": "UNL-041",
+            "originalName": "Allay - Eager Admirer",
+            "reason": "No local RiftForge card matched Allay - Eager Admirer in Unleashed."
+          }
+        ],
+        "topBlockers": [
+          {
+            "cardName": "Charm",
+            "sourceCardId": "OGN-043",
+            "status": "UNSUPPORTED",
+            "bucket": "Movement / location",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Existential Dread",
+            "sourceCardId": "UNL-134",
+            "status": "UNSUPPORTED",
+            "bucket": "Bounce / return",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Blast Cone",
+            "sourceCardId": "UNL-133",
+            "status": "UNSUPPORTED",
+            "bucket": "Equipment lifecycle/effect",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Allay - Eager Admirer",
+            "sourceCardId": "UNL-041",
+            "status": "NOT_AUDITED",
+            "bucket": "Unresolved / missing card data",
+            "reason": "No local RiftForge card matched Allay - Eager Admirer in Unleashed."
+          },
+          {
+            "cardName": "Switcheroo",
+            "sourceCardId": "SFD-145",
+            "status": "UNSUPPORTED",
+            "bucket": "Hidden / facedown",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          }
+        ]
+      }
+    },
+    {
+      "archetype": "Azir, Emperor of the Sands",
+      "rawSourceFile": "decks/meta/raw/azir_wins_lille_regional_qualifier.txt",
+      "normalizedFile": "decks/meta/normalized/azir_wins_lille_regional_qualifier.json",
+      "validation": {
+        "totalCards": 56,
+        "legendCount": 1,
+        "championCandidateCount": 1,
+        "inferredMainDeckCount": 39,
+        "runeCount": 12,
+        "battlefieldCount": 3,
+        "validConstructedShape": true,
+        "issues": []
+      },
+      "supportSummary": {
+        "uniqueCards": 23,
+        "counts": {
+          "SUPPORTED": 2,
+          "PARTIAL": 19,
+          "UNSUPPORTED": 2,
+          "BANNED": 0,
+          "NOT_AUDITED": 0
+        },
+        "canUseInEnforced": false,
+        "unresolvedCards": [],
+        "topBlockers": [
+          {
+            "cardName": "Facebreaker",
+            "sourceCardId": "OGN-220",
+            "status": "UNSUPPORTED",
+            "bucket": "Hidden / facedown",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Hidden Blade",
+            "sourceCardId": "OGN-213",
+            "status": "UNSUPPORTED",
+            "bucket": "Hidden / facedown",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Azir - Emperor of the Sands",
+            "sourceCardId": "SFD-197",
+            "status": "PARTIAL",
+            "bucket": "Legend text",
+            "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+          },
+          {
+            "cardName": "Trifarian War Camp",
+            "sourceCardId": "OGN-294",
+            "status": "PARTIAL",
+            "bucket": "Battlefield effect",
+            "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+          },
+          {
+            "cardName": "Seat of Power",
+            "sourceCardId": "SFD-217",
+            "status": "PARTIAL",
+            "bucket": "Battlefield effect",
+            "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+          }
+        ]
+      }
+    },
+    {
+      "archetype": "Sivir, Battle Mistress",
+      "rawSourceFile": "decks/meta/raw/sivir_2nd_at_sydney_regional_qualifier.txt",
+      "normalizedFile": "decks/meta/normalized/sivir_2nd_at_sydney_regional_qualifier.json",
+      "validation": {
+        "totalCards": 56,
+        "legendCount": 1,
+        "championCandidateCount": 1,
+        "inferredMainDeckCount": 39,
+        "runeCount": 12,
+        "battlefieldCount": 3,
+        "validConstructedShape": true,
+        "issues": []
+      },
+      "supportSummary": {
+        "uniqueCards": 22,
+        "counts": {
+          "SUPPORTED": 2,
+          "PARTIAL": 13,
+          "UNSUPPORTED": 7,
+          "BANNED": 0,
+          "NOT_AUDITED": 0
+        },
+        "canUseInEnforced": false,
+        "unresolvedCards": [],
+        "topBlockers": [
+          {
+            "cardName": "Scryer's Bloom",
+            "sourceCardId": "UNL-136",
+            "status": "UNSUPPORTED",
+            "bucket": "Equipment lifecycle/effect",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Lunar Boon",
+            "sourceCardId": "UNL-125",
+            "status": "UNSUPPORTED",
+            "bucket": "Reaction / chain / counter",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Treasure Trove",
+            "sourceCardId": "OGN-186",
+            "status": "UNSUPPORTED",
+            "bucket": "Equipment lifecycle/effect",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Pack of Wonders",
+            "sourceCardId": "OGN-181",
+            "status": "UNSUPPORTED",
+            "bucket": "Equipment lifecycle/effect",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Dazzling Aurora",
+            "sourceCardId": "OGN-160",
+            "status": "UNSUPPORTED",
+            "bucket": "Equipment lifecycle/effect",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          }
+        ]
+      }
+    },
+    {
+      "archetype": "Fiora, Grand Duelist",
+      "rawSourceFile": "decks/meta/raw/fiora_wins_s3_beijing_city_challenge.txt",
+      "normalizedFile": "decks/meta/normalized/fiora_wins_s3_beijing_city_challenge.json",
+      "validation": {
+        "totalCards": 56,
+        "legendCount": 1,
+        "championCandidateCount": 7,
+        "inferredMainDeckCount": 39,
+        "runeCount": 12,
+        "battlefieldCount": 3,
+        "validConstructedShape": true,
+        "issues": []
+      },
+      "supportSummary": {
+        "uniqueCards": 24,
+        "counts": {
+          "SUPPORTED": 2,
+          "PARTIAL": 20,
+          "UNSUPPORTED": 2,
+          "BANNED": 0,
+          "NOT_AUDITED": 0
+        },
+        "canUseInEnforced": false,
+        "unresolvedCards": [],
+        "topBlockers": [
+          {
+            "cardName": "Hidden Blade",
+            "sourceCardId": "OGN-213",
+            "status": "UNSUPPORTED",
+            "bucket": "Hidden / facedown",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Challenge",
+            "sourceCardId": "OGN-128",
+            "status": "UNSUPPORTED",
+            "bucket": "Damage / destroy",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Fiora - Grand Duelist",
+            "sourceCardId": "SFD-205",
+            "status": "PARTIAL",
+            "bucket": "Legend text",
+            "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+          },
+          {
+            "cardName": "Punch First",
+            "sourceCardId": "SFD-097",
+            "status": "PARTIAL",
+            "bucket": "Basic or descriptor-only",
+            "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+          },
+          {
+            "cardName": "Sacrifice",
+            "sourceCardId": "UNL-173",
+            "status": "PARTIAL",
+            "bucket": "Reaction / chain / counter",
+            "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+          }
+        ]
+      }
+    },
+    {
+      "archetype": "Draven, Glorious Executioner",
+      "rawSourceFile": "decks/meta/raw/draven_wins_new_zealand_10k_open.txt",
+      "normalizedFile": "decks/meta/normalized/draven_wins_new_zealand_10k_open.json",
+      "validation": {
+        "totalCards": 56,
+        "legendCount": 1,
+        "championCandidateCount": 7,
+        "inferredMainDeckCount": 39,
+        "runeCount": 12,
+        "battlefieldCount": 3,
+        "validConstructedShape": true,
+        "issues": []
+      },
+      "supportSummary": {
+        "uniqueCards": 24,
+        "counts": {
+          "SUPPORTED": 1,
+          "PARTIAL": 20,
+          "UNSUPPORTED": 3,
+          "BANNED": 0,
+          "NOT_AUDITED": 0
+        },
+        "canUseInEnforced": false,
+        "unresolvedCards": [],
+        "topBlockers": [
+          {
+            "cardName": "Switcheroo",
+            "sourceCardId": "SFD-145",
+            "status": "UNSUPPORTED",
+            "bucket": "Hidden / facedown",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Hard Bargain",
+            "sourceCardId": "SFD-136",
+            "status": "UNSUPPORTED",
+            "bucket": "Reaction / chain / counter",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Falling Star",
+            "sourceCardId": "OGN-029",
+            "status": "UNSUPPORTED",
+            "bucket": "Basic or descriptor-only",
+            "reason": "Blocked in enforced play: this card's effect is not supported yet."
+          },
+          {
+            "cardName": "Draven - Glorious Executioner",
+            "sourceCardId": "SFD-185",
+            "status": "PARTIAL",
+            "bucket": "Legend text",
+            "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+          },
+          {
+            "cardName": "Fury Rune",
+            "sourceCardId": "OGN-007",
+            "status": "PARTIAL",
+            "bucket": "Rune/payment",
+            "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+          }
+        ]
+      }
+    }
+  ]
+}

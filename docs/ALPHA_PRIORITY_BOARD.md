@@ -48,6 +48,7 @@ will raise regression risk faster than playtest value.
 | Issue/report flow | High | Low | Pre-playtest | Done | Gives testers a consistent path to submit useful bug reports. |
 | Final alpha stabilization sweep | High | Low | Pre-playtest | Done | Run validation, cross-check support policy, update release notes, and fix only small bugs. |
 | Optional payment prompts | Medium | Medium | Post-playtest | Done | Generic prompts can offer Pay/Decline, validate available alpha energy at resolution time, spend that energy, and clear safely. Real trigger hookups remain conservative. |
+| Reviewer-guided meta support audit | High | Low | Post-playtest | Done | Riftbound.gg guide lists are extracted, and exact uploaded exports are preserved under `decks/meta/raw/` with normalized support audits in `decks/meta/normalized/` and `docs/meta/`. Diana remains the next requested card/rules support target because it is interaction-heavy and growing. Aurora support has an Annie list, but Miss Fortune still needs a real list. Master Yi stays tracked as the raw meta leader, but implementation should wait for gameplay notes. |
 | Stellacorn Herder move trigger | Medium | Medium | Post-playtest | Done | Migrated through the alpha trigger dispatcher; movement draws 1 and same-zone reposition stays inert. |
 | Abandoned Hall spell trigger | Medium | Medium | Post-playtest | Next | Useful battlefield trigger candidate, but depends on clearer prompt/payment policy. |
 
@@ -72,6 +73,7 @@ will raise regression risk faster than playtest value.
 | Release note cleanup | Low | Low | Pre-playtest | Done | Keep draft notes aligned with what the installer actually ships. |
 | Manual playtest checklist updates | Low | Low | Pre-playtest | Done | Useful for repeatable smoke tests and external tester instructions. |
 | More support-audit notes | Low | Low | Post-playtest | Next | Add concrete buckets when new tester decks or bug reports reveal patterns. |
+| Meta deck support roadmap | Medium | Low | Post-playtest | Done | `docs/META_DECK_SUPPORT.md` now includes extracted guide-list and uploaded-export support audits for Master Yi, Irelia, Diana, LeBlanc, Vex, Azir, Sivir, Annie, plus extra Fiora/Draven data. Priority remains: finish Irelia, then Diana, then Aurora Miss Fortune / Annie. Miss Fortune remains list-needed and no decklists are invented. |
 
 ## Low Impact + High Risk: Avoid For Alpha
 
@@ -95,6 +97,12 @@ The alpha should be described as:
   alpha UI/bot assignment, not full manual damage splitting.
 - Strong privacy regression coverage for current hidden-information surfaces.
 - Installer/release flow through GitHub Releases rather than tracked binaries.
+- Meta support planning should start from the extracted guide lists and
+  reviewer signal. Current roadmap order is: finish the Irelia support slice,
+  implement the smallest useful Diana blocker next, audit Aurora shell support
+  through the extracted Annie list plus a future Miss Fortune list, keep Master
+  Yi tracked as the raw meta leader pending gameplay notes, then audit
+  LeBlanc/Vex/Azir/Sivir when playtest demand rises.
 
 ## Decision Rule For New Sprints
 
@@ -113,3 +121,6 @@ After feedback:
 3. Update support badges and docs immediately.
 4. Keep full Battlefield effects/location rules, broader Reaction/chain, and
    XP/Hunt/Level/Buff out of scope until the active-lane alpha is stable.
+5. For meta support, do not implement from archetype names alone. Add the real
+   list first, audit its unsupported/partial cards, then choose the highest
+   repeated blocker.

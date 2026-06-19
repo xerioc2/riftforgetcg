@@ -61,6 +61,28 @@ require an existing legal chain target. Rune innate actions do not create chain
 windows, hidden Reaction play remains deferred, and broader official "play any
 time" timing is still incomplete.
 
+## Meta Deck Support
+
+Competitive-deck planning is tracked in `docs/META_DECK_SUPPORT.md`. The table
+below is roadmap support status, not a claim that these decks are currently
+implemented. Guide-sourced decklists are stored under `decks/meta/` and
+deck-specific audits live under `docs/meta/`. Exact uploaded exports are
+preserved in `decks/meta/raw/` and normalized in `decks/meta/normalized/`.
+A deck should not be promoted beyond Blocked/Partial until Unsupported cards
+and key Partial rules from the actual extracted/uploaded lists are implemented
+and directly tested.
+
+| Priority | Legend / archetype | Meta data supplied | Current support status | Representative list source | Current top blockers |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Master Yi, Wuju Bladesman | 9% meta, 60% win, 1710 decks | Blocked | 3 Riftbound.gg guide lists extracted | `Charm`, `Repulse`, `Zhonya's Hourglass`, and several Battlefield/Legend/Champion Partial effects. Reviewer gameplay notes are still needed before implementation. |
+| 2 | Irelia, Blade Dancer | 8% meta, 54% win, 1637 decks | Blocked | 2 Riftbound.gg guide lists extracted | `Charm`, `Defiant Dance`, `Flash`, `Hard Bargain`, `Heart of Dark Ice`, plus Partial Battlefield/Legend/Champion text. |
+| 3 | Diana, Scorn of the Moon | 7% meta, 54% win, 1438 decks | Blocked | 3 Riftbound.gg guide lists extracted | `Abandon`, `Flash`, `Hard Bargain`, `Invert Timelines`, `The Syren`, and multiple interaction-heavy Partial effects. This remains the recommended next support target. |
+| 4 | LeBlanc, Deceiver | 7% meta, 52% win, 1376 decks | Blocked | 3 Riftbound.gg guide lists extracted | `Cull the Weak`, `Deadly Flourish`, `Hidden Blade`, `Imperial Decree`, `Mirror Image`. |
+| 5 | Vex, Gloomist | 5% meta, 46% win, 971 decks | Blocked | 3 Riftbound.gg guide lists extracted | `Abandon`, `Blast Cone`, `Charm`, `Emperor's Divide`, plus one unresolved/Not Audited Allay variant. |
+| 6 | Azir, Emperor of the Sands | 4% meta, 51% win, 728 decks | Blocked | 1 Riftbound.gg guide list extracted | `Charm`, `Cull the Weak`, `Facebreaker`, `Hidden Blade`, `Wind Wall`. |
+| Additional | Sivir, Battle Mistress | not in supplied screenshot | Blocked | 1 Riftbound.gg guide list extracted | `Dazzling Aurora`, `Flurry of Blades`, `Lunar Boon`, `Pack of Wonders`, `Sabotage`. |
+| Aurora bucket | Annie, Dark Child / Miss Fortune | reviewer signal | Blocked / Missing MF list | Annie guide list extracted; Miss Fortune list still needed | Annie blockers include `Factory Recall`, `Flash`, `Hard Bargain`, `Switcheroo`, `Thermo Beam`; Miss Fortune is not audited without a real list. |
+
 | Card name | Starter deck | Type | Current status | Implementation bucket | Actionable note |
 | --- | --- | --- | --- | --- | --- |
 | Irelia - Blade Dancer | Irelia Tempo | Legend | Partial | Legend text | Needs legend activated/triggered readying hooks and payment prompts. |

@@ -1,0 +1,672 @@
+{
+  "sourceFilename": "draven_wins_new_zealand_10k_open.txt",
+  "parsedAt": "2026-06-19",
+  "entries": [
+    {
+      "sourceLine": 1,
+      "quantity": 1,
+      "originalName": "Draven - Glorious Executioner",
+      "sourceCardId": "SFD-185",
+      "sourceSetCode": "SFD",
+      "section": "Legend",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bdad308c64675ca883a",
+          "name": "Draven - Glorious Executioner",
+          "type": "Legend",
+          "set": "Spiritforged",
+          "rulesText": "When you win a combat, draw 1. (You win if only your units remain after combat.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Legend text"
+    },
+    {
+      "sourceLine": 2,
+      "quantity": 6,
+      "originalName": "Fury Rune",
+      "sourceCardId": "OGN-007",
+      "sourceSetCode": "OGN",
+      "section": "Rune Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc6d308c64675ca86bc",
+          "name": "Fury Rune",
+          "type": "Rune",
+          "set": "Origins",
+          "rulesText": null
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Rune/payment"
+    },
+    {
+      "sourceLine": 3,
+      "quantity": 1,
+      "originalName": "Treasure Hoard",
+      "sourceCardId": "SFD-220",
+      "sourceSetCode": "SFD",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bded308c64675ca8883",
+          "name": "Treasure Hoard",
+          "type": "Battlefield",
+          "set": "Spiritforged",
+          "rulesText": "When you conquer here, you may pay :rb_energy_1: to play a Gold gear token exhausted."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 4,
+      "quantity": 1,
+      "originalName": "Forge of the Fluft",
+      "sourceCardId": "SFD-208",
+      "sourceSetCode": "SFD",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be7d308c64675ca8933",
+          "name": "Forge of the Fluft",
+          "type": "Battlefield",
+          "set": "Spiritforged",
+          "rulesText": "While you control this battlefield, friendly legends have &quot;:rb_exhaust:: Attach an Equipment you control to a unit you control.&quot;"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 5,
+      "quantity": 3,
+      "originalName": "Spinning Axe",
+      "sourceCardId": "SFD-186",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bdad308c64675ca882f",
+          "name": "Spinning Axe",
+          "type": "Gear",
+          "set": "Spiritforged",
+          "rulesText": "[Quick-Draw] (This has [Reaction]. When you play it, attach it to a unit you control.)[Equip] :rb_rune_rainbow: (:rb_rune_rainbow:: Attach this to a unit you control.)[Temporary] (If this is unattached, kill it at the start of its controller's Beginning Phase, before scoring.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Equipment: Quick-Draw"
+    },
+    {
+      "sourceLine": 6,
+      "quantity": 1,
+      "originalName": "Switcheroo",
+      "sourceCardId": "SFD-145",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bded308c64675ca887b",
+          "name": "Switcheroo",
+          "type": "Spell",
+          "set": "Spiritforged",
+          "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)[Action] (Play on your turn or in showdowns.)Swap the Might of two units at the same battlefield this turn."
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "sourceLine": 7,
+      "quantity": 1,
+      "originalName": "Edge of Night",
+      "sourceCardId": "SFD-139",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be3d308c64675ca88dd",
+          "name": "Edge of Night",
+          "type": "Gear",
+          "set": "Spiritforged",
+          "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)When you play this from face down, attach it to a unit you control (here).[Equip] :rb_rune_chaos: (:rb_rune_chaos:: Attach this to a unit you control.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 8,
+      "quantity": 1,
+      "originalName": "Hard Bargain",
+      "sourceCardId": "SFD-136",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be2d308c64675ca88cb",
+          "name": "Hard Bargain",
+          "type": "Spell",
+          "set": "Spiritforged",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)[Repeat] :rb_energy_2: (You may pay the additional cost to repeat this spell's effect.)Counter a spell unless its controller pays :rb_energy_2:."
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 9,
+      "quantity": 2,
+      "originalName": "Treasure Hunter",
+      "sourceCardId": "SFD-130",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bdcd308c64675ca8863",
+          "name": "Treasure Hunter",
+          "type": "Unit",
+          "set": "Spiritforged",
+          "rulesText": "When I move, play a Gold gear token exhausted."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Movement / location"
+    },
+    {
+      "sourceLine": 10,
+      "quantity": 3,
+      "originalName": "Overzealous Fan",
+      "sourceCardId": "SFD-128",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bdad308c64675ca883b",
+          "name": "Overzealous Fan",
+          "type": "Unit",
+          "set": "Spiritforged",
+          "rulesText": "When I defend, you may kill me to move an attacking unit to its base."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Movement / location"
+    },
+    {
+      "sourceLine": 11,
+      "quantity": 3,
+      "originalName": "Ferrous Forerunner",
+      "sourceCardId": "SFD-021",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bdfd308c64675ca8897",
+          "name": "Ferrous Forerunner",
+          "type": "Unit",
+          "set": "Spiritforged",
+          "rulesText": "[Deathknell] — Play two 3 :rb_might: Mech unit tokens to your base. (When I die, get the effect.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Token creation"
+    },
+    {
+      "sourceLine": 12,
+      "quantity": 1,
+      "originalName": "Targon's Peak",
+      "sourceCardId": "OGN-289",
+      "sourceSetCode": "OGN",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd6d308c64675ca87ee",
+          "name": "Targon's Peak",
+          "type": "Battlefield",
+          "set": "Origins",
+          "rulesText": "When you conquer here, ready up to 2 runes at the end of this turn."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 13,
+      "quantity": 3,
+      "originalName": "Tideturner",
+      "sourceCardId": "OGN-199",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd1d308c64675ca8791",
+          "name": "Tideturner",
+          "type": "Unit",
+          "set": "Origins",
+          "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)When you play me, you may choose a unit you control at another location. Move me to its location and it to my original location."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: Hidden foundation exists, but later hidden play timing and the on-play location swap are not implemented yet.",
+        "blocked": false
+      },
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "sourceLine": 14,
+      "quantity": 3,
+      "originalName": "Stacked Deck",
+      "sourceCardId": "OGN-183",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd0d308c64675ca877f",
+          "name": "Stacked Deck",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Action] (Play on your turn or in showdowns.)Look at the top 3 cards of your Main Deck. Put 1 into your hand and recycle the rest."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: opens the narrow alpha chain, then resolves into a private top-3 choice; official ordering and broader timing remain incomplete.",
+        "blocked": false
+      },
+      "bucket": "Draw / reveal / deck selection"
+    },
+    {
+      "sourceLine": 15,
+      "quantity": 1,
+      "originalName": "Cleave",
+      "sourceCardId": "OGN-004",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc6d308c64675ca86b9",
+          "name": "Cleave",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Action] (Play on your turn or in showdowns.)Give a unit [Assault 3] this turn. (+3 :rb_might: while it's an attacker.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Triggered/static card text"
+    },
+    {
+      "sourceLine": 16,
+      "quantity": 2,
+      "originalName": "Rebuke",
+      "sourceCardId": "OGN-172",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd0d308c64675ca8774",
+          "name": "Rebuke",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Action] (Play on your turn or in showdowns.)Return a unit at a battlefield to its owner's hand."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Bounce / return"
+    },
+    {
+      "sourceLine": 17,
+      "quantity": 6,
+      "originalName": "Chaos Rune",
+      "sourceCardId": "OGN-166",
+      "sourceSetCode": "OGN",
+      "section": "Rune Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd0d308c64675ca876d",
+          "name": "Chaos Rune",
+          "type": "Rune",
+          "set": "Origins",
+          "rulesText": null
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "bucket": "Rune/payment"
+    },
+    {
+      "sourceLine": 18,
+      "quantity": 3,
+      "originalName": "Kai'Sa - Survivor",
+      "sourceCardId": "OGN-039",
+      "sourceSetCode": "OGN",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc8d308c64675ca86df",
+          "name": "Kai'Sa - Survivor",
+          "type": "Champion",
+          "set": "Origins",
+          "rulesText": "[Accelerate] (You may pay :rb_energy_1::rb_rune_fury: as an additional cost to have me enter ready.)When I conquer, draw 1."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 19,
+      "quantity": 3,
+      "originalName": "Noxus Hopeful",
+      "sourceCardId": "OGN-012",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc7d308c64675ca86c2",
+          "name": "Noxus Hopeful",
+          "type": "Unit",
+          "set": "Origins",
+          "rulesText": "[Legion] — I cost :rb_energy_2: less. (Get the effect if you've played another card this turn.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Triggered/static card text"
+    },
+    {
+      "sourceLine": 20,
+      "quantity": 2,
+      "originalName": "Falling Star",
+      "sourceCardId": "OGN-029",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc8d308c64675ca86d4",
+          "name": "Falling Star",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "Deal 3 to a unit.Deal 3 to a unit."
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Basic or descriptor-only"
+    },
+    {
+      "sourceLine": 21,
+      "quantity": 1,
+      "originalName": "Draven - Showboat",
+      "sourceCardId": "OGN-028",
+      "sourceSetCode": "OGN",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc8d308c64675ca86d3",
+          "name": "Draven - Showboat",
+          "type": "Champion",
+          "set": "Origins",
+          "rulesText": "My Might is increased by your points."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 22,
+      "quantity": 3,
+      "originalName": "Ride the Wind",
+      "sourceCardId": "OGN-173",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd0d308c64675ca8775",
+          "name": "Ride The Wind",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Action] (Play on your turn or in showdowns.)Move a friendly unit and ready it."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Movement / location"
+    },
+    {
+      "sourceLine": 23,
+      "quantity": 3,
+      "originalName": "Darius - Trifarian",
+      "sourceCardId": "OGN-027",
+      "sourceSetCode": "OGN",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc8d308c64675ca86d1",
+          "name": "Darius - Trifarian",
+          "type": "Champion",
+          "set": "Origins",
+          "rulesText": "When you play your second card in a turn, give me +2 :rb_might: this turn and ready me."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 24,
+      "quantity": 2,
+      "originalName": "Brynhir Thundersong",
+      "sourceCardId": "OGN-026",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc7d308c64675ca86d0",
+          "name": "Brynhir Thundersong",
+          "type": "Unit",
+          "set": "Origins",
+          "rulesText": "When you play me, opponents can't play cards this turn."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Triggered/static card text"
+    }
+  ],
+  "malformedLines": [],
+  "validation": {
+    "totalCards": 56,
+    "legendCount": 1,
+    "championCandidateCount": 7,
+    "inferredMainDeckCount": 39,
+    "runeCount": 12,
+    "battlefieldCount": 3,
+    "validConstructedShape": true,
+    "issues": []
+  },
+  "supportSummary": {
+    "uniqueCards": 24,
+    "counts": {
+      "SUPPORTED": 1,
+      "PARTIAL": 20,
+      "UNSUPPORTED": 3,
+      "BANNED": 0,
+      "NOT_AUDITED": 0
+    },
+    "canUseInEnforced": false,
+    "unresolvedCards": [],
+    "topBlockers": [
+      {
+        "cardName": "Switcheroo",
+        "sourceCardId": "SFD-145",
+        "status": "UNSUPPORTED",
+        "bucket": "Hidden / facedown",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Hard Bargain",
+        "sourceCardId": "SFD-136",
+        "status": "UNSUPPORTED",
+        "bucket": "Reaction / chain / counter",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Falling Star",
+        "sourceCardId": "OGN-029",
+        "status": "UNSUPPORTED",
+        "bucket": "Basic or descriptor-only",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Draven - Glorious Executioner",
+        "sourceCardId": "SFD-185",
+        "status": "PARTIAL",
+        "bucket": "Legend text",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      },
+      {
+        "cardName": "Fury Rune",
+        "sourceCardId": "OGN-007",
+        "status": "PARTIAL",
+        "bucket": "Rune/payment",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      }
+    ]
+  },
+  "archetype": "Draven, Glorious Executioner",
+  "key": "draven",
+  "eventResult": "draven wins new zealand 10k open",
+  "priority": "Additional meta data",
+  "rawSourceFile": "decks/meta/raw/draven_wins_new_zealand_10k_open.txt",
+  "normalizedFile": "decks/meta/normalized/draven_wins_new_zealand_10k_open.json"
+}

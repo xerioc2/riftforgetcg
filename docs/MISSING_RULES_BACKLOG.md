@@ -115,6 +115,19 @@ Sources checked:
 
 ## P2: Needed for Broader Card Pool
 
+### Meta Deck Audits
+
+These are support-audit tasks, not card-effect implementation claims. Do not
+invent decklists or mark an archetype supported until an extracted/supplied list
+is audited through the existing support pipeline.
+
+| Item | Status | Why it matters | Likely files | Suggested first test |
+| --- | --- | --- | --- | --- |
+| Diana interaction audit | Done / implementation next | Three Diana Riftbound.gg guide lists plus the uploaded Suzhou list are extracted and Blocked. Repeated blockers include unsupported Reactions/interaction such as `Abandon`, `Flash`, `Hard Bargain`, plus draw/deck-selection and Gear effects. | `docs/META_DECK_SUPPORT.md`, `docs/meta/diana.md`, `docs/meta/diana-uploaded.md`, `decks/meta/normalized/`, `scripts/import-uploaded-meta-decks.mjs` | Pick one repeated Diana blocker and add exact card support/tests without broadening timing globally. |
+| Aurora deck mechanics audit | Partial | Annie has guide and uploaded lists, both Blocked; uploaded Annie also needs local cache support for `OGS-017 Annie - Dark Child - Starter`. Miss Fortune still needs a real list/URL before shared Aurora blockers can be trusted. | `docs/META_DECK_SUPPORT.md`, `docs/meta/annie.md`, `docs/meta/annie-uploaded.md`, future Miss Fortune list | Add Miss Fortune list, then identify shared Annie/MF blockers before implementation. |
+| Master Yi representative-list audit | Partial | Master Yi guide and uploaded lists exist, but uploaded `OGS-019 Master Yi - Wuju Bladesman - Starter` is missing from local cache and gameplay notes are still needed before choosing support work. | `docs/META_DECK_SUPPORT.md`, `docs/meta/master-yi.md`, `docs/meta/master-yi-uploaded.md`, `decks/meta/normalized/` | Review gameplay notes against extracted/uploaded lists before any implementation sprint. |
+| LeBlanc/Vex/Azir/Sivir/Fiora/Draven uploaded audits | Done / deferred | Uploaded lists are parsed and audited. All are Blocked; Vex also needs shape review and `UNL-041 Allay - Eager Admirer` local card-cache resolution. | `docs/meta/UPLOADED_META_DECKS.md`, `decks/meta/raw/`, `decks/meta/normalized/` | Use generated blocker lists when playtester demand rises. |
+
 ### XP / Hunt / Level / Buff
 
 | Item | Status | Why it matters | Likely files | Suggested first test |
