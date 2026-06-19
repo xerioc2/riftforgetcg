@@ -331,6 +331,9 @@ Current implementation notes:
   attached Gear modifiers. It only applies modifiers listed in explicit support
   metadata; current audited starter Gear has no stat-modifier entry, so no
   bonus is inferred from raw rules text.
+- Server projections expose printed/effective Might, max HP, marked damage, and
+  stat-modifier labels for public Unit/Champion cards only. Private hand/deck,
+  hidden, and face-down cards do not gain derived stat fields in projection.
 - Gear cannot move to the battlefield or fight as a unit.
 - Non-equip gear is treated as unsupported.
 - Gear attached to a unit/champion returns to Base and detaches when its host

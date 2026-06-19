@@ -87,6 +87,12 @@ public class CombatStatsService {
         equipmentModifiers);
   }
 
+  public boolean hasCombatStats(CardInstance card) {
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    return def != null
+        && ("Unit".equalsIgnoreCase(def.type()) || "Champion".equalsIgnoreCase(def.type()));
+  }
+
   public boolean isMighty(CardInstance card) {
     return isMighty(card, CombatContext.IDLE);
   }

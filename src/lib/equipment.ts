@@ -10,6 +10,8 @@ export type EquipmentStatModifier = {
   maxHealthBonus: number;
 };
 
+// Server-projected effective stats are authoritative. This client registry stays
+// empty in production and exists only as a display fallback for unprojected/test data.
 export const EQUIPMENT_STAT_MODIFIERS: Record<string, EquipmentStatModifier> = {};
 
 export function normalizeEquipDomain(domain: string) {

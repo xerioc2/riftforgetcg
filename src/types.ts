@@ -148,6 +148,12 @@ export type CardInstance = {
   currentHealth?: number;
   mightBonus?: number;
   temporaryPowerModifier?: number;
+  printedMight?: number | null;
+  printedHealth?: number | null;
+  effectiveMight?: number | null;
+  effectiveMaxHealth?: number | null;
+  markedDamage?: number | null;
+  statModifierLabels?: string[];
   attachedToInstanceId?: string | null;
   hasSummoningSickness?: boolean;
 };

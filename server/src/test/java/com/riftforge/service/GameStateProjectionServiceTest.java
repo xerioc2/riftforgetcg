@@ -1,8 +1,14 @@
 package com.riftforge.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.riftforge.engine.CombatStatsService;
+import com.riftforge.engine.EquipmentStatModifierRegistry;
 import com.riftforge.model.CardDefinition;
 import com.riftforge.model.CardInstance;
 import com.riftforge.model.GameMode;
@@ -109,6 +115,75 @@ class GameStateProjectionServiceTest {
     assertAttachedGearIsPublic(ownerView);
     assertAttachedGearIsPublic(opponentView);
     assertAttachedGearIsPublic(spectatorView);
+  }
+
+  @Test
+  void publicUnitProjectionIncludesServerEffectiveStats() {
+    CardInstance host = card("host", "p1", "host-unit", ZoneName.BATTLEFIELD);
+    host.setCurrentHealth(3);
+    CardInstance gear = card("gear", "p1", "might-gear", ZoneName.BASE);
+    gear.setAttachedToInstanceId("host");
+    LiveGameState state = state(host, gear);
+    GameStateProjectionService statProjection = projectionServiceWithStats(Map.of(
+        "might-gear", new EquipmentStatModifierRegistry.StatModifier(2, 1)));
+
+    CardInstance projected = statProjection.toPublicView(state, "p2").getCards().stream()
+        .filter(card -> "host".equals(card.getInstanceId()))
+        .findFirst()
+        .orElseThrow();
+
+    assertThat(projected.getPrintedMight()).isEqualTo(3);
+    assertThat(projected.getPrintedHealth()).isEqualTo(4);
+    assertThat(projected.getEffectiveMight()).isEqualTo(5);
+    assertThat(projected.getEffectiveMaxHealth()).isEqualTo(5);
+    assertThat(projected.getCurrentHealth()).isEqualTo(3);
+    assertThat(projected.getMarkedDamage()).isEqualTo(2);
+    assertThat(projected.getStatModifierLabels()).containsExactly("Might Gear: +2 Might", "Might Gear: +1 max HP");
+  }
+
+  @Test
+  void unsupportedAttachedGearDoesNotCreateProjectedStatModifier() {
+    CardInstance host = card("host", "p1", "host-unit", ZoneName.BATTLEFIELD);
+    CardInstance gear = card("gear", "p1", "unsupported-gear", ZoneName.BASE);
+    gear.setAttachedToInstanceId("host");
+    LiveGameState state = state(host, gear);
+
+    CardInstance projected = projectionServiceWithStats(Map.of()).toPublicView(state, "p2").getCards().stream()
+        .filter(card -> "host".equals(card.getInstanceId()))
+        .findFirst()
+        .orElseThrow();
+
+    assertThat(projected.getEffectiveMight()).isEqualTo(3);
+    assertThat(projected.getEffectiveMaxHealth()).isEqualTo(4);
+    assertThat(projected.getStatModifierLabels()).isEmpty();
+  }
+
+  @Test
+  void effectiveStatsAreOnlyProjectedForPublicVisibleCombatants() throws Exception {
+    LiveGameState state = state(
+        handCard("own-hand", "p1", "host-unit"),
+        card("own-hidden", "p1", "host-unit", ZoneName.HIDDEN),
+        card("face-down", "p1", "host-unit", ZoneName.BATTLEFIELD),
+        card("public-gear", "p1", "might-gear", ZoneName.BASE));
+    state.getCards().stream()
+        .filter(card -> "face-down".equals(card.getInstanceId()))
+        .findFirst()
+        .orElseThrow()
+        .setFaceDown(true);
+    GameStateProjectionService statProjection = projectionServiceWithStats(Map.of(
+        "might-gear", new EquipmentStatModifierRegistry.StatModifier(2, 1)));
+
+    LiveGameState view = statProjection.toPublicView(state, "p1");
+
+    assertThat(view.getCards()).allSatisfy(card -> {
+      assertThat(card.getPrintedMight()).isNull();
+      assertThat(card.getEffectiveMight()).isNull();
+      assertThat(card.getEffectiveMaxHealth()).isNull();
+      assertThat(card.getMarkedDamage()).isNull();
+      assertThat(card.getStatModifierLabels()).isEmpty();
+    });
+    assertThat(objectMapper.writeValueAsString(statProjection.toPublicView(state, null)))
+        .doesNotContain("\"printedMight\":3", "\"effectiveMight\":3", "\"effectiveMaxHealth\":4");
   }
 
   @Test
@@ -932,6 +1007,22 @@ class GameStateProjectionServiceTest {
 
   private CardDefinition cardDef(String id, String name) {
     return new CardDefinition(id, name, "Unit", null, List.of(), 0, 1, null, null, null, "Private rules text", 1, 1, List.of());
+  }
+
+  private GameStateProjectionService projectionServiceWithStats(
+      Map<String, EquipmentStatModifierRegistry.StatModifier> modifiersByCardId) {
+    CardDataService cardDataService = mock(CardDataService.class);
+    when(cardDataService.getCard("host-unit"))
+        .thenReturn(new CardDefinition("host-unit", "Host Unit", "Unit", null, List.of(), 0, 0, null, null, null, "", 3, 4, List.of()));
+    when(cardDataService.getCard("might-gear"))
+        .thenReturn(new CardDefinition("might-gear", "Might Gear", "Gear", null, List.of(), 0, 0, null, null, null, "[Equip]", 0, 0, List.of()));
+    when(cardDataService.getCard("unsupported-gear"))
+        .thenReturn(new CardDefinition("unsupported-gear", "Unsupported Gear", "Gear", null, List.of(), 0, 0, null, null, null, "[Equip]", 0, 0, List.of()));
+    when(cardDataService.getKeywordValue(any(CardInstance.class), anyString())).thenReturn(0);
+    when(cardDataService.hasKeyword(any(CardInstance.class), anyString())).thenReturn(false);
+    return new GameStateProjectionService(
+        new LegalActionsService(),
+        new CombatStatsService(cardDataService, new EquipmentStatModifierRegistry(modifiersByCardId)));
   }
 
   private PlayerState playerView(LiveGameState view, String playerId) {

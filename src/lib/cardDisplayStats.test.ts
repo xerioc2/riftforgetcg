@@ -48,6 +48,31 @@ describe('cardDisplayStats', () => {
     expect(stats.mightModified).toBe(true);
   });
 
+  it('prefers server-projected effective stats over local fallback math', () => {
+    const host = instance({
+      printedMight: 3,
+      printedHealth: 4,
+      effectiveMight: 7,
+      effectiveMaxHealth: 6,
+      currentHealth: 5,
+      markedDamage: 1,
+      statModifierLabels: ['Server Gear: +4 Might', 'Server Gear: +2 max HP'],
+      mightBonus: 1,
+      temporaryPowerModifier: 1,
+    });
+
+    const stats = cardDisplayStats(unit(), host);
+
+    expect(stats.baseMight).toBe(3);
+    expect(stats.effectiveMight).toBe(7);
+    expect(stats.effectiveMaxHealth).toBe(6);
+    expect(stats.currentHealth).toBe(5);
+    expect(stats.markedDamage).toBe(1);
+    expect(stats.mightLabel).toBe('Might 3 -> 7');
+    expect(stats.healthLabel).toBe('5/4->6 HP');
+    expect(stats.equipmentModifierLabels).toEqual(['Server Gear: +4 Might', 'Server Gear: +2 max HP']);
+  });
+
   it('shows marked damage from current health', () => {
     const stats = cardDisplayStats(unit(), instance({ currentHealth: 2 }));
 

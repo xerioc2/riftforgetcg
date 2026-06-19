@@ -41,6 +41,13 @@ export type DebugInfoPayload = {
     battlefieldLocationId: string | null;
     attachedToInstanceId: string | null;
     faceDown: boolean;
+    printedMight: number | null;
+    printedHealth: number | null;
+    effectiveMight: number | null;
+    effectiveMaxHealth: number | null;
+    currentHealth: number | null;
+    markedDamage: number | null;
+    statModifierLabels: string[];
   }>;
   cardZoneCounts: Record<string, number>;
   chainState: {
@@ -155,6 +162,13 @@ export function buildDebugInfo({
         battlefieldLocationId: card.battlefieldLocationId ?? null,
         attachedToInstanceId: card.attachedToInstanceId ?? null,
         faceDown: card.faceDown,
+        printedMight: card.faceDown ? null : card.printedMight ?? null,
+        printedHealth: card.faceDown ? null : card.printedHealth ?? null,
+        effectiveMight: card.faceDown ? null : card.effectiveMight ?? null,
+        effectiveMaxHealth: card.faceDown ? null : card.effectiveMaxHealth ?? null,
+        currentHealth: card.faceDown ? null : card.currentHealth ?? null,
+        markedDamage: card.faceDown ? null : card.markedDamage ?? null,
+        statModifierLabels: card.faceDown ? [] : card.statModifierLabels ?? [],
       })) ?? [],
     cardZoneCounts: state?.cards.reduce<Record<string, number>>((counts, card) => {
       const key = `${card.ownerId}:${card.zone}`;

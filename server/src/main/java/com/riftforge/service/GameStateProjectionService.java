@@ -1,5 +1,7 @@
 package com.riftforge.service;
 
+import com.riftforge.engine.CombatStatsService;
+import com.riftforge.engine.CombatStatsService.CombatContext;
 import com.riftforge.model.CardInstance;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.PendingChoice;
@@ -14,15 +16,23 @@ import java.util.Set;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Objects;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class GameStateProjectionService {
   public static final String HIDDEN_CARD_ID = "hidden";
   private final LegalActionsService legalActionsService;
+  private final CombatStatsService combatStatsService;
 
   public GameStateProjectionService(LegalActionsService legalActionsService) {
+    this(legalActionsService, null);
+  }
+
+  @Autowired
+  public GameStateProjectionService(LegalActionsService legalActionsService, CombatStatsService combatStatsService) {
     this.legalActionsService = legalActionsService;
+    this.combatStatsService = combatStatsService;
   }
 
   public LiveGameState toPublicView(LiveGameState state, String viewerPlayerId) {
@@ -51,7 +61,7 @@ public class GameStateProjectionService {
         .map(this::copyRevealedHand)
         .toList());
     view.setCards(state.getCards().stream()
-        .map(card -> copyCardForViewer(card, viewerPlayerId))
+        .map(card -> copyCardForViewer(state, card, viewerPlayerId))
         .toList());
     view.setLog(state.getLog().stream()
         .filter(entry -> canSeeLogEntry(entry, viewerPlayerId))
@@ -59,18 +69,57 @@ public class GameStateProjectionService {
     return view;
   }
 
-  private CardInstance copyCardForViewer(CardInstance card, String viewerPlayerId) {
+  private CardInstance copyCardForViewer(LiveGameState state, CardInstance card, String viewerPlayerId) {
     CardInstance copy = new CardInstance(card);
     if ((card.getZone() == ZoneName.HAND || card.getZone() == ZoneName.HIDDEN)
         && !Objects.equals(card.getOwnerId(), viewerPlayerId)) {
       copy.setCardId(HIDDEN_CARD_ID);
       copy.setCurrentHealth(0);
       copy.setFaceDown(true);
+      copy.clearProjectedStats();
     }
     if (card.isFaceDown() && !Objects.equals(card.getOwnerId(), viewerPlayerId)) {
       copy.setBattlefieldLocationId(null);
+      copy.clearProjectedStats();
+    }
+    if (!shouldProjectEffectiveStats(copy)) {
+      copy.clearProjectedStats();
+    } else {
+      projectEffectiveStats(state, copy);
     }
     return copy;
+  }
+
+  private boolean shouldProjectEffectiveStats(CardInstance card) {
+    if (combatStatsService == null || card.isFaceDown()) return false;
+    if (card.getZone() != ZoneName.BASE && card.getZone() != ZoneName.BATTLEFIELD) return false;
+    return combatStatsService.hasCombatStats(card);
+  }
+
+  private void projectEffectiveStats(LiveGameState state, CardInstance card) {
+    CombatStatsService.EffectiveStats stats = combatStatsService.effectiveStats(state, card, CombatContext.IDLE);
+    card.setPrintedMight(stats.printedMight());
+    card.setPrintedHealth(stats.printedMaxHealth());
+    card.setEffectiveMight(stats.effectiveMight());
+    card.setEffectiveMaxHealth(stats.effectiveMaxHealth());
+    card.setCurrentHealth(stats.currentHealth());
+    card.setMarkedDamage(stats.markedDamage());
+    card.setStatModifierLabels(stats.modifiers().stream()
+        .flatMap(modifier -> {
+          ArrayList<String> labels = new ArrayList<>();
+          if (modifier.mightBonus() != 0) {
+            labels.add(modifier.sourceName() + ": " + signed(modifier.mightBonus()) + " Might");
+          }
+          if (modifier.maxHealthBonus() != 0) {
+            labels.add(modifier.sourceName() + ": " + signed(modifier.maxHealthBonus()) + " max HP");
+          }
+          return labels.stream();
+        })
+        .toList());
+  }
+
+  private String signed(int value) {
+    return value > 0 ? "+" + value : Integer.toString(value);
   }
 
   private boolean canSeeLogEntry(LiveGameState.LogEntry entry, String viewerPlayerId) {
