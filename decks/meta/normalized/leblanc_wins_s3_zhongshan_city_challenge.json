@@ -1,0 +1,597 @@
+{
+  "sourceFilename": "leblanc_wins_s3_zhongshan_city_challenge.txt",
+  "parsedAt": "2026-06-19",
+  "entries": [
+    {
+      "sourceLine": 1,
+      "quantity": 1,
+      "originalName": "LeBlanc - Deceiver",
+      "sourceCardId": "UNL-199",
+      "sourceSetCode": "UNL",
+      "section": "Legend",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be9d308c64675ca895d",
+          "name": "LeBlanc - Deceiver",
+          "type": "Legend",
+          "set": "Unleashed",
+          "rulesText": "When you conquer or hold, you may discard 1 and exhaust me to play a ready Reflection unit token there. It becomes a copy of another unit there. Give it [Temporary]."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Legend text"
+    },
+    {
+      "sourceLine": 2,
+      "quantity": 3,
+      "originalName": "Ruined Rex",
+      "sourceCardId": "UNL-067",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69c5be69bf82ff7cb69f4290",
+          "name": "Ruined Rex",
+          "type": "Unit",
+          "set": "Unleashed",
+          "rulesText": "[Deathknell][&gt;] Deal 4 to an enemy unit. (When I die, get the effect.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Triggered/static card text"
+    },
+    {
+      "sourceLine": 3,
+      "quantity": 1,
+      "originalName": "Star Spring",
+      "sourceCardId": "UNL-215",
+      "sourceSetCode": "UNL",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69c4407d9288b1e85d94de9e",
+          "name": "Star Spring",
+          "type": "Battlefield",
+          "set": "Unleashed",
+          "rulesText": "The first time a player plays a non-token unit here each turn, they may move another unit they control here to its base."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 4,
+      "quantity": 1,
+      "originalName": "Dusk Rose Lab",
+      "sourceCardId": "UNL-209",
+      "sourceSetCode": "UNL",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bff35658d0fbca04e93722",
+          "name": "Dusk Rose Lab",
+          "type": "Battlefield",
+          "set": "Unleashed",
+          "rulesText": "At the start of your Beginning Phase, you may kill a unit you control here to draw 1. (This happens before scoring.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 5,
+      "quantity": 3,
+      "originalName": "Mirror Image",
+      "sourceCardId": "UNL-200",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bead308c64675ca895e",
+          "name": "Mirror Image",
+          "type": "Spell",
+          "set": "Unleashed",
+          "rulesText": "Choose a unit. Play a ready Reflection unit token to your base. It becomes a copy of that unit. Give it [Temporary]. (Kill it at the start of its controller's Beginning Phase, before scoring.)"
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Damage / destroy"
+    },
+    {
+      "sourceLine": 6,
+      "quantity": 2,
+      "originalName": "Vi - Peacekeeper",
+      "sourceCardId": "UNL-176",
+      "sourceSetCode": "UNL",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69c4407d9288b1e85d94de98",
+          "name": "Vi - Peacekeeper",
+          "type": "Champion",
+          "set": "Unleashed",
+          "rulesText": "[Ambush] (You may play me as a [Reaction] to a battlefield where you have units.)When I attack, [Stun] an enemy unit here. (It doesn't deal combat damage this turn.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 7,
+      "quantity": 2,
+      "originalName": "Sacrifice",
+      "sourceCardId": "UNL-173",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bead308c64675ca896b",
+          "name": "Sacrifice",
+          "type": "Spell",
+          "set": "Unleashed",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)As an additional cost to play this, kill a friendly [Mighty] unit. (A unit is Mighty while it has 5+ :rb_might:.)Draw 2 and channel 1 rune exhausted."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 8,
+      "quantity": 3,
+      "originalName": "LeBlanc - Fragmented",
+      "sourceCardId": "UNL-172",
+      "sourceSetCode": "UNL",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69c43cd3c2f7428c5d24b4f2",
+          "name": "LeBlanc - Fragmented",
+          "type": "Champion",
+          "set": "Unleashed",
+          "rulesText": "[Assault] (+1 :rb_might: while I'm an attacker.)[Deathknell][&gt;] Draw 1. If it's your Beginning Phase, draw 2 instead. (When I die, get the effect.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 9,
+      "quantity": 3,
+      "originalName": "Carrion Dredger",
+      "sourceCardId": "UNL-153",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69c8378e2c3db56eb7d760d6",
+          "name": "Carrion Dredger",
+          "type": "Unit",
+          "set": "Unleashed",
+          "rulesText": "[Deathknell][&gt;] Play a 1 :rb_might: Bird unit token with [Deflect] to your base. (When I die, get the effect. Opponents must pay :rb_rune_rainbow: to choose a [Deflect] unit with a spell or ability.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Token creation"
+    },
+    {
+      "sourceLine": 10,
+      "quantity": 2,
+      "originalName": "Deadly Flourish",
+      "sourceCardId": "UNL-073",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bd162140ff39fe1396df8d",
+          "name": "Deadly Flourish",
+          "type": "Spell",
+          "set": "Unleashed",
+          "rulesText": "Deal 3 to an enemy unit. When it dies this turn, play a Gold gear token exhausted. (It has &quot;[Reaction][&gt;] Kill this, :rb_exhaust:: [Add] :rb_rune_rainbow:.&quot;)"
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 11,
+      "quantity": 5,
+      "originalName": "Mind Rune",
+      "sourceCardId": "OGN-089",
+      "sourceSetCode": "OGN",
+      "section": "Rune Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bcbd308c64675ca8718",
+          "name": "Mind Rune",
+          "type": "Rune",
+          "set": "Origins",
+          "rulesText": null
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Rune/payment"
+    },
+    {
+      "sourceLine": 12,
+      "quantity": 3,
+      "originalName": "Glasc Mixologist",
+      "sourceCardId": "SFD-165",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be2d308c64675ca88c7",
+          "name": "Glasc Mixologist",
+          "type": "Unit",
+          "set": "Spiritforged",
+          "rulesText": "[Deathknell] — You may play a unit with cost no more than :rb_energy_3: and no more than :rb_rune_rainbow: from your trash, ignoring its cost. (When I die, get the effect.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Triggered/static card text"
+    },
+    {
+      "sourceLine": 13,
+      "quantity": 3,
+      "originalName": "Deathgrip",
+      "sourceCardId": "SFD-163",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be7d308c64675ca892d",
+          "name": "Deathgrip",
+          "type": "Spell",
+          "set": "Spiritforged",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Kill a friendly unit. If you do, give +:rb_might: equal to its Might to another friendly unit this turn.Draw 1."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 14,
+      "quantity": 1,
+      "originalName": "Windswept Hillock",
+      "sourceCardId": "OGN-297",
+      "sourceSetCode": "OGN",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd7d308c64675ca87f6",
+          "name": "Windswept Hillock",
+          "type": "Battlefield",
+          "set": "Origins",
+          "rulesText": "Units here have [Ganking]. (They can move from battlefield to battlefield.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 15,
+      "quantity": 3,
+      "originalName": "Karthus - Eternal",
+      "sourceCardId": "OGN-236",
+      "sourceSetCode": "OGN",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd3d308c64675ca87b9",
+          "name": "Karthus - Eternal",
+          "type": "Champion",
+          "set": "Origins",
+          "rulesText": "Your [Deathknell] effects trigger an additional time."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 16,
+      "quantity": 3,
+      "originalName": "Soaring Scout",
+      "sourceCardId": "OGN-216",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd2d308c64675ca87a5",
+          "name": "Soaring Scout",
+          "type": "Unit",
+          "set": "Origins",
+          "rulesText": "[Deathknell] — Channel 1 rune exhausted. (When I die, get the effect.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Triggered/static card text"
+    },
+    {
+      "sourceLine": 17,
+      "quantity": 7,
+      "originalName": "Order Rune",
+      "sourceCardId": "OGN-214",
+      "sourceSetCode": "OGN",
+      "section": "Rune Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd2d308c64675ca87a2",
+          "name": "Order Rune",
+          "type": "Rune",
+          "set": "Origins",
+          "rulesText": null
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "bucket": "Rune/payment"
+    },
+    {
+      "sourceLine": 18,
+      "quantity": 2,
+      "originalName": "Hidden Blade",
+      "sourceCardId": "OGN-213",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd2d308c64675ca87a1",
+          "name": "Hidden Blade",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)[Action] (Play on your turn or in showdowns.)Kill a unit at a battlefield. Its controller draws 2."
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "sourceLine": 19,
+      "quantity": 3,
+      "originalName": "Cull the Weak",
+      "sourceCardId": "OGN-209",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd2d308c64675ca879d",
+          "name": "Cull the Weak",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "Each player kills one of their units."
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Damage / destroy"
+    },
+    {
+      "sourceLine": 20,
+      "quantity": 2,
+      "originalName": "Thousand-Tailed Watcher",
+      "sourceCardId": "OGN-116",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bcdd308c64675ca8735",
+          "name": "Thousand-Tailed Watcher",
+          "type": "Unit",
+          "set": "Origins",
+          "rulesText": "[Accelerate] (You may pay :rb_energy_1::rb_rune_mind: as an additional cost to have me enter ready.)When you play me, give enemy units -3 :rb_might: this turn, to a minimum of 1 :rb_might:."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Triggered/static card text"
+    },
+    {
+      "sourceLine": 21,
+      "quantity": 3,
+      "originalName": "Watchful Sentry",
+      "sourceCardId": "OGN-096",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bccd308c64675ca8720",
+          "name": "Watchful Sentry",
+          "type": "Unit",
+          "set": "Origins",
+          "rulesText": "[Deathknell] — Draw 1. (When I die, get the effect.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Draw / reveal / deck selection"
+    }
+  ],
+  "malformedLines": [],
+  "validation": {
+    "totalCards": 56,
+    "legendCount": 1,
+    "championCandidateCount": 8,
+    "inferredMainDeckCount": 39,
+    "runeCount": 12,
+    "battlefieldCount": 3,
+    "validConstructedShape": true,
+    "issues": []
+  },
+  "supportSummary": {
+    "uniqueCards": 21,
+    "counts": {
+      "SUPPORTED": 1,
+      "PARTIAL": 16,
+      "UNSUPPORTED": 4,
+      "BANNED": 0,
+      "NOT_AUDITED": 0
+    },
+    "canUseInEnforced": false,
+    "unresolvedCards": [],
+    "topBlockers": [
+      {
+        "cardName": "Mirror Image",
+        "sourceCardId": "UNL-200",
+        "status": "UNSUPPORTED",
+        "bucket": "Damage / destroy",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Deadly Flourish",
+        "sourceCardId": "UNL-073",
+        "status": "UNSUPPORTED",
+        "bucket": "Reaction / chain / counter",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Hidden Blade",
+        "sourceCardId": "OGN-213",
+        "status": "UNSUPPORTED",
+        "bucket": "Hidden / facedown",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Cull the Weak",
+        "sourceCardId": "OGN-209",
+        "status": "UNSUPPORTED",
+        "bucket": "Damage / destroy",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "LeBlanc - Deceiver",
+        "sourceCardId": "UNL-199",
+        "status": "PARTIAL",
+        "bucket": "Legend text",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      }
+    ]
+  },
+  "archetype": "LeBlanc, Deceiver",
+  "key": "leblanc",
+  "eventResult": "leblanc wins s3 zhongshan city challenge",
+  "priority": "Later raw-meta audit",
+  "rawSourceFile": "decks/meta/raw/leblanc_wins_s3_zhongshan_city_challenge.txt",
+  "normalizedFile": "decks/meta/normalized/leblanc_wins_s3_zhongshan_city_challenge.json"
+}

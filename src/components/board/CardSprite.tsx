@@ -4,6 +4,7 @@ import type { Group as KonvaGroup } from 'konva/lib/Group';
 import { Tween } from 'konva/lib/Tween';
 import { Group, Image, Rect, Text } from 'react-konva';
 import useImage from 'use-image';
+import { cardDisplayStats } from '../../lib/cardDisplayStats';
 import type { CardInstance, RiftCard } from '../../types';
 
 const CARD_BACK_URL = 'data:image/gif;base64,R0lGODlhAQABAIABACIyMgAAACwAAAAAAQABAAACAkQBADs=';
@@ -38,6 +39,9 @@ export function CardSprite({
   selected,
   animate,
   scale = 1,
+  attachedGearNames = [],
+  allInstances,
+  cardsById,
   onHover,
 }: {
   instance: CardInstance;
@@ -50,18 +54,20 @@ export function CardSprite({
   selected: boolean;
   animate?: boolean;
   scale?: number;
+  attachedGearNames?: string[];
+  allInstances?: CardInstance[];
+  cardsById?: Map<string, RiftCard>;
   onHover?: (card: RiftCard | null, instance?: CardInstance) => void;
 }) {
-  const [image] = useImage(instance.faceDown ? CARD_BACK_URL : cardDef.imageUrl ?? '');
+  const maskedFaceDown = instance.faceDown && !isOwner;
+  const [image] = useImage(maskedFaceDown ? CARD_BACK_URL : cardDef.imageUrl ?? '');
   const groupRef = useRef<KonvaGroup | null>(null);
   const isDiscarded = instance.zone.toLowerCase() === 'discard';
   const isBoardUnit = ['base', 'battlefield'].includes(instance.zone.toLowerCase());
-  const maxHealth = cardDef.health ?? 0;
-  const currentHealth = instance.currentHealth ?? maxHealth;
-  const isDamaged = isBoardUnit && maxHealth > 0 && instance.currentHealth != null && currentHealth < maxHealth;
-  const healthRatio = maxHealth > 0 ? Math.max(0, Math.min(1, currentHealth / maxHealth)) : 0;
+  const stats = cardDisplayStats(cardDef, instance, { allInstances, cardsById });
+  const isDamaged = isBoardUnit && stats.markedDamage > 0;
+  const healthRatio = stats.maxHealth > 0 ? Math.max(0, Math.min(1, stats.currentHealth / stats.maxHealth)) : 0;
   const isSick = instance.zone.toLowerCase() === 'battlefield' && instance.hasSummoningSickness === true;
-  const effectivePower = (cardDef.power ?? 0) + (instance.mightBonus ?? 0) + (instance.temporaryPowerModifier ?? 0);
 
   useEffect(() => {
     if (!groupRef.current) return;
@@ -114,7 +120,7 @@ export function CardSprite({
       }}
       onClick={() => onClick(instance.instanceId)}
       onTap={() => onClick(instance.instanceId)}
-      onMouseEnter={() => onHover?.(instance.faceDown ? null : cardDef, instance.faceDown ? undefined : instance)}
+      onMouseEnter={() => onHover?.(maskedFaceDown ? null : cardDef, maskedFaceDown ? undefined : instance)}
       onMouseLeave={() => onHover?.(null)}
       onDblClick={() => onDoubleClick(instance.instanceId)}
       onDblTap={() => onDoubleClick(instance.instanceId)}
@@ -123,23 +129,54 @@ export function CardSprite({
         onContextMenu(instance.instanceId);
       }}
     >
-      {image && !instance.faceDown ? (
+      {image && !maskedFaceDown ? (
         <Image image={image} width={CARD_WIDTH} height={CARD_HEIGHT} cornerRadius={4} />
       ) : (
         <>
           <Rect width={CARD_WIDTH} height={CARD_HEIGHT} fill={typeFill(cardDef.type)} stroke="#2b333d" strokeWidth={1} cornerRadius={4} />
           <Rect x={2} y={2} width={16} height={16} fill="rgba(0,0,0,0.5)" cornerRadius={3} />
           <Text x={2} y={4} width={16} text={String(cardDef.cost ?? 0)} align="center" fontSize={10} fontStyle="bold" fill="#d8b05d" />
-          <Text x={2} y={24} width={CARD_WIDTH - 4} text={instance.faceDown ? '?' : cardDef.name} align="center" fontSize={9} fontStyle="bold" fill="#ffffff" wrap="word" />
-          <Text x={2} y={CARD_HEIGHT / 2 - 6} width={CARD_WIDTH - 4} text={instance.faceDown ? '' : cardDef.type ?? ''} align="center" fontSize={8} fill="rgba(255,255,255,0.5)" />
-          {!instance.faceDown && cardDef.power != null && cardDef.health != null ? (
-            <>
-              <Rect x={CARD_WIDTH - 28} y={CARD_HEIGHT - 18} width={26} height={14} fill="rgba(0,0,0,0.5)" cornerRadius={3} />
-              <Text x={CARD_WIDTH - 28} y={CARD_HEIGHT - 16} width={26} text={`${effectivePower} | ${instance.currentHealth ?? cardDef.health}`} align="center" fontSize={10} fontStyle="bold" fill="#6fd3b6" />
-            </>
-          ) : null}
+          <Text x={2} y={24} width={CARD_WIDTH - 4} text={maskedFaceDown ? '?' : cardDef.name} align="center" fontSize={9} fontStyle="bold" fill="#ffffff" wrap="word" />
+          <Text x={2} y={CARD_HEIGHT / 2 - 6} width={CARD_WIDTH - 4} text={maskedFaceDown ? '' : cardDef.type ?? ''} align="center" fontSize={8} fill="rgba(255,255,255,0.5)" />
         </>
       )}
+      {!maskedFaceDown && stats.hasCombatStats ? (
+        <>
+          <Rect
+            x={4}
+            y={CARD_HEIGHT - 22}
+            width={CARD_WIDTH - 8}
+            height={16}
+            fill="rgba(5,8,13,0.84)"
+            stroke={isDamaged ? 'rgba(229,108,79,0.9)' : stats.mightModified ? 'rgba(216,176,93,0.8)' : 'rgba(15,23,42,0.85)'}
+            strokeWidth={0.75}
+            cornerRadius={3}
+            listening={false}
+          />
+          <Text
+            x={7}
+            y={CARD_HEIGHT - 19}
+            width={34}
+            text={stats.mightModified ? `${stats.baseMight}->${stats.effectiveMight}` : `M ${stats.effectiveMight}`}
+            align="left"
+            fontSize={7.5}
+            fontStyle="bold"
+            fill={stats.mightModified ? '#f2d58a' : '#6fd3b6'}
+            listening={false}
+          />
+          <Text
+            x={38}
+            y={CARD_HEIGHT - 19}
+            width={35}
+            text={stats.maxHealth > 0 ? `${stats.currentHealth}/${stats.maxHealth} HP` : ''}
+            align="right"
+            fontSize={7.5}
+            fontStyle="bold"
+            fill={isDamaged ? '#ffb199' : '#dbeafe'}
+            listening={false}
+          />
+        </>
+      ) : null}
       {isSick ? (
         <>
           <Rect width={CARD_WIDTH} height={CARD_HEIGHT} fill="rgba(0,0,0,0.35)" cornerRadius={4} listening={false} />
@@ -148,12 +185,28 @@ export function CardSprite({
       ) : null}
       {isDamaged ? (
         <>
-          <Text x={2} y={CARD_HEIGHT - 16} width={CARD_WIDTH - 4} text={`${currentHealth}/${maxHealth}`} align="right" fontSize={7} fill="#ffffff" listening={false} />
           <Rect y={CARD_HEIGHT - 7} width={CARD_WIDTH} height={5} fill="#4b5563" listening={false} />
           <Rect y={CARD_HEIGHT - 7} width={CARD_WIDTH * healthRatio} height={5} fill={healthRatio > 0.5 ? '#6fd3b6' : '#e56c4f'} listening={false} />
         </>
       ) : null}
       {selected ? <Rect width={CARD_WIDTH} height={CARD_HEIGHT} stroke="#d8b05d" strokeWidth={3} cornerRadius={4} listening={false} /> : null}
+      {attachedGearNames.length > 0 ? (
+        <>
+          <Rect x={3} y={-15} width={CARD_WIDTH - 6} height={13} fill="rgba(5,8,13,0.9)" stroke="#d8b05d" strokeWidth={0.75} cornerRadius={3} listening={false} />
+          <Text
+            x={5}
+            y={-13}
+            width={CARD_WIDTH - 10}
+            text={attachedGearNames.length === 1 ? attachedGearNames[0] : `${attachedGearNames[0]} +${attachedGearNames.length - 1}`}
+            align="center"
+            fontSize={6.5}
+            fontStyle="bold"
+            fill="#f2d58a"
+            listening={false}
+            ellipsis
+          />
+        </>
+      ) : null}
       {instance.attachedToInstanceId ? <Text x={2} y={CARD_HEIGHT - 14} width={CARD_WIDTH - 4} text="EQUIPPED" align="center" fontSize={7} fontStyle="bold" fill="#d8b05d" listening={false} /> : null}
     </Group>
   );

@@ -25,7 +25,7 @@ errata, and tournament policy remain the source of truth.
   basic premium/domain rune recycling.
 - Common card-type play legality is enforced for units, spells, gear, runes,
   Champions, Legends, and Battlefields.
-- Movement legality is enforced for the current single-battlefield flow, with a
+- Movement legality is enforced for the current active-lane flow, with a
   dedicated same-zone `REPOSITION_CARD` move for visual organization.
 - Keyword/effect handler registry scaffold exists for keyword, on-play,
   triggered, activated, static modifier, and replacement-effect handler shapes,
@@ -78,7 +78,8 @@ Status: Planned / Partial
 - Showdown timing precision edge cases.
 - Interactive combat damage assignment.
 - Keyword/effect registry expansion beyond the initial scaffold.
-- Starter deck cards fully supported.
+- Starter deck cards audited and promoted only when full printed text is
+  implemented and directly tested.
 - Popular tournament cards implemented.
 
 ## Starter Deck Completion Plan
@@ -148,6 +149,6 @@ Status: Planned
 5. Bug-report/debug-info polish.
 6. Rune payment edge cases and official timing polish.
 7. Unit/spell/gear edge cases and card-specific legality.
-8. Multi-battlefield movement and control modeling.
+8. Multi-location Battlefield movement and control modeling.
 9. Combat/showdown precision.
 10. Keyword/effect handler expansion for supported starter-deck cards.

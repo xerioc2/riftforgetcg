@@ -102,6 +102,52 @@ class EffectHandlerRegistryTest {
   }
 
   @Test
+  void exactNotSoFastEffectIsSupportedAsNarrowCounterPattern() {
+    EffectHandlerRegistry registry = new EffectHandlerRegistry(List.of(new TankHandler()));
+
+    EffectSupportStatus status = registry.supportStatus(new CardDefinition(
+        "not-so-fast",
+        "Not So Fast",
+        "Spell",
+        null,
+        List.of(),
+        0,
+        0,
+        null,
+        null,
+        null,
+        "[Reaction] Counter an enemy spell or ability that chooses a friendly unit or gear.",
+        1,
+        1,
+        List.of()));
+
+    assertThat(status.implemented()).isTrue();
+  }
+
+  @Test
+  void exactAbandonEffectIsSupportedAsNarrowCounterPredictPattern() {
+    EffectHandlerRegistry registry = new EffectHandlerRegistry(List.of(new TankHandler()));
+
+    EffectSupportStatus status = registry.supportStatus(new CardDefinition(
+        "abandon",
+        "Abandon",
+        "Spell",
+        null,
+        List.of(),
+        0,
+        0,
+        null,
+        null,
+        null,
+        "[Reaction] Counter a spell. Return it to its owner's hand instead of putting it in their trash. [Predict].",
+        1,
+        1,
+        List.of()));
+
+    assertThat(status.implemented()).isTrue();
+  }
+
+  @Test
   void incompleteTopDeckEffectIsStillUnsupported() {
     EffectHandlerRegistry registry = new EffectHandlerRegistry(List.of(new TankHandler()));
 
@@ -128,6 +174,22 @@ class EffectHandlerRegistryTest {
         "stacked-multi",
         "Spell",
         "Look at the top 3 cards of your Main Deck. Put 1 of them into your hand and recycle the rest. Choose a friendly unit and an enemy unit.",
+        List.of())).implemented()).isFalse();
+  }
+
+  @Test
+  void pairedFriendlyEnemyReturnSpellIsSupportedButOtherMultiTargetTextStaysBlocked() {
+    EffectHandlerRegistry registry = new EffectHandlerRegistry(List.of(new TankHandler()));
+
+    assertThat(registry.supportStatus(card(
+        "star-crossed",
+        "Spell",
+        "Return a friendly unit and an enemy unit to their owners' hands.",
+        List.of())).implemented()).isTrue();
+    assertThat(registry.supportStatus(card(
+        "defiant-dance",
+        "Spell",
+        "Give a unit +2 Might this turn and another unit -2 Might this turn.",
         List.of())).implemented()).isFalse();
   }
 

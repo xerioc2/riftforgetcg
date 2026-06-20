@@ -1,0 +1,1153 @@
+{
+  "sourceGuideUrl": "https://riftbound.gg/vex-gloomist-guide/",
+  "deckApiUrl": "https://api.dotgg.gg/cgfw/getdeck?game=riftbound&slug=vex-top-8-at-s3-zhongshan-city-challenge",
+  "sourceDeckSlug": "vex-top-8-at-s3-zhongshan-city-challenge",
+  "slug": "vex-top-8-at-s3-zhongshan-city-challenge",
+  "humanName": "Vex Top 8 at S3 Zhongshan City Challenge",
+  "format": "Standard",
+  "sourceBoards": [
+    {
+      "OGN-042": "6",
+      "OGN-043": "2",
+      "OGN-045": "2",
+      "OGN-058": "3",
+      "OGN-066": "1",
+      "OGN-073": "2",
+      "OGN-077": "3",
+      "OGN-166": "6",
+      "OGN-167": "2",
+      "OGN-169": "2",
+      "OGN-197": "2",
+      "OGN-278": "1",
+      "OGN-294": "1",
+      "SFD-032": "2",
+      "SFD-043": "2",
+      "SFD-045": "1",
+      "SFD-053": "1",
+      "SFD-128": "3",
+      "SFD-136": "1",
+      "SFD-139": "2",
+      "SFD-145": "1",
+      "SFD-148": "2",
+      "SFD-219": "1",
+      "UNL-036": "2",
+      "UNL-041": "2",
+      "UNL-042": "1",
+      "UNL-131": "1",
+      "UNL-133": "1",
+      "UNL-134": "2",
+      "UNL-141": "3",
+      "UNL-150": "1",
+      "UNL-193": "1",
+      "UNL-194": "1"
+    },
+    {
+      "OGN-066": "1",
+      "SFD-032": "2",
+      "SFD-043": "2",
+      "SFD-136": "1",
+      "UNL-131": "1",
+      "UNL-194": "1"
+    }
+  ],
+  "capturedDate": "2026-06-19",
+  "legend": "Vex, Gloomist",
+  "cards": [
+    {
+      "source": {
+        "sourceCardId": "OGN-278",
+        "name": "Bandle Tree",
+        "type": "Battlefield",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "You may hide an additional card here.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-278.webp"
+      },
+      "quantity": 1,
+      "role": "Battlefields",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name-and-set",
+        "localCard": {
+          "id": "69bc5bd6d308c64675ca87e3",
+          "name": "Bandle Tree",
+          "type": "Battlefield",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Battlefield effect"
+    },
+    {
+      "source": {
+        "sourceCardId": "SFD-219",
+        "name": "The Papertree",
+        "type": "Battlefield",
+        "supertype": "",
+        "setName": "Spiritforged",
+        "rulesText": "When you hold here, each player channels 1 rune exhausted.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-219.webp"
+      },
+      "quantity": 1,
+      "role": "Battlefields",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5be8d308c64675ca893b",
+          "name": "The Papertree",
+          "type": "Battlefield",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Battlefield effect"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-294",
+        "name": "Trifarian War Camp",
+        "type": "Battlefield",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "Units here have +1 :rb_might:. (This includes attackers.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-294.webp"
+      },
+      "quantity": 1,
+      "role": "Battlefields",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bd6d308c64675ca87f3",
+          "name": "Trifarian War Camp",
+          "type": "Battlefield",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Battlefield effect"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-066",
+        "name": "Ahri - Alluring",
+        "type": "Champion",
+        "supertype": "Champion",
+        "setName": "Origins",
+        "rulesText": "When I hold, you score 1 point.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-066.webp"
+      },
+      "quantity": 1,
+      "role": "Champion / MainDeck candidate",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bcad308c64675ca86fd",
+          "name": "Ahri - Alluring",
+          "type": "Champion",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Champion text"
+    },
+    {
+      "source": {
+        "sourceCardId": "SFD-148",
+        "name": "Draven - Audacious",
+        "type": "Champion",
+        "supertype": "Champion",
+        "setName": "Spiritforged",
+        "rulesText": "[Deflect] (Opponents must pay :rb_rune_rainbow: to choose me with a spell or ability.)\nThe first time I win a combat each turn, you score 1 point.\nWhen I die in combat, choose an opponent. They score 1 point.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-148.webp"
+      },
+      "quantity": 2,
+      "role": "Champion / MainDeck candidate",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bded308c64675ca887c",
+          "name": "Draven - Audacious",
+          "type": "Champion",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Deflect"
+      ],
+      "bucket": "Champion text"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-141",
+        "name": "Evelynn - Entrancing",
+        "type": "Champion",
+        "supertype": "Champion",
+        "setName": "Unleashed",
+        "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)\n[Backline] (I must be assigned combat damage last.)\nWhen you play me from face down on your turn, you may move an enemy unit at a different location to my battlefield.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-141.webp"
+      },
+      "quantity": 3,
+      "role": "Champion / MainDeck candidate",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69c4407e9288b1e85d94dea8",
+          "name": "Evelynn - Entrancing",
+          "type": "Champion",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Backline",
+        "Hidden"
+      ],
+      "bucket": "Champion text"
+    },
+    {
+      "source": {
+        "sourceCardId": "SFD-053",
+        "name": "Janna - Savior",
+        "type": "Champion",
+        "supertype": "Champion",
+        "setName": "Spiritforged",
+        "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve, including to a battlefield you control.)\nWhen you play me, heal your units here, then move up to one enemy unit from here to its base.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-053.webp"
+      },
+      "quantity": 1,
+      "role": "Champion / MainDeck candidate",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5be2d308c64675ca88d4",
+          "name": "Janna - Savior",
+          "type": "Champion",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Reaction"
+      ],
+      "bucket": "Champion text"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-073",
+        "name": "Sona - Harmonious",
+        "type": "Champion",
+        "supertype": "Champion",
+        "setName": "Origins",
+        "rulesText": "At the end of your turn, if I'm at a battlefield, ready up to 4 friendly runes.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-073.webp"
+      },
+      "quantity": 2,
+      "role": "Champion / MainDeck candidate",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bcad308c64675ca8705",
+          "name": "Sona - Harmonious",
+          "type": "Champion",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Champion text"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-197",
+        "name": "Teemo - Scout",
+        "type": "Champion",
+        "supertype": "Champion",
+        "setName": "Origins",
+        "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)\nWhen you play me, give me +3 :rb_might: this turn.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-197.webp"
+      },
+      "quantity": 2,
+      "role": "Champion / MainDeck candidate",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name-and-set",
+        "localCard": {
+          "id": "69bc5bd1d308c64675ca878e",
+          "name": "Teemo - Scout",
+          "type": "Champion",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Hidden"
+      ],
+      "bucket": "Champion text"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-150",
+        "name": "Vex - Apathetic",
+        "type": "Champion",
+        "supertype": "Champion",
+        "setName": "Unleashed",
+        "rulesText": "[Deflect] (Opponents must pay :rb_rune_rainbow: to choose me with a spell or ability.)\nWhen an opponent plays a unit while I'm at a battlefield, [Stun] it. They can't move it this turn. (It doesn't deal combat damage this turn.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-150.webp"
+      },
+      "quantity": 1,
+      "role": "Champion / MainDeck candidate",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69c5be6abf82ff7cb69f4299",
+          "name": "Vex - Apathetic",
+          "type": "Champion",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Deflect",
+        "Stun"
+      ],
+      "bucket": "Champion text"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-193",
+        "name": "Vex - Gloomist",
+        "type": "Legend",
+        "supertype": "",
+        "setName": "Unleashed",
+        "rulesText": "When you or an ally hold, you may exhaust me to draw 1.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-193.webp"
+      },
+      "quantity": 1,
+      "role": "Legend",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bead308c64675ca8963",
+          "name": "Vex - Gloomist",
+          "type": "Legend",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Legend text"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-131",
+        "name": "Abandon",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Unleashed",
+        "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)\nCounter a spell. Return it to its owner's hand instead of putting it in their trash.\n[Predict]. (Look at the top card of your Main Deck. You may recycle it.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-131.webp"
+      },
+      "quantity": 1,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5be9d308c64675ca8957",
+          "name": "Abandon",
+          "type": "Spell",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: Abandon can counter a supported public pending spell chain item in the current alpha chain window, return that spell card to hand, then create a private Predict choice. Repeat, broad official Reaction timing, hidden/private chain targets, and ability targets remain deferred.",
+        "blocked": false
+      },
+      "keywords": [
+        "Predict",
+        "Reaction"
+      ],
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-041",
+        "name": "Allay - Eager Admirer",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Unleashed",
+        "rulesText": "[Deflect] (Opponents must pay :rb_rune_rainbow: to choose me with a spell or ability.)\nWhile I'm at a battlefield, your other units here have [Deflect].",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-041.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "UNRESOLVED",
+        "reason": "No local RiftForge card matched \"Allay - Eager Admirer\"."
+      },
+      "support": {
+        "status": "NOT_AUDITED",
+        "reason": "No local RiftForge card matched \"Allay - Eager Admirer\".",
+        "blocked": true
+      },
+      "keywords": [
+        "Deflect"
+      ],
+      "bucket": "Triggered/static card text"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-042",
+        "name": "Back Off",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Unleashed",
+        "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)\n[Action] (Play on your turn or in showdowns.)\n[Stun] a unit. (It doesn't deal combat damage this turn.)\nIf you played this from your hand, draw 1.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-042.webp"
+      },
+      "quantity": 1,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bd162140ff39fe1396df89",
+          "name": "Back Off",
+          "type": "Spell",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Action",
+        "Hidden",
+        "Stun"
+      ],
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-133",
+        "name": "Blast Cone",
+        "type": "Gear",
+        "supertype": "",
+        "setName": "Unleashed",
+        "rulesText": "When you play this, you may move an enemy unit.\nWhen you move an enemy unit, you may exhaust this to [Stun] it. (It doesn't deal combat damage this turn.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-133.webp"
+      },
+      "quantity": 1,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69c4407c9288b1e85d94de8b",
+          "name": "Blast Cone",
+          "type": "Gear",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "keywords": [
+        "Stun"
+      ],
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-043",
+        "name": "Charm",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "Move an enemy unit.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-043.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bc9d308c64675ca86e6",
+          "name": "Charm",
+          "type": "Spell",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha support moves one enemy public battlefield Unit/Champion to Base. Broader official movement choices, control/location edge cases, and non-battlefield destinations remain deferred.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Movement / location"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-045",
+        "name": "Defy",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)\nCounter a spell that costs no more than :rb_energy_4: and no more than :rb_rune_rainbow:.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-045.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bc9d308c64675ca86e8",
+          "name": "Defy",
+          "type": "Spell",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: Defy can counter supported public pending spell chain items that cost no more than 4 energy and no more than 1 premium rune during the current alpha chain window. Full official Reaction timing, broad spell/ability targets, and countering counters remain deferred.",
+        "blocked": false
+      },
+      "keywords": [
+        "Reaction"
+      ],
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "source": {
+        "sourceCardId": "SFD-032",
+        "name": "Disarming Rake",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Spiritforged",
+        "rulesText": "When you play me, you may kill a gear.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-032.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5be2d308c64675ca88cf",
+          "name": "Disarming Rake",
+          "type": "Unit",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Damage / destroy"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-058",
+        "name": "Discipline",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)\nGive a unit +2 :rb_might: this turn. Draw 1.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-058.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name-and-set",
+        "localCard": {
+          "id": "69bc5bc9d308c64675ca86f5",
+          "name": "Discipline",
+          "type": "Spell",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists for giving a public battlefield Unit/Champion +2 Might this turn and drawing 1. Full official any-time Reaction timing remains incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Reaction"
+      ],
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "source": {
+        "sourceCardId": "SFD-139",
+        "name": "Edge of Night",
+        "type": "Gear",
+        "supertype": "",
+        "setName": "Spiritforged",
+        "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)\nWhen you play this from face down, attach it to a unit you control (here).\n[Equip] :rb_rune_chaos: (:rb_rune_chaos:: Attach this to a unit you control.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-139.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5be3d308c64675ca88dd",
+          "name": "Edge of Night",
+          "type": "Gear",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Equip",
+        "Hidden"
+      ],
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-167",
+        "name": "Ember Monk",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "When you play a card from [Hidden], give me +2 :rb_might: this turn.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-167.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bd0d308c64675ca876f",
+          "name": "Ember Monk",
+          "type": "Unit",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Hidden"
+      ],
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "source": {
+        "sourceCardId": "SFD-043",
+        "name": "Emperor's Divide",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Spiritforged",
+        "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)\n[Action] (Play on your turn or in showdowns.)\nMove any number of friendly units at a battlefield to their base.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-043.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5be6d308c64675ca8918",
+          "name": "Emperor's Divide",
+          "type": "Spell",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "keywords": [
+        "Action",
+        "Hidden"
+      ],
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-134",
+        "name": "Existential Dread",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Unleashed",
+        "rulesText": "[Action] (Play on your turn or in showdowns.)\n[Repeat] :rb_energy_2: (You may pay the additional cost to repeat this spell's effect.)\n[Stun] an attacking enemy unit. If it's already stunned, return it to its owner's hand instead. (A stunned unit doesn't deal combat damage this turn.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-134.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bff35658d0fbca04e93721",
+          "name": "Existential Dread",
+          "type": "Spell",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "keywords": [
+        "Action",
+        "Repeat",
+        "Stun"
+      ],
+      "bucket": "Bounce / return"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-169",
+        "name": "Gust",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)\nReturn a unit at a battlefield with 3 :rb_might: or less to its owner's hand.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-169.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bd0d308c64675ca8771",
+          "name": "Gust",
+          "type": "Spell",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists through Stacked Deck for returning a battlefield Unit/Champion with 3 Might or less, but full official any-time Reaction timing remains incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Reaction"
+      ],
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "source": {
+        "sourceCardId": "SFD-136",
+        "name": "Hard Bargain",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Spiritforged",
+        "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)\n[Repeat] :rb_energy_2: (You may pay the additional cost to repeat this spell's effect.)\nCounter a spell unless its controller pays :rb_energy_2:.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-136.webp"
+      },
+      "quantity": 1,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5be2d308c64675ca88cb",
+          "name": "Hard Bargain",
+          "type": "Spell",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "keywords": [
+        "Reaction",
+        "Repeat"
+      ],
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-036",
+        "name": "Mutated Mouser",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Unleashed",
+        "rulesText": "[Shield 2] (+2 :rb_might: while I'm a defender.)\n[Tank] (I must be assigned combat damage first.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-036.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5be9d308c64675ca8953",
+          "name": "Mutated Mouser",
+          "type": "Unit",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Shield 2",
+        "Tank"
+      ],
+      "bucket": "Damage / destroy"
+    },
+    {
+      "source": {
+        "sourceCardId": "SFD-045",
+        "name": "Not So Fast",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Spiritforged",
+        "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)\nCounter an enemy spell or ability that chooses a friendly unit or gear.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-045.webp"
+      },
+      "quantity": 1,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bdfd308c64675ca8892",
+          "name": "Not So Fast",
+          "type": "Spell",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: Not So Fast can counter a supported public pending enemy spell chain item only when that item chooses your friendly Unit/Champion Unit or Gear. Ability-chain targets, broad official Reaction timing, and countering counters remain deferred.",
+        "blocked": false
+      },
+      "keywords": [
+        "Reaction"
+      ],
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "source": {
+        "sourceCardId": "SFD-128",
+        "name": "Overzealous Fan",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Spiritforged",
+        "rulesText": "When I defend, you may kill me to move an attacking unit to its base.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-128.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bdad308c64675ca883b",
+          "name": "Overzealous Fan",
+          "type": "Unit",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Movement / location"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-194",
+        "name": "Shadow",
+        "type": "Unit",
+        "supertype": "Signature",
+        "setName": "Unleashed",
+        "rulesText": "If you play me to a battlefield, I enter ready.\n[Action][&gt;] :rb_energy_1::rb_rune_rainbow:, :rb_exhaust:: [Stun] an enemy unit attacking here. (It doesn't deal combat damage this turn.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-194.webp"
+      },
+      "quantity": 1,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69c4407e9288b1e85d94dea9",
+          "name": "Shadow",
+          "type": "Unit",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Action",
+        "Stun"
+      ],
+      "bucket": "Damage / destroy"
+    },
+    {
+      "source": {
+        "sourceCardId": "SFD-145",
+        "name": "Switcheroo",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Spiritforged",
+        "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)\n[Action] (Play on your turn or in showdowns.)\nSwap the Might of two units at the same battlefield this turn.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-145.webp"
+      },
+      "quantity": 1,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bded308c64675ca887b",
+          "name": "Switcheroo",
+          "type": "Spell",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "keywords": [
+        "Action",
+        "Hidden"
+      ],
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-077",
+        "name": "Zhonya's Hourglass",
+        "type": "Gear",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)\nIf a friendly unit would die, kill this instead. Heal that unit, exhaust it, and recall it. (Send it to base. This isn't a move.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-077.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bcad308c64675ca870a",
+          "name": "Zhonya's Hourglass",
+          "type": "Gear",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: Zhonya's Hourglass can be played to Base and armed during your Main Phase to protect a friendly public Unit/Champion from the next supported death, destroying Zhonya instead, then healing, exhausting, and recalling that unit. Hidden Reaction-for-0 timing, competing replacement choices, and broad replacement timing remain deferred.",
+        "blocked": false
+      },
+      "keywords": [
+        "Hidden"
+      ],
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-042",
+        "name": "Calm Rune",
+        "type": "Rune",
+        "supertype": "Basic",
+        "setName": "Origins",
+        "rulesText": "",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-042.webp"
+      },
+      "quantity": 6,
+      "role": "Rune Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name-and-set",
+        "localCard": {
+          "id": "69bc5bc9d308c64675ca86e4",
+          "name": "Calm Rune",
+          "type": "Rune",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Rune/payment"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-166",
+        "name": "Chaos Rune",
+        "type": "Rune",
+        "supertype": "Basic",
+        "setName": "Origins",
+        "rulesText": "",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-166.webp"
+      },
+      "quantity": 6,
+      "role": "Rune Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name-and-set",
+        "localCard": {
+          "id": "69bc5bd0d308c64675ca876d",
+          "name": "Chaos Rune",
+          "type": "Rune",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Rune/payment"
+    }
+  ],
+  "summary": {
+    "uniqueCards": 33,
+    "counts": {
+      "SUPPORTED": 3,
+      "PARTIAL": 24,
+      "UNSUPPORTED": 5,
+      "BANNED": 0,
+      "NOT_AUDITED": 1
+    },
+    "unresolved": [
+      {
+        "sourceCardId": "UNL-041",
+        "name": "Allay - Eager Admirer",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Unleashed",
+        "rulesText": "[Deflect] (Opponents must pay :rb_rune_rainbow: to choose me with a spell or ability.)\nWhile I'm at a battlefield, your other units here have [Deflect].",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-041.webp"
+      }
+    ],
+    "canUseInEnforced": false,
+    "topBlockers": [
+      {
+        "cardName": "Allay - Eager Admirer",
+        "status": "NOT_AUDITED",
+        "bucket": "Triggered/static card text",
+        "reason": "No local RiftForge card matched \"Allay - Eager Admirer\"."
+      },
+      {
+        "cardName": "Blast Cone",
+        "status": "UNSUPPORTED",
+        "bucket": "Equipment lifecycle/effect",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Emperor's Divide",
+        "status": "UNSUPPORTED",
+        "bucket": "Hidden / facedown",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Existential Dread",
+        "status": "UNSUPPORTED",
+        "bucket": "Bounce / return",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Hard Bargain",
+        "status": "UNSUPPORTED",
+        "bucket": "Reaction / chain / counter",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      }
+    ]
+  },
+  "outputFile": "C:\\Users\\xerio\\riftboungtcg\\decks\\meta\\vex\\vex-top-8-at-s3-zhongshan-city-challenge.json"
+}

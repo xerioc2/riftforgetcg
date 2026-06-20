@@ -3,6 +3,9 @@ package com.riftforge.engine;
 import com.riftforge.effect.CardEffectRegistry;
 import com.riftforge.model.*;
 import com.riftforge.model.move.*;
+import com.riftforge.rules.BattlefieldLocationRules;
+import com.riftforge.rules.EquipmentRules;
+import com.riftforge.rules.ShowdownParticipantRules;
 import com.riftforge.service.CardDataService;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -11,6 +14,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
@@ -34,6 +38,11 @@ public class GameEngine {
   private final DeathTriggerService deathTriggerService;
   private final TokenFactory tokenFactory;
   private final TriggerDispatcher triggerDispatcher;
+  private final PriorityWindowService priorityWindowService;
+  private final ActivatedAbilityService activatedAbilityService;
+  private final DeathService deathService;
+  private final LegendChampionEffectService legendChampionEffectService;
+  private final ShowdownParticipantRules showdownParticipantRules = new ShowdownParticipantRules();
   private final int targetScore;
 
   public GameEngine(RulesValidator rulesValidator, CombatResolver combatResolver, CardZoneService cardZoneService, CardDataService cardDataService, CardEffectRegistry effects, DeathTriggerService deathTriggerService, TokenFactory tokenFactory, int targetScore) {
@@ -48,11 +57,20 @@ public class GameEngine {
         new TriggerDispatcher(List.of(
             new NoxianDrummerMoveTrigger(cardDataService, tokenFactory),
             new StellacornHerderMoveTrigger(cardDataService))),
+        new PriorityWindowService(cardDataService),
+        new ActivatedAbilityService(cardDataService),
+        new DeathService(
+            cardDataService,
+            effects,
+            cardZoneService,
+            deathTriggerService,
+            new ReplacementEffectService(cardDataService, cardZoneService)),
+        new LegendChampionEffectService(cardDataService),
         targetScore);
   }
 
   @Autowired
-  public GameEngine(RulesValidator rulesValidator, CombatResolver combatResolver, CardZoneService cardZoneService, CardDataService cardDataService, CardEffectRegistry effects, DeathTriggerService deathTriggerService, TokenFactory tokenFactory, TriggerDispatcher triggerDispatcher, @Value("${riftforge.target-score}") int targetScore) {
+  public GameEngine(RulesValidator rulesValidator, CombatResolver combatResolver, CardZoneService cardZoneService, CardDataService cardDataService, CardEffectRegistry effects, DeathTriggerService deathTriggerService, TokenFactory tokenFactory, TriggerDispatcher triggerDispatcher, PriorityWindowService priorityWindowService, ActivatedAbilityService activatedAbilityService, DeathService deathService, LegendChampionEffectService legendChampionEffectService, @Value("${riftforge.target-score}") int targetScore) {
     this.rulesValidator = rulesValidator;
     this.combatResolver = combatResolver;
     this.cardZoneService = cardZoneService;
@@ -61,6 +79,10 @@ public class GameEngine {
     this.deathTriggerService = deathTriggerService;
     this.tokenFactory = tokenFactory;
     this.triggerDispatcher = triggerDispatcher;
+    this.priorityWindowService = priorityWindowService;
+    this.activatedAbilityService = activatedAbilityService;
+    this.deathService = deathService;
+    this.legendChampionEffectService = legendChampionEffectService;
     this.targetScore = targetScore;
   }
 
@@ -76,15 +98,22 @@ public class GameEngine {
       case TapRuneMove m -> applyTapRune(state, m);
       case DiscardRuneMove m -> applyDiscardRune(state, m);
       case MoveToBattlefieldMove m -> applyMoveToBattlefield(state, m);
+      case MoveToBaseMove m -> applyMoveToBase(state, m);
+      case SelectBattlefieldMove m -> applySelectBattlefield(state, m);
       case ResolveShowdownMove m -> applyResolveShowdown(state, m);
+      case AssignCombatDamageMove m -> applyAssignCombatDamage(state, m);
       case MulliganMove m -> applyMulligan(state, m);
       case UndoRunesMove m -> applyUndoRunes(state, m);
       case PassPhaseMove m -> applyPassPhase(state);
+      case PassChainFocusMove m -> applyPassChainFocus(state, m);
+      case ResolveChainTopMove m -> applyResolveChainTop(state, m);
+      case PassShowdownFocusMove m -> applyPassShowdownFocus(state, m);
       case AdjustScoreMove m -> applyAdjustScore(state, m);
       case VisionChoiceMove m -> applyVisionChoice(state, m);
       case DismissRevealedMove m -> applyDismissRevealed(state, m);
       case HideCardMove m -> applyHideCard(state, m);
       case EquipGearMove m -> applyEquipGear(state, m);
+      case ActivateAbilityMove m -> applyActivateAbility(state, m);
       case ResolveChoiceMove m -> applyResolveChoice(state, m);
     };
     next.setUpdatedAt(Instant.now().toString());
@@ -155,6 +184,52 @@ public class GameEngine {
       card.setTapped(false);
       card.setHasSummoningSickness(false);
     }
+    var priorityWindow = priorityWindowService.openingWindowForPlayedCard(state, def, playedDuringShowdown);
+    if (priorityWindow.isPresent()) {
+      state.setCardPlayedThisTurn(true);
+      openChain(state, move, card, def, priorityWindow.get());
+      return state;
+    }
+    if (cardDataService.isDefyCounterReaction(def)) {
+      state.setCardPlayedThisTurn(true);
+      addDefyToChain(state, move, card, def);
+      return state;
+    }
+    if (cardDataService.isNotSoFastCounterReaction(def)) {
+      state.setCardPlayedThisTurn(true);
+      addNotSoFastToChain(state, move, card, def);
+      return state;
+    }
+    if (cardDataService.isAbandonCounterReaction(def)) {
+      state.setCardPlayedThisTurn(true);
+      addAbandonToChain(state, move, card, def);
+      return state;
+    }
+    if (cardDataService.isGustReaction(def)) {
+      state.setCardPlayedThisTurn(true);
+      addGustToChain(state, move, card, def);
+      return state;
+    }
+    if (cardDataService.isDisciplineReaction(def)) {
+      state.setCardPlayedThisTurn(true);
+      addTargetedReactionToChain(state, move, card, def, LiveGameState.ChainItem.EFFECT_DISCIPLINE_BOOST_DRAW);
+      return state;
+    }
+    if (cardDataService.isEnGardeReaction(def)) {
+      state.setCardPlayedThisTurn(true);
+      addTargetedReactionToChain(state, move, card, def, LiveGameState.ChainItem.EFFECT_EN_GARDE_BOOST);
+      return state;
+    }
+    if (cardDataService.isDefiantDanceReaction(def)) {
+      state.setCardPlayedThisTurn(true);
+      addStructuredTargetReactionToChain(state, move, card, def, LiveGameState.ChainItem.EFFECT_DEFIANT_DANCE_MODIFIERS);
+      return state;
+    }
+    if (cardDataService.isFlashReaction(def)) {
+      state.setCardPlayedThisTurn(true);
+      addStructuredTargetReactionToChain(state, move, card, def, LiveGameState.ChainItem.EFFECT_FLASH_RECALL);
+      return state;
+    }
     applyLegion(state, card, cardPlayedEarlierThisTurn);
     applyPlayedCardTokenScripts(state, card, cardPlayedEarlierThisTurn);
     state.setCardPlayedThisTurn(true);
@@ -174,7 +249,13 @@ public class GameEngine {
       String topCardName = topCardId.isBlank() ? "No card" : cardDataService.getCard(topCardId).name();
       log(state, move.playerId(), "VISION_PEEK|" + topCardId + "|" + topCardName);
     }
-    applyRulesTextEffect(card, target, state, def);
+    if (cardDataService.requiresFriendlyAndEnemyTargets(card.getCardId())) {
+      applyFriendlyAndEnemyReturn(card, move, state, def);
+    } else if (cardDataService.isCharmMoveEffect(def)) {
+      applyCharmMove(card, state, def, resolvedTarget);
+    } else {
+      applyRulesTextEffect(card, target, state, def);
+    }
     moveDestroyedBoardCards(state);
     if (cardTypeLower.equals("spell")) {
       cardZoneService.moveToGraveyard(card);
@@ -188,6 +269,7 @@ public class GameEngine {
           : playedDuringShowdown ? "Played " + def.name() + " during the showdown." : "Played " + def.name();
       log(state, move.playerId(), message);
     }
+    if (playedDuringShowdown && state.getActiveShowdown() != null) advanceShowdownFocusAfterAction(state, move.playerId());
     return state;
   }
 
@@ -195,19 +277,50 @@ public class GameEngine {
     CardInstance gear = findCard(state, move.gearInstanceId());
     CardDefinition gearDef = cardDataService.getCard(gear.getCardId());
     CardInstance target = findCard(state, move.targetInstanceId());
+    applyPayment(state, move.playerId(), move.paymentRuneIds(), move.premiumRuneIds(), EquipmentRules.equipCost(gearDef).energyCost());
     attachGear(state, gear, gearDef, target, move.playerId());
     return state;
   }
 
+  private LiveGameState applyActivateAbility(LiveGameState state, ActivateAbilityMove move) {
+    CardInstance source = findCard(state, move.sourceInstanceId());
+    CardDefinition sourceDef = cardDataService.getCard(source.getCardId());
+    ActivatedAbilityDefinition definition = activatedAbilityService.definitionFor(sourceDef, move.abilityKey())
+        .orElseThrow(() -> new IllegalMoveException("That activated ability is not supported yet."));
+    CardInstance target = activatedAbilityService.validateTarget(state, move, definition);
+    applyPayment(state, move.playerId(), move.paymentRuneIds(), move.premiumRuneIds(), definition.energyCost());
+    if (definition.requiresExhaust()) source.setTapped(true);
+    if (ActivatedAbilityService.THE_SYREN_RECALL.equals(definition.abilityKey())) {
+      recallUnitToBase(state, source, sourceDef, target);
+    } else if (ActivatedAbilityService.ZHONYAS_HOURGLASS_PROTECT.equals(definition.abilityKey())) {
+      deathService.replacementEffects().registerWouldDieDestroySourceInstead(
+          state,
+          move.playerId(),
+          source.getInstanceId(),
+          target.getInstanceId());
+      log(state, move.playerId(), sourceDef.name() + " is protecting " + cardDataService.getCard(target.getCardId()).name() + ".");
+    } else if (ActivatedAbilityService.IRELIA_BLADE_DANCER_READY_UNIT.equals(definition.abilityKey())) {
+      boolean wasTapped = target.isTapped();
+      target.setTapped(false);
+      if (wasTapped) applyIreliaFerventReadyTrigger(state, target, move.playerId());
+      log(state, move.playerId(), sourceDef.name() + " readied " + cardDataService.getCard(target.getCardId()).name() + ".");
+    }
+    return state;
+  }
+
   private void applyPayment(LiveGameState state, PlayCardMove move, int cost) {
-    PlayerState player = player(state, move.playerId());
+    applyPayment(state, move.playerId(), move.paymentRuneIds(), move.premiumRuneIds(), cost);
+  }
+
+  private void applyPayment(LiveGameState state, String playerId, List<String> paymentRuneIds, List<String> premiumRuneIds, int cost) {
+    PlayerState player = player(state, playerId);
     int selectedEnergy = 0;
-    for (String runeId : move.paymentRuneIds()) {
+    for (String runeId : paymentRuneIds) {
       RuneState rune = findRune(state, runeId);
       rune.setTapped(true);
       selectedEnergy += rune.getNormalEnergy();
     }
-    for (String runeId : move.premiumRuneIds()) {
+    for (String runeId : premiumRuneIds) {
       RuneState rune = findRune(state, runeId);
       state.getRunes().remove(rune);
       if (rune.getCardId() != null && !rune.getCardId().isBlank()) {
@@ -263,7 +376,6 @@ public class GameEngine {
 
   private LiveGameState applyHideCard(LiveGameState state, HideCardMove move) {
     CardInstance card = findCard(state, move.instanceId());
-    CardDefinition def = cardDataService.getCard(card.getCardId());
     RuneState rune = findRune(state, move.paymentRuneId());
     rune.setTapped(true);
     card.setZone(ZoneName.HIDDEN);
@@ -272,7 +384,7 @@ public class GameEngine {
     card.setX(0);
     card.setY(0);
     card.setAttachedToInstanceId(null);
-    log(state, move.playerId(), "Hid " + def.name() + ".");
+    log(state, move.playerId(), "Hid a card.");
     return state;
   }
 
@@ -303,6 +415,9 @@ public class GameEngine {
     CardInstance card = findCard(state, move.instanceId());
     CardDefinition def = cardDataService.getCard(card.getCardId());
     ZoneName sourceZone = card.getZone();
+    String sourceLocationId = sourceZone == ZoneName.BATTLEFIELD
+        ? BattlefieldLocationRules.locationOf(card)
+        : null;
     boolean playedFromChampionZone = card.getZone() == ZoneName.CHAMPION;
     if (playedFromChampionZone) {
       PlayerState player = player(state, move.playerId());
@@ -322,71 +437,1145 @@ public class GameEngine {
       }
       player.setAvailableEnergy(Math.max(0, player.getAvailableEnergy() + selectedEnergy - Math.max(0, def.cost())));
     }
+    String locationId = BattlefieldLocationRules.normalize(move.battlefieldLocationId());
     card.setZone(ZoneName.BATTLEFIELD);
+    card.setBattlefieldLocationId(locationId);
     card.setX(0);
     card.setY(0);
     card.setTapped(!cardDataService.hasKeyword(card, "AMBUSH"));
     card.setHasSummoningSickness(false);
     int gankingBonus = applyGanking(state, card);
-    dispatchCardMoved(state, card, sourceZone, ZoneName.BATTLEFIELD, "MOVE_TO_BATTLEFIELD");
+    if (sourceZone == ZoneName.BATTLEFIELD && sourceLocationId != null && !sourceLocationId.equals(locationId)) {
+      dispatchCardMoved(state, card, ZoneName.BATTLEFIELD, ZoneName.BATTLEFIELD, "MOVE_BATTLEFIELD_LOCATION");
+    } else {
+      dispatchCardMoved(state, card, sourceZone, ZoneName.BATTLEFIELD, "MOVE_TO_BATTLEFIELD");
+    }
     effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onAttack(card, state));
     log(state, move.playerId(), playedFromChampionZone
         ? "Played " + def.name() + " from the Champion zone."
         : "Moved " + def.name() + " to the battlefield.");
-    boolean opposed = state.getCards().stream()
-        .anyMatch(candidate -> candidate.getZone() == ZoneName.BATTLEFIELD && !move.playerId().equals(candidate.getOwnerId()));
+    boolean opposed = hasOpposingCombatantsAtLocation(state, move.playerId(), locationId);
+    if (sourceLocationId != null && !sourceLocationId.equals(locationId)) {
+      updateBattlefieldControllerFromCombatants(state, sourceLocationId);
+    }
     if (!opposed) {
-      state.getBattlefieldController().put("BATTLEFIELD", move.playerId());
+      state.getBattlefieldController().put(locationId, move.playerId());
       return state;
     }
-    state.setActiveShowdown(new LiveGameState.ShowdownState(
+    state.setActiveShowdown(showdownState(
+        state,
         move.playerId(),
         List.of(card.getInstanceId()),
-        gankingBonus > 0 ? new HashMap<>(Map.of(card.getInstanceId(), gankingBonus)) : new HashMap<>(),
-        ShowdownStep.ACTION_WINDOW));
+        gankingBonus > 0 ? new HashMap<>(Map.of(card.getInstanceId(), gankingBonus)) : new HashMap<>()));
     log(state, move.playerId(), "Showdown started at the battlefield.");
+    return state;
+  }
+
+  private LiveGameState applyMoveToBase(LiveGameState state, MoveToBaseMove move) {
+    CardInstance card = findCard(state, move.instanceId());
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    String sourceLocationId = BattlefieldLocationRules.locationOf(card);
+    card.setZone(ZoneName.BASE);
+    card.setBattlefieldLocationId(null);
+    card.setX(0);
+    card.setY(0);
+    card.setTapped(true);
+    card.setHasSummoningSickness(false);
+    dispatchCardMoved(state, card, ZoneName.BATTLEFIELD, ZoneName.BASE, "MOVE_TO_BASE");
+    updateBattlefieldControllerFromCombatants(state, sourceLocationId);
+    log(state, move.playerId(), "Moved " + def.name() + " to Base.");
+    return state;
+  }
+
+  private LiveGameState applySelectBattlefield(LiveGameState state, SelectBattlefieldMove move) {
+    PlayerState player = player(state, move.playerId());
+    player.setSelectedBattlefieldId(move.battlefieldCardId());
+    CardDefinition def = cardDataService.getCard(move.battlefieldCardId());
+    log(state, move.playerId(), "Selected " + def.name() + " as their Battlefield.");
+    boolean allSelected = state.getPlayers().stream()
+        .allMatch(candidate -> candidate.getSelectedBattlefields().isEmpty()
+            || (candidate.getSelectedBattlefieldId() != null && !candidate.getSelectedBattlefieldId().isBlank()));
+    if (allSelected) {
+      state.setCurrentPhase(Phase.MULLIGAN);
+      String activeBattlefield = state.getPlayers().stream()
+          .map(PlayerState::getSelectedBattlefieldId)
+          .filter(id -> id != null && !id.isBlank())
+          .sorted(String.CASE_INSENSITIVE_ORDER)
+          .findFirst()
+          .orElse("BATTLEFIELD");
+      String battlefieldName = "BATTLEFIELD".equals(activeBattlefield)
+          ? "the default Battlefield"
+          : cardDataService.getCard(activeBattlefield).name();
+      log(state, move.playerId(), "Battlefields locked. " + battlefieldName + " is visible on the board. Advanced to MULLIGAN.");
+    }
     return state;
   }
 
   private void startAmbushBattlefield(LiveGameState state, CardInstance card, CardDefinition def, String playerId) {
     log(state, playerId, "Ambushed " + def.name() + " to the battlefield.");
-    boolean opposed = state.getCards().stream()
-        .anyMatch(candidate -> candidate.getZone() == ZoneName.BATTLEFIELD && !playerId.equals(candidate.getOwnerId()));
+    String locationId = BattlefieldLocationRules.locationOf(card);
+    boolean opposed = hasOpposingCombatantsAtLocation(state, playerId, locationId);
     if (!opposed) {
-      state.getBattlefieldController().put("BATTLEFIELD", playerId);
+      state.getBattlefieldController().put(locationId, playerId);
       return;
     }
-    state.setActiveShowdown(new LiveGameState.ShowdownState(
+    state.setActiveShowdown(showdownState(
+        state,
         playerId,
         List.of(card.getInstanceId()),
-        new HashMap<>(),
-        ShowdownStep.ACTION_WINDOW));
+        new HashMap<>()));
     log(state, playerId, "Showdown started at the battlefield.");
   }
 
   private LiveGameState applyResolveShowdown(LiveGameState state, ResolveShowdownMove move) {
     LiveGameState.ShowdownState showdown = state.getActiveShowdown();
+    String locationId = BattlefieldLocationRules.normalize(showdown.locationId());
+    List<CardInstance> attackers = combatResolver.battlefieldCombatants(state, showdown.attackingPlayerId(), locationId);
+    List<CardInstance> defenders = combatResolver.opposingBattlefieldCombatants(state, showdown.attackingPlayerId(), locationId);
+    if (!attackers.isEmpty() && !defenders.isEmpty()) {
+      state.setActiveShowdown(new LiveGameState.ShowdownState(
+          showdown.attackingPlayerId(),
+          showdown.attackerInstanceIds(),
+          showdown.gankingBonuses(),
+          ShowdownStep.ASSIGN_DAMAGE,
+          showdown.relevantPlayerIds(),
+          showdown.focusedPlayerId(),
+          showdown.consecutivePasses(),
+          true,
+          showdown.attackingPlayerId(),
+          List.of(),
+          List.of(),
+          showdown.locationId()));
+      log(state, move.playerId(), "Combat damage assignment started.");
+      return state;
+    }
     state.setActiveShowdown(new LiveGameState.ShowdownState(
         showdown.attackingPlayerId(),
         showdown.attackerInstanceIds(),
         showdown.gankingBonuses(),
-        ShowdownStep.ASSIGN_DAMAGE));
+        ShowdownStep.ASSIGN_DAMAGE,
+        showdown.relevantPlayerIds(),
+        showdown.focusedPlayerId(),
+        showdown.consecutivePasses(),
+        true,
+        null,
+        List.of(),
+        List.of(),
+        showdown.locationId()));
     CombatResolver.CombatResult result = combatResolver.resolve(state, showdown.attackingPlayerId());
     state.setActiveShowdown(new LiveGameState.ShowdownState(
         showdown.attackingPlayerId(),
         showdown.attackerInstanceIds(),
         showdown.gankingBonuses(),
-        ShowdownStep.CLEANUP));
+        ShowdownStep.CLEANUP,
+        showdown.relevantPlayerIds(),
+        showdown.focusedPlayerId(),
+        showdown.consecutivePasses(),
+        true,
+        null,
+        List.of(),
+        List.of(),
+        showdown.locationId()));
     showdown.gankingBonuses().forEach((instanceId, bonus) -> state.getCards().stream()
         .filter(card -> card.getInstanceId().equals(instanceId))
         .findFirst()
         .ifPresent(card -> card.setTemporaryPowerModifier(Math.max(0, card.getTemporaryPowerModifier() - bonus))));
-    if (result.attackersRemain() && result.defendersEliminated()) conquerBattlefield(state, showdown.attackingPlayerId());
-    else if (!result.defendersEliminated()) returnBattlefieldCardsToBase(state, showdown.attackingPlayerId());
+    if (result.attackersRemain() && result.defendersEliminated()) conquerBattlefield(state, showdown.attackingPlayerId(), locationId);
+    else if (!result.defendersEliminated()) returnBattlefieldCardsToBase(state, showdown.attackingPlayerId(), locationId);
     state.setActiveShowdown(null);
     state.setCurrentPhase(Phase.MAIN);
     log(state, move.playerId(), "Showdown resolved.");
     return state;
+  }
+
+  private LiveGameState applyAssignCombatDamage(LiveGameState state, AssignCombatDamageMove move) {
+    LiveGameState.ShowdownState showdown = state.getActiveShowdown();
+    boolean attackerAssigning = move.playerId().equals(showdown.attackingPlayerId());
+    if (attackerAssigning) {
+      String defenderId = showdown.relevantPlayerIds().stream()
+          .filter(playerId -> !playerId.equals(showdown.attackingPlayerId()))
+          .findFirst()
+          .orElse(null);
+      state.setActiveShowdown(new LiveGameState.ShowdownState(
+          showdown.attackingPlayerId(),
+          showdown.attackerInstanceIds(),
+          showdown.gankingBonuses(),
+          ShowdownStep.ASSIGN_DAMAGE,
+          showdown.relevantPlayerIds(),
+          showdown.focusedPlayerId(),
+          showdown.consecutivePasses(),
+          true,
+          defenderId,
+          move.assignments(),
+          showdown.defenderAssignments(),
+          showdown.locationId()));
+      log(state, move.playerId(), "Assigned attacking combat damage.");
+      return state;
+    }
+    LiveGameState.ShowdownState assigned = new LiveGameState.ShowdownState(
+        showdown.attackingPlayerId(),
+        showdown.attackerInstanceIds(),
+        showdown.gankingBonuses(),
+        ShowdownStep.CLEANUP,
+        showdown.relevantPlayerIds(),
+        showdown.focusedPlayerId(),
+        showdown.consecutivePasses(),
+        true,
+        null,
+        showdown.attackerAssignments(),
+        move.assignments(),
+        showdown.locationId());
+    state.setActiveShowdown(assigned);
+    String locationId = BattlefieldLocationRules.normalize(assigned.locationId());
+    CombatResolver.CombatResult result = combatResolver.resolveAssigned(
+        state,
+        assigned.attackingPlayerId(),
+        assigned.attackerAssignments(),
+        assigned.defenderAssignments());
+    assigned.gankingBonuses().forEach((instanceId, bonus) -> state.getCards().stream()
+        .filter(card -> card.getInstanceId().equals(instanceId))
+        .findFirst()
+        .ifPresent(card -> card.setTemporaryPowerModifier(Math.max(0, card.getTemporaryPowerModifier() - bonus))));
+    if (result.attackersRemain() && result.defendersEliminated()) conquerBattlefield(state, assigned.attackingPlayerId(), locationId);
+    else if (!result.defendersEliminated()) returnBattlefieldCardsToBase(state, assigned.attackingPlayerId(), locationId);
+    state.setActiveShowdown(null);
+    state.setCurrentPhase(Phase.MAIN);
+    log(state, move.playerId(), "Combat damage assigned. Showdown resolved.");
+    return state;
+  }
+
+  private LiveGameState applyPassShowdownFocus(LiveGameState state, PassShowdownFocusMove move) {
+    LiveGameState.ShowdownState showdown = state.getActiveShowdown();
+    List<String> relevant = showdownParticipantRules.relevantPlayerIds(state);
+    String nextFocus = showdownParticipantRules.nextFocusedPlayerId(state);
+    int consecutivePasses = Math.min(relevant.size(), showdown.consecutivePasses() + 1);
+    boolean readyToResolve = consecutivePasses >= relevant.size();
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        showdown.attackingPlayerId(),
+        showdown.attackerInstanceIds(),
+        showdown.gankingBonuses(),
+        ShowdownStep.ACTION_WINDOW,
+        relevant,
+        readyToResolve ? showdown.attackingPlayerId() : nextFocus,
+        consecutivePasses,
+        readyToResolve,
+        null,
+        List.of(),
+        List.of(),
+        showdown.locationId()));
+    log(state, move.playerId(), readyToResolve
+        ? "Passed showdown focus. Showdown is ready to resolve."
+        : "Passed showdown focus.");
+    return state;
+  }
+
+  private LiveGameState applyPassChainFocus(LiveGameState state, PassChainFocusMove move) {
+    LiveGameState.ChainState chain = state.getChainState();
+    List<String> relevant = priorityWindowService.relevantPlayers(state, chain);
+    int consecutivePasses = Math.min(relevant.size(), chain.consecutivePasses() + 1);
+    boolean readyToResolve = consecutivePasses >= relevant.size();
+    LiveGameState.ChainItem topItem = chain.topItem();
+    String nextFocus = readyToResolve
+        ? topItem.controllerPlayerId()
+        : priorityWindowService.nextFocusedPlayerId(relevant, move.playerId());
+    state.setChainState(new LiveGameState.ChainState(
+        chain.chainId(),
+        chain.chainItems(),
+        relevant,
+        nextFocus,
+        consecutivePasses,
+        readyToResolve,
+        chain.sourceContext()));
+    log(state, move.playerId(), readyToResolve
+        ? "Passed chain focus. The chain item is ready to resolve."
+        : "Passed chain focus.");
+    return state;
+  }
+
+  private LiveGameState applyResolveChainTop(LiveGameState state, ResolveChainTopMove move) {
+    LiveGameState.ChainState chain = state.getChainState();
+    LiveGameState.ChainItem item = chain.topItem();
+    String finishedStatus = finishTopChainItem(state, item);
+    LiveGameState.ChainState latestChain = state.getChainState() == null ? chain : state.getChainState();
+    List<LiveGameState.ChainItem> remaining = new ArrayList<>(latestChain.chainItems());
+    remaining.remove(remaining.size() - 1);
+    if (remaining.isEmpty()) {
+      state.setChainState(null);
+      log(state, move.playerId(), "Chain resolved.");
+      return state;
+    }
+    LiveGameState.ChainItem nextTop = remaining.get(remaining.size() - 1);
+    state.setChainState(new LiveGameState.ChainState(
+        latestChain.chainId(),
+        remaining,
+        priorityWindowService.relevantPlayers(state, latestChain),
+        nextTop.controllerPlayerId(),
+        0,
+        false,
+        latestChain.sourceContext()));
+    log(state, move.playerId(), LiveGameState.ChainItem.STATUS_FIZZLED.equals(finishedStatus)
+        ? "The top chain item fizzled."
+        : "Resolved the top chain item.");
+    return state;
+  }
+
+  private String finishTopChainItem(LiveGameState state, LiveGameState.ChainItem item) {
+    if (item == null) return LiveGameState.ChainItem.STATUS_RESOLVED;
+    if (!item.isPending()) {
+      log(state, item.controllerPlayerId(), chainItemDescription(item) + " was already " + item.status().toLowerCase() + ".");
+      return item.status();
+    }
+    return resolveChainItem(state, item);
+  }
+
+  private String resolveChainItem(LiveGameState state, LiveGameState.ChainItem item) {
+    String description = item.publicDescription() == null || item.publicDescription().isBlank()
+        ? "chain item"
+        : item.publicDescription();
+    if (LiveGameState.ChainItem.EFFECT_GUST_RETURN.equals(item.effectKey())) {
+      boolean resolved = resolveGustChainItem(state, item, description);
+      moveChainSourceToTrash(state, item);
+      return resolved ? LiveGameState.ChainItem.STATUS_RESOLVED : LiveGameState.ChainItem.STATUS_FIZZLED;
+    }
+    if (LiveGameState.ChainItem.EFFECT_DISCIPLINE_BOOST_DRAW.equals(item.effectKey())) {
+      boolean resolved = resolveDisciplineChainItem(state, item, description);
+      moveChainSourceToTrash(state, item);
+      return resolved ? LiveGameState.ChainItem.STATUS_RESOLVED : LiveGameState.ChainItem.STATUS_FIZZLED;
+    }
+    if (LiveGameState.ChainItem.EFFECT_EN_GARDE_BOOST.equals(item.effectKey())) {
+      boolean resolved = resolveEnGardeChainItem(state, item, description);
+      moveChainSourceToTrash(state, item);
+      return resolved ? LiveGameState.ChainItem.STATUS_RESOLVED : LiveGameState.ChainItem.STATUS_FIZZLED;
+    }
+    if (LiveGameState.ChainItem.EFFECT_DEFIANT_DANCE_MODIFIERS.equals(item.effectKey())) {
+      boolean resolved = resolveDefiantDanceChainItem(state, item, description);
+      moveChainSourceToTrash(state, item);
+      return resolved ? LiveGameState.ChainItem.STATUS_RESOLVED : LiveGameState.ChainItem.STATUS_FIZZLED;
+    }
+    if (LiveGameState.ChainItem.EFFECT_FLASH_RECALL.equals(item.effectKey())) {
+      boolean resolved = resolveFlashChainItem(state, item, description);
+      moveChainSourceToTrash(state, item);
+      return resolved ? LiveGameState.ChainItem.STATUS_RESOLVED : LiveGameState.ChainItem.STATUS_FIZZLED;
+    }
+    if (LiveGameState.ChainItem.EFFECT_DEFY_COUNTER.equals(item.effectKey())) {
+      boolean resolved = resolveDefyCounterItem(state, item, description);
+      moveChainSourceToTrash(state, item);
+      return resolved ? LiveGameState.ChainItem.STATUS_RESOLVED : LiveGameState.ChainItem.STATUS_FIZZLED;
+    }
+    if (LiveGameState.ChainItem.EFFECT_NOT_SO_FAST_COUNTER.equals(item.effectKey())) {
+      boolean resolved = resolveNotSoFastCounterItem(state, item, description);
+      moveChainSourceToTrash(state, item);
+      return resolved ? LiveGameState.ChainItem.STATUS_RESOLVED : LiveGameState.ChainItem.STATUS_FIZZLED;
+    }
+    if (LiveGameState.ChainItem.EFFECT_ABANDON_COUNTER_PREDICT.equals(item.effectKey())) {
+      boolean resolved = resolveAbandonCounterItem(state, item, description);
+      moveChainSourceToTrash(state, item);
+      return resolved ? LiveGameState.ChainItem.STATUS_RESOLVED : LiveGameState.ChainItem.STATUS_FIZZLED;
+    }
+    if (LiveGameState.ChainItem.EFFECT_STACKED_DECK_PICK_ONE.equals(item.effectKey())) {
+      resolveStackedDeckChainItem(state, item, description);
+      moveChainSourceToTrash(state, item);
+      return LiveGameState.ChainItem.STATUS_RESOLVED;
+    }
+    if (LiveGameState.ChainItem.EFFECT_DRAW_1.equals(item.effectKey())) {
+      resolveDrawOneChainItem(state, item, description);
+      moveChainSourceToTrash(state, item);
+      return LiveGameState.ChainItem.STATUS_RESOLVED;
+    }
+    if (LiveGameState.ChainItem.EFFECT_DRAW_1_TEST.equals(item.effectKey())) {
+      applyDraw(state, item.controllerPlayerId(), 1);
+      log(state, item.controllerPlayerId(), "Resolved " + description + ": drew 1.");
+      moveChainSourceToTrash(state, item);
+      return LiveGameState.ChainItem.STATUS_RESOLVED;
+    }
+    log(state, item.controllerPlayerId(), "Resolved " + description + ".");
+    moveChainSourceToTrash(state, item);
+    return LiveGameState.ChainItem.STATUS_RESOLVED;
+  }
+
+  private String chainItemDescription(LiveGameState.ChainItem item) {
+    if (item.publicDescription() != null && !item.publicDescription().isBlank()) return item.publicDescription();
+    if (item.sourceCardName() != null && !item.sourceCardName().isBlank()) return item.sourceCardName();
+    return "Chain item";
+  }
+
+  private void openChain(
+      LiveGameState state,
+      PlayCardMove move,
+      CardInstance card,
+      CardDefinition def,
+      PriorityWindowService.PriorityWindow priorityWindow) {
+    List<String> relevant = priorityWindowService.relevantPlayers(state, null);
+    int order = 1;
+    card.setZone(ZoneName.LIMBO);
+    card.setTapped(false);
+    card.setHasSummoningSickness(false);
+    LiveGameState.ChainItem item = new LiveGameState.ChainItem(
+        UUID.randomUUID().toString(),
+        move.playerId(),
+        card.getInstanceId(),
+        card.getCardId(),
+        def.name(),
+        priorityWindow.effectKey(),
+        List.of(),
+        order,
+        priorityWindow.publicDescription(),
+        priorityWindow.visibility(),
+        LiveGameState.ChainItem.STATUS_PENDING,
+        priorityWindow.counterable(),
+        priorityWindow.targetableOnChain(),
+        priorityWindow.chainItemType(),
+        priorityWindow.sourceZoneBeforeChain(),
+        List.of());
+    state.setChainState(new LiveGameState.ChainState(
+        UUID.randomUUID().toString(),
+        List.of(item),
+        relevant,
+        priorityWindowService.nextFocusedPlayerId(relevant, move.playerId()),
+        0,
+        false,
+        priorityWindow.sourceContext()));
+    log(state, move.playerId(), "Played " + def.name() + " onto the chain.");
+  }
+
+  private void addGustToChain(LiveGameState state, PlayCardMove move, CardInstance card, CardDefinition def) {
+    addTargetedReactionToChain(state, move, card, def, LiveGameState.ChainItem.EFFECT_GUST_RETURN);
+  }
+
+  private void addTargetedReactionToChain(LiveGameState state, PlayCardMove move, CardInstance card, CardDefinition def, String effectKey) {
+    LiveGameState.ChainState chain = state.getChainState();
+    PriorityWindowService.PriorityWindow priorityWindow = priorityWindowService.reactionWindowFor(def).orElseThrow();
+    List<String> relevant = priorityWindowService.relevantPlayers(state, chain);
+    int order = chain == null ? 1 : chain.chainItems().size() + 1;
+    card.setZone(ZoneName.LIMBO);
+    card.setTapped(false);
+    card.setHasSummoningSickness(false);
+    LiveGameState.ChainItem item = new LiveGameState.ChainItem(
+        UUID.randomUUID().toString(),
+        move.playerId(),
+        card.getInstanceId(),
+        card.getCardId(),
+        def.name(),
+        effectKey,
+        List.of(move.targetInstanceId()),
+        order,
+        priorityWindow.publicDescription(),
+        priorityWindow.visibility(),
+        LiveGameState.ChainItem.STATUS_PENDING,
+        priorityWindow.counterable(),
+        priorityWindow.targetableOnChain(),
+        priorityWindow.chainItemType(),
+        priorityWindow.sourceZoneBeforeChain(),
+        chainTargetsForBoardCard(state, move.targetInstanceId(), "target"));
+    List<LiveGameState.ChainItem> items = new ArrayList<>(chain == null ? List.of() : chain.chainItems());
+    items.add(item);
+    state.setChainState(new LiveGameState.ChainState(
+        chain == null ? UUID.randomUUID().toString() : chain.chainId(),
+        items,
+        relevant,
+        priorityWindowService.nextFocusedPlayerId(relevant, move.playerId()),
+        0,
+        false,
+        chain == null
+            ? state.getActiveShowdown() == null ? "MAIN_REACTION" : "SHOWDOWN_ACTION"
+            : chain.sourceContext()));
+    log(state, move.playerId(), "Played " + def.name() + " onto the chain.");
+  }
+
+  private void addStructuredTargetReactionToChain(LiveGameState state, PlayCardMove move, CardInstance card, CardDefinition def, String effectKey) {
+    LiveGameState.ChainState chain = state.getChainState();
+    PriorityWindowService.PriorityWindow priorityWindow = priorityWindowService.reactionWindowFor(def).orElseThrow();
+    List<String> relevant = priorityWindowService.relevantPlayers(state, chain);
+    int order = chain == null ? 1 : chain.chainItems().size() + 1;
+    card.setZone(ZoneName.LIMBO);
+    card.setTapped(false);
+    card.setHasSummoningSickness(false);
+    List<PlayCardMove.TargetSelection> selectedTargets = move.targets();
+    if (selectedTargets.isEmpty()
+        && LiveGameState.ChainItem.EFFECT_FLASH_RECALL.equals(effectKey)
+        && move.targetInstanceId() != null
+        && !move.targetInstanceId().isBlank()) {
+      selectedTargets = List.of(new PlayCardMove.TargetSelection(
+          PlayCardMove.TargetSelection.FIRST_FRIENDLY_UNIT,
+          move.targetInstanceId()));
+    }
+    List<String> targetIds = selectedTargets.stream()
+        .map(PlayCardMove.TargetSelection::instanceId)
+        .filter(id -> id != null && !id.isBlank())
+        .toList();
+    List<LiveGameState.ChainTarget> chainTargets = selectedTargets.stream()
+        .flatMap(target -> chainTargetsForBoardCard(state, target.instanceId(), target.role()).stream())
+        .toList();
+    LiveGameState.ChainItem item = new LiveGameState.ChainItem(
+        UUID.randomUUID().toString(),
+        move.playerId(),
+        card.getInstanceId(),
+        card.getCardId(),
+        def.name(),
+        effectKey,
+        targetIds,
+        order,
+        priorityWindow.publicDescription(),
+        priorityWindow.visibility(),
+        LiveGameState.ChainItem.STATUS_PENDING,
+        priorityWindow.counterable(),
+        priorityWindow.targetableOnChain(),
+        priorityWindow.chainItemType(),
+        priorityWindow.sourceZoneBeforeChain(),
+        chainTargets);
+    List<LiveGameState.ChainItem> items = new ArrayList<>(chain == null ? List.of() : chain.chainItems());
+    items.add(item);
+    state.setChainState(new LiveGameState.ChainState(
+        chain == null ? UUID.randomUUID().toString() : chain.chainId(),
+        items,
+        relevant,
+        priorityWindowService.nextFocusedPlayerId(relevant, move.playerId()),
+        0,
+        false,
+        chain == null
+            ? state.getActiveShowdown() == null ? "MAIN_REACTION" : "SHOWDOWN_ACTION"
+            : chain.sourceContext()));
+    log(state, move.playerId(), "Played " + def.name() + " onto the chain.");
+  }
+
+  private void addDefyToChain(LiveGameState state, PlayCardMove move, CardInstance card, CardDefinition def) {
+    LiveGameState.ChainState chain = state.getChainState();
+    PriorityWindowService.PriorityWindow priorityWindow = priorityWindowService.reactionWindowFor(def).orElseThrow();
+    List<String> relevant = priorityWindowService.relevantPlayers(state, chain);
+    int order = chain.chainItems().size() + 1;
+    card.setZone(ZoneName.LIMBO);
+    card.setTapped(false);
+    card.setHasSummoningSickness(false);
+    LiveGameState.ChainItem item = new LiveGameState.ChainItem(
+        UUID.randomUUID().toString(),
+        move.playerId(),
+        card.getInstanceId(),
+        card.getCardId(),
+        def.name(),
+        priorityWindow.effectKey(),
+        List.of(move.targetChainItemId()),
+        order,
+        priorityWindow.publicDescription(),
+        priorityWindow.visibility(),
+        LiveGameState.ChainItem.STATUS_PENDING,
+        priorityWindow.counterable(),
+        priorityWindow.targetableOnChain(),
+        priorityWindow.chainItemType(),
+        priorityWindow.sourceZoneBeforeChain(),
+        chainTargetsForChainItem(chain, move.targetChainItemId(), "counterTarget"));
+    List<LiveGameState.ChainItem> items = new ArrayList<>(chain.chainItems());
+    items.add(item);
+    state.setChainState(new LiveGameState.ChainState(
+        chain.chainId(),
+        items,
+        relevant,
+        priorityWindowService.nextFocusedPlayerId(relevant, move.playerId()),
+        0,
+        false,
+        chain.sourceContext()));
+    log(state, move.playerId(), "Played " + def.name() + " onto the chain.");
+  }
+
+  private void addNotSoFastToChain(LiveGameState state, PlayCardMove move, CardInstance card, CardDefinition def) {
+    LiveGameState.ChainState chain = state.getChainState();
+    PriorityWindowService.PriorityWindow priorityWindow = priorityWindowService.reactionWindowFor(def).orElseThrow();
+    List<String> relevant = priorityWindowService.relevantPlayers(state, chain);
+    int order = chain.chainItems().size() + 1;
+    card.setZone(ZoneName.LIMBO);
+    card.setTapped(false);
+    card.setHasSummoningSickness(false);
+    LiveGameState.ChainItem item = new LiveGameState.ChainItem(
+        UUID.randomUUID().toString(),
+        move.playerId(),
+        card.getInstanceId(),
+        card.getCardId(),
+        def.name(),
+        priorityWindow.effectKey(),
+        List.of(move.targetChainItemId()),
+        order,
+        priorityWindow.publicDescription(),
+        priorityWindow.visibility(),
+        LiveGameState.ChainItem.STATUS_PENDING,
+        priorityWindow.counterable(),
+        priorityWindow.targetableOnChain(),
+        priorityWindow.chainItemType(),
+        priorityWindow.sourceZoneBeforeChain(),
+        chainTargetsForChainItem(chain, move.targetChainItemId(), "counterTarget"));
+    List<LiveGameState.ChainItem> items = new ArrayList<>(chain.chainItems());
+    items.add(item);
+    state.setChainState(new LiveGameState.ChainState(
+        chain.chainId(),
+        items,
+        relevant,
+        priorityWindowService.nextFocusedPlayerId(relevant, move.playerId()),
+        0,
+        false,
+        chain.sourceContext()));
+    log(state, move.playerId(), "Played " + def.name() + " onto the chain.");
+  }
+
+  private void addAbandonToChain(LiveGameState state, PlayCardMove move, CardInstance card, CardDefinition def) {
+    LiveGameState.ChainState chain = state.getChainState();
+    PriorityWindowService.PriorityWindow priorityWindow = priorityWindowService.reactionWindowFor(def).orElseThrow();
+    List<String> relevant = priorityWindowService.relevantPlayers(state, chain);
+    int order = chain.chainItems().size() + 1;
+    card.setZone(ZoneName.LIMBO);
+    card.setTapped(false);
+    card.setHasSummoningSickness(false);
+    LiveGameState.ChainItem item = new LiveGameState.ChainItem(
+        UUID.randomUUID().toString(),
+        move.playerId(),
+        card.getInstanceId(),
+        card.getCardId(),
+        def.name(),
+        priorityWindow.effectKey(),
+        List.of(move.targetChainItemId()),
+        order,
+        priorityWindow.publicDescription(),
+        priorityWindow.visibility(),
+        LiveGameState.ChainItem.STATUS_PENDING,
+        priorityWindow.counterable(),
+        priorityWindow.targetableOnChain(),
+        priorityWindow.chainItemType(),
+        priorityWindow.sourceZoneBeforeChain(),
+        chainTargetsForChainItem(chain, move.targetChainItemId(), "counterTarget"));
+    List<LiveGameState.ChainItem> items = new ArrayList<>(chain.chainItems());
+    items.add(item);
+    state.setChainState(new LiveGameState.ChainState(
+        chain.chainId(),
+        items,
+        relevant,
+        priorityWindowService.nextFocusedPlayerId(relevant, move.playerId()),
+        0,
+        false,
+        chain.sourceContext()));
+    log(state, move.playerId(), "Played " + def.name() + " onto the chain.");
+  }
+
+  private List<LiveGameState.ChainTarget> chainTargetsForBoardCard(LiveGameState state, String targetInstanceId, String role) {
+    if (targetInstanceId == null || targetInstanceId.isBlank()) return List.of();
+    CardInstance target = state.getCards().stream()
+        .filter(card -> targetInstanceId.equals(card.getInstanceId()))
+        .findFirst()
+        .orElse(null);
+    if (target == null) return List.of();
+    CardDefinition def = cardDataService.getCard(target.getCardId());
+    boolean publicSafe = target.getZone() == ZoneName.BASE || target.getZone() == ZoneName.BATTLEFIELD || target.getZone() == ZoneName.CHAMPION;
+    return List.of(new LiveGameState.ChainTarget(
+        role,
+        target.getInstanceId(),
+        null,
+        target.getOwnerId(),
+        targetKind(def),
+        target.getZone(),
+        publicSafe && def != null ? def.name() : "Hidden target",
+        publicSafe));
+  }
+
+  private List<LiveGameState.ChainTarget> chainTargetsForChainItem(LiveGameState.ChainState chain, String targetChainItemId, String role) {
+    if (chain == null || targetChainItemId == null || targetChainItemId.isBlank()) return List.of();
+    LiveGameState.ChainItem target = chain.chainItems().stream()
+        .filter(item -> targetChainItemId.equals(item.itemId()))
+        .findFirst()
+        .orElse(null);
+    if (target == null) return List.of();
+    boolean publicSafe = target.isPubliclyVisible();
+    return List.of(new LiveGameState.ChainTarget(
+        role,
+        null,
+        target.itemId(),
+        target.controllerPlayerId(),
+        "CHAIN_ITEM",
+        null,
+        publicSafe ? chainItemDescription(target) : "Hidden chain item",
+        publicSafe));
+  }
+
+  private String targetKind(CardDefinition def) {
+    if (def == null || def.type() == null) return "UNKNOWN";
+    if ("Champion".equalsIgnoreCase(def.type())) return "CHAMPION_UNIT";
+    if ("Unit".equalsIgnoreCase(def.type())) return "UNIT";
+    if ("Gear".equalsIgnoreCase(def.type())) return "GEAR";
+    return def.type().trim().toUpperCase();
+  }
+
+  private void resolveStackedDeckChainItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
+    CardInstance source = item.sourceCardInstanceId() == null || item.sourceCardInstanceId().isBlank()
+        ? null
+        : state.getCards().stream()
+            .filter(card -> card.getInstanceId().equals(item.sourceCardInstanceId()))
+            .findFirst()
+            .orElse(null);
+    if (source == null) {
+      log(state, item.controllerPlayerId(), "Resolved " + description + ": source was no longer available.");
+      return;
+    }
+    CardDefinition sourceDef = cardDataService.getCard(source.getCardId());
+    applyRulesTextEffect(source, null, state, sourceDef);
+    log(state, item.controllerPlayerId(), "Resolved " + description + ".");
+    if ("SHOWDOWN_ACTION".equalsIgnoreCase(state.getChainState() == null ? null : state.getChainState().sourceContext())
+        && state.getActiveShowdown() != null) {
+      advanceShowdownFocusAfterAction(state, item.controllerPlayerId());
+    }
+  }
+
+  private void resolveDrawOneChainItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
+    applyDraw(state, item.controllerPlayerId(), 1);
+    log(state, item.controllerPlayerId(), "Resolved " + description + ": drew 1.");
+    if ("SHOWDOWN_ACTION".equalsIgnoreCase(state.getChainState() == null ? null : state.getChainState().sourceContext())
+        && state.getActiveShowdown() != null) {
+      advanceShowdownFocusAfterAction(state, item.controllerPlayerId());
+    }
+  }
+
+  private boolean resolveGustChainItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
+    CardInstance target = item.targetInstanceIds().stream()
+        .findFirst()
+        .flatMap(targetId -> state.getCards().stream()
+            .filter(card -> card.getInstanceId().equals(targetId))
+            .findFirst())
+        .orElse(null);
+    if (target == null || !isLegalGustTarget(target)) {
+      log(state, item.controllerPlayerId(), "Resolved " + description + ": target was no longer legal.");
+      return false;
+    }
+    CardDefinition targetDef = cardDataService.getCard(target.getCardId());
+    returnAttachmentsToBase(state, target);
+    target.setZone(ZoneName.HAND);
+    target.setTapped(false);
+    target.setHasSummoningSickness(false);
+    target.setX(0);
+    target.setY(0);
+    log(state, item.controllerPlayerId(), "Resolved " + description + ": returned " + targetDef.name() + " to its owner's hand.");
+    advanceShowdownFocusAfterChainAction(state, item);
+    return true;
+  }
+
+  private boolean resolveDisciplineChainItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
+    CardInstance target = firstChainBoardTarget(state, item);
+    if (target == null || !isPublicBattlefieldUnit(target)) {
+      log(state, item.controllerPlayerId(), description + " fizzled because its target was no longer legal.");
+      return false;
+    }
+    CardDefinition sourceDef = cardDataService.getCard(item.sourceCardId());
+    applyTemporaryMight(state, chainSourceOrFallback(state, item), sourceDef, target, 2);
+    applyDraw(state, item.controllerPlayerId(), 1);
+    log(state, item.controllerPlayerId(), "Resolved " + description + ": gave +2 Might and drew a card.");
+    advanceShowdownFocusAfterChainAction(state, item);
+    return true;
+  }
+
+  private boolean resolveEnGardeChainItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
+    CardInstance target = firstChainBoardTarget(state, item);
+    if (target == null || !isPublicBattlefieldUnit(target) || !item.controllerPlayerId().equals(target.getOwnerId())) {
+      log(state, item.controllerPlayerId(), description + " fizzled because its target was no longer legal.");
+      return false;
+    }
+    int boost = isOnlyFriendlyUnitAtLocation(state, target) ? 2 : 1;
+    CardDefinition sourceDef = cardDataService.getCard(item.sourceCardId());
+    applyTemporaryMight(state, chainSourceOrFallback(state, item), sourceDef, target, boost);
+    log(state, item.controllerPlayerId(), "Resolved " + description + ": gave +" + boost + " Might.");
+    advanceShowdownFocusAfterChainAction(state, item);
+    return true;
+  }
+
+  private boolean resolveDefiantDanceChainItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
+    CardInstance boostTarget = chainBoardTargetByRole(state, item, PlayCardMove.TargetSelection.BOOST_UNIT);
+    CardInstance weakenTarget = chainBoardTargetByRole(state, item, PlayCardMove.TargetSelection.WEAKEN_UNIT);
+    if (boostTarget == null || weakenTarget == null
+        || boostTarget.getInstanceId().equals(weakenTarget.getInstanceId())
+        || !isPublicBattlefieldUnit(boostTarget)
+        || !isPublicBattlefieldUnit(weakenTarget)) {
+      log(state, item.controllerPlayerId(), description + " fizzled because its targets were no longer legal.");
+      return false;
+    }
+    CardDefinition sourceDef = cardDataService.getCard(item.sourceCardId());
+    CardInstance source = chainSourceOrFallback(state, item);
+    applyTemporaryMight(state, source, sourceDef, boostTarget, 2);
+    applyTemporaryMight(state, source, sourceDef, weakenTarget, -2);
+    log(state, item.controllerPlayerId(), "Resolved " + description + ": gave +2 Might and -2 Might.");
+    advanceShowdownFocusAfterChainAction(state, item);
+    return true;
+  }
+
+  private boolean resolveFlashChainItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
+    List<CardInstance> targets = item.chainTargets().stream()
+        .filter(target -> PlayCardMove.TargetSelection.FIRST_FRIENDLY_UNIT.equals(target.role())
+            || PlayCardMove.TargetSelection.SECOND_FRIENDLY_UNIT.equals(target.role()))
+        .map(LiveGameState.ChainTarget::targetInstanceId)
+        .filter(id -> id != null && !id.isBlank())
+        .distinct()
+        .map(id -> findCard(state, id))
+        .filter(target -> target != null && isFriendlyPublicBattlefieldUnit(target, item.controllerPlayerId()))
+        .toList();
+    if (targets.isEmpty()) {
+      log(state, item.controllerPlayerId(), description + " fizzled because its targets were no longer legal.");
+      return false;
+    }
+    CardDefinition sourceDef = cardDataService.getCard(item.sourceCardId());
+    CardInstance source = chainSourceOrFallback(state, item);
+    for (CardInstance target : targets) {
+      recallUnitToBase(state, source, sourceDef, target);
+    }
+    log(state, item.controllerPlayerId(), "Resolved " + description + ": moved " + targets.size() + " friendly unit(s) to Base.");
+    advanceShowdownFocusAfterChainAction(state, item);
+    return true;
+  }
+
+  private CardInstance chainBoardTargetByRole(LiveGameState state, LiveGameState.ChainItem item, String role) {
+    return item.chainTargets().stream()
+        .filter(target -> role.equals(target.role()))
+        .findFirst()
+        .map(LiveGameState.ChainTarget::targetInstanceId)
+        .flatMap(targetId -> state.getCards().stream()
+            .filter(card -> card.getInstanceId().equals(targetId))
+            .findFirst())
+        .orElse(null);
+  }
+
+  private void advanceShowdownFocusAfterChainAction(LiveGameState state, LiveGameState.ChainItem item) {
+    if ("SHOWDOWN_ACTION".equalsIgnoreCase(state.getChainState() == null ? null : state.getChainState().sourceContext())
+        && state.getActiveShowdown() != null) {
+      advanceShowdownFocusAfterAction(state, item.controllerPlayerId());
+    }
+  }
+
+  private CardInstance firstChainBoardTarget(LiveGameState state, LiveGameState.ChainItem item) {
+    return item.targetInstanceIds().stream()
+        .findFirst()
+        .flatMap(targetId -> state.getCards().stream()
+            .filter(card -> card.getInstanceId().equals(targetId))
+            .findFirst())
+        .orElse(null);
+  }
+
+  private CardInstance chainSourceOrFallback(LiveGameState state, LiveGameState.ChainItem item) {
+    return state.getCards().stream()
+        .filter(card -> card.getInstanceId().equals(item.sourceCardInstanceId()))
+        .findFirst()
+        .orElseGet(() -> {
+          CardInstance source = new CardInstance();
+          source.setInstanceId(item.sourceCardInstanceId());
+          source.setCardId(item.sourceCardId());
+          source.setOwnerId(item.controllerPlayerId());
+          source.setZone(ZoneName.LIMBO);
+          return source;
+        });
+  }
+
+  private boolean isPublicBattlefieldUnit(CardInstance target) {
+    if (target.getZone() != ZoneName.BATTLEFIELD || target.isFaceDown()) return false;
+    CardDefinition targetDef = cardDataService.getCard(target.getCardId());
+    return targetDef != null && ("Unit".equalsIgnoreCase(targetDef.type()) || "Champion".equalsIgnoreCase(targetDef.type()));
+  }
+
+  private boolean isFriendlyPublicBattlefieldUnit(CardInstance target, String playerId) {
+    return target != null
+        && playerId != null
+        && playerId.equals(target.getOwnerId())
+        && isPublicBattlefieldUnit(target);
+  }
+
+  private boolean isOnlyFriendlyUnitAtLocation(LiveGameState state, CardInstance target) {
+    return state.getCards().stream()
+        .filter(card -> card.getZone() == target.getZone())
+        .filter(card -> target.getZone() != ZoneName.BATTLEFIELD
+            || BattlefieldLocationRules.isAtLocation(card, target.getBattlefieldLocationId()))
+        .filter(card -> target.getOwnerId().equals(card.getOwnerId()))
+        .filter(this::isPublicBattlefieldUnit)
+        .count() == 1;
+  }
+
+  private boolean resolveDefyCounterItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
+    String targetItemId = item.targetInstanceIds().stream().findFirst().orElse("");
+    LiveGameState.ChainState chain = state.getChainState();
+    if (chain == null || targetItemId.isBlank()) {
+      log(state, item.controllerPlayerId(), "Resolved " + description + ": target was no longer available.");
+      return false;
+    }
+    List<LiveGameState.ChainItem> updatedItems = new ArrayList<>();
+    boolean countered = false;
+    LiveGameState.ChainItem counteredItem = null;
+    for (LiveGameState.ChainItem candidate : chain.chainItems()) {
+      if (targetItemId.equals(candidate.itemId())
+          && candidate.isPending()
+          && candidate.counterable()
+          && candidate.targetableOnChain()) {
+        LiveGameState.ChainItem marked = candidate.withStatus(LiveGameState.ChainItem.STATUS_COUNTERED);
+        updatedItems.add(marked);
+        countered = true;
+        counteredItem = marked;
+      } else {
+        updatedItems.add(candidate);
+      }
+    }
+    if (!countered) {
+      log(state, item.controllerPlayerId(), "Resolved " + description + ": target was no longer legal.");
+      return false;
+    }
+    state.setChainState(new LiveGameState.ChainState(
+        chain.chainId(),
+        updatedItems,
+        chain.relevantPlayerIds(),
+        chain.focusedPlayerId(),
+        chain.consecutivePasses(),
+        chain.readyToResolveTop(),
+        chain.sourceContext()));
+    moveChainSourceToTrash(state, counteredItem);
+    log(state, item.controllerPlayerId(), "Resolved " + description + ": countered " + chainItemDescription(counteredItem) + ".");
+    return true;
+  }
+
+  private boolean resolveNotSoFastCounterItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
+    String targetItemId = item.targetInstanceIds().stream().findFirst().orElse("");
+    LiveGameState.ChainState chain = state.getChainState();
+    if (chain == null || targetItemId.isBlank()) {
+      log(state, item.controllerPlayerId(), "Resolved " + description + ": target was no longer available.");
+      return false;
+    }
+    List<LiveGameState.ChainItem> updatedItems = new ArrayList<>();
+    boolean countered = false;
+    LiveGameState.ChainItem counteredItem = null;
+    for (LiveGameState.ChainItem candidate : chain.chainItems()) {
+      if (targetItemId.equals(candidate.itemId())
+          && isLegalNotSoFastTarget(candidate, item.controllerPlayerId())) {
+        LiveGameState.ChainItem marked = candidate.withStatus(LiveGameState.ChainItem.STATUS_COUNTERED);
+        updatedItems.add(marked);
+        countered = true;
+        counteredItem = marked;
+      } else {
+        updatedItems.add(candidate);
+      }
+    }
+    if (!countered) {
+      log(state, item.controllerPlayerId(), "Resolved " + description + ": target was no longer legal.");
+      return false;
+    }
+    state.setChainState(new LiveGameState.ChainState(
+        chain.chainId(),
+        updatedItems,
+        chain.relevantPlayerIds(),
+        chain.focusedPlayerId(),
+        chain.consecutivePasses(),
+        chain.readyToResolveTop(),
+        chain.sourceContext()));
+    moveChainSourceToTrash(state, counteredItem);
+    log(state, item.controllerPlayerId(), "Resolved " + description + ": countered " + chainItemDescription(counteredItem) + ".");
+    return true;
+  }
+
+  private boolean resolveAbandonCounterItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
+    String targetItemId = item.targetInstanceIds().stream().findFirst().orElse("");
+    LiveGameState.ChainState chain = state.getChainState();
+    if (chain == null || targetItemId.isBlank()) {
+      log(state, item.controllerPlayerId(), "Resolved " + description + ": target was no longer available.");
+      return false;
+    }
+    List<LiveGameState.ChainItem> updatedItems = new ArrayList<>();
+    boolean countered = false;
+    LiveGameState.ChainItem counteredItem = null;
+    for (LiveGameState.ChainItem candidate : chain.chainItems()) {
+      if (targetItemId.equals(candidate.itemId())
+          && isLegalAbandonTarget(candidate)) {
+        LiveGameState.ChainItem marked = candidate.withStatus(LiveGameState.ChainItem.STATUS_COUNTERED);
+        updatedItems.add(marked);
+        countered = true;
+        counteredItem = marked;
+      } else {
+        updatedItems.add(candidate);
+      }
+    }
+    if (!countered) {
+      log(state, item.controllerPlayerId(), "Resolved " + description + ": target was no longer legal.");
+      return false;
+    }
+    state.setChainState(new LiveGameState.ChainState(
+        chain.chainId(),
+        updatedItems,
+        chain.relevantPlayerIds(),
+        chain.focusedPlayerId(),
+        chain.consecutivePasses(),
+        chain.readyToResolveTop(),
+        chain.sourceContext()));
+    moveChainSourceToHand(state, counteredItem);
+    createPredictChoice(state, item);
+    log(state, item.controllerPlayerId(), "Resolved " + description + ": countered " + chainItemDescription(counteredItem) + " and returned it to hand.");
+    return true;
+  }
+
+  private boolean isLegalAbandonTarget(LiveGameState.ChainItem target) {
+    if (target == null || !target.isPending() || !target.counterable() || !target.targetableOnChain()) return false;
+    if (!target.isPubliclyVisible()) return false;
+    if (!LiveGameState.ChainItem.TYPE_SPELL.equalsIgnoreCase(target.chainItemType())) return false;
+    CardDefinition targetDef = target.sourceCardId() == null || target.sourceCardId().isBlank()
+        ? null
+        : cardDataService.getCard(target.sourceCardId());
+    return targetDef != null && "Spell".equalsIgnoreCase(targetDef.type());
+  }
+
+  private boolean isLegalNotSoFastTarget(LiveGameState.ChainItem target, String playerId) {
+    if (target == null || !target.isPending() || !target.counterable() || !target.targetableOnChain()) return false;
+    if (!target.isPubliclyVisible()) return false;
+    if (playerId.equals(target.controllerPlayerId())) return false;
+    if (!LiveGameState.ChainItem.TYPE_SPELL.equalsIgnoreCase(target.chainItemType())) return false;
+    CardDefinition targetDef = target.sourceCardId() == null || target.sourceCardId().isBlank()
+        ? null
+        : cardDataService.getCard(target.sourceCardId());
+    if (targetDef == null || !"Spell".equalsIgnoreCase(targetDef.type())) return false;
+    return target.chainTargets().stream().anyMatch(summary ->
+        summary.publicSafe()
+            && playerId.equals(summary.targetControllerPlayerId())
+            && ("UNIT".equalsIgnoreCase(summary.targetKind())
+                || "CHAMPION_UNIT".equalsIgnoreCase(summary.targetKind())
+                || "GEAR".equalsIgnoreCase(summary.targetKind())));
+  }
+
+  private boolean isLegalGustTarget(CardInstance target) {
+    if (target.getZone() != ZoneName.BATTLEFIELD || target.isFaceDown()) return false;
+    CardDefinition targetDef = cardDataService.getCard(target.getCardId());
+    if (targetDef == null || (!"Unit".equalsIgnoreCase(targetDef.type()) && !"Champion".equalsIgnoreCase(targetDef.type()))) return false;
+    return effectiveMight(target) <= 3;
+  }
+
+  private void moveChainSourceToTrash(LiveGameState state, LiveGameState.ChainItem item) {
+    if (item.sourceCardInstanceId() == null || item.sourceCardInstanceId().isBlank()) return;
+    state.getCards().stream()
+        .filter(card -> card.getInstanceId().equals(item.sourceCardInstanceId()))
+        .findFirst()
+        .filter(card -> card.getZone() == ZoneName.LIMBO)
+        .ifPresent(cardZoneService::moveToGraveyard);
+  }
+
+  private void moveChainSourceToHand(LiveGameState state, LiveGameState.ChainItem item) {
+    if (item.sourceCardInstanceId() == null || item.sourceCardInstanceId().isBlank()) return;
+    state.getCards().stream()
+        .filter(card -> card.getInstanceId().equals(item.sourceCardInstanceId()))
+        .findFirst()
+        .filter(card -> card.getZone() == ZoneName.LIMBO)
+        .ifPresent(card -> {
+          card.setZone(ZoneName.HAND);
+          card.setTapped(false);
+          card.setHasSummoningSickness(false);
+          card.setX(0);
+          card.setY(0);
+        });
+  }
+
+  private void createPredictChoice(LiveGameState state, LiveGameState.ChainItem item) {
+    PlayerState player = player(state, item.controllerPlayerId());
+    if (player.getDeckPool().isEmpty()) {
+      log(state, item.controllerPlayerId(), "Predict found no cards.");
+      return;
+    }
+    List<CardDefinition> topCards = player.getDeckPool().stream()
+        .limit(1)
+        .map(cardDataService::getCard)
+        .filter(card -> card != null)
+        .toList();
+    if (topCards.isEmpty()) {
+      log(state, item.controllerPlayerId(), "Predict found no cards.");
+      return;
+    }
+    state.setPendingChoice(PendingChoice.predictOrder(
+        UUID.randomUUID().toString(),
+        item.controllerPlayerId(),
+        item.sourceCardId(),
+        item.sourceCardInstanceId(),
+        topCards));
+    log(state, item.controllerPlayerId(), "Abandon is waiting for a private Predict choice.");
+  }
+
+  private void advanceShowdownFocusAfterAction(LiveGameState state, String playerId) {
+    LiveGameState.ShowdownState showdown = state.getActiveShowdown();
+    List<String> relevant = showdownParticipantRules.relevantPlayerIds(state);
+    String nextFocus = showdownParticipantRules.nextFocusedPlayerId(state);
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        showdown.attackingPlayerId(),
+        showdown.attackerInstanceIds(),
+        showdown.gankingBonuses(),
+        ShowdownStep.ACTION_WINDOW,
+        relevant,
+        nextFocus == null ? playerId : nextFocus,
+        0,
+        false,
+        null,
+        List.of(),
+        List.of(),
+        showdown.locationId()));
+    log(state, playerId, "Showdown focus passed to the next player.");
+  }
+
+  private LiveGameState.ShowdownState showdownState(
+      LiveGameState state,
+      String attackingPlayerId,
+      List<String> attackerInstanceIds,
+      Map<String, Integer> gankingBonuses) {
+    String locationId = battlefieldLocationIdFor(state, attackerInstanceIds);
+    List<String> relevant = new ArrayList<>();
+    relevant.add(attackingPlayerId);
+    state.getCards().stream()
+        .filter(card -> card.getZone() == ZoneName.BATTLEFIELD)
+        .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
+        .filter(this::isPublicCombatant)
+        .map(CardInstance::getOwnerId)
+        .filter(owner -> owner != null && !owner.isBlank())
+        .filter(owner -> !owner.equals(attackingPlayerId))
+        .distinct()
+        .sorted(String.CASE_INSENSITIVE_ORDER)
+        .forEach(relevant::add);
+    return new LiveGameState.ShowdownState(
+        attackingPlayerId,
+        attackerInstanceIds,
+        gankingBonuses,
+        ShowdownStep.ACTION_WINDOW,
+        relevant,
+        attackingPlayerId,
+        0,
+        false,
+        null,
+        List.of(),
+        List.of(),
+        locationId);
+  }
+
+  private String battlefieldLocationIdFor(LiveGameState state, List<String> attackerInstanceIds) {
+    return attackerInstanceIds.stream()
+        .flatMap(instanceId -> state.getCards().stream()
+            .filter(card -> instanceId.equals(card.getInstanceId())))
+        .map(CardInstance::getBattlefieldLocationId)
+        .filter(locationId -> locationId != null && !locationId.isBlank())
+        .findFirst()
+        .orElse(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID);
+  }
+
+  private boolean hasOpposingCombatantsAtLocation(LiveGameState state, String playerId, String locationId) {
+    return state.getCards().stream()
+        .filter(this::isPublicCombatant)
+        .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
+        .anyMatch(candidate -> !playerId.equals(candidate.getOwnerId()));
+  }
+
+  private void updateBattlefieldControllerFromCombatants(LiveGameState state, String locationId) {
+    Set<String> owners = state.getCards().stream()
+        .filter(this::isPublicCombatant)
+        .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
+        .map(CardInstance::getOwnerId)
+        .filter(owner -> owner != null && !owner.isBlank())
+        .collect(java.util.stream.Collectors.toCollection(java.util.TreeSet::new));
+    String normalized = BattlefieldLocationRules.normalize(locationId);
+    if (owners.size() == 1) {
+      state.getBattlefieldController().put(normalized, owners.iterator().next());
+      return;
+    }
+    if (owners.isEmpty()) {
+      state.getBattlefieldController().remove(normalized);
+    }
+  }
+
+  private boolean isPublicCombatant(CardInstance card) {
+    if (card == null || card.getZone() != ZoneName.BATTLEFIELD || card.isFaceDown()) return false;
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    return def != null && ("Unit".equalsIgnoreCase(def.type()) || "Champion".equalsIgnoreCase(def.type()));
   }
 
   private LiveGameState applyUndoRunes(LiveGameState state, UndoRunesMove move) {
@@ -458,10 +1647,11 @@ public class GameEngine {
 
   private LiveGameState applyResolveChoice(LiveGameState state, ResolveChoiceMove move) {
     PendingChoice choice = state.getPendingChoice();
+    PendingChoice nextChoice = null;
     if (PendingChoice.TYPE_OPTIONAL_DRAW_ONE.equals(choice.getType())
         || PendingChoice.TYPE_YES_NO.equals(choice.getType())) {
       if (PendingChoice.OPTION_YES.equals(move.selectedOptionId())) {
-        applyChoiceEffect(state, move.playerId(), choice);
+        nextChoice = applyChoiceEffect(state, move.playerId(), choice);
         log(state, move.playerId(), player(state, move.playerId()).getName() + " chose yes for " + choicePromptLabel(choice) + ".");
       } else {
         log(state, move.playerId(), player(state, move.playerId()).getName() + " declined " + choicePromptLabel(choice) + ".");
@@ -472,7 +1662,7 @@ public class GameEngine {
         PlayerState player = player(state, move.playerId());
         int amount = optionalPaymentAmount(choice);
         player.setAvailableEnergy(Math.max(0, player.getAvailableEnergy() - amount));
-        applyChoiceEffect(state, move.playerId(), choice);
+        nextChoice = applyChoiceEffect(state, move.playerId(), choice);
         log(state, move.playerId(), player.getName() + " paid " + amount + " for " + choicePromptLabel(choice) + ".");
       } else {
         log(state, move.playerId(), player(state, move.playerId()).getName() + " declined " + choicePromptLabel(choice) + ".");
@@ -481,15 +1671,30 @@ public class GameEngine {
       resolveTopDeckPickOne(state, move, choice);
     } else if (PendingChoice.TYPE_PREDICT_ORDER.equals(choice.getType())) {
       resolvePredictOrder(state, move, choice);
+    } else if (PendingChoice.TYPE_TARGET_GEAR.equals(choice.getType())) {
+      if (PendingChoice.OPTION_DECLINE.equals(move.selectedOptionId())) {
+        log(state, move.playerId(), player(state, move.playerId()).getName() + " cancelled " + choicePromptLabel(choice) + ".");
+      } else {
+        destroyGearTarget(state, move, choice);
+      }
     }
-    state.setPendingChoice(null);
+    state.setPendingChoice(nextChoice);
     return state;
   }
 
-  private void applyChoiceEffect(LiveGameState state, String playerId, PendingChoice choice) {
+  private PendingChoice applyChoiceEffect(LiveGameState state, String playerId, PendingChoice choice) {
     if (PendingChoice.EFFECT_DRAW_1.equals(choice.getEffect())) {
       applyDraw(state, playerId, 1);
     }
+    if (PendingChoice.EFFECT_CREATE_DESTROY_GEAR_CHOICE.equals(choice.getEffect())) {
+      return PendingChoice.destroyGearTarget(
+          UUID.randomUUID().toString(),
+          playerId,
+          choice.getSourceCardId(),
+          choice.getSourceCardInstanceId(),
+          "Choose a Gear to destroy with " + choicePromptLabel(choice) + ".");
+    }
+    return null;
   }
 
   private int optionalPaymentAmount(PendingChoice choice) {
@@ -639,12 +1844,12 @@ public class GameEngine {
     }
   }
 
-  private void conquerBattlefield(LiveGameState state, String playerId) {
-    String battlefieldId = "BATTLEFIELD";
-    state.getBattlefieldController().put(battlefieldId, playerId);
-    if (state.getScoredBattlefieldsThisTurn().contains(battlefieldId)) return;
+  private void conquerBattlefield(LiveGameState state, String playerId, String battlefieldId) {
+    String locationId = BattlefieldLocationRules.normalize(battlefieldId);
+    state.getBattlefieldController().put(locationId, playerId);
+    if (state.getScoredBattlefieldsThisTurn().contains(locationId)) return;
     PlayerState scorer = player(state, playerId);
-    state.getScoredBattlefieldsThisTurn().add(battlefieldId);
+    state.getScoredBattlefieldsThisTurn().add(locationId);
     if (scorer.getScore() >= targetScore - 1 && !scoredAllBattlefieldsThisTurn(state)) {
       autoDraw(state, scorer.getUserId());
       log(state, scorer.getUserId(), "Conquers but draws a card (must score all battlefields to win).");
@@ -655,7 +1860,7 @@ public class GameEngine {
   }
 
   private List<String> battlefieldIds(LiveGameState state) {
-    if (state.getBattlefieldController().isEmpty()) return List.of("BATTLEFIELD");
+    if (state.getBattlefieldController().isEmpty()) return List.of(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID);
     return state.getBattlefieldController().keySet().stream().sorted().toList();
   }
 
@@ -669,12 +1874,15 @@ public class GameEngine {
   }
 
   private String battlefieldLabel(String battlefieldId) {
-    return "BATTLEFIELD".equals(battlefieldId) ? "the battlefield" : battlefieldId;
+    return CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID.equals(BattlefieldLocationRules.normalize(battlefieldId))
+        ? "the battlefield"
+        : battlefieldId;
   }
 
-  private void returnBattlefieldCardsToBase(LiveGameState state, String playerId) {
+  private void returnBattlefieldCardsToBase(LiveGameState state, String playerId, String locationId) {
     List<CardInstance> returned = state.getCards().stream()
         .filter(card -> card.getZone() == ZoneName.BATTLEFIELD && playerId.equals(card.getOwnerId()))
+        .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
         .toList();
     returned.forEach(card -> {
       card.setZone(ZoneName.BASE);
@@ -700,6 +1908,7 @@ public class GameEngine {
     state.getCards().stream()
         .filter(card -> card.getOwnerId().equals(state.getActivePlayerId()) && card.getZone() == ZoneName.BATTLEFIELD)
         .forEach(card -> effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onTurnEnd(card, state)));
+    state.getRevealedHands().removeIf(snapshot -> state.getActivePlayerId().equals(snapshot.getRevealedToPlayerId()));
     healBoardCards(state);
   }
 
@@ -723,8 +1932,8 @@ public class GameEngine {
   }
 
   private void dispatchCardMoved(LiveGameState state, CardInstance card, ZoneName sourceZone, ZoneName targetZone, String cause) {
-    if (sourceZone == targetZone) return;
-    triggerDispatcher.dispatch(state, TriggerEvent.cardMoved(card, sourceZone, targetZone, "BATTLEFIELD", cause));
+    if (sourceZone == targetZone && !"MOVE_BATTLEFIELD_LOCATION".equals(cause)) return;
+    triggerDispatcher.dispatch(state, TriggerEvent.cardMoved(card, sourceZone, targetZone, BattlefieldLocationRules.locationOf(card), cause));
   }
 
   private boolean isNamed(CardDefinition def, String name) {
@@ -737,6 +1946,7 @@ public class GameEngine {
     int might = effectiveMight(card);
     boolean facesStrongerUnit = state.getCards().stream()
         .filter(candidate -> candidate.getZone() == ZoneName.BATTLEFIELD)
+        .filter(candidate -> BattlefieldLocationRules.isAtLocation(candidate, card.getBattlefieldLocationId()))
         .filter(candidate -> !card.getOwnerId().equals(candidate.getOwnerId()))
         .anyMatch(candidate -> effectiveMight(candidate) > might);
     if (!facesStrongerUnit) return 0;
@@ -803,19 +2013,24 @@ public class GameEngine {
               && card.getCurrentHealth() <= 0;
         })
         .toList();
-    List<DeathEvent> deaths = destroyed.stream()
-        .map(card -> deathTriggerService.capture(card, state, DeathEvent.DeathCause.EFFECT))
-        .toList();
-    for (CardInstance card : destroyed) {
-      returnAttachmentsToBase(state, card);
-      cardZoneService.moveToGraveyard(card);
-      effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onDestroy(card, state));
-    }
-    deathTriggerService.process(state, deaths);
+    deathService.resolveDeaths(state, destroyed, DeathEvent.DeathCause.EFFECT, "was destroyed.");
   }
 
   private void applyRulesTextEffect(CardInstance card, CardInstance target, LiveGameState state, CardDefinition def) {
     String text = def.rulesText() == null ? "" : def.rulesText().toLowerCase();
+    if (isDisarmingRakeDestroyGearEffect(text)) {
+      if (hasDestroyableGear(state)) {
+        PendingChoice choice = PendingChoice.yesNo(
+            UUID.randomUUID().toString(),
+            card.getOwnerId(),
+            card.getCardId(),
+            "Destroy a Gear with " + def.name() + "?",
+            PendingChoice.EFFECT_CREATE_DESTROY_GEAR_CHOICE);
+        choice.setSourceCardInstanceId(card.getInstanceId());
+        state.setPendingChoice(choice);
+        log(state, card.getOwnerId(), def.name() + " is waiting for a Gear destroy choice.");
+      }
+    }
     if (isStackedDeckEffect(text)) {
       List<CardDefinition> topCards = topDeckDefinitions(state, card.getOwnerId(), 3);
       if (topCards.isEmpty()) {
@@ -857,7 +2072,64 @@ public class GameEngine {
         readyUnit(state, card, def, target);
       }
     }
-    if (text.contains("draw 1")) applyDraw(state, card.getOwnerId(), 1);
+    if (isImmediateDrawOneEffect(text)) applyDraw(state, card.getOwnerId(), 1);
+  }
+
+  private boolean isImmediateDrawOneEffect(String text) {
+    return text.contains("draw 1")
+        && !text.contains("when i move");
+  }
+
+  private boolean isDisarmingRakeDestroyGearEffect(String text) {
+    return text.contains("when you play me")
+        && text.contains("may")
+        && (text.contains("kill a gear") || text.contains("destroy a gear"));
+  }
+
+  private boolean hasDestroyableGear(LiveGameState state) {
+    return state.getCards().stream().anyMatch(this::isDestroyableGear);
+  }
+
+  private boolean isDestroyableGear(CardInstance target) {
+    if (target.getZone() != ZoneName.BASE && target.getZone() != ZoneName.BATTLEFIELD) return false;
+    if (target.isFaceDown()) return false;
+    CardDefinition targetDef = cardDataService.getCard(target.getCardId());
+    return targetDef != null && "Gear".equalsIgnoreCase(targetDef.type());
+  }
+
+  private void destroyGearTarget(LiveGameState state, ResolveChoiceMove move, PendingChoice choice) {
+    CardInstance target = findCard(state, move.selectedTargetInstanceId());
+    if (!isDestroyableGear(target)) throw new IllegalMoveException("Choose a public Gear in play.");
+    CardDefinition targetDef = cardDataService.getCard(target.getCardId());
+    target.setAttachedToInstanceId(null);
+    cardZoneService.moveToGraveyard(target);
+    log(state, move.playerId(), choicePromptLabel(choice) + " destroyed " + targetDef.name() + ".");
+  }
+
+  private void applyFriendlyAndEnemyReturn(CardInstance source, PlayCardMove move, LiveGameState state, CardDefinition sourceDef) {
+    CardInstance friendly = structuredTarget(state, move, PlayCardMove.TargetSelection.FRIENDLY_UNIT);
+    CardInstance enemy = structuredTarget(state, move, PlayCardMove.TargetSelection.ENEMY_UNIT);
+    returnUnitToOwnerHand(state, source, sourceDef, friendly);
+    returnUnitToOwnerHand(state, source, sourceDef, enemy);
+    log(state, source.getOwnerId(), sourceDef.name() + " returned a friendly unit and an enemy unit to hand.");
+  }
+
+  private void applyCharmMove(CardInstance source, LiveGameState state, CardDefinition sourceDef, CardInstance target) {
+    if (target == null || !isPublicBattlefieldUnit(target) || source.getOwnerId().equals(target.getOwnerId())) {
+      log(state, source.getOwnerId(), sourceDef.name() + " fizzled because its target was no longer legal.");
+      return;
+    }
+    recallUnitToBase(state, source, sourceDef, target);
+  }
+
+  private CardInstance structuredTarget(LiveGameState state, PlayCardMove move, String role) {
+    return move.targets().stream()
+        .filter(target -> role.equals(target.role()))
+        .findFirst()
+        .flatMap(target -> state.getCards().stream()
+            .filter(card -> card.getInstanceId().equals(target.instanceId()))
+            .findFirst())
+        .orElseThrow(() -> new IllegalMoveException("This card requires a friendly target and an enemy target."));
   }
 
   private boolean isStackedDeckEffect(String text) {
@@ -881,7 +2153,8 @@ public class GameEngine {
 
   private void applyTemporaryMight(LiveGameState state, CardInstance source, CardDefinition sourceDef, CardInstance target, int amount) {
     target.setTemporaryPowerModifier(target.getTemporaryPowerModifier() + amount);
-    log(state, source.getOwnerId(), sourceDef.name() + " gave " + cardDataService.getCard(target.getCardId()).name() + " +" + amount + " Might this turn.");
+    String signed = amount > 0 ? "+" + amount : String.valueOf(amount);
+    log(state, source.getOwnerId(), sourceDef.name() + " gave " + cardDataService.getCard(target.getCardId()).name() + " " + signed + " Might this turn.");
   }
 
   private void returnUnitToOwnerHand(LiveGameState state, CardInstance source, CardDefinition sourceDef, CardInstance target) {
@@ -892,9 +2165,25 @@ public class GameEngine {
     log(state, source.getOwnerId(), sourceDef.name() + " returned " + cardDataService.getCard(target.getCardId()).name() + " to hand.");
   }
 
-  private void readyUnit(LiveGameState state, CardInstance source, CardDefinition sourceDef, CardInstance target) {
+  private void recallUnitToBase(LiveGameState state, CardInstance source, CardDefinition sourceDef, CardInstance target) {
+    target.setZone(ZoneName.BASE);
     target.setTapped(false);
+    target.setHasSummoningSickness(false);
+    target.setBattlefieldLocationId(null);
+    log(state, source.getOwnerId(), sourceDef.name() + " moved " + cardDataService.getCard(target.getCardId()).name() + " to Base.");
+  }
+
+  private void readyUnit(LiveGameState state, CardInstance source, CardDefinition sourceDef, CardInstance target) {
+    boolean wasTapped = target.isTapped();
+    target.setTapped(false);
+    if (wasTapped) applyIreliaFerventReadyTrigger(state, target, source.getOwnerId());
     log(state, source.getOwnerId(), sourceDef.name() + " readied " + cardDataService.getCard(target.getCardId()).name() + ".");
+  }
+
+  private void applyIreliaFerventReadyTrigger(LiveGameState state, CardInstance target, String readyingPlayerId) {
+    if (legendChampionEffectService.applyIreliaFerventReadyTrigger(state, target, readyingPlayerId)) {
+      log(state, target.getOwnerId(), cardDataService.getCard(target.getCardId()).name() + " gained +1 Might this turn from being readied.");
+    }
   }
 
   private void returnAttachmentsToBase(LiveGameState state, CardInstance host) {
@@ -921,7 +2210,8 @@ public class GameEngine {
       return;
     }
     String cardId = player.getDeckPool().remove(0);
-    addCardToHand(state, playerId, cardId, true);
+    addCardToHand(state, playerId, cardId, false);
+    log(state, playerId, "Drew a card.");
   }
 
   private void addCardToHand(LiveGameState state, String playerId, String cardId, boolean logCardName) {

@@ -5,6 +5,13 @@ export type DebugInfoPayload = {
   appVersion: string;
   buildTag: string;
   buildDate: string;
+  serverVersion: string;
+  serverBuildTime: string;
+  serverGitSha: string;
+  serverFullGitSha: string;
+  serverBuildTimestamp: string;
+  serverReleaseTag: string;
+  serverJarSha256: string;
   roomCode: string;
   phase: string;
   activePlayerId: string;
@@ -14,6 +21,96 @@ export type DebugInfoPayload = {
   turnNumber: number | null;
   gameMode: string | null;
   activeShowdown: boolean;
+  activeShowdownDetails: {
+    locationId: string | null;
+    step: string | null;
+    attackingPlayerId: string | null;
+    focusedPlayerId: string | null;
+    readyToResolve: boolean;
+  };
+  combatAssignmentState: {
+    active: boolean;
+    locationId: string | null;
+    assigningPlayerId: string | null;
+    step: string | null;
+    damagePool: number;
+    validSources: Array<{
+      sourceInstanceId: string;
+      availableDamage: number;
+      validTargetInstanceIds: string[];
+    }>;
+    validTargets: Array<{
+      targetInstanceId: string;
+      lethalDamage: number;
+      tank: boolean;
+    }>;
+    validTargetInstanceIds: string[];
+    suggestedAssignments: Array<{
+      sourceInstanceId?: string | null;
+      targetInstanceId: string;
+      amount: number;
+    }>;
+    canAutoAssign: boolean;
+  };
+  battlefieldController: Record<string, string>;
+  selectedBattlefields: Array<{
+    playerId: string;
+    selectedBattlefieldId: string | null;
+  }>;
+  publicRunes: Array<{
+    instanceId: string;
+    cardId: string | null;
+    ownerId: string;
+    tapped: boolean;
+    normalEnergy: number;
+    premiumEnergy: number;
+  }>;
+  publicCards: Array<{
+    instanceId: string;
+    cardId: string | null;
+    ownerId: string;
+    zone: string;
+    battlefieldLocationId: string | null;
+    attachedToInstanceId: string | null;
+    faceDown: boolean;
+    printedMight: number | null;
+    printedHealth: number | null;
+    effectiveMight: number | null;
+    effectiveMaxHealth: number | null;
+    currentHealth: number | null;
+    markedDamage: number | null;
+    statModifierLabels: string[];
+  }>;
+  cardZoneCounts: Record<string, number>;
+  chainState: {
+    active: boolean;
+    itemCount: number;
+    focusedPlayerId: string | null;
+    readyToResolveTop: boolean;
+    relevantPlayerIds: string[];
+    consecutivePasses: number | null;
+    sourceContext: string | null;
+    entries: Array<{
+      itemId: string;
+      controllerPlayerId: string;
+      sourceCardId: string | null;
+      sourceCardName: string | null;
+      effectKey: string | null;
+      publicDescription: string | null;
+      status: string | null;
+      chainItemType: string | null;
+      targetCount: number;
+    }>;
+  };
+  pendingChoice: {
+    active: boolean;
+    type: string | null;
+    playerId: string | null;
+  };
+  legalActions: string[];
+  awaitingServerUpdate: boolean;
+  lastSubmittedActionType: string | null;
+  lastActionFailureMessage: string | null;
   lastError: string | null;
   serverUrl: string;
   generatedAt: string;
@@ -28,8 +125,42 @@ type BuildDebugInfoInput = {
   appVersion: string;
   buildTag: string;
   buildDate: string;
+  serverVersion?: string;
+  serverBuildTime?: string;
+  serverGitSha?: string;
+  serverFullGitSha?: string;
+  serverBuildTimestamp?: string;
+  serverReleaseTag?: string;
+  serverJarSha256?: string;
+  awaitingServerUpdate?: boolean;
+  lastSubmittedActionType?: string | null;
+  lastActionFailureMessage?: string | null;
   generatedAt?: string;
 };
+
+const PUBLIC_DEBUG_ZONES = new Set(['base', 'battlefield', 'champion', 'legend', 'discard', 'limbo']);
+const PUBLIC_CHAIN_VISIBILITY = 'PUBLIC';
+
+function isPublicDebugCard(card: LiveGameState['cards'][number]) {
+  return PUBLIC_DEBUG_ZONES.has(card.zone.toLowerCase());
+}
+
+function safeChainEntries(chainState: LiveGameState['chainState']) {
+  return (chainState?.chainItems ?? []).map((item) => {
+    const publicItem = item.visibility === PUBLIC_CHAIN_VISIBILITY;
+    return {
+      itemId: item.itemId,
+      controllerPlayerId: item.controllerPlayerId,
+      sourceCardId: publicItem ? item.sourceCardId ?? null : null,
+      sourceCardName: publicItem ? item.sourceCardName ?? null : null,
+      effectKey: publicItem ? item.effectKey ?? null : null,
+      publicDescription: item.publicDescription ?? null,
+      status: item.status ?? null,
+      chainItemType: publicItem ? item.chainItemType ?? null : null,
+      targetCount: item.chainTargets?.filter((target) => target.publicSafe).length ?? item.targetInstanceIds?.length ?? 0,
+    };
+  });
+}
 
 export function buildDebugInfo({
   roomCode,
@@ -40,6 +171,16 @@ export function buildDebugInfo({
   appVersion,
   buildTag,
   buildDate,
+  serverVersion = 'unknown',
+  serverBuildTime = 'unknown',
+  serverGitSha = 'unknown',
+  serverFullGitSha = 'unknown',
+  serverBuildTimestamp = 'unknown',
+  serverReleaseTag = 'unknown',
+  serverJarSha256 = 'unknown',
+  awaitingServerUpdate = false,
+  lastSubmittedActionType = null,
+  lastActionFailureMessage = null,
   generatedAt = new Date().toISOString(),
 }: BuildDebugInfoInput): DebugInfoPayload {
   return {
@@ -47,6 +188,13 @@ export function buildDebugInfo({
     appVersion,
     buildTag,
     buildDate,
+    serverVersion,
+    serverBuildTime,
+    serverGitSha,
+    serverFullGitSha,
+    serverBuildTimestamp,
+    serverReleaseTag,
+    serverJarSha256,
     roomCode,
     phase: state?.currentPhase ?? 'unknown',
     activePlayerId: state?.activePlayerId ?? 'unknown',
@@ -56,6 +204,80 @@ export function buildDebugInfo({
     turnNumber: state?.turnNumber ?? null,
     gameMode: state?.gameMode ?? null,
     activeShowdown: Boolean(state?.activeShowdown),
+    activeShowdownDetails: {
+      locationId: state?.activeShowdown?.locationId ?? null,
+      step: state?.activeShowdown?.step ?? null,
+      attackingPlayerId: state?.activeShowdown?.attackingPlayerId ?? null,
+      focusedPlayerId: state?.activeShowdown?.focusedPlayerId ?? null,
+      readyToResolve: state?.activeShowdown?.readyToResolve ?? false,
+    },
+    combatAssignmentState: {
+      active: Boolean(state?.combatAssignmentState),
+      locationId: state?.combatAssignmentState?.locationId ?? null,
+      assigningPlayerId: state?.combatAssignmentState?.assigningPlayerId ?? null,
+      step: state?.combatAssignmentState?.step ?? null,
+      damagePool: state?.combatAssignmentState?.damagePool ?? 0,
+      validSources: state?.combatAssignmentState?.validSources ?? [],
+      validTargets: state?.combatAssignmentState?.validTargets ?? [],
+      validTargetInstanceIds: state?.combatAssignmentState?.validTargetInstanceIds ?? [],
+      suggestedAssignments: state?.combatAssignmentState?.suggestedAssignments ?? [],
+      canAutoAssign: state?.combatAssignmentState?.canAutoAssign ?? false,
+    },
+    battlefieldController: state?.battlefieldController ?? {},
+    selectedBattlefields: state?.players.map((statePlayer) => ({
+      playerId: statePlayer.userId,
+      selectedBattlefieldId: statePlayer.selectedBattlefieldId ?? null,
+    })) ?? [],
+    publicRunes: state?.runes?.map((rune) => ({
+      instanceId: rune.instanceId,
+      cardId: rune.cardId ?? null,
+      ownerId: rune.ownerId,
+      tapped: rune.tapped,
+      normalEnergy: rune.normalEnergy,
+      premiumEnergy: rune.premiumEnergy,
+    })) ?? [],
+    publicCards: state?.cards
+      .filter(isPublicDebugCard)
+      .map((card) => ({
+        instanceId: card.instanceId,
+        cardId: card.faceDown ? null : card.cardId,
+        ownerId: card.ownerId,
+        zone: card.zone,
+        battlefieldLocationId: card.battlefieldLocationId ?? null,
+        attachedToInstanceId: card.attachedToInstanceId ?? null,
+        faceDown: card.faceDown,
+        printedMight: card.faceDown ? null : card.printedMight ?? null,
+        printedHealth: card.faceDown ? null : card.printedHealth ?? null,
+        effectiveMight: card.faceDown ? null : card.effectiveMight ?? null,
+        effectiveMaxHealth: card.faceDown ? null : card.effectiveMaxHealth ?? null,
+        currentHealth: card.faceDown ? null : card.currentHealth ?? null,
+        markedDamage: card.faceDown ? null : card.markedDamage ?? null,
+        statModifierLabels: card.faceDown ? [] : card.statModifierLabels ?? [],
+      })) ?? [],
+    cardZoneCounts: state?.cards.reduce<Record<string, number>>((counts, card) => {
+      const key = `${card.ownerId}:${card.zone}`;
+      counts[key] = (counts[key] ?? 0) + 1;
+      return counts;
+    }, {}) ?? {},
+    chainState: {
+      active: Boolean(state?.chainState),
+      itemCount: state?.chainState?.chainItems?.length ?? 0,
+      focusedPlayerId: state?.chainState?.focusedPlayerId ?? null,
+      readyToResolveTop: state?.chainState?.readyToResolveTop ?? false,
+      relevantPlayerIds: state?.chainState?.relevantPlayerIds ?? [],
+      consecutivePasses: state?.chainState?.consecutivePasses ?? null,
+      sourceContext: state?.chainState?.sourceContext ?? null,
+      entries: safeChainEntries(state?.chainState),
+    },
+    pendingChoice: {
+      active: Boolean(state?.pendingChoice),
+      type: state?.pendingChoice?.type ?? null,
+      playerId: state?.pendingChoice?.playerId ?? null,
+    },
+    legalActions: state?.legalActions ?? [],
+    awaitingServerUpdate,
+    lastSubmittedActionType,
+    lastActionFailureMessage,
     lastError: lastError ?? null,
     serverUrl,
     generatedAt,

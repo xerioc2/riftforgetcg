@@ -8,6 +8,7 @@ import { getGameServerCandidates, getGameServerUrl, initServerUrl, setResolvedSe
 import { getOrCreateLocalPlayer, saveLocalPlayer } from './lib/localPlayer';
 import { PlayerContext } from './lib/playerContext';
 import { checkLatestRelease, dismissRelease, type ReleaseUpdate } from './lib/releaseUpdates';
+import { setServerBuildInfo } from './lib/serverBuildInfo';
 import { DeckBuild } from './pages/DeckBuild';
 import { Home } from './pages/Home';
 import { History } from './pages/History';
@@ -45,8 +46,26 @@ function App() {
         try {
           const response = await fetch(`${serverUrl}/api/health`);
           if (!response.ok) continue;
-          const data = (await response.json()) as { status?: string };
+          const data = (await response.json()) as {
+            status?: string;
+            serverVersion?: string;
+            serverBuildTime?: string;
+            serverGitSha?: string;
+            serverFullGitSha?: string;
+            serverBuildTimestamp?: string;
+            serverReleaseTag?: string;
+            serverJarSha256?: string;
+          };
           if (!cancelled && data.status === 'ok') {
+            setServerBuildInfo({
+              serverVersion: data.serverVersion,
+              serverBuildTime: data.serverBuildTime,
+              serverGitSha: data.serverGitSha,
+              serverFullGitSha: data.serverFullGitSha,
+              serverBuildTimestamp: data.serverBuildTimestamp,
+              serverReleaseTag: data.serverReleaseTag,
+              serverJarSha256: data.serverJarSha256,
+            });
             setResolvedServerUrl(serverUrl);
             setServerReady(true);
             setShowServerHelp(false);

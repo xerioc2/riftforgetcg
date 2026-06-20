@@ -1,0 +1,857 @@
+{
+  "sourceGuideUrl": "https://riftbound.gg/leblanc-deceiver-guide/",
+  "deckApiUrl": "https://api.dotgg.gg/cgfw/getdeck?game=riftbound&slug=leblanc-wins-s3-zhongshan-city-challenge",
+  "sourceDeckSlug": "leblanc-wins-s3-zhongshan-city-challenge",
+  "slug": "leblanc-wins-s3-zhongshan-city-challenge",
+  "humanName": "LeBlanc Wins S3 Zhongshan City Challenge",
+  "format": "Standard",
+  "sourceBoards": [
+    {
+      "OGN-089": "5",
+      "OGN-096": "3",
+      "OGN-116": "2",
+      "OGN-209": "3",
+      "OGN-213": "2",
+      "OGN-214": "7",
+      "OGN-216": "3",
+      "OGN-221": "2",
+      "OGN-236": "3",
+      "OGN-297": "1",
+      "SFD-163": "3",
+      "SFD-165": "3",
+      "UNL-067": "3",
+      "UNL-073": "2",
+      "UNL-152": "3",
+      "UNL-153": "3",
+      "UNL-172": "3",
+      "UNL-173": "2",
+      "UNL-176": "2",
+      "UNL-179": "2",
+      "UNL-199": "1",
+      "UNL-200": "3",
+      "UNL-209": "1",
+      "UNL-215": "1"
+    },
+    {
+      "OGN-221": "2",
+      "UNL-152": "3",
+      "UNL-173": "1",
+      "UNL-179": "2"
+    }
+  ],
+  "capturedDate": "2026-06-19",
+  "legend": "LeBlanc, Deceiver",
+  "cards": [
+    {
+      "source": {
+        "sourceCardId": "UNL-209",
+        "name": "Dusk Rose Lab",
+        "type": "Battlefield",
+        "supertype": "",
+        "setName": "Unleashed",
+        "rulesText": "At the start of your Beginning Phase, you may kill a unit you control here to draw 1. (This happens before scoring.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-209.webp"
+      },
+      "quantity": 1,
+      "role": "Battlefields",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bff35658d0fbca04e93722",
+          "name": "Dusk Rose Lab",
+          "type": "Battlefield",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Battlefield effect"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-215",
+        "name": "Star Spring",
+        "type": "Battlefield",
+        "supertype": "",
+        "setName": "Unleashed",
+        "rulesText": "The first time a player plays a non-token unit here each turn, they may move another unit they control here to its base.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-215.webp"
+      },
+      "quantity": 1,
+      "role": "Battlefields",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69c4407d9288b1e85d94de9e",
+          "name": "Star Spring",
+          "type": "Battlefield",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Battlefield effect"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-297",
+        "name": "Windswept Hillock",
+        "type": "Battlefield",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "Units here have [Ganking]. (They can move from battlefield to battlefield.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-297.webp"
+      },
+      "quantity": 1,
+      "role": "Battlefields",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bd7d308c64675ca87f6",
+          "name": "Windswept Hillock",
+          "type": "Battlefield",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Ganking"
+      ],
+      "bucket": "Battlefield effect"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-236",
+        "name": "Karthus - Eternal",
+        "type": "Champion",
+        "supertype": "Champion",
+        "setName": "Origins",
+        "rulesText": "Your [Deathknell] effects trigger an additional time.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-236.webp"
+      },
+      "quantity": 3,
+      "role": "Champion / MainDeck candidate",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bd3d308c64675ca87b9",
+          "name": "Karthus - Eternal",
+          "type": "Champion",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Deathknell"
+      ],
+      "bucket": "Champion text"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-172",
+        "name": "LeBlanc - Fragmented",
+        "type": "Champion",
+        "supertype": "Champion",
+        "setName": "Unleashed",
+        "rulesText": "[Assault] (+1 :rb_might: while I'm an attacker.)\n[Deathknell][&gt;] Draw 1. If it's your Beginning Phase, draw 2 instead. (When I die, get the effect.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-172.webp"
+      },
+      "quantity": 3,
+      "role": "Champion / MainDeck candidate",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69c43cd3c2f7428c5d24b4f2",
+          "name": "LeBlanc - Fragmented",
+          "type": "Champion",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Assault",
+        "Deathknell"
+      ],
+      "bucket": "Champion text"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-176",
+        "name": "Vi - Peacekeeper",
+        "type": "Champion",
+        "supertype": "Champion",
+        "setName": "Unleashed",
+        "rulesText": "[Ambush] (You may play me as a [Reaction] to a battlefield where you have units.)\nWhen I attack, [Stun] an enemy unit here. (It doesn't deal combat damage this turn.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-176.webp"
+      },
+      "quantity": 2,
+      "role": "Champion / MainDeck candidate",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69c4407d9288b1e85d94de98",
+          "name": "Vi - Peacekeeper",
+          "type": "Champion",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Ambush",
+        "Reaction",
+        "Stun"
+      ],
+      "bucket": "Champion text"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-199",
+        "name": "LeBlanc - Deceiver",
+        "type": "Legend",
+        "supertype": "",
+        "setName": "Unleashed",
+        "rulesText": "When you conquer or hold, you may discard 1 and exhaust me to play a ready Reflection unit token there. It becomes a copy of another unit there. Give it [Temporary].",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-199.webp"
+      },
+      "quantity": 1,
+      "role": "Legend",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5be9d308c64675ca895d",
+          "name": "LeBlanc - Deceiver",
+          "type": "Legend",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Temporary"
+      ],
+      "bucket": "Legend text"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-152",
+        "name": "Black Rose Dignitary",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Unleashed",
+        "rulesText": "[Assault] (+1 :rb_might: while I'm an attacker.)\n[Deathknell][&gt;] Channel 1 rune exhausted. (When I die, get the effect.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-152.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69c4407e9288b1e85d94deb1",
+          "name": "Black Rose Dignitary",
+          "type": "Unit",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Assault",
+        "Deathknell"
+      ],
+      "bucket": "Triggered/static card text"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-153",
+        "name": "Carrion Dredger",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Unleashed",
+        "rulesText": "[Deathknell][&gt;] Play a 1 :rb_might: Bird unit token with [Deflect] to your base. (When I die, get the effect. Opponents must pay :rb_rune_rainbow: to choose a [Deflect] unit with a spell or ability.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-153.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69c8378e2c3db56eb7d760d6",
+          "name": "Carrion Dredger",
+          "type": "Unit",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Deathknell",
+        "Deflect"
+      ],
+      "bucket": "Token creation"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-209",
+        "name": "Cull the Weak",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "Each player kills one of their units.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-209.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bd2d308c64675ca879d",
+          "name": "Cull the Weak",
+          "type": "Spell",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "keywords": [],
+      "bucket": "Damage / destroy"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-073",
+        "name": "Deadly Flourish",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Unleashed",
+        "rulesText": "Deal 3 to an enemy unit. When it dies this turn, play a Gold gear token exhausted. (It has \"[Reaction][&gt;] Kill this, :rb_exhaust:: [Add] :rb_rune_rainbow:.\")",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-073.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bd162140ff39fe1396df8d",
+          "name": "Deadly Flourish",
+          "type": "Spell",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "keywords": [
+        "Add",
+        "Reaction"
+      ],
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "source": {
+        "sourceCardId": "SFD-163",
+        "name": "Deathgrip",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Spiritforged",
+        "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)\nKill a friendly unit. If you do, give +:rb_might: equal to its Might to another friendly unit this turn.\nDraw 1.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-163.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5be7d308c64675ca892d",
+          "name": "Deathgrip",
+          "type": "Spell",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Reaction"
+      ],
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "source": {
+        "sourceCardId": "SFD-165",
+        "name": "Glasc Mixologist",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Spiritforged",
+        "rulesText": "[Deathknell] — You may play a unit with cost no more than :rb_energy_3: and no more than :rb_rune_rainbow: from your trash, ignoring its cost. (When I die, get the effect.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-165.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5be2d308c64675ca88c7",
+          "name": "Glasc Mixologist",
+          "type": "Unit",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Deathknell"
+      ],
+      "bucket": "Triggered/static card text"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-213",
+        "name": "Hidden Blade",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)\n[Action] (Play on your turn or in showdowns.)\nKill a unit at a battlefield. Its controller draws 2.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-213.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bd2d308c64675ca87a1",
+          "name": "Hidden Blade",
+          "type": "Spell",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "keywords": [
+        "Action",
+        "Hidden"
+      ],
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-221",
+        "name": "Imperial Decree",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "[Action] (Play on your turn or in showdowns.)\nWhen any unit takes damage this turn, kill it.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-221.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bd3d308c64675ca87aa",
+          "name": "Imperial Decree",
+          "type": "Spell",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "keywords": [
+        "Action"
+      ],
+      "bucket": "Damage / destroy"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-200",
+        "name": "Mirror Image",
+        "type": "Spell",
+        "supertype": "Signature",
+        "setName": "Unleashed",
+        "rulesText": "Choose a unit. Play a ready Reflection unit token to your base. It becomes a copy of that unit. Give it [Temporary]. (Kill it at the start of its controller's Beginning Phase, before scoring.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-200.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bead308c64675ca895e",
+          "name": "Mirror Image",
+          "type": "Spell",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "keywords": [
+        "Temporary"
+      ],
+      "bucket": "Damage / destroy"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-179",
+        "name": "Rift Herald",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Unleashed",
+        "rulesText": "When I move to a battlefield, look at the top 3 cards of your Main Deck. You may reveal a unit from among them and draw it. Recycle the rest.\n[Deathknell][&gt;] Play a unit from your hand to your base, ignoring its Energy cost. (When I die, get the effect. You must still pay its Power cost.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-179.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5becd308c64675ca8992",
+          "name": "Rift Herald",
+          "type": "Unit",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Deathknell"
+      ],
+      "bucket": "Movement / location"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-067",
+        "name": "Ruined Rex",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Unleashed",
+        "rulesText": "[Deathknell][&gt;] Deal 4 to an enemy unit. (When I die, get the effect.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-067.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69c5be69bf82ff7cb69f4290",
+          "name": "Ruined Rex",
+          "type": "Unit",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Deathknell"
+      ],
+      "bucket": "Triggered/static card text"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-173",
+        "name": "Sacrifice",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Unleashed",
+        "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)\nAs an additional cost to play this, kill a friendly [Mighty] unit. (A unit is Mighty while it has 5+ :rb_might:.)\nDraw 2 and channel 1 rune exhausted.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-173.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bead308c64675ca896b",
+          "name": "Sacrifice",
+          "type": "Spell",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Mighty",
+        "Reaction"
+      ],
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-216",
+        "name": "Soaring Scout",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "[Deathknell] — Channel 1 rune exhausted. (When I die, get the effect.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-216.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bd2d308c64675ca87a5",
+          "name": "Soaring Scout",
+          "type": "Unit",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Deathknell"
+      ],
+      "bucket": "Triggered/static card text"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-116",
+        "name": "Thousand-Tailed Watcher",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "[Accelerate] (You may pay :rb_energy_1::rb_rune_mind: as an additional cost to have me enter ready.)\nWhen you play me, give enemy units -3 :rb_might: this turn, to a minimum of 1 :rb_might:.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-116.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bcdd308c64675ca8735",
+          "name": "Thousand-Tailed Watcher",
+          "type": "Unit",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Accelerate"
+      ],
+      "bucket": "Triggered/static card text"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-096",
+        "name": "Watchful Sentry",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "[Deathknell] — Draw 1. (When I die, get the effect.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-096.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bccd308c64675ca8720",
+          "name": "Watchful Sentry",
+          "type": "Unit",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Deathknell"
+      ],
+      "bucket": "Draw / reveal / deck selection"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-089",
+        "name": "Mind Rune",
+        "type": "Rune",
+        "supertype": "Basic",
+        "setName": "Origins",
+        "rulesText": "",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-089.webp"
+      },
+      "quantity": 5,
+      "role": "Rune Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name-and-set",
+        "localCard": {
+          "id": "69bc5bcbd308c64675ca8718",
+          "name": "Mind Rune",
+          "type": "Rune",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Rune/payment"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-214",
+        "name": "Order Rune",
+        "type": "Rune",
+        "supertype": "Basic",
+        "setName": "Origins",
+        "rulesText": "",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-214.webp"
+      },
+      "quantity": 7,
+      "role": "Rune Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name-and-set",
+        "localCard": {
+          "id": "69bc5bd2d308c64675ca87a2",
+          "name": "Order Rune",
+          "type": "Rune",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Rune/payment"
+    }
+  ],
+  "summary": {
+    "uniqueCards": 24,
+    "counts": {
+      "SUPPORTED": 1,
+      "PARTIAL": 18,
+      "UNSUPPORTED": 5,
+      "BANNED": 0,
+      "NOT_AUDITED": 0
+    },
+    "unresolved": [],
+    "canUseInEnforced": false,
+    "topBlockers": [
+      {
+        "cardName": "Cull the Weak",
+        "status": "UNSUPPORTED",
+        "bucket": "Damage / destroy",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Deadly Flourish",
+        "status": "UNSUPPORTED",
+        "bucket": "Reaction / chain / counter",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Hidden Blade",
+        "status": "UNSUPPORTED",
+        "bucket": "Hidden / facedown",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Imperial Decree",
+        "status": "UNSUPPORTED",
+        "bucket": "Damage / destroy",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Mirror Image",
+        "status": "UNSUPPORTED",
+        "bucket": "Damage / destroy",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      }
+    ]
+  },
+  "outputFile": "C:\\Users\\xerio\\riftboungtcg\\decks\\meta\\leblanc\\leblanc-wins-s3-zhongshan-city-challenge.json"
+}

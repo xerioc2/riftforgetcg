@@ -1,4 +1,11 @@
 import type { Deck, DeckCard, RiftCard } from '../types';
+import azirUploaded from '../../decks/meta/normalized/azir_wins_lille_regional_qualifier.json';
+import dianaUploaded from '../../decks/meta/normalized/diana_wins_s3_suzhou_city_challenge.json';
+import dravenUploaded from '../../decks/meta/normalized/draven_wins_new_zealand_10k_open.json';
+import fioraUploaded from '../../decks/meta/normalized/fiora_wins_s3_beijing_city_challenge.json';
+import ireliaUploaded from '../../decks/meta/normalized/irelia_wins_s3_shanghai_city_challenge.json';
+import leblancUploaded from '../../decks/meta/normalized/leblanc_wins_s3_zhongshan_city_challenge.json';
+import sivirUploaded from '../../decks/meta/normalized/sivir_2nd_at_sydney_regional_qualifier.json';
 
 export type StarterDeckStatus = 'Fully supported' | 'Mostly supported' | 'Experimental';
 
@@ -15,45 +22,140 @@ export type StarterDeckSpec = {
   battlefields: string[];
 };
 
+type UploadedMetaDeck = {
+  entries: Array<{
+    quantity: number;
+    originalName: string;
+    section: string;
+    resolved?: {
+      card?: {
+        name: string;
+        type: RiftCard['type'];
+      };
+    };
+  }>;
+  supportSummary?: {
+    canUseInEnforced?: boolean;
+  };
+};
+
 export type ResolvedStarterDeck = {
   spec: StarterDeckSpec;
   deck?: Deck;
   missingCards: string[];
 };
 
-export const STARTER_DECKS: StarterDeckSpec[] = [
-  {
-    id: 'irelia-calm-chaos',
-    name: 'Irelia Tempo',
-    status: 'Experimental',
-    description: 'A CALM/CHAOS starter list built around cheap tricks, evasive units, and the Irelia package.',
-    warnings: ['Some spell and gear effects are still heuristic or partial in this alpha build.'],
-    legend: 'Irelia - Blade Dancer',
-    champion: 'Irelia - Fervent',
-    main: [
-      { name: 'Defy', quantity: 3 },
-      { name: 'Discipline', quantity: 3 },
-      { name: 'Tideturner', quantity: 3 },
-      { name: 'Stellacorn Herder', quantity: 3 },
-      { name: 'Guardian Angel', quantity: 3 },
-      { name: 'Boots of Swiftness', quantity: 3 },
-      { name: 'Defiant Dance', quantity: 3 },
-      { name: 'Scuttle Crab', quantity: 3 },
-      { name: 'Charm', quantity: 2 },
-      { name: 'En Garde', quantity: 2 },
-      { name: 'Gust', quantity: 2 },
-      { name: 'Ride The Wind', quantity: 2 },
-      { name: 'Stacked Deck', quantity: 2 },
-      { name: 'Not So Fast', quantity: 2 },
-      { name: 'Star-Crossed', quantity: 2 },
-      { name: 'Adaptatron', quantity: 2 },
-    ],
-    runes: [
-      { name: 'Calm Rune', quantity: 6 },
-      { name: 'Chaos Rune', quantity: 6 },
-    ],
-    battlefields: ["Targon's Peak", 'Sunken Temple', 'Abandoned Hall'],
+const entryCardName = (entry: UploadedMetaDeck['entries'][number]) => entry.resolved?.card?.name ?? entry.originalName;
+const entryCardType = (entry: UploadedMetaDeck['entries'][number]) => entry.resolved?.card?.type ?? 'Unknown';
+
+function uploadedMetaDeckPreset(
+  deck: UploadedMetaDeck,
+  options: {
+    id: string;
+    name: string;
+    status: StarterDeckStatus;
+    description: string;
+    champion: string;
+    warnings?: string[];
   },
+): StarterDeckSpec {
+  const legend = deck.entries.find((entry) => entry.section === 'Legend');
+  const main: StarterDeckSpec['main'] = [];
+  const runes: StarterDeckSpec['runes'] = [];
+  const battlefields: string[] = [];
+
+  for (const entry of deck.entries) {
+    const name = entryCardName(entry);
+    const type = entryCardType(entry);
+    let quantity = entry.quantity;
+
+    if (name === entryCardName(legend ?? entry)) continue;
+    if (name === options.champion) {
+      quantity -= 1;
+      if (quantity <= 0) continue;
+    }
+
+    if (type === 'Rune') {
+      runes.push({ name, quantity });
+    } else if (type === 'Battlefield') {
+      for (let i = 0; i < quantity; i += 1) battlefields.push(name);
+    } else {
+      main.push({ name, quantity });
+    }
+  }
+
+  return {
+    id: options.id,
+    name: options.name,
+    status: options.status,
+    description: options.description,
+    warnings:
+      options.warnings ??
+      (deck.supportSummary?.canUseInEnforced
+        ? ['Enforced-playable alpha deck; many Partial card behaviors remain.']
+        : ['Contains Unsupported/Partial cards; use as an audit/playtest target, not enforced-ready yet.']),
+    legend: legend ? entryCardName(legend) : '',
+    champion: options.champion,
+    main,
+    runes,
+    battlefields,
+  };
+}
+
+const UPLOADED_META_DECKS: StarterDeckSpec[] = [
+  uploadedMetaDeckPreset(ireliaUploaded as UploadedMetaDeck, {
+    id: 'uploaded-irelia-shanghai',
+    name: 'Irelia Uploaded Meta - Playtest',
+    status: 'Mostly supported',
+    description: 'Exact uploaded S3 Shanghai City Challenge list. This is the current default playtest deck and the first enforced-playable uploaded meta deck.',
+    champion: 'Irelia - Fervent',
+    warnings: ['Enforced-playable alpha deck; many Partial card behaviors remain. Not rules-complete or golden/reference-correct.'],
+  }),
+  uploadedMetaDeckPreset(dianaUploaded as UploadedMetaDeck, {
+    id: 'uploaded-diana-suzhou',
+    name: 'Diana Uploaded Meta - Suzhou',
+    status: 'Experimental',
+    description: 'Exact uploaded S3 Suzhou City Challenge list. Reviewer-priority interaction deck for the next support pass.',
+    champion: 'Diana - Lunari',
+  }),
+  uploadedMetaDeckPreset(leblancUploaded as UploadedMetaDeck, {
+    id: 'uploaded-leblanc-zhongshan',
+    name: 'LeBlanc Uploaded Meta - Zhongshan',
+    status: 'Experimental',
+    description: 'Exact uploaded S3 Zhongshan City Challenge list. Audit preset with unsupported effects still blocked in enforced play.',
+    champion: 'LeBlanc - Fragmented',
+  }),
+  uploadedMetaDeckPreset(azirUploaded as UploadedMetaDeck, {
+    id: 'uploaded-azir-lille',
+    name: 'Azir Uploaded Meta - Lille',
+    status: 'Experimental',
+    description: 'Exact uploaded Lille Regional Qualifier winning list. Audit preset with unsupported effects still blocked in enforced play.',
+    champion: 'Azir - Sovereign',
+  }),
+  uploadedMetaDeckPreset(sivirUploaded as UploadedMetaDeck, {
+    id: 'uploaded-sivir-sydney',
+    name: 'Sivir Uploaded Meta - Sydney',
+    status: 'Experimental',
+    description: 'Exact uploaded Sydney Regional Qualifier second-place list. Audit preset with unsupported effects still blocked in enforced play.',
+    champion: 'Sivir - Mercenary',
+  }),
+  uploadedMetaDeckPreset(fioraUploaded as UploadedMetaDeck, {
+    id: 'uploaded-fiora-beijing',
+    name: 'Fiora Uploaded Meta - Beijing',
+    status: 'Experimental',
+    description: 'Exact uploaded S3 Beijing City Challenge winning list. Audit preset with unsupported effects still blocked in enforced play.',
+    champion: 'Fiora - Victorious',
+  }),
+  uploadedMetaDeckPreset(dravenUploaded as UploadedMetaDeck, {
+    id: 'uploaded-draven-new-zealand',
+    name: 'Draven Uploaded Meta - New Zealand',
+    status: 'Experimental',
+    description: 'Exact uploaded New Zealand 10k Open winning list. Audit preset with unsupported effects still blocked in enforced play.',
+    champion: 'Draven - Showboat',
+  }),
+];
+
+const STARTER_PLAYTEST_DECKS: StarterDeckSpec[] = [
   {
     id: 'fiora-body-order',
     name: 'Fiora Vanguard',
@@ -85,6 +187,8 @@ export const STARTER_DECKS: StarterDeckSpec[] = [
     battlefields: ["Aspirant's Climb", 'Hall of Legends', 'Fortified Position'],
   },
 ];
+
+export const STARTER_DECKS: StarterDeckSpec[] = [...UPLOADED_META_DECKS, ...STARTER_PLAYTEST_DECKS];
 
 export function resolveStarterDeck(spec: StarterDeckSpec, cards: RiftCard[]): ResolvedStarterDeck {
   const byName = new Map<string, RiftCard>();

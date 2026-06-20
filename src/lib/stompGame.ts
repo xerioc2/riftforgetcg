@@ -1,21 +1,28 @@
 import { Client } from '@stomp/stompjs';
 import { getGameServerUrl } from './env';
 import type { LocalPlayer } from './localPlayer';
-import type { LiveGameState, PresenceSummary, RoomState } from '../types';
+import type { TargetRole } from './cardActions';
+import type { CombatDamageAssignment, LiveGameState, PresenceSummary, RoomState } from '../types';
 
 export type MoveRequest =
   | { type: 'DEAL_CARD'; playerId: string; cardId: string; targetZone: string; x: number; y: number }
   | { type: 'TAP_CARD'; playerId: string; instanceId: string }
   | { type: 'FLIP_CARD'; playerId: string; instanceId: string }
-  | { type: 'PLAY_CARD'; playerId: string; instanceId: string; targetZone: string; x: number; y: number; targetInstanceId?: string; accelerate?: boolean; paymentRuneIds?: string[]; premiumRuneIds?: string[] }
+  | { type: 'PLAY_CARD'; playerId: string; instanceId: string; targetZone: string; x: number; y: number; targetInstanceId?: string; targetChainItemId?: string; targets?: { role: TargetRole; instanceId: string }[]; accelerate?: boolean; paymentRuneIds?: string[]; premiumRuneIds?: string[] }
   | { type: 'MOVE_CARD'; playerId: string; instanceId: string; targetZone: string; x: number; y: number }
   | { type: 'REPOSITION_CARD'; playerId: string; instanceId: string; x: number; y: number }
-  | { type: 'MOVE_TO_BATTLEFIELD'; playerId: string; instanceId: string; paymentRuneIds?: string[]; premiumRuneIds?: string[] }
+  | { type: 'MOVE_TO_BATTLEFIELD'; playerId: string; instanceId: string; battlefieldLocationId?: string; paymentRuneIds?: string[]; premiumRuneIds?: string[] }
+  | { type: 'MOVE_TO_BASE'; playerId: string; instanceId: string }
+  | { type: 'SELECT_BATTLEFIELD'; playerId: string; battlefieldCardId: string }
   | { type: 'TAP_RUNE'; playerId: string; runeInstanceId: string }
   | { type: 'DISCARD_RUNE'; playerId: string; runeInstanceId: string }
   | { type: 'MULLIGAN'; playerId: string; discardInstanceIds: string[] }
   | { type: 'UNDO_RUNES'; playerId: string }
   | { type: 'PASS_PHASE'; playerId: string }
+  | { type: 'PASS_CHAIN_FOCUS'; playerId: string }
+  | { type: 'RESOLVE_CHAIN_TOP'; playerId: string }
+  | { type: 'PASS_SHOWDOWN_FOCUS'; playerId: string }
+  | { type: 'ASSIGN_COMBAT_DAMAGE'; playerId: string; assignments: CombatDamageAssignment[] }
   | { type: 'RESOLVE_SHOWDOWN'; playerId: string }
   | { type: 'ADJUST_SCORE'; playerId: string; targetPlayerId: string; delta: number }
   | { type: 'VISION_CHOICE'; playerId: string; recycle: boolean }
@@ -26,11 +33,13 @@ export type MoveRequest =
       selectedOptionId?: string;
       selectedCardOptionId?: string;
       selectedAction?: 'HAND' | 'TOP' | 'BOTTOM';
+      selectedTargetInstanceId?: string;
       assignments?: { optionId: string; action: 'TOP' | 'BOTTOM'; order: number }[];
     }
   | { type: 'DISMISS_REVEALED'; playerId: string; instanceId: string }
   | { type: 'HIDE_CARD'; playerId: string; instanceId: string; paymentRuneId: string }
-  | { type: 'EQUIP_GEAR'; playerId: string; gearInstanceId: string; targetInstanceId: string };
+  | { type: 'EQUIP_GEAR'; playerId: string; gearInstanceId: string; targetInstanceId: string; paymentRuneIds?: string[]; premiumRuneIds?: string[] }
+  | { type: 'ACTIVATE_ABILITY'; playerId: string; sourceInstanceId: string; abilityKey?: string; targetInstanceId: string; paymentRuneIds?: string[]; premiumRuneIds?: string[] };
 
 export type ServerMessage = { type: 'STATE_UPDATE'; state: LiveGameState } | { type: 'ERROR'; message: string; playerId: string };
 export type MatchNotification = { roomCode: string; sessionToken?: string };

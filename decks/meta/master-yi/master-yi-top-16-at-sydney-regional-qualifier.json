@@ -1,0 +1,842 @@
+{
+  "sourceGuideUrl": "https://riftbound.gg/master-yi-wuju-bladesman-guide/",
+  "deckApiUrl": "https://api.dotgg.gg/cgfw/getdeck?game=riftbound&slug=master-yi-top-16-at-sydney-regional-qualifier",
+  "sourceDeckSlug": "master-yi-top-16-at-sydney-regional-qualifier",
+  "slug": "master-yi-top-16-at-sydney-regional-qualifier",
+  "humanName": "Master Yi Top 16 at Sydney Regional Qualifier",
+  "format": "Standard",
+  "sourceBoards": [
+    {
+      "OGN-042": "6",
+      "OGN-043": "3",
+      "OGN-045": "3",
+      "OGN-046": "2",
+      "OGN-052": "2",
+      "OGN-058": "3",
+      "OGN-077": "2",
+      "OGN-082": "1",
+      "OGN-126": "6",
+      "OGN-136": "3",
+      "OGN-288": "1",
+      "OGN-290": "1",
+      "OGN-295": "1",
+      "SFD-036": "3",
+      "SFD-045": "1",
+      "SFD-097": "2",
+      "SFD-105": "3",
+      "SFD-115": "2",
+      "UNL-042": "1",
+      "UNL-053": "3",
+      "UNL-060": "1",
+      "UNL-113": "1",
+      "UNL-120": "3",
+      "UNL-192": "1"
+    }
+  ],
+  "capturedDate": "2026-06-19",
+  "legend": "Master Yi, Wuju Bladesman",
+  "cards": [
+    {
+      "source": {
+        "sourceCardId": "OGN-288",
+        "name": "Startipped Peak",
+        "type": "Battlefield",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "When you hold here, you may channel 1 rune exhausted.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-288.webp"
+      },
+      "quantity": 1,
+      "role": "Battlefields",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bd6d308c64675ca87ed",
+          "name": "Startipped Peak",
+          "type": "Battlefield",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Battlefield effect"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-290",
+        "name": "The Arena's Greatest",
+        "type": "Battlefield",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "At the start of each player's first Beginning Phase, that player gains 1 point.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-290.webp"
+      },
+      "quantity": 1,
+      "role": "Battlefields",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bd6d308c64675ca87ef",
+          "name": "The Arena's Greatest",
+          "type": "Battlefield",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Battlefield effect"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-295",
+        "name": "Vilemaw's Lair",
+        "type": "Battlefield",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "Units can't move from here to base.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-295.webp"
+      },
+      "quantity": 1,
+      "role": "Battlefields",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bd6d308c64675ca87f4",
+          "name": "Vilemaw's Lair",
+          "type": "Battlefield",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Battlefield effect"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-113",
+        "name": "Master Yi - Tempered",
+        "type": "Champion",
+        "supertype": "Champion",
+        "setName": "Unleashed",
+        "rulesText": "[Hunt 2] (When I conquer or hold, gain 2 XP.)\n[Level 6][&gt;] I have [Deflect] and [Ganking]. (While you have 6+ XP, opponents must pay :rb_rune_rainbow: to choose me with a spell or ability and I can move from battlefield to battlefield.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-113.webp"
+      },
+      "quantity": 1,
+      "role": "Champion / MainDeck candidate",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bedd308c64675ca89a2",
+          "name": "Master Yi - Tempered",
+          "type": "Champion",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Deflect",
+        "Ganking",
+        "Hunt 2",
+        "Level 6"
+      ],
+      "bucket": "Champion text"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-120",
+        "name": "Rengar - Trophy Hunter",
+        "type": "Champion",
+        "supertype": "Champion",
+        "setName": "Unleashed",
+        "rulesText": "[Ambush] (You may play me as a [Reaction] to a battlefield where you have units.)\nI can be played to a battlefield where there are enemy units (even if you don't have units there).",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-120.webp"
+      },
+      "quantity": 3,
+      "role": "Champion / MainDeck candidate",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bead308c64675ca8964",
+          "name": "Rengar - Trophy Hunter",
+          "type": "Champion",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Ambush",
+        "Reaction"
+      ],
+      "bucket": "Champion text"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-192",
+        "name": "Alpha Strike",
+        "type": "Spell",
+        "supertype": "Signature",
+        "setName": "Unleashed",
+        "rulesText": "[Action] (Play on your turn or in showdowns.)\nChoose a friendly unit. It deals damage equal to its Might split among enemy units at battlefields. Then for each unit this kills, do this: Gain 1 XP.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-192.webp"
+      },
+      "quantity": 1,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bebd308c64675ca8971",
+          "name": "Alpha Strike",
+          "type": "Spell",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "keywords": [
+        "Action"
+      ],
+      "bucket": "XP / Hunt / Level / Buff"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-042",
+        "name": "Back Off",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Unleashed",
+        "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)\n[Action] (Play on your turn or in showdowns.)\n[Stun] a unit. (It doesn't deal combat damage this turn.)\nIf you played this from your hand, draw 1.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-042.webp"
+      },
+      "quantity": 1,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bd162140ff39fe1396df89",
+          "name": "Back Off",
+          "type": "Spell",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Action",
+        "Hidden",
+        "Stun"
+      ],
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-043",
+        "name": "Charm",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "Move an enemy unit.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-043.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bc9d308c64675ca86e6",
+          "name": "Charm",
+          "type": "Spell",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha support moves one enemy public battlefield Unit/Champion to Base. Broader official movement choices, control/location edge cases, and non-battlefield destinations remain deferred.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Movement / location"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-045",
+        "name": "Defy",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)\nCounter a spell that costs no more than :rb_energy_4: and no more than :rb_rune_rainbow:.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-045.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bc9d308c64675ca86e8",
+          "name": "Defy",
+          "type": "Spell",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: Defy can counter supported public pending spell chain items that cost no more than 4 energy and no more than 1 premium rune during the current alpha chain window. Full official Reaction timing, broad spell/ability targets, and countering counters remain deferred.",
+        "blocked": false
+      },
+      "keywords": [
+        "Reaction"
+      ],
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-058",
+        "name": "Discipline",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)\nGive a unit +2 :rb_might: this turn. Draw 1.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-058.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name-and-set",
+        "localCard": {
+          "id": "69bc5bc9d308c64675ca86f5",
+          "name": "Discipline",
+          "type": "Spell",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists for giving a public battlefield Unit/Champion +2 Might this turn and drawing 1. Full official any-time Reaction timing remains incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Reaction"
+      ],
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-046",
+        "name": "En Garde",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)\nGive a friendly unit +1 :rb_might: this turn, then an additional +1 :rb_might: this turn if it is the only unit you control there.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-046.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bc9d308c64675ca86e9",
+          "name": "En Garde",
+          "type": "Spell",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists for giving a friendly battlefield Unit/Champion +1 Might, or +2 if it is your only unit there. Full official any-time Reaction timing remains incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Reaction"
+      ],
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "source": {
+        "sourceCardId": "SFD-036",
+        "name": "Lonely Poro",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Spiritforged",
+        "rulesText": "[Deathknell] — If I died alone, draw 1. (When I die, get the effect. I'm alone if there are no other friendly units here.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-036.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5be2d308c64675ca88d1",
+          "name": "Lonely Poro",
+          "type": "Unit",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "keywords": [
+        "Deathknell"
+      ],
+      "bucket": "Draw / reveal / deck selection"
+    },
+    {
+      "source": {
+        "sourceCardId": "SFD-045",
+        "name": "Not So Fast",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Spiritforged",
+        "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)\nCounter an enemy spell or ability that chooses a friendly unit or gear.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-045.webp"
+      },
+      "quantity": 1,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bdfd308c64675ca8892",
+          "name": "Not So Fast",
+          "type": "Spell",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: Not So Fast can counter a supported public pending enemy spell chain item only when that item chooses your friendly Unit/Champion Unit or Gear. Ability-chain targets, broad official Reaction timing, and countering counters remain deferred.",
+        "blocked": false
+      },
+      "keywords": [
+        "Reaction"
+      ],
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-136",
+        "name": "Pit Rookie",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "When you play me, buff another friendly unit. (If it doesn't have a buff, it gets a +1 :rb_might: buff.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-136.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bced308c64675ca874b",
+          "name": "Pit Rookie",
+          "type": "Unit",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "XP / Hunt / Level / Buff"
+    },
+    {
+      "source": {
+        "sourceCardId": "SFD-097",
+        "name": "Punch First",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Spiritforged",
+        "rulesText": "[Action] (Play on your turn or in showdowns.)\nGive a unit +5 :rb_might: this turn.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-097.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5be2d308c64675ca88cc",
+          "name": "Punch First",
+          "type": "Spell",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Action"
+      ],
+      "bucket": "Basic or descriptor-only"
+    },
+    {
+      "source": {
+        "sourceCardId": "SFD-105",
+        "name": "Ruin Runner",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Spiritforged",
+        "rulesText": "I can't be chosen by enemy spells and abilities.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-105.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5be2d308c64675ca88d5",
+          "name": "Ruin Runner",
+          "type": "Unit",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Basic or descriptor-only"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-053",
+        "name": "Scuttle Crab",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Unleashed",
+        "rulesText": "(Units with 0 :rb_might: can conquer and hold.)\nWhen you play me, draw 1.\n[Deathknell][&gt;] Choose an opponent. They reveal their hand. You can look at their facedown cards this turn. Gain 1 XP. (When I die, get the effects.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-053.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69c43cd2c2f7428c5d24b4e2",
+          "name": "Scuttle Crab",
+          "type": "Unit",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: on-play draw and 1v1 private hand reveal Deathknell are implemented, but XP and facedown-card viewing are deferred.",
+        "blocked": false
+      },
+      "keywords": [
+        "Deathknell"
+      ],
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-052",
+        "name": "Stalwart Poro",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "[Shield] (+1 :rb_might: while I'm a defender.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-052.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name-and-set",
+        "localCard": {
+          "id": "69bc5bc9d308c64675ca86ef",
+          "name": "Stalwart Poro",
+          "type": "Unit",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Shield"
+      ],
+      "bucket": "Triggered/static card text"
+    },
+    {
+      "source": {
+        "sourceCardId": "SFD-115",
+        "name": "Trinity Force",
+        "type": "Gear",
+        "supertype": "",
+        "setName": "Spiritforged",
+        "rulesText": "[Equip] :rb_rune_body: (:rb_rune_body:: Attach this to a unit you control.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-115.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bd9d308c64675ca882e",
+          "name": "Trinity Force",
+          "type": "Gear",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Equip"
+      ],
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "source": {
+        "sourceCardId": "UNL-060",
+        "name": "Vilemaw",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Unleashed",
+        "rulesText": "[Ambush] (You may play me as a [Reaction] to a battlefield where you have units.)\nEnemy units here with less Might than me don't deal combat damage.\nWhen I hold, draw 1.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-060.webp"
+      },
+      "quantity": 1,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5be9d308c64675ca8954",
+          "name": "Vilemaw",
+          "type": "Unit",
+          "set": "Unleashed"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Ambush",
+        "Reaction"
+      ],
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-082",
+        "name": "Whiteflame Protector",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "When you play me, give a unit +8 :rb_might: this turn.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-082.webp"
+      },
+      "quantity": 1,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bcbd308c64675ca8711",
+          "name": "Whiteflame Protector",
+          "type": "Unit",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Triggered/static card text"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-077",
+        "name": "Zhonya's Hourglass",
+        "type": "Gear",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)\nIf a friendly unit would die, kill this instead. Heal that unit, exhaust it, and recall it. (Send it to base. This isn't a move.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-077.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bcad308c64675ca870a",
+          "name": "Zhonya's Hourglass",
+          "type": "Gear",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: Zhonya's Hourglass can be played to Base and armed during your Main Phase to protect a friendly public Unit/Champion from the next supported death, destroying Zhonya instead, then healing, exhausting, and recalling that unit. Hidden Reaction-for-0 timing, competing replacement choices, and broad replacement timing remain deferred.",
+        "blocked": false
+      },
+      "keywords": [
+        "Hidden"
+      ],
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-126",
+        "name": "Body Rune",
+        "type": "Rune",
+        "supertype": "Basic",
+        "setName": "Origins",
+        "rulesText": "",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-126.webp"
+      },
+      "quantity": 6,
+      "role": "Rune Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name-and-set",
+        "localCard": {
+          "id": "69bc5bcdd308c64675ca8740",
+          "name": "Body Rune",
+          "type": "Rune",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Rune/payment"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-042",
+        "name": "Calm Rune",
+        "type": "Rune",
+        "supertype": "Basic",
+        "setName": "Origins",
+        "rulesText": "",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-042.webp"
+      },
+      "quantity": 6,
+      "role": "Rune Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name-and-set",
+        "localCard": {
+          "id": "69bc5bc9d308c64675ca86e4",
+          "name": "Calm Rune",
+          "type": "Rune",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Rune/payment"
+    }
+  ],
+  "summary": {
+    "uniqueCards": 24,
+    "counts": {
+      "SUPPORTED": 3,
+      "PARTIAL": 20,
+      "UNSUPPORTED": 1,
+      "BANNED": 0,
+      "NOT_AUDITED": 0
+    },
+    "unresolved": [],
+    "canUseInEnforced": false,
+    "topBlockers": [
+      {
+        "cardName": "Alpha Strike",
+        "status": "UNSUPPORTED",
+        "bucket": "XP / Hunt / Level / Buff",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Startipped Peak",
+        "status": "PARTIAL",
+        "bucket": "Battlefield effect",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      },
+      {
+        "cardName": "The Arena's Greatest",
+        "status": "PARTIAL",
+        "bucket": "Battlefield effect",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      },
+      {
+        "cardName": "Vilemaw's Lair",
+        "status": "PARTIAL",
+        "bucket": "Battlefield effect",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      },
+      {
+        "cardName": "Master Yi - Tempered",
+        "status": "PARTIAL",
+        "bucket": "Champion text",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      }
+    ]
+  },
+  "outputFile": "C:\\Users\\xerio\\riftboungtcg\\decks\\meta\\master-yi\\master-yi-top-16-at-sydney-regional-qualifier.json"
+}

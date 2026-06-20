@@ -174,7 +174,7 @@ class CombatResolverTest {
 
     resolver.resolve(state(attacker, defender), "p1");
 
-    assertThat(defender.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(defender.getZone()).isEqualTo(ZoneName.DISCARD);
     assertThat(attacker.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
   }
 
@@ -227,6 +227,7 @@ class CombatResolverTest {
     CardInstance defender = card("d", "defender", "p2");
     stub(attacker, 1, 3);
     stub(defender, 0, 3);
+    when(cardDataService.hasKeyword(attacker, "STUN")).thenReturn(true);
 
     resolver.resolve(state(attacker, defender), "p1");
 
@@ -263,6 +264,44 @@ class CombatResolverTest {
     assertThat(defender.getZone()).isEqualTo(ZoneName.DISCARD);
     assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
     assertThat(gear.getAttachedToInstanceId()).isNull();
+  }
+
+  @Test
+  void combatDamageUsesAttachedSupportedGearMightModifier() {
+    CardInstance attacker = card("a", "attacker", "p1");
+    CardInstance defender = card("d", "defender", "p2");
+    CardInstance gear = card("g", "might-gear", "p1");
+    gear.setZone(ZoneName.BASE);
+    gear.setAttachedToInstanceId("a");
+    stub(attacker, 1, 3);
+    stub(defender, 0, 3);
+    stubCard("might-gear", "Might Gear", "Gear", 0, 0, List.of());
+    CombatStatsService statsService = new CombatStatsService(
+        cardDataService,
+        new EquipmentStatModifierRegistry(java.util.Map.of("might-gear", new EquipmentStatModifierRegistry.StatModifier(2, 0))));
+    CombatResolver resolverWithGearStats = new CombatResolver(
+        cardDataService,
+        effects,
+        cardZoneService,
+        statsService,
+        deathTriggerService,
+        new CombatDamageRules(cardDataService, statsService));
+
+    resolverWithGearStats.resolve(state(attacker, defender, gear), "p1");
+
+    assertThat(defender.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(gear.getAttachedToInstanceId()).isEqualTo("a");
+  }
+
+  @Test
+  void attachedSupportedGearRemainsExcludedFromCombatParticipants() {
+    CardInstance gear = card("g", "might-gear", "p1");
+    gear.setZone(ZoneName.BASE);
+    gear.setAttachedToInstanceId("host");
+    stubCard("might-gear", "Might Gear", "Gear", 0, 0, List.of());
+
+    assertThat(resolver.battlefieldCombatants(state(gear), "p1")).isEmpty();
   }
 
   @Test
@@ -350,6 +389,70 @@ class CombatResolverTest {
         .filter(card -> card.getCardId().equals("drawn") || card.getCardId().equals("second-card")))
         .hasSize(1);
     assertThat(state.getLog().stream().filter(entry -> entry.text().contains("Loyal Poro's Deathknell drew 1."))).hasSize(1);
+  }
+
+  @Test
+  void lonelyPoroDeathknellDrawsWhenItDiesAlone() {
+    CardInstance attacker = card("a", "attacker", "p1");
+    CardInstance lonelyPoro = card("lonely", "lonely-poro", "p2");
+    stub(attacker, 1, 2);
+    stub(lonelyPoro, 0, 1, "Lonely Poro", List.of("DEATHKNELL"));
+    stubCard("drawn", "Drawn Card", "Unit", 1, 1, List.of());
+    when(cardDataService.hasKeyword("lonely-poro", "DEATHKNELL")).thenReturn(true);
+    LiveGameState state = state(attacker, lonelyPoro);
+    state.setPlayers(playersWithDeck("drawn"));
+
+    resolver.resolve(state, "p1");
+
+    assertThat(lonelyPoro.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(state.getCards()).anySatisfy(card -> {
+      assertThat(card.getOwnerId()).isEqualTo("p2");
+      assertThat(card.getCardId()).isEqualTo("drawn");
+      assertThat(card.getZone()).isEqualTo(ZoneName.HAND);
+    });
+    assertThat(state.getLog().stream().filter(entry -> entry.text().contains("Lonely Poro's Deathknell drew 1."))).hasSize(1);
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("Drawn Card"));
+  }
+
+  @Test
+  void lonelyPoroDeathknellDoesNotDrawWhenFriendlyUnitWasAtSameLocation() {
+    CardInstance attacker = card("a", "attacker", "p1");
+    CardInstance lonelyPoro = card("lonely", "lonely-poro", "p2");
+    CardInstance friend = card("friend", "friend", "p2");
+    stub(attacker, 1, 2);
+    stub(lonelyPoro, 0, 1, "Lonely Poro", List.of("DEATHKNELL"));
+    stub(friend, 0, 2);
+    stubCard("drawn", "Drawn Card", "Unit", 1, 1, List.of());
+    when(cardDataService.hasKeyword("lonely-poro", "DEATHKNELL")).thenReturn(true);
+    LiveGameState state = state(attacker, lonelyPoro, friend);
+    state.setPlayers(playersWithDeck("drawn"));
+
+    resolver.resolve(state, "p1");
+
+    assertThat(lonelyPoro.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(state.getCards()).noneMatch(card -> card.getCardId().equals("drawn"));
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().contains("Lonely Poro did not die alone."));
+  }
+
+  @Test
+  void simultaneousFriendlyDeathMeansLonelyPoroDidNotDieAlone() {
+    CardInstance attacker = card("a", "attacker", "p1");
+    CardInstance lonelyPoro = card("lonely", "lonely-poro", "p2");
+    CardInstance friend = card("friend", "friend", "p2");
+    stub(attacker, 2, 3);
+    stub(lonelyPoro, 0, 1, "Lonely Poro", List.of("DEATHKNELL"));
+    stub(friend, 0, 1);
+    stubCard("drawn", "Drawn Card", "Unit", 1, 1, List.of());
+    when(cardDataService.hasKeyword("lonely-poro", "DEATHKNELL")).thenReturn(true);
+    LiveGameState state = state(attacker, lonelyPoro, friend);
+    state.setPlayers(playersWithDeck("drawn"));
+
+    resolver.resolve(state, "p1");
+
+    assertThat(lonelyPoro.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(friend.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(state.getCards()).noneMatch(card -> card.getCardId().equals("drawn"));
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().contains("Lonely Poro did not die alone."));
   }
 
   @Test

@@ -26,6 +26,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.locks.ReentrantLock;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -44,14 +45,21 @@ public class GameService {
   private final ApplicationEventPublisher eventPublisher;
   private final MatchHistoryService matchHistoryService;
   private final GameStateProjectionService projectionService;
+  private final ChainFastPassService chainFastPassService;
 
   public GameService(GameEngine engine, CardDataService cardDataService, SimpMessagingTemplate messaging, ApplicationEventPublisher eventPublisher, MatchHistoryService matchHistoryService, GameStateProjectionService projectionService) {
+    this(engine, cardDataService, messaging, eventPublisher, matchHistoryService, projectionService, new ChainFastPassService(new com.riftforge.rules.LegalActionsService(cardDataService)));
+  }
+
+  @Autowired
+  public GameService(GameEngine engine, CardDataService cardDataService, SimpMessagingTemplate messaging, ApplicationEventPublisher eventPublisher, MatchHistoryService matchHistoryService, GameStateProjectionService projectionService, ChainFastPassService chainFastPassService) {
     this.engine = engine;
     this.cardDataService = cardDataService;
     this.messaging = messaging;
     this.eventPublisher = eventPublisher;
     this.matchHistoryService = matchHistoryService;
     this.projectionService = projectionService;
+    this.chainFastPassService = chainFastPassService;
   }
 
   public void initGame(String roomCode, List<String> playerIds, Map<String, List<String>> decksByPlayer, Map<String, String> playerNames) {
@@ -82,6 +90,7 @@ public class GameService {
       if (before == null) throw new IllegalStateException("Game not found: " + normalizedRoomCode);
       String previousWinnerId = before.getWinnerId();
       next = engine.applyMove(before, move);
+      next = chainFastPassService.autoPassSafeWindows(engine, next);
       games.put(normalizedRoomCode, next);
       if (next.getWinnerId() != null && previousWinnerId == null) {
         completedMatch = completedMatchSnapshot(next);
@@ -157,7 +166,7 @@ public class GameService {
     LiveGameState state = new LiveGameState();
     state.setRoomCode(roomCode);
     state.setGameMode(gameMode);
-    state.setCurrentPhase(Phase.MULLIGAN);
+    state.setCurrentPhase(Phase.SELECT_BATTLEFIELD);
     String firstPlayerId = playerIds.isEmpty() ? null
         : playerIds.get(ThreadLocalRandom.current().nextInt(playerIds.size()));
     state.setActivePlayerId(firstPlayerId);
@@ -182,7 +191,7 @@ public class GameService {
       String championId = removeFirstCardType(remaining, "Champion");
       List<String> runes = remaining.stream()
           .filter(id -> isCardType(id, "Rune"))
-          .toList();
+          .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
       List<String> battlefields = remaining.stream()
           .filter(id -> isCardType(id, "Battlefield"))
           .toList();
@@ -198,6 +207,7 @@ public class GameService {
         state.getCards().add(createZoneCard(legendId, playerId, ZoneName.LEGEND, ++zIndex));
       }
       Collections.shuffle(dealable);
+      Collections.shuffle(runes);
       List<String> hand = dealable.stream().limit(4).toList();
       for (int i = 0; i < hand.size(); i++) {
         CardDefinition def = cardDataService.getCard(hand.get(i));
@@ -221,9 +231,14 @@ public class GameService {
             player.setDeckPool(new ArrayList<>(dealable.subList(Math.min(4, dealable.size()), dealable.size())));
             player.setRuneDeckPool(new ArrayList<>(runes));
             player.setRunePoolRemaining(runes.isEmpty() ? 10 : runes.size());
-            // TODO: Use selected battlefield cards when full battlefield setup is implemented.
             player.setSelectedBattlefields(new ArrayList<>(battlefields));
+            player.setBattlefieldChoices(new ArrayList<>(battlefields));
           });
+    }
+    boolean anyBattlefieldChoices = state.getPlayers().stream()
+        .anyMatch(player -> !player.getSelectedBattlefields().isEmpty());
+    if (!anyBattlefieldChoices) {
+      state.setCurrentPhase(Phase.MULLIGAN);
     }
     return state;
   }

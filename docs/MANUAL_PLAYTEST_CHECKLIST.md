@@ -8,23 +8,70 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Create a room or join one with a room code.
 - Select a deck in the lobby, review support warnings, then Ready and Start.
 - Start a human vs RiftBot or human vs human game.
+- Choose one Battlefield before mulligan and confirm the opponent's unchosen Battlefield pool is not visible.
+- After both players choose, confirm selected Battlefield plaques appear in the active Battlefield lane area, can be hovered/read like cards, and cannot be targeted, moved, tapped, or fought.
+- Remember the current 1v1 alpha has two active shared Battlefield lanes. Deck construction still requires three Battlefield cards, but that does not mean three active lanes are used in Duel/bot games. Battlefield effects, hidden slots, official "here" targeting, and full location rules remain deferred.
 - Keep your opening hand or mulligan at least one card.
+- During Channel and payment, confirm in-play Rune cards show their card art/name when known, can be hovered like cards, and still tap or recycle with the existing click/right-click controls.
 - Play a Unit and confirm it stays visible in Base.
 - Confirm your Legend starts in the Legend zone and your chosen Champion starts in the Champion zone.
 - Confirm the Legend cannot be dragged to the battlefield, and the chosen Champion only deploys after you have enough available energy.
+- In Irelia, try using Irelia - Blade Dancer's supported Legend-zone ready ability on an exhausted Irelia - Fervent in public play; Fervent should ready and gain +1 Might this turn. Do not expect the broader choose trigger, automatic ready-step trigger, or exact Deflect tax to be complete yet.
 - If your deck has Champion Units in the MainDeck, confirm they draw/play as main-deck cards instead of starting in the Champion zone.
 - Use a targeted effect and confirm the target prompt and error messages make sense.
 - If an optional choice prompt appears, choose an option and confirm the game resumes.
-- If you play Stacked Deck, confirm only you see the top-card options, one card goes to hand, and the rest recycle without appearing in the public log.
-- Play Gear to Base, then equip it to a friendly Unit or Champion if you draw one.
-- Confirm attached Gear stays with a host that moves from Base to battlefield.
+- If an optional payment prompt appears, try Pay when you have enough energy and confirm the energy is spent and the effect resolves.
+- If an optional payment prompt appears, try Decline and confirm the prompt clears without applying the effect.
+- If you play Disarming Rake while Gear is in play, confirm Yes asks you to
+  choose a Gear, Cancel/No leaves Gear alone, and a selected Gear goes to Trash.
+- If you play Stacked Deck, confirm it opens the narrow priority/chain window
+  before the top-card choice appears; after players pass/resolve the chain, only you see the
+  top-card options, one card goes to hand, and the rest recycle without
+  appearing in the public log.
+- If you play a simple public `Draw 1` spell, confirm it opens a chain before
+  drawing and the draw happens only after the chain item resolves.
+- If the chain panel appears, confirm it lists public-safe chain items
+  top-to-bottom, shows focus/ready status clearly, and does not expose hidden
+  or private card names.
+- Confirm supported targeted Reactions such as Gust, Discipline, and En Garde
+  can be played on your own Main Phase or focused showdown window, then resolve
+  from the chain. They should show `Respond` only while you have chain focus.
+- With a human opponent, confirm priority focus does not skip just because the
+  focused player has no legal Reaction. The focused player should still be able
+  to pass priority manually, and opponents should only see that priority is
+  waiting, not whether a response exists.
+- Confirm the local Priority Stops panel can keep manual stops by default and
+  can optionally auto-pass your own empty windows without changing server
+  legality. RiftBot may still auto-pass empty windows.
+- While a chain is active, try tapping or recycling a Rune and confirm the
+  server/UI keeps the chain paused instead of allowing Rune innate actions as
+  responses.
+- If Defy is in hand during chain focus, confirm it can target a supported
+  public spell chain item such as Stacked Deck, counters that item, and prevents
+  the Stacked Deck top-card choice from appearing.
+- If Not So Fast is in hand during chain focus, confirm it stays unavailable
+  against untargeted Stacked Deck, but can counter an enemy Gust only when that
+  Gust chooses your friendly Unit/Champion Unit or Gear.
+- Play Gear to Base, then pay its printed Equip cost to equip it to a friendly
+  Unit or Champion if you draw one.
+- Confirm attached Gear shows a host label, can be inspected by clicking/hovering the Gear, and cannot be dragged independently.
+- Confirm attached Gear stays with a host that moves from Base to a battlefield lane.
 - Confirm attached Gear returns to Base, not Trash, if its host dies or leaves
   public play in a supported path.
+- If The Syren is in Base, activate it during Main Phase by paying 1 energy and
+  confirm a friendly battlefield Unit/Champion moves back to Base.
+- If Zhonya's Hourglass is in Base, activate it during Main Phase on a friendly
+  public Unit/Champion, then confirm the next supported death destroys Zhonya
+  instead and heals/exhausts/recalls that unit. Hidden Reaction-for-0 timing is
+  still deferred.
+- If Charm, Flash, or Defiant Dance appears, smoke only the implemented alpha
+  target/effect shape and keep broader timing/destination expectations in the
+  bug report as Partial caveats.
 - Hide a card if you draw a `[Hidden]` card.
 - Try Ambush if the UI says it is available.
 - Move a Unit to the battlefield.
-- Play a supported `[Action]` card during a showdown if one appears.
-- Resolve a showdown.
+- During a showdown, confirm the focused player can either play a supported `[Action]` card or click `Pass Focus`.
+- After both relevant players pass focus, resolve the showdown, then use `Resolve Damage` / `Resolve Combat Damage` when prompted.
 - Trigger or inspect an unsupported-card message.
 - Check support badges in the deck builder, hand, hover preview, and inspect modal.
 - Use Report issue or Copy debug info if anything looks stuck or confusing. Include the build version from Alpha limits or copied debug info.
@@ -35,6 +82,14 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - If card data or stat parsing changed, clear or refresh the local card cache.
 - Create a human vs RiftBot room.
 - Load or select a constructed deck, then ready and start.
+- Choose one Battlefield from the three-card setup prompt and confirm it appears on the board after both players choose.
+- Confirm in-play Rune cards display as card-backed resource plaques when they are channeled; hidden rune deck contents should not be visible.
+- Confirm Rune rows use the broad Base-aligned row without covering the phase bar or hand rack.
+- Move one Unit into each visible active lane across a few turns and confirm the card lands in the lane you dropped it on.
+- Move a ready Unit from a battlefield lane back to Base and confirm it returns through the normal move action instead of a sandbox-only warning.
+- With Stellacorn Herder, confirm Base -> battlefield, battlefield lane-to-lane, and battlefield -> Base each draw 1 privately, while same-lane repositioning does not.
+- Move opposing Units into the same lane and confirm a same-lane showdown starts with that lane highlighted.
+- Move opposing Units into different lanes and confirm no cross-lane showdown starts.
 - Keep the opening hand or mulligan at least one card.
 - Confirm RiftBot updates live after mulligan and during its turn.
 - Play a Unit and confirm it stays in Base.
@@ -43,41 +98,103 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Inspect those cards in the deck builder and in-game hover/inspect views; their support badge should say Supported.
 - Play or attempt a targeted effect and confirm target prompts/errors are visible.
 - If a private choice prompt appears, confirm only the prompted player sees the options.
-- If Stacked Deck appears, resolve the top-3 private prompt and confirm opponent/spectator views do not reveal those card names.
+- If Disarming Rake appears in the sideboard/playtest pool, try both declining
+  and destroying a friendly or enemy Gear.
+- If Stacked Deck appears, confirm it first waits on the chain, then resolve
+  the top-3 private prompt and confirm opponent/spectator views do not reveal
+  those card names.
+- If a simple public `Draw 1` spell appears, confirm it opens the chain and
+  can be responded to before the draw resolves.
 - Play Gear to Base, equip it to a valid friendly Unit/Champion, and confirm the log says what was equipped.
+- Confirm illegal Equip targets, such as opponent units, Gear, Battlefields, Runes, Legends, hidden cards, and Champion-zone identity cards, show readable warnings/rejections.
 - Confirm Gear cannot target the Champion while it is still in the Champion zone; it can target a Champion only after the Champion has moved into Base or the battlefield.
 - Try an illegal Champion/Legend drag and confirm it snaps back to the zone with a readable warning.
 - If a Champion is destroyed in combat, confirm it returns to the Champion zone and any attached Gear returns to Base.
 - Move a Unit to the battlefield.
 - If you have a clean Ambush Unit and already control a battlefield unit, use the Ambush button and confirm it enters the battlefield ready.
-- If a showdown starts and you have a supported `[Action]` card, try it during the showdown window.
-- Resolve a showdown if one starts.
+- If a showdown starts and you have focus, try a supported `[Action]` card or click `Pass Focus`.
+- Confirm the attacker cannot resolve until both relevant players pass focus.
+- If a chain prompt/status appears, confirm only the focused player sees `Pass Chain` or `Resolve Chain` and normal game actions stay paused until it clears.
+- Confirm the chain panel status updates do not imply counterspells or
+  Reaction timing are broadly supported yet; Gust, Discipline, En Garde, Defy,
+  and narrow Not So Fast are the only real alpha Reaction responses.
+- Confirm unsupported Reactions do not appear as legal
+  responses, even while the chain panel is active.
+- During human vs RiftBot, try clicking an unsupported Reaction such as Defiant
+  Dance during a no-chain or opponent-turn window; confirm a local warning
+  appears, the UI does not stay stuck waiting for a server update, and RiftBot
+  continues or ends its turn.
+- Resolve a showdown after the focus/pass cycle completes, then resolve the server-planned combat damage when prompted.
+- In human vs RiftBot, create a multi-unit combat where RiftBot has more combatants than the opposing side; confirm RiftBot assigns all damage, the showdown resolves, and the game does not freeze.
+- If practical, smoke both paths: RiftBot attacking with multiple units and RiftBot defending with multiple units.
 - If Deathknell/token cards appear, confirm the log and board state update clearly.
 - Check your hand remains visible to you and opponent hands remain masked.
 - Trigger one invalid action and confirm the visible error is understandable.
-- Use Copy debug info if stuck and confirm it omits hidden hand/deck contents.
+- Use Copy debug info if stuck and confirm it omits hidden hand/deck/rune deck contents while including public in-play rune summaries.
 - When filing a GitHub issue, include build version, room code, phase, active player, last error, expected behavior, actual behavior, whether supported-cards-only was enabled, and screenshots/logs if useful.
 
 ## Human vs RiftBot
 
 - Start RiftForge and create a human vs RiftBot room.
+- Leave the RiftBot deck selector on `Irelia Uploaded Meta - Playtest` for the
+  default uploaded-meta smoke path. This is the first enforced-playable
+  uploaded meta deck, but it is not rules-complete, golden, or reference-correct;
+  many Partial alpha behavior caveats still apply.
 - Load or select a constructed deck.
-- Ready up, start the game, and confirm the opening mulligan appears.
+- Ready up, start the game, and confirm the Battlefield selection prompt appears before mulligan.
+- Choose one Battlefield, then confirm mulligan appears after both players have selected.
+- Confirm the selected Battlefield displays appear in the visible Battlefield lanes after setup, show hover previews, and remain non-interactive location displays.
+- Confirm the Rune row shows actual in-play Rune cards when known, generic fallback runes when art/card data is missing, and pending tapped/recycled selections remain visually distinct.
+- Move Units to `Battlefield 1` and `Battlefield 2` and confirm each card stays in the lane chosen by the drag/drop. In 1v1, confirm no `Battlefield 3` placeholder is shown.
+- During Main Phase with no active showdown, drag a ready Unit/Champion from `Battlefield 1` to `Battlefield 2` and confirm it moves lanes instead of snapping back.
+- Try dragging a Unit/Champion to the lane it already occupies and confirm it does not create a new move/showdown.
+- Move units from both players into the same lane and confirm the lane highlight/phase bar identify the active showdown location.
+- Move units from both players into different lanes and confirm they do not start a showdown with each other.
 - Keep the opening hand or mulligan at least one card.
 - Confirm your hand cards are visible to you after mulligan.
 - Confirm RiftBot advances through its turn steps without manual help.
+- Confirm RiftBot can draw, play, pay, move/pass, and resolve at least one
+  same-lane showdown without entering an illegal-action loop on Partial Irelia
+  cards.
 - Play a Unit from hand and confirm it stays in Base.
 - With Fiora Vanguard, confirm Vanguard Sergeant is treated as Supported and Daring Poro/Laurent Duelist remain readable Assault examples.
 - Play or attempt a targeted effect and confirm target prompts/errors are visible.
 - If an optional choice prompt appears, resolve it and confirm normal actions return afterward.
+- If an optional payment prompt appears, confirm only the prompted player sees Pay/Decline and the opponent view does not reveal prompt details.
+- With Stellacorn Herder, confirm any legal Base -> battlefield,
+  battlefield-to-battlefield, or battlefield -> Base movement draws exactly one
+  private card and same-lane movement remains rejected/inert.
 - If you draw Stacked Deck, play it and confirm the private card-selection modal is readable and returns to normal actions after resolving.
 - Play Equip Gear when available and confirm it enters Base first.
 - Click the Gear in Base, choose a friendly Unit/Champion, and confirm it attaches.
+- Confirm the attached Gear appears smaller near its host, the host shows the Gear name, and clicking the attached Gear opens inspect rather than selecting it as a movable combat card.
 - Pass through the turn and confirm the phase guidance updates.
 - Move a Unit to the battlefield.
 - If an Ambush card appears, confirm it either shows a clear Ambush option with a friendly battlefield unit or explains why Ambush/additional cost is unavailable.
-- If a showdown starts and you have a supported `[Action]` card, confirm the UI says you may play it or resolve the showdown.
-- Resolve a showdown if one starts.
+- If a showdown starts and you have a supported `[Action]` card, confirm the UI says you may play it or pass focus only while you are focused.
+- Confirm `Resolve Showdown` appears only after both relevant players pass focus.
+- After combat damage assignment, confirm board cards and hover/inspect show readable Might, current HP, and marked damage until the model clears it.
+- Play Stacked Deck to open the narrow alpha chain. If the opponent has Gust in
+  hand, confirm Gust shows as a `Respond` option only while that player has
+  chain focus, highlights only battlefield Units/Champions with 3 Might or
+  less, resolves before Stacked Deck, and returns the target to hand after
+  chain passes/resolution.
+- If the opponent has Defy in hand, confirm it can select the Stacked Deck
+  chain item from the chain panel, resolves above Stacked Deck, marks Stacked
+  Deck countered, and no private Stacked Deck choice appears.
+- If the opponent has Not So Fast in hand, confirm it cannot select untargeted
+  Stacked Deck but can select an enemy Gust chain item that chooses that
+  opponent's friendly Unit/Champion Unit or Gear.
+- If no human stop is holding priority and no legal response is available,
+  confirm the chain can advance cleanly to `Resolve Chain`. In human-vs-human
+  testing, empty public priority windows may still wait for the focused player
+  to pass manually so hand contents are not implied by auto-pass.
+- While RiftBot is active in Main, click an unsupported Reaction card in your
+  hand and confirm the warning does not freeze the client; Copy debug info
+  should include awaiting update, last submitted action, last failure, active
+  showdown location, battlefield controllers, public card locations,
+  attachments, chain, choice, and legal-action fields.
+- Resolve a showdown after the focus/pass cycle completes, then confirm `Resolve Damage` appears before cleanup.
 - Confirm attached Gear returns to Base if its host leaves play in a supported path.
 - Confirm the game log shows readable entries for play, move, target, showdown, scoring, and unsupported-effect messages.
 
@@ -86,7 +203,8 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Open a second player or spectator view when practical.
 - Confirm your own hand card names are visible only to you.
 - Confirm opponent hand cards are masked in player/spectator views.
-- If you draw a `[Hidden]` card, hide it with a ready rune; confirm you see its name in your hidden area and the opponent/spectator sees only a hidden-card count.
+- If you draw a `[Hidden]` card, hide it with a ready rune; confirm you can hover/inspect its real card from your hidden area and the opponent/spectator sees only generic hidden-card backs/counts.
+- Confirm the public log says only that a card was hidden and does not name the hidden card.
 - Confirm Vision/private reveal log entries are not visible to the wrong viewer.
 - Confirm the spectator/public room view has no action buttons or `legalActions`.
 - Confirm opponent Hidden cards cannot be selected as targets unless a future reveal effect explicitly grants permission.
@@ -99,8 +217,31 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Check that Banned cards say they are not legal in constructed.
 - Check that Not Audited or missing-data cards are not presented as supported.
 
+## Supported Meta Deck Intake
+
+- Use only a real representative list supplied by a reviewer/playtester/source;
+  do not assemble a "meta" list from memory.
+- For current guide-sourced lists, start from `decks/meta/` and
+  `docs/meta/`; these are extracted from Riftbound.gg guide embeds by
+  `npm.cmd run audit:meta-decks`.
+- For uploaded exact exports, start from `decks/meta/raw/` and
+  `decks/meta/normalized/`; regenerate with
+  `npm.cmd run import:uploaded-meta-decks`.
+- Import the list through Deck Builder using Legend, Champion, MainDeck, Rune
+  Pool, and Battlefields sections.
+- Confirm the validation report shows deck legality, missing cards,
+  Unsupported cards, Partial cards, and Not Audited cards.
+- If supported-cards-only mode is enabled, confirm Unsupported and Not Audited
+  cards block ready while Partial cards remain warnings.
+- Start human-vs-RiftBot with supported-cards-only off when the goal is to
+  discover blockers in a Partial meta deck.
+- Trigger at least one Unsupported-card warning if the deck contains unsupported
+  cards, then copy debug info.
+- Record repeated blockers in `docs/META_DECK_SUPPORT.md` before choosing the
+  next implementation sprint.
+
 ## Connection And Error Feedback
 
 - Trigger one invalid action, such as playing during a non-Main phase, and confirm a visible warning appears.
 - Disconnect/reconnect the local server if testing locally and confirm the reconnect/offline message is understandable.
-- Use the Copy debug info button after an error and confirm it does not include hidden hand or deck contents.
+- Use the Copy debug info button after an error and confirm it does not include hidden hand, deck, or rune deck contents.

@@ -1,0 +1,648 @@
+{
+  "sourceFilename": "master_yi_wins_s3_guangzhou_city_challenge.txt",
+  "parsedAt": "2026-06-19",
+  "entries": [
+    {
+      "sourceLine": 1,
+      "quantity": 1,
+      "originalName": "Master Yi - Wuju Bladesman - Starter",
+      "sourceCardId": "OGS-019",
+      "sourceSetCode": "OGS",
+      "section": "Unresolved",
+      "resolved": {
+        "status": "UNRESOLVED",
+        "reason": "No local RiftForge card matched Master Yi - Wuju Bladesman - Starter in Proving Grounds."
+      },
+      "support": {
+        "status": "NOT_AUDITED",
+        "reason": "No local RiftForge card matched Master Yi - Wuju Bladesman - Starter in Proving Grounds.",
+        "blocked": true
+      },
+      "bucket": "Unresolved / missing card data"
+    },
+    {
+      "sourceLine": 2,
+      "quantity": 3,
+      "originalName": "Lonely Poro",
+      "sourceCardId": "SFD-036",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be2d308c64675ca88d1",
+          "name": "Lonely Poro",
+          "type": "Unit",
+          "set": "Spiritforged",
+          "rulesText": "[Deathknell] — If I died alone, draw 1. (When I die, get the effect. I'm alone if there are no other friendly units here.)"
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "bucket": "Draw / reveal / deck selection"
+    },
+    {
+      "sourceLine": 3,
+      "quantity": 1,
+      "originalName": "Amateur Recital",
+      "sourceCardId": "UNL-207",
+      "sourceSetCode": "UNL",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69c5be6abf82ff7cb69f429c",
+          "name": "Amateur Recital",
+          "type": "Battlefield",
+          "set": "Unleashed",
+          "rulesText": "When you hold here, you may move a unit at a battlefield to its base."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 4,
+      "quantity": 3,
+      "originalName": "Rengar - Trophy Hunter",
+      "sourceCardId": "UNL-120",
+      "sourceSetCode": "UNL",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bead308c64675ca8964",
+          "name": "Rengar - Trophy Hunter",
+          "type": "Champion",
+          "set": "Unleashed",
+          "rulesText": "[Ambush] (You may play me as a [Reaction] to a battlefield where you have units.)I can be played to a battlefield where there are enemy units (even if you don't have units there)."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 5,
+      "quantity": 1,
+      "originalName": "Master Yi - Tempered",
+      "sourceCardId": "UNL-113",
+      "sourceSetCode": "UNL",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bedd308c64675ca89a2",
+          "name": "Master Yi - Tempered",
+          "type": "Champion",
+          "set": "Unleashed",
+          "rulesText": "[Hunt 2] (When I conquer or hold, gain 2 XP.)[Level 6][&gt;] I have [Deflect] and [Ganking]. (While you have 6+ XP, opponents must pay :rb_rune_rainbow: to choose me with a spell or ability and I can move from battlefield to battlefield.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 6,
+      "quantity": 2,
+      "originalName": "Dragonsoul Sage",
+      "sourceCardId": "UNL-093",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69c4407e9288b1e85d94deb0",
+          "name": "Dragonsoul Sage",
+          "type": "Unit",
+          "set": "Unleashed",
+          "rulesText": "[Reaction][&gt;] :rb_exhaust:: [Add] :rb_energy_1:. (Abilities that add resources can't be reacted to.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 7,
+      "quantity": 2,
+      "originalName": "Vilemaw",
+      "sourceCardId": "UNL-060",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be9d308c64675ca8954",
+          "name": "Vilemaw",
+          "type": "Unit",
+          "set": "Unleashed",
+          "rulesText": "[Ambush] (You may play me as a [Reaction] to a battlefield where you have units.)Enemy units here with less Might than me don't deal combat damage.When I hold, draw 1."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 8,
+      "quantity": 3,
+      "originalName": "Scuttle Crab",
+      "sourceCardId": "UNL-053",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69c43cd2c2f7428c5d24b4e2",
+          "name": "Scuttle Crab",
+          "type": "Unit",
+          "set": "Unleashed",
+          "rulesText": "(Units with 0 :rb_might: can conquer and hold.)When you play me, draw 1.[Deathknell][&gt;] Choose an opponent. They reveal their hand. You can look at their facedown cards this turn. Gain 1 XP. (When I die, get the effects.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: on-play draw and 1v1 private hand reveal Deathknell are implemented, but XP and facedown-card viewing are deferred.",
+        "blocked": false
+      },
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "sourceLine": 9,
+      "quantity": 2,
+      "originalName": "Back Off",
+      "sourceCardId": "UNL-042",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bd162140ff39fe1396df89",
+          "name": "Back Off",
+          "type": "Spell",
+          "set": "Unleashed",
+          "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)[Action] (Play on your turn or in showdowns.)[Stun] a unit. (It doesn't deal combat damage this turn.)If you played this from your hand, draw 1."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "sourceLine": 10,
+      "quantity": 3,
+      "originalName": "Punch First",
+      "sourceCardId": "SFD-097",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be2d308c64675ca88cc",
+          "name": "Punch First",
+          "type": "Spell",
+          "set": "Spiritforged",
+          "rulesText": "[Action] (Play on your turn or in showdowns.)Give a unit +5 :rb_might: this turn."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Basic or descriptor-only"
+    },
+    {
+      "sourceLine": 11,
+      "quantity": 2,
+      "originalName": "Janna - Savior",
+      "sourceCardId": "SFD-053",
+      "sourceSetCode": "SFD",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be2d308c64675ca88d4",
+          "name": "Janna - Savior",
+          "type": "Champion",
+          "set": "Spiritforged",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve, including to a battlefield you control.)When you play me, heal your units here, then move up to one enemy unit from here to its base."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 12,
+      "quantity": 3,
+      "originalName": "Not So Fast",
+      "sourceCardId": "SFD-045",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bdfd308c64675ca8892",
+          "name": "Not So Fast",
+          "type": "Spell",
+          "set": "Spiritforged",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Counter an enemy spell or ability that chooses a friendly unit or gear."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: Not So Fast can counter a supported public pending enemy spell chain item only when that item chooses your friendly Unit/Champion Unit or Gear. Ability-chain targets, broad official Reaction timing, and countering counters remain deferred.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 13,
+      "quantity": 6,
+      "originalName": "Calm Rune",
+      "sourceCardId": "OGN-042",
+      "sourceSetCode": "OGN",
+      "section": "Rune Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc9d308c64675ca86e4",
+          "name": "Calm Rune",
+          "type": "Rune",
+          "set": "Origins",
+          "rulesText": null
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "bucket": "Rune/payment"
+    },
+    {
+      "sourceLine": 14,
+      "quantity": 1,
+      "originalName": "Startipped Peak",
+      "sourceCardId": "OGN-288",
+      "sourceSetCode": "OGN",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd6d308c64675ca87ed",
+          "name": "Startipped Peak",
+          "type": "Battlefield",
+          "set": "Origins",
+          "rulesText": "When you hold here, you may channel 1 rune exhausted."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 15,
+      "quantity": 1,
+      "originalName": "Grove of the God-Willow",
+      "sourceCardId": "OGN-280",
+      "sourceSetCode": "OGN",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd6d308c64675ca87e5",
+          "name": "Grove of the God-Willow",
+          "type": "Battlefield",
+          "set": "Origins",
+          "rulesText": "When you hold here, draw 1."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 16,
+      "quantity": 3,
+      "originalName": "First Mate",
+      "sourceCardId": "OGN-132",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bced308c64675ca8747",
+          "name": "First Mate",
+          "type": "Unit",
+          "set": "Origins",
+          "rulesText": "When you play me, ready another unit."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Triggered/static card text"
+    },
+    {
+      "sourceLine": 17,
+      "quantity": 6,
+      "originalName": "Body Rune",
+      "sourceCardId": "OGN-126",
+      "sourceSetCode": "OGN",
+      "section": "Rune Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bcdd308c64675ca8740",
+          "name": "Body Rune",
+          "type": "Rune",
+          "set": "Origins",
+          "rulesText": null
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "bucket": "Rune/payment"
+    },
+    {
+      "sourceLine": 18,
+      "quantity": 2,
+      "originalName": "Zhonya's Hourglass",
+      "sourceCardId": "OGN-077",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bcad308c64675ca870a",
+          "name": "Zhonya's Hourglass",
+          "type": "Gear",
+          "set": "Origins",
+          "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)If a friendly unit would die, kill this instead. Heal that unit, exhaust it, and recall it. (Send it to base. This isn't a move.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: Zhonya's Hourglass can be played to Base and armed during your Main Phase to protect a friendly public Unit/Champion from the next supported death, destroying Zhonya instead, then healing, exhausting, and recalling that unit. Hidden Reaction-for-0 timing, competing replacement choices, and broad replacement timing remain deferred.",
+        "blocked": false
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 19,
+      "quantity": 1,
+      "originalName": "Tasty Faefolk",
+      "sourceCardId": "OGN-075",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bcad308c64675ca8707",
+          "name": "Tasty Faefolk",
+          "type": "Unit",
+          "set": "Origins",
+          "rulesText": "[Accelerate] (You may pay :rb_energy_1::rb_rune_calm: as an additional cost to have me enter ready.)[Deathknell] — Channel 2 runes exhausted and draw 1. (When I die, get the effect.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Draw / reveal / deck selection"
+    },
+    {
+      "sourceLine": 20,
+      "quantity": 3,
+      "originalName": "Discipline",
+      "sourceCardId": "OGN-058",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc9d308c64675ca86f5",
+          "name": "Discipline",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Give a unit +2 :rb_might: this turn. Draw 1."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists for giving a public battlefield Unit/Champion +2 Might this turn and drawing 1. Full official any-time Reaction timing remains incomplete.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 21,
+      "quantity": 2,
+      "originalName": "En Garde",
+      "sourceCardId": "OGN-046",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc9d308c64675ca86e9",
+          "name": "En Garde",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Give a friendly unit +1 :rb_might: this turn, then an additional +1 :rb_might: this turn if it is the only unit you control there."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists for giving a friendly battlefield Unit/Champion +1 Might, or +2 if it is your only unit there. Full official any-time Reaction timing remains incomplete.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 22,
+      "quantity": 3,
+      "originalName": "Defy",
+      "sourceCardId": "OGN-045",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc9d308c64675ca86e8",
+          "name": "Defy",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Counter a spell that costs no more than :rb_energy_4: and no more than :rb_rune_rainbow:."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: Defy can counter supported public pending spell chain items that cost no more than 4 energy and no more than 1 premium rune during the current alpha chain window. Full official Reaction timing, broad spell/ability targets, and countering counters remain deferred.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 23,
+      "quantity": 2,
+      "originalName": "Charm",
+      "sourceCardId": "OGN-043",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc9d308c64675ca86e6",
+          "name": "Charm",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "Move an enemy unit."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha support moves one enemy public battlefield Unit/Champion to Base. Broader official movement choices, control/location edge cases, and non-battlefield destinations remain deferred.",
+        "blocked": false
+      },
+      "bucket": "Movement / location"
+    }
+  ],
+  "malformedLines": [],
+  "validation": {
+    "totalCards": 56,
+    "legendCount": 0,
+    "championCandidateCount": 6,
+    "inferredMainDeckCount": 39,
+    "runeCount": 12,
+    "battlefieldCount": 3,
+    "validConstructedShape": false,
+    "issues": [
+      "Expected exactly 1 Legend, found 0."
+    ]
+  },
+  "supportSummary": {
+    "uniqueCards": 23,
+    "counts": {
+      "SUPPORTED": 3,
+      "PARTIAL": 19,
+      "UNSUPPORTED": 0,
+      "BANNED": 0,
+      "NOT_AUDITED": 1
+    },
+    "canUseInEnforced": false,
+    "unresolvedCards": [
+      {
+        "sourceCardId": "OGS-019",
+        "originalName": "Master Yi - Wuju Bladesman - Starter",
+        "reason": "No local RiftForge card matched Master Yi - Wuju Bladesman - Starter in Proving Grounds."
+      }
+    ],
+    "topBlockers": [
+      {
+        "cardName": "Master Yi - Wuju Bladesman - Starter",
+        "sourceCardId": "OGS-019",
+        "status": "NOT_AUDITED",
+        "bucket": "Unresolved / missing card data",
+        "reason": "No local RiftForge card matched Master Yi - Wuju Bladesman - Starter in Proving Grounds."
+      },
+      {
+        "cardName": "Amateur Recital",
+        "sourceCardId": "UNL-207",
+        "status": "PARTIAL",
+        "bucket": "Battlefield effect",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      },
+      {
+        "cardName": "Rengar - Trophy Hunter",
+        "sourceCardId": "UNL-120",
+        "status": "PARTIAL",
+        "bucket": "Champion text",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      },
+      {
+        "cardName": "Master Yi - Tempered",
+        "sourceCardId": "UNL-113",
+        "status": "PARTIAL",
+        "bucket": "Champion text",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      },
+      {
+        "cardName": "Dragonsoul Sage",
+        "sourceCardId": "UNL-093",
+        "status": "PARTIAL",
+        "bucket": "Reaction / chain / counter",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      }
+    ]
+  },
+  "archetype": "Master Yi, Wuju Bladesman",
+  "key": "master-yi",
+  "eventResult": "master yi wins s3 guangzhou city challenge",
+  "priority": "Audit before implementation; gameplay notes still useful",
+  "rawSourceFile": "decks/meta/raw/master_yi_wins_s3_guangzhou_city_challenge.txt",
+  "normalizedFile": "decks/meta/normalized/master_yi_wins_s3_guangzhou_city_challenge.json"
+}

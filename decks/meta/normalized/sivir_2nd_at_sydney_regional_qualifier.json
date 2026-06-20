@@ -1,0 +1,622 @@
+{
+  "sourceFilename": "sivir_2nd_at_sydney_regional_qualifier.txt",
+  "parsedAt": "2026-06-19",
+  "entries": [
+    {
+      "sourceLine": 1,
+      "quantity": 1,
+      "originalName": "Sivir - Battle Mistress",
+      "sourceCardId": "SFD-203",
+      "sourceSetCode": "SFD",
+      "section": "Legend",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bdad308c64675ca8836",
+          "name": "Sivir - Battle Mistress",
+          "type": "Legend",
+          "set": "Spiritforged",
+          "rulesText": "When you recycle a rune, you may exhaust me to play a Gold gear token exhausted.When one or more enemy units die, ready me."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Legend text"
+    },
+    {
+      "sourceLine": 2,
+      "quantity": 1,
+      "originalName": "Mindsplitter",
+      "sourceCardId": "OGN-192",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd1d308c64675ca8788",
+          "name": "Mindsplitter",
+          "type": "Unit",
+          "set": "Origins",
+          "rulesText": "When you play me, choose an opponent. They reveal their hand. Choose a card from it, and they discard that card."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Draw / reveal / deck selection"
+    },
+    {
+      "sourceLine": 3,
+      "quantity": 3,
+      "originalName": "Scryer's Bloom",
+      "sourceCardId": "UNL-136",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69c8378e2c3db56eb7d760d2",
+          "name": "Scryer's Bloom",
+          "type": "Gear",
+          "set": "Unleashed",
+          "rulesText": "This enters exhausted.Kill this, :rb_energy_1:, :rb_exhaust:: [Predict 2], then draw 1. Gain 1 XP.  (To Predict 2, look at the top two cards of your Main Deck. Recycle any of them and put the rest back in any order.)"
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 4,
+      "quantity": 3,
+      "originalName": "Lunar Boon",
+      "sourceCardId": "UNL-125",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69c8378e2c3db56eb7d760cf",
+          "name": "Lunar Boon",
+          "type": "Spell",
+          "set": "Unleashed",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Discard 1, then draw 2."
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 5,
+      "quantity": 3,
+      "originalName": "Elder Dragon",
+      "sourceCardId": "UNL-118",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bff35658d0fbca04e93720",
+          "name": "Elder Dragon",
+          "type": "Unit",
+          "set": "Unleashed",
+          "rulesText": "Any amount of your damage is enough to kill enemy units.When you play me, choose up to one enemy unit at each location. Deal 1 to them."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Damage / destroy"
+    },
+    {
+      "sourceLine": 6,
+      "quantity": 1,
+      "originalName": "Disposal Order",
+      "sourceCardId": "UNL-103",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69c43cd3c2f7428c5d24b4f7",
+          "name": "Disposal Order",
+          "type": "Spell",
+          "set": "Unleashed",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Choose one —Choose up to 3 cards from opponents' trashes. Their owners recycle them.Draw 1."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 7,
+      "quantity": 1,
+      "originalName": "Forgotten Monument",
+      "sourceCardId": "SFD-209",
+      "sourceSetCode": "SFD",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be7d308c64675ca8934",
+          "name": "Forgotten Monument",
+          "type": "Battlefield",
+          "set": "Spiritforged",
+          "rulesText": "Players can't score here until their third turn."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 8,
+      "quantity": 2,
+      "originalName": "Last Rites",
+      "sourceCardId": "SFD-150",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bded308c64675ca887e",
+          "name": "Last Rites",
+          "type": "Gear",
+          "set": "Spiritforged",
+          "rulesText": "[Equip] — :rb_rune_chaos:, Recycle 2 cards from your trash (Pay the cost: Attach this to a unit you control.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 9,
+      "quantity": 1,
+      "originalName": "Sivir - Mercenary",
+      "sourceCardId": "SFD-143",
+      "sourceSetCode": "SFD",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be3d308c64675ca88de",
+          "name": "Sivir - Mercenary",
+          "type": "Champion",
+          "set": "Spiritforged",
+          "rulesText": "[Accelerate] (You may pay :rb_energy_1::rb_rune_chaos: as an additional cost to have me enter ready.)If you've spent at least :rb_rune_rainbow::rb_rune_rainbow: this turn, I have +2 :rb_might: and [Ganking]. (I can move from battlefield to battlefield.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 10,
+      "quantity": 1,
+      "originalName": "Sigil of the Storm",
+      "sourceCardId": "OGN-287",
+      "sourceSetCode": "OGN",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd6d308c64675ca87ec",
+          "name": "Sigil of the Storm",
+          "type": "Battlefield",
+          "set": "Origins",
+          "rulesText": "When you conquer here, you must recycle one of your runes. (This doesn’t choose anything.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 11,
+      "quantity": 1,
+      "originalName": "Aspirant's Climb",
+      "sourceCardId": "OGN-276",
+      "sourceSetCode": "OGN",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd5d308c64675ca87e1",
+          "name": "Aspirant's Climb",
+          "type": "Battlefield",
+          "set": "Origins",
+          "rulesText": "Increase the points needed to win the game by 1."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 12,
+      "quantity": 6,
+      "originalName": "Body Rune",
+      "sourceCardId": "OGN-126",
+      "sourceSetCode": "OGN",
+      "section": "Rune Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bcdd308c64675ca8740",
+          "name": "Body Rune",
+          "type": "Rune",
+          "set": "Origins",
+          "rulesText": null
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "bucket": "Rune/payment"
+    },
+    {
+      "sourceLine": 13,
+      "quantity": 3,
+      "originalName": "Treasure Trove",
+      "sourceCardId": "OGN-186",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd1d308c64675ca8782",
+          "name": "Treasure Trove",
+          "type": "Gear",
+          "set": "Origins",
+          "rulesText": "When this leaves the board, draw 1 and channel 1 rune exhausted.:rb_rune_chaos:, :rb_exhaust:: Kill this."
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 14,
+      "quantity": 3,
+      "originalName": "Stacked Deck",
+      "sourceCardId": "OGN-183",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd0d308c64675ca877f",
+          "name": "Stacked Deck",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Action] (Play on your turn or in showdowns.)Look at the top 3 cards of your Main Deck. Put 1 into your hand and recycle the rest."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: opens the narrow alpha chain, then resolves into a private top-3 choice; official ordering and broader timing remain incomplete.",
+        "blocked": false
+      },
+      "bucket": "Draw / reveal / deck selection"
+    },
+    {
+      "sourceLine": 15,
+      "quantity": 2,
+      "originalName": "Pack of Wonders",
+      "sourceCardId": "OGN-181",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd0d308c64675ca877d",
+          "name": "Pack of Wonders",
+          "type": "Gear",
+          "set": "Origins",
+          "rulesText": ":rb_exhaust:: Return another friendly gear, unit, or facedown card to its owner's hand."
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 16,
+      "quantity": 3,
+      "originalName": "Gust",
+      "sourceCardId": "OGN-169",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd0d308c64675ca8771",
+          "name": "Gust",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Return a unit at a battlefield with 3 :rb_might: or less to its owner's hand."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists through Stacked Deck for returning a battlefield Unit/Champion with 3 Might or less, but full official any-time Reaction timing remains incomplete.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 17,
+      "quantity": 6,
+      "originalName": "Chaos Rune",
+      "sourceCardId": "OGN-166",
+      "sourceSetCode": "OGN",
+      "section": "Rune Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd0d308c64675ca876d",
+          "name": "Chaos Rune",
+          "type": "Rune",
+          "set": "Origins",
+          "rulesText": null
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "bucket": "Rune/payment"
+    },
+    {
+      "sourceLine": 18,
+      "quantity": 3,
+      "originalName": "Dazzling Aurora",
+      "sourceCardId": "OGN-160",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bcfd308c64675ca8765",
+          "name": "Dazzling Aurora",
+          "type": "Gear",
+          "set": "Origins",
+          "rulesText": "At the end of your turn, reveal cards from the top of your Main Deck until you reveal a unit and banish it. Play it, ignoring its cost, and recycle the rest."
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 19,
+      "quantity": 3,
+      "originalName": "Sabotage",
+      "sourceCardId": "OGN-156",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bcfd308c64675ca8760",
+          "name": "Sabotage",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "Choose an opponent. They reveal their hand. Choose a non-unit card from it, and recycle that card."
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Draw / reveal / deck selection"
+    },
+    {
+      "sourceLine": 20,
+      "quantity": 3,
+      "originalName": "Catalyst of Aeons",
+      "sourceCardId": "OGN-138",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bced308c64675ca874d",
+          "name": "Catalyst of Aeons",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "Channel 2 runes exhausted. If you couldn't channel 2 runes this way, draw 1."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Draw / reveal / deck selection"
+    },
+    {
+      "sourceLine": 21,
+      "quantity": 3,
+      "originalName": "Mobilize",
+      "sourceCardId": "OGN-134",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bced308c64675ca8749",
+          "name": "Mobilize",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "Channel 1 rune exhausted. If you can't, draw 1."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Draw / reveal / deck selection"
+    },
+    {
+      "sourceLine": 22,
+      "quantity": 3,
+      "originalName": "Flurry of Blades",
+      "sourceCardId": "OGN-133",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bced308c64675ca8748",
+          "name": "Flurry of Blades",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Deal 1 to all units at battlefields."
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Reaction / chain / counter"
+    }
+  ],
+  "malformedLines": [],
+  "validation": {
+    "totalCards": 56,
+    "legendCount": 1,
+    "championCandidateCount": 1,
+    "inferredMainDeckCount": 39,
+    "runeCount": 12,
+    "battlefieldCount": 3,
+    "validConstructedShape": true,
+    "issues": []
+  },
+  "supportSummary": {
+    "uniqueCards": 22,
+    "counts": {
+      "SUPPORTED": 2,
+      "PARTIAL": 13,
+      "UNSUPPORTED": 7,
+      "BANNED": 0,
+      "NOT_AUDITED": 0
+    },
+    "canUseInEnforced": false,
+    "unresolvedCards": [],
+    "topBlockers": [
+      {
+        "cardName": "Scryer's Bloom",
+        "sourceCardId": "UNL-136",
+        "status": "UNSUPPORTED",
+        "bucket": "Equipment lifecycle/effect",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Lunar Boon",
+        "sourceCardId": "UNL-125",
+        "status": "UNSUPPORTED",
+        "bucket": "Reaction / chain / counter",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Treasure Trove",
+        "sourceCardId": "OGN-186",
+        "status": "UNSUPPORTED",
+        "bucket": "Equipment lifecycle/effect",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Pack of Wonders",
+        "sourceCardId": "OGN-181",
+        "status": "UNSUPPORTED",
+        "bucket": "Equipment lifecycle/effect",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Dazzling Aurora",
+        "sourceCardId": "OGN-160",
+        "status": "UNSUPPORTED",
+        "bucket": "Equipment lifecycle/effect",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      }
+    ]
+  },
+  "archetype": "Sivir, Battle Mistress",
+  "key": "sivir",
+  "eventResult": "sivir 2nd at sydney regional qualifier",
+  "priority": "Additional guide-sourced archetype",
+  "rawSourceFile": "decks/meta/raw/sivir_2nd_at_sydney_regional_qualifier.txt",
+  "normalizedFile": "decks/meta/normalized/sivir_2nd_at_sydney_regional_qualifier.json"
+}

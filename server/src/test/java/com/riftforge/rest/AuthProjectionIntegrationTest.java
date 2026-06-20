@@ -42,7 +42,11 @@ class AuthProjectionIntegrationTest {
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     LiveGameState view = stateBody(response);
-    assertThat(view.getLegalActions()).containsExactlyInAnyOrder(LegalAction.KEEP_HAND, LegalAction.MULLIGAN);
+    assertThat(view.getLegalActions()).containsExactly(LegalAction.SELECT_BATTLEFIELD);
+    assertThat(view.getPlayers().stream().filter(player -> "host".equals(player.getUserId())).findFirst().orElseThrow().getBattlefieldChoices())
+        .containsExactly("battlefield-0", "battlefield-1", "battlefield-2");
+    assertThat(view.getPlayers().stream().filter(player -> "guest".equals(player.getUserId())).findFirst().orElseThrow().getBattlefieldChoices())
+        .isEmpty();
     assertThat(handCardIds(view, "host"))
         .hasSize(4)
         .doesNotContain(GameStateProjectionService.HIDDEN_CARD_ID);

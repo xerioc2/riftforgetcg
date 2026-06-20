@@ -32,6 +32,14 @@ class ShowdownParticipantRulesTest {
   }
 
   @Test
+  void opponentAtDifferentBattlefieldLocationIsNotParticipant() {
+    LiveGameState state = showdownState("bf-1", atLocation(card("defender", "p2", ZoneName.BATTLEFIELD), "bf-2"));
+
+    assertThat(rules.isShowdownParticipant(state, "p2")).isFalse();
+    assertThat(rules.isShowdownDefender(state, "p2")).isFalse();
+  }
+
+  @Test
   void nonParticipantIsNotIncluded() {
     LiveGameState state = showdownState(card("hand-card", "p2", ZoneName.HAND));
 
@@ -51,9 +59,25 @@ class ShowdownParticipantRulesTest {
   }
 
   private LiveGameState showdownState(CardInstance... cards) {
+    return showdownState(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID, cards);
+  }
+
+  private LiveGameState showdownState(String locationId, CardInstance... cards) {
     LiveGameState state = new LiveGameState();
     state.setCards(new ArrayList<>(List.of(cards)));
-    state.setActiveShowdown(new LiveGameState.ShowdownState("p1", List.of("attacker"), Map.of()));
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        "p1",
+        List.of("attacker"),
+        Map.of(),
+        com.riftforge.model.ShowdownStep.ACTION_WINDOW,
+        List.of(),
+        "p1",
+        0,
+        false,
+        null,
+        List.of(),
+        List.of(),
+        locationId));
     return state;
   }
 
@@ -63,6 +87,11 @@ class ShowdownParticipantRulesTest {
     card.setCardId(id);
     card.setOwnerId(ownerId);
     card.setZone(zone);
+    return card;
+  }
+
+  private CardInstance atLocation(CardInstance card, String locationId) {
+    card.setBattlefieldLocationId(locationId);
     return card;
   }
 }

@@ -70,13 +70,19 @@ export type DeckValidation = {
 export type RoomStatus = 'waiting' | 'playing' | 'finished';
 export type GameMode = 'ENFORCED' | 'SANDBOX';
 export type LegalAction =
+  | 'SELECT_BATTLEFIELD'
   | 'KEEP_HAND'
   | 'MULLIGAN'
   | 'PASS_PHASE'
   | 'END_TURN'
   | 'PLAY_CARD'
   | 'MOVE_TO_BATTLEFIELD'
+  | 'MOVE_TO_BASE'
   | 'REPOSITION_CARD'
+  | 'PASS_CHAIN_FOCUS'
+  | 'RESOLVE_CHAIN_TOP'
+  | 'PASS_SHOWDOWN_FOCUS'
+  | 'ASSIGN_COMBAT_DAMAGE'
   | 'RESOLVE_SHOWDOWN'
   | 'TAP_RUNE'
   | 'DISCARD_RUNE'
@@ -85,6 +91,7 @@ export type LegalAction =
   | 'RESOLVE_CHOICE'
   | 'HIDE_CARD'
   | 'EQUIP_GEAR'
+  | 'ACTIVATE_ABILITY'
   | 'SANDBOX_DEAL_CARD'
   | 'SANDBOX_ADJUST_SCORE'
   | 'SANDBOX_TAP_CARD'
@@ -139,9 +146,16 @@ export type CardInstance = {
   tapped: boolean;
   faceDown: boolean;
   zIndex: number;
+  battlefieldLocationId?: string | null;
   currentHealth?: number;
   mightBonus?: number;
   temporaryPowerModifier?: number;
+  printedMight?: number | null;
+  printedHealth?: number | null;
+  effectiveMight?: number | null;
+  effectiveMaxHealth?: number | null;
+  markedDamage?: number | null;
+  statModifierLabels?: string[];
   attachedToInstanceId?: string | null;
   hasSummoningSickness?: boolean;
 };
@@ -153,6 +167,8 @@ export type PlayerGameState = {
   availableEnergy?: number;
   runePoolRemaining?: number;
   deckCount?: number;
+  battlefieldChoices?: string[];
+  selectedBattlefieldId?: string | null;
 };
 
 export type MatchRecord = {
@@ -182,6 +198,8 @@ export type LiveGameState = {
   currentPhase?: string;
   gameMode?: GameMode;
   activeShowdown?: ShowdownState | null;
+  combatAssignmentState?: CombatAssignmentState | null;
+  chainState?: ChainState | null;
   activePlayerId?: string;
   firstPlayerId?: string;
   turnNumber?: number;
@@ -240,9 +258,85 @@ export type PendingChoice = {
 
 export type ShowdownState = {
   attackingPlayerId: string;
+  locationId?: string;
   attackerInstanceIds: string[];
   gankingBonuses?: Record<string, number>;
   step?: 'STAGED' | 'ACTION_WINDOW' | 'ASSIGN_DAMAGE' | 'RESOLVE_DAMAGE' | 'CLEANUP' | 'COMPLETE';
+  relevantPlayerIds?: string[];
+  focusedPlayerId?: string;
+  consecutivePasses?: number;
+  readyToResolve?: boolean;
+  assigningPlayerId?: string | null;
+  attackerAssignments?: CombatDamageAssignment[];
+  defenderAssignments?: CombatDamageAssignment[];
+};
+
+export type ChainItem = {
+  itemId: string;
+  controllerPlayerId: string;
+  sourceCardInstanceId?: string;
+  sourceCardId?: string;
+  sourceCardName?: string;
+  effectKey?: string;
+  targetInstanceIds?: string[];
+  chainTargets?: ChainTarget[];
+  order?: number;
+  publicDescription?: string;
+  visibility?: 'PUBLIC' | 'CONTROLLER_ONLY' | string;
+  status?: 'PENDING' | 'RESOLVED' | 'COUNTERED' | 'FIZZLED' | string;
+  counterable?: boolean;
+  targetableOnChain?: boolean;
+  chainItemType?: 'SPELL' | 'ABILITY' | 'TEST' | 'MASKED' | string;
+  sourceZoneBeforeChain?: ZoneName | null;
+};
+
+export type ChainTarget = {
+  role?: string;
+  targetInstanceId?: string | null;
+  targetChainItemId?: string | null;
+  targetControllerPlayerId?: string | null;
+  targetKind?: 'UNIT' | 'CHAMPION_UNIT' | 'GEAR' | 'CHAIN_ITEM' | 'MASKED' | 'UNKNOWN' | string;
+  targetZone?: ZoneName | null;
+  publicLabel?: string;
+  publicSafe?: boolean;
+};
+
+export type ChainState = {
+  chainId: string;
+  chainItems: ChainItem[];
+  relevantPlayerIds: string[];
+  focusedPlayerId?: string;
+  consecutivePasses?: number;
+  readyToResolveTop?: boolean;
+  sourceContext?: string;
+};
+
+export type CombatDamageAssignment = {
+  sourceInstanceId?: string | null;
+  targetInstanceId: string;
+  amount: number;
+};
+
+export type CombatDamageSourceOption = {
+  sourceInstanceId: string;
+  availableDamage: number;
+  validTargetInstanceIds: string[];
+};
+
+export type CombatAssignmentState = {
+  locationId: string;
+  assigningPlayerId: string;
+  step: string;
+  damagePool: number;
+  validSources: CombatDamageSourceOption[];
+  validTargets?: Array<{
+    targetInstanceId: string;
+    lethalDamage: number;
+    tank: boolean;
+  }>;
+  validTargetInstanceIds: string[];
+  suggestedAssignments: CombatDamageAssignment[];
+  canAutoAssign: boolean;
 };
 
 export type RevealedHandSnapshot = {

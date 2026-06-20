@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
+import { cardDisplayStats } from '../lib/cardDisplayStats';
 import { keywordDescription } from '../lib/cardKeywords';
 import { cardSupportStatus } from '../lib/deckSupport';
+import { equipCostForCard, equipCostLabel, isEquipRulesText } from '../lib/equipment';
 import type { CardInstance, RiftCard } from '../types';
 
 const supportBadgeClass: Record<string, string> = {
@@ -11,7 +13,19 @@ const supportBadgeClass: Record<string, string> = {
   NOT_AUDITED: 'border-slate-500 text-slate-400',
 };
 
-export function CardInspectModal({ card, cardDef, onClose }: { card: CardInstance; cardDef: RiftCard | undefined; onClose: () => void }) {
+export function CardInspectModal({
+  card,
+  cardDef,
+  allInstances,
+  cardsById,
+  onClose,
+}: {
+  card: CardInstance;
+  cardDef: RiftCard | undefined;
+  allInstances?: CardInstance[];
+  cardsById?: Map<string, RiftCard>;
+  onClose: () => void;
+}) {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
@@ -20,10 +34,9 @@ export function CardInspectModal({ card, cardDef, onClose }: { card: CardInstanc
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [onClose]);
 
-  const mightBonus = card.mightBonus ?? 0;
-  const baseMight = cardDef?.power ?? 0;
-  const maxHealth = cardDef?.health ?? 0;
+  const stats = cardDisplayStats(cardDef, card, { allInstances, cardsById });
   const support = cardSupportStatus(cardDef);
+  const equipCost = isEquipRulesText(cardDef) ? equipCostForCard(cardDef) : null;
 
   return (
     <div className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-black/70 p-4" onMouseDown={onClose}>
@@ -42,10 +55,19 @@ export function CardInspectModal({ card, cardDef, onClose }: { card: CardInstanc
           </div>
           {cardDef?.cost != null ? <span className="badge text-forge">Cost {cardDef.cost}</span> : null}
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-2 border-y border-line py-3 text-sm font-semibold text-slate-200">
-          <span>Might {baseMight + mightBonus}{mightBonus > 0 ? ` (+${mightBonus})` : ''}</span>
-          <span>Guard {card.currentHealth ?? maxHealth}/{maxHealth}</span>
-        </div>
+        {stats.hasCombatStats ? (
+          <div className="mt-4 grid grid-cols-2 gap-2 border-y border-line py-3 text-sm font-semibold text-slate-200">
+            <span className={stats.mightModified ? 'text-forge' : undefined}>{stats.mightLabel}</span>
+            <span>{stats.healthLabel}</span>
+            {stats.damageLabel ? <span className="col-span-2 text-ember">{stats.damageLabel}</span> : null}
+            {stats.equipmentModifierLabels.length ? <span className="col-span-2 text-forge">{stats.equipmentModifierLabels.join('; ')}</span> : null}
+          </div>
+        ) : null}
+        {equipCost ? (
+          <div className="mt-4 border border-forge/35 bg-[#130f06] px-3 py-2 text-sm font-semibold text-forge">
+            Equip cost: {equipCostLabel(equipCost)}
+          </div>
+        ) : null}
         <div className="mt-4">
           <h3 className="text-xs font-semibold uppercase text-slate-500">Rules</h3>
           <p className={`mt-2 whitespace-pre-wrap text-sm leading-5 ${cardDef?.rulesText ? 'text-slate-200' : 'text-slate-500'}`}>{cardDef?.rulesText || 'No effect text.'}</p>

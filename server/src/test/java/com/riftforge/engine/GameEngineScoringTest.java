@@ -13,8 +13,10 @@ import com.riftforge.model.LiveGameState;
 import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
 import com.riftforge.model.ZoneName;
+import com.riftforge.model.move.AssignCombatDamageMove;
 import com.riftforge.model.move.MoveToBattlefieldMove;
 import com.riftforge.model.move.PassPhaseMove;
+import com.riftforge.model.move.PassShowdownFocusMove;
 import com.riftforge.model.move.ResolveShowdownMove;
 import com.riftforge.service.CardDataService;
 import java.util.ArrayList;
@@ -57,26 +59,26 @@ class GameEngineScoringTest {
   void holdCanScoreWinningPointAtBeginning() {
     LiveGameState state = state(Phase.BEGINNING);
     player(state, "p1").setScore(7);
-    state.getBattlefieldController().put("BATTLEFIELD", "p1");
+    state.getBattlefieldController().put(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID, "p1");
 
     engine.applyMove(state, new PassPhaseMove("p1"));
 
     assertThat(player(state, "p1").getScore()).isEqualTo(8);
     assertThat(state.getWinnerId()).isEqualTo("p1");
-    assertThat(state.getScoredBattlefieldsThisTurn()).containsExactly("BATTLEFIELD");
+    assertThat(state.getScoredBattlefieldsThisTurn()).containsExactly(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID);
   }
 
   @Test
   void holdScoresEachControlledBattlefieldOnce() {
     LiveGameState state = state(Phase.BEGINNING);
     state.setBattlefieldController(new HashMap<>());
-    state.getBattlefieldController().put("BATTLEFIELD", "p1");
-    state.getBattlefieldController().put("SECOND_BATTLEFIELD", "p1");
+    state.getBattlefieldController().put(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID, "p1");
+    state.getBattlefieldController().put("bf-1", "p1");
 
     engine.applyMove(state, new PassPhaseMove("p1"));
 
     assertThat(player(state, "p1").getScore()).isEqualTo(2);
-    assertThat(state.getScoredBattlefieldsThisTurn()).containsExactlyInAnyOrder("BATTLEFIELD", "SECOND_BATTLEFIELD");
+    assertThat(state.getScoredBattlefieldsThisTurn()).containsExactlyInAnyOrder(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID, "bf-1");
   }
 
   @Test
@@ -84,14 +86,15 @@ class GameEngineScoringTest {
     LiveGameState state = state(Phase.MAIN, card("attacker", "p1", ZoneName.BASE), card("defender", "p2", ZoneName.BATTLEFIELD));
     player(state, "p1").setScore(7);
     player(state, "p1").getDeckPool().add("draw-card");
-    state.getBattlefieldController().put("BATTLEFIELD", "p2");
-    state.getBattlefieldController().put("SECOND_BATTLEFIELD", "p1");
+    state.getBattlefieldController().put(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID, "p2");
+    state.getBattlefieldController().put("bf-1", "p1");
     stubUnit("attacker", 3);
     stubUnit("defender", 1);
     stubUnit("draw-card", 1);
 
     engine.applyMove(state, new MoveToBattlefieldMove("p1", "attacker"));
-    engine.applyMove(state, new ResolveShowdownMove("p1"));
+    passShowdownFocusCycle(state);
+    resolveShowdownWithAssignments(state, "attacker", "defender", 3, 1);
 
     assertThat(player(state, "p1").getScore()).isEqualTo(7);
     assertThat(state.getWinnerId()).isNull();
@@ -100,19 +103,20 @@ class GameEngineScoringTest {
           assertThat(card.getCardId()).isEqualTo("draw-card");
           assertThat(card.getZone()).isEqualTo(ZoneName.HAND);
         });
-    assertThat(state.getBattlefieldController()).containsEntry("BATTLEFIELD", "p1");
+    assertThat(state.getBattlefieldController()).containsEntry(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID, "p1");
   }
 
   @Test
   void conquerCanScoreWinningPointWhenAllBattlefieldsScored() {
     LiveGameState state = state(Phase.MAIN, card("attacker", "p1", ZoneName.BASE), card("defender", "p2", ZoneName.BATTLEFIELD));
     player(state, "p1").setScore(7);
-    state.getBattlefieldController().put("BATTLEFIELD", "p2");
+    state.getBattlefieldController().put(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID, "p2");
     stubUnit("attacker", 3);
     stubUnit("defender", 1);
 
     engine.applyMove(state, new MoveToBattlefieldMove("p1", "attacker"));
-    engine.applyMove(state, new ResolveShowdownMove("p1"));
+    passShowdownFocusCycle(state);
+    resolveShowdownWithAssignments(state, "attacker", "defender", 3, 1);
 
     assertThat(player(state, "p1").getScore()).isEqualTo(8);
     assertThat(state.getWinnerId()).isEqualTo("p1");
@@ -136,6 +140,21 @@ class GameEngineScoringTest {
 
   private PlayerState player(LiveGameState state, String playerId) {
     return state.getPlayers().stream().filter(player -> playerId.equals(player.getUserId())).findFirst().orElseThrow();
+  }
+
+  private void passShowdownFocusCycle(LiveGameState state) {
+    engine.applyMove(state, new PassShowdownFocusMove("p1"));
+    engine.applyMove(state, new PassShowdownFocusMove("p2"));
+  }
+
+  private void resolveShowdownWithAssignments(LiveGameState state, String attackerId, String defenderId, int attackerDamage, int defenderDamage) {
+    engine.applyMove(state, new ResolveShowdownMove("p1"));
+    engine.applyMove(state, assign("p1", attackerId, defenderId, attackerDamage));
+    engine.applyMove(state, assign("p2", defenderId, attackerId, defenderDamage));
+  }
+
+  private AssignCombatDamageMove assign(String playerId, String sourceId, String targetId, int amount) {
+    return new AssignCombatDamageMove(playerId, List.of(new LiveGameState.CombatDamageAssignment(sourceId, targetId, amount)));
   }
 
   private CardInstance card(String id, String ownerId, ZoneName zone) {

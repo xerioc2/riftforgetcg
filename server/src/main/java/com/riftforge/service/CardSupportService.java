@@ -23,19 +23,32 @@ public class CardSupportService {
       "LAURENT DUELIST",
       "NOXIAN DRUMMER",
       "LOYAL PORO",
+      "LONELY PORO",
       "VANGUARD CAPTAIN",
-      "STELLACORN HERDER");
+      "STELLACORN HERDER",
+      "DISARMING RAKE");
 
   private static final Map<String, String> PARTIAL_REASONS = Map.ofEntries(
-      Map.entry("IRELIA - FERVENT", "Partial: Deflect targeting tax is heuristic, and the choose/ready +1 Might trigger is not implemented yet."),
-      Map.entry("DISCIPLINE", "Partial: draw 1 and selected +2 Might are helper-backed, but Reaction timing is missing."),
+      Map.entry("IRELIA - BLADE DANCER", "Partial: the Legend-zone activated ready ability is implemented for Main Phase alpha play: exhaust Irelia, pay one rainbow/premium rune, and ready an exhausted friendly public Unit/Champion in Base or at a battlefield. The conquer trigger that may pay 1 energy to ready Irelia remains deferred."),
+      Map.entry("IRELIA - FERVENT", "Partial: the supported explicit-ready trigger gives Irelia +1 Might this turn when her controller readies her through a registered effect. Deflect targeting tax remains heuristic, choose-trigger coverage is incomplete, and automatic ready-step trigger timing remains deferred."),
+      Map.entry("DISCIPLINE", "Partial: alpha chain-window Reaction support exists for giving a public battlefield Unit/Champion +2 Might this turn and drawing 1. Full official any-time Reaction timing remains incomplete."),
       Map.entry("TIDETURNER", "Partial: Hidden foundation exists, but later hidden play timing and the on-play location swap are not implemented yet."),
-      Map.entry("GUARDIAN ANGEL", "Partial: alpha Equip lifecycle is implemented and tested, but exact Calm power payment and official Equip timing remain incomplete."),
-      Map.entry("BOOTS OF SWIFTNESS", "Partial: alpha Equip lifecycle is implemented and tested, but exact Chaos power payment and official Equip timing remain incomplete."),
+      Map.entry("GUARDIAN ANGEL", "Partial: alpha Equip lifecycle and printed Calm equip payment are implemented and tested. Full official Equip timing and replacement/reattachment edge cases remain deferred."),
+      Map.entry("BOOTS OF SWIFTNESS", "Partial: alpha Equip lifecycle and printed Chaos equip payment are implemented and tested. Full official Equip timing and replacement/reattachment edge cases remain deferred."),
       Map.entry("ABANDONED HALL", "Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely."),
       Map.entry("ADAPTATRON", "Partial: conquer trigger, optional gear kill, and official Buff state are not implemented yet."),
-      Map.entry("EN GARDE", "Partial: selected friendly +Might is helper-backed, but Reaction timing remains incomplete."),
-      Map.entry("GUST", "Partial: selected return-to-hand is helper-backed, but Reaction timing and the 3-or-less-Might target filter remain incomplete."));
+      Map.entry("SCUTTLE CRAB", "Partial: on-play draw and 1v1 private hand reveal Deathknell are implemented, but XP and facedown-card viewing are deferred."),
+      Map.entry("DEFY", "Partial: Defy can counter supported public pending spell chain items that cost no more than 4 energy and no more than 1 premium rune during the current alpha chain window. Full official Reaction timing, broad spell/ability targets, and countering counters remain deferred."),
+      Map.entry("NOT SO FAST", "Partial: Not So Fast can counter a supported public pending enemy spell chain item only when that item chooses your friendly Unit/Champion Unit or Gear. Ability-chain targets, broad official Reaction timing, and countering counters remain deferred."),
+      Map.entry("ABANDON", "Partial: Abandon can counter a supported public pending spell chain item in the current alpha chain window, return that spell card to hand, then create a private Predict choice. Repeat, broad official Reaction timing, hidden/private chain targets, and ability targets remain deferred."),
+      Map.entry("EN GARDE", "Partial: alpha chain-window Reaction support exists for giving a friendly battlefield Unit/Champion +1 Might, or +2 if it is your only unit there. Full official any-time Reaction timing remains incomplete."),
+      Map.entry("DEFIANT DANCE", "Partial: alpha chain-window Reaction support exists for giving one public battlefield Unit/Champion +2 Might and another public battlefield Unit/Champion -2 Might this turn. Full official any-time Reaction timing remains incomplete."),
+      Map.entry("FLASH", "Partial: alpha chain-window Reaction support exists for moving up to two friendly battlefield Unit/Champion cards to Base. Full official any-time Reaction timing remains incomplete."),
+      Map.entry("CHARM", "Partial: alpha support moves one enemy public battlefield Unit/Champion to Base. Broader official movement choices, control/location edge cases, and non-battlefield destinations remain deferred."),
+      Map.entry("THE SYREN", "Partial: The Syren can be played to Base and activated during your Main Phase by paying 1 energy and exhausting it to move a friendly public battlefield Unit/Champion to Base. Broader activated ability timing and ability-chain support remain deferred."),
+      Map.entry("ZHONYA'S HOURGLASS", "Partial: Zhonya's Hourglass can be played to Base and armed during your Main Phase to protect a friendly public Unit/Champion from the next supported death, destroying Zhonya instead, then healing, exhausting, and recalling that unit. Hidden Reaction-for-0 timing, competing replacement choices, and broad replacement timing remain deferred."),
+      Map.entry("GUST", "Partial: alpha chain-window Reaction support exists through Stacked Deck for returning a battlefield Unit/Champion with 3 Might or less, but full official any-time Reaction timing remains incomplete."),
+      Map.entry("STACKED DECK", "Partial: opens the narrow alpha chain, then resolves into a private top-3 choice; official ordering and broader timing remain incomplete."));
 
   private final CardDataService cardDataService;
 

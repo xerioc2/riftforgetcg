@@ -2,6 +2,7 @@ package com.riftforge.engine;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -13,9 +14,11 @@ import com.riftforge.model.PendingChoice;
 import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
 import com.riftforge.model.ZoneName;
+import com.riftforge.model.move.PassChainFocusMove;
 import com.riftforge.model.move.PlayCardMove;
 import com.riftforge.model.move.PassPhaseMove;
 import com.riftforge.model.move.ResolveChoiceMove;
+import com.riftforge.model.move.ResolveChainTopMove;
 import com.riftforge.service.CardDataService;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,6 +51,15 @@ class PendingChoiceTest {
     when(cardDataService.getCard("source")).thenReturn(card("source", "Test Source"));
     when(cardDataService.getCard("stacked-deck")).thenReturn(card("stacked-deck", "Stacked Deck",
         "Look at the top 3 cards of your Main Deck. Put 1 of them into your hand and recycle the rest."));
+    when(cardDataService.isStackedDeckEffect(any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      String text = def == null || def.rulesText() == null ? "" : def.rulesText().toLowerCase();
+      return def != null && "Stacked Deck".equalsIgnoreCase(def.name())
+          && text.contains("look at the top 3")
+          && text.contains("put 1")
+          && text.contains("hand")
+          && text.contains("recycle");
+    });
     when(cardDataService.getCard("top-a")).thenReturn(card("top-a", "Top A"));
     when(cardDataService.getCard("top-b")).thenReturn(card("top-b", "Top B"));
     when(cardDataService.getCard("top-c")).thenReturn(card("top-c", "Top C"));
@@ -145,9 +157,32 @@ class PendingChoiceTest {
   }
 
   @Test
+  void genericOptionalPaymentDeclineClearsWithoutApplyingEffect() {
+    LiveGameState state = state();
+    player(state, "p1").setAvailableEnergy(2);
+    player(state, "p1").setDeckPool(new ArrayList<>(List.of("drawn-card")));
+    state.setPendingChoice(PendingChoice.optionalPayment(
+        "choice-1",
+        "p1",
+        "source",
+        "Pay 2 to draw one?",
+        2,
+        PendingChoice.EFFECT_DRAW_1));
+
+    engine.applyMove(state, new ResolveChoiceMove("p1", "choice-1", PendingChoice.OPTION_DECLINE));
+
+    assertThat(state.getPendingChoice()).isNull();
+    assertThat(player(state, "p1").getAvailableEnergy()).isEqualTo(2);
+    assertThat(player(state, "p1").getDeckPool()).containsExactly("drawn-card");
+    assertThat(state.getCards()).isEmpty();
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Alice declined Test Source."));
+  }
+
+  @Test
   void genericOptionalPaymentValidatesConfiguredEnergyAtResolution() {
     LiveGameState state = state();
     player(state, "p1").setAvailableEnergy(1);
+    player(state, "p1").setDeckPool(new ArrayList<>(List.of("drawn-card")));
     state.setPendingChoice(PendingChoice.optionalPayment(
         "choice-1",
         "p1",
@@ -159,6 +194,10 @@ class PendingChoiceTest {
     assertThatThrownBy(() -> engine.applyMove(state, new ResolveChoiceMove("p1", "choice-1", PendingChoice.OPTION_PAY_1)))
         .isInstanceOf(IllegalMoveException.class)
         .hasMessage("Insufficient energy for that choice.");
+    assertThat(state.getPendingChoice()).isNotNull();
+    assertThat(player(state, "p1").getAvailableEnergy()).isEqualTo(1);
+    assertThat(player(state, "p1").getDeckPool()).containsExactly("drawn-card");
+    assertThat(state.getCards()).isEmpty();
   }
 
   @Test
@@ -179,6 +218,17 @@ class PendingChoiceTest {
     assertThatThrownBy(() -> engine.applyMove(state, new ResolveChoiceMove("p2", "choice-1", PendingChoice.OPTION_YES)))
         .isInstanceOf(IllegalMoveException.class)
         .hasMessage("That choice belongs to another player.");
+  }
+
+  @Test
+  void spectatorCannotResolvePrivateChoice() {
+    LiveGameState state = state();
+    state.setPendingChoice(PendingChoice.yesNo("choice-1", "p1", "source", "Draw one?", PendingChoice.EFFECT_DRAW_1));
+
+    assertThatThrownBy(() -> engine.applyMove(state, new ResolveChoiceMove("spectator", "choice-1", PendingChoice.OPTION_YES)))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("That choice belongs to another player.");
+    assertThat(state.getPendingChoice()).isNotNull();
   }
 
   @Test
@@ -208,6 +258,12 @@ class PendingChoiceTest {
     player(state, "p1").setDeckPool(new ArrayList<>(List.of("top-a", "top-b", "top-c", "rest")));
 
     engine.applyMove(state, new PlayCardMove("p1", "stacked", ZoneName.BASE, 0, 0, null));
+    assertThat(state.getPendingChoice()).isNull();
+    assertThat(state.getChainState()).isNotNull();
+
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new ResolveChainTopMove("p1"));
 
     assertThat(state.getPendingChoice()).isNotNull();
     assertThat(state.getPendingChoice().getType()).isEqualTo(PendingChoice.TYPE_TOP_DECK_PICK_ONE);
@@ -257,6 +313,26 @@ class PendingChoiceTest {
     assertThatThrownBy(() -> engine.applyMove(state, new ResolveChoiceMove("p1", "choice-1", null, "card-9", PendingChoice.ACTION_HAND, List.of())))
         .isInstanceOf(IllegalMoveException.class)
         .hasMessage("Choose one of the revealed cards.");
+  }
+
+  @Test
+  void staleStackedDeckChoiceRestoresDeckOrderOnFailure() {
+    LiveGameState state = state();
+    player(state, "p1").setDeckPool(new ArrayList<>(List.of("top-a")));
+    state.setPendingChoice(PendingChoice.topDeckPickOne(
+        "choice-1",
+        "p1",
+        "stacked-deck",
+        "source-instance",
+        List.of(cardDataService.getCard("top-a"), cardDataService.getCard("top-b"))));
+
+    assertThatThrownBy(() -> engine.applyMove(state, new ResolveChoiceMove("p1", "choice-1", null, "card-1", PendingChoice.ACTION_HAND, List.of())))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Choose one of the revealed cards.");
+
+    assertThat(state.getPendingChoice()).isNotNull();
+    assertThat(player(state, "p1").getDeckPool()).containsExactly("top-a");
+    assertThat(state.getCards()).isEmpty();
   }
 
   @Test

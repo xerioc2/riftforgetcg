@@ -8,7 +8,7 @@ import static org.mockito.Mockito.verify;
 import com.riftforge.model.CardInstance;
 import com.riftforge.model.LiveGameState;
 import com.riftforge.model.ZoneName;
-import com.riftforge.model.move.MulliganMove;
+import com.riftforge.model.move.SelectBattlefieldMove;
 import com.riftforge.testsupport.GameStackFixture;
 import com.riftforge.websocket.GameMessage;
 import java.util.List;
@@ -32,7 +32,7 @@ class GameServicePrivacyBroadcastTest {
     authoritative.getCards().add(card("p2-hidden", "p2-private-hidden-card", "p2", ZoneName.HIDDEN));
     clearInvocations(fx.messaging);
 
-    fx.gameService.processMove(ROOM, new MulliganMove("p1", List.of()));
+    fx.gameService.processMove(ROOM, new SelectBattlefieldMove("p1", "battlefield-0"));
 
     ArgumentCaptor<GameMessage> captor = ArgumentCaptor.forClass(GameMessage.class);
     verify(fx.messaging).convertAndSend(eq("/topic/game/" + ROOM), captor.capture());

@@ -1,0 +1,747 @@
+{
+  "sourceFilename": "irelia_wins_s3_shanghai_city_challenge.txt",
+  "parsedAt": "2026-06-19",
+  "entries": [
+    {
+      "sourceLine": 1,
+      "quantity": 1,
+      "originalName": "Irelia - Blade Dancer",
+      "sourceCardId": "SFD-195",
+      "sourceSetCode": "SFD",
+      "section": "Legend",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bdad308c64675ca8839",
+          "name": "Irelia - Blade Dancer",
+          "type": "Legend",
+          "set": "Spiritforged",
+          "rulesText": "When you choose a friendly unit, you may exhaust me and pay :rb_rune_rainbow: to ready it.When you conquer, you may pay :rb_energy_1: to ready me."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: the Legend-zone activated ready ability is implemented for Main Phase alpha play: exhaust Irelia, pay one rainbow/premium rune, and ready an exhausted friendly public Unit/Champion in Base or at a battlefield. The conquer trigger that may pay 1 energy to ready Irelia remains deferred.",
+        "blocked": false
+      },
+      "bucket": "Legend text"
+    },
+    {
+      "sourceLine": 2,
+      "quantity": 1,
+      "originalName": "Not So Fast",
+      "sourceCardId": "SFD-045",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bdfd308c64675ca8892",
+          "name": "Not So Fast",
+          "type": "Spell",
+          "set": "Spiritforged",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Counter an enemy spell or ability that chooses a friendly unit or gear."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: Not So Fast can counter a supported public pending enemy spell chain item only when that item chooses your friendly Unit/Champion Unit or Gear. Ability-chain targets, broad official Reaction timing, and countering counters remain deferred.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 3,
+      "quantity": 1,
+      "originalName": "Abandoned Hall",
+      "sourceCardId": "UNL-205",
+      "sourceSetCode": "UNL",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69c4407e9288b1e85d94deb2",
+          "name": "Abandoned Hall",
+          "type": "Battlefield",
+          "set": "Unleashed",
+          "rulesText": "When a player plays a spell, they may give a unit they control here +1 :rb_might: this turn."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 4,
+      "quantity": 2,
+      "originalName": "Vex - Apathetic",
+      "sourceCardId": "UNL-150",
+      "sourceSetCode": "UNL",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69c5be6abf82ff7cb69f4299",
+          "name": "Vex - Apathetic",
+          "type": "Champion",
+          "set": "Unleashed",
+          "rulesText": "[Deflect] (Opponents must pay :rb_rune_rainbow: to choose me with a spell or ability.)When an opponent plays a unit while I'm at a battlefield, [Stun] it. They can't move it this turn. (It doesn't deal combat damage this turn.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 5,
+      "quantity": 3,
+      "originalName": "Scuttle Crab",
+      "sourceCardId": "UNL-053",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69c43cd2c2f7428c5d24b4e2",
+          "name": "Scuttle Crab",
+          "type": "Unit",
+          "set": "Unleashed",
+          "rulesText": "(Units with 0 :rb_might: can conquer and hold.)When you play me, draw 1.[Deathknell][&gt;] Choose an opponent. They reveal their hand. You can look at their facedown cards this turn. Gain 1 XP. (When I die, get the effects.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: on-play draw and 1v1 private hand reveal Deathknell are implemented, but XP and facedown-card viewing are deferred.",
+        "blocked": false
+      },
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "sourceLine": 6,
+      "quantity": 1,
+      "originalName": "Back Off",
+      "sourceCardId": "UNL-042",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bd162140ff39fe1396df89",
+          "name": "Back Off",
+          "type": "Spell",
+          "set": "Unleashed",
+          "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)[Action] (Play on your turn or in showdowns.)[Stun] a unit. (It doesn't deal combat damage this turn.)If you played this from your hand, draw 1."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "sourceLine": 7,
+      "quantity": 1,
+      "originalName": "Sunken Temple",
+      "sourceCardId": "SFD-218",
+      "sourceSetCode": "SFD",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be8d308c64675ca893a",
+          "name": "Sunken Temple",
+          "type": "Battlefield",
+          "set": "Spiritforged",
+          "rulesText": "When you conquer here with one or more [Mighty] units, you may pay :rb_energy_1: to draw 1. (A unit is Mighty while it has 5+ :rb_might:.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 8,
+      "quantity": 3,
+      "originalName": "Defiant Dance",
+      "sourceCardId": "SFD-196",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bdcd308c64675ca8854",
+          "name": "Defiant Dance",
+          "type": "Spell",
+          "set": "Spiritforged",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Give a unit +2 :rb_might: this turn and another unit -2 :rb_might: this turn."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists for giving one public battlefield Unit/Champion +2 Might and another public battlefield Unit/Champion -2 Might this turn. Full official any-time Reaction timing remains incomplete.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 9,
+      "quantity": 1,
+      "originalName": "Edge of Night",
+      "sourceCardId": "SFD-139",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be3d308c64675ca88dd",
+          "name": "Edge of Night",
+          "type": "Gear",
+          "set": "Spiritforged",
+          "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)When you play this from face down, attach it to a unit you control (here).[Equip] :rb_rune_chaos: (:rb_rune_chaos:: Attach this to a unit you control.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 10,
+      "quantity": 2,
+      "originalName": "Boots of Swiftness",
+      "sourceCardId": "SFD-133",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bded308c64675ca8879",
+          "name": "Boots of Swiftness",
+          "type": "Gear",
+          "set": "Spiritforged",
+          "rulesText": "[Equip] :rb_rune_chaos: (:rb_rune_chaos:: Attach this to a unit you control.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha Equip lifecycle and printed Chaos equip payment are implemented and tested. Full official Equip timing and replacement/reattachment edge cases remain deferred.",
+        "blocked": false
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 11,
+      "quantity": 1,
+      "originalName": "Irelia - Fervent",
+      "sourceCardId": "SFD-057",
+      "sourceSetCode": "SFD",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bdbd308c64675ca8843",
+          "name": "Irelia - Fervent",
+          "type": "Champion",
+          "set": "Spiritforged",
+          "rulesText": "[Deflect] (Opponents must pay :rb_rune_rainbow: to choose me with a spell or ability.)When you choose or ready me, give me +1 :rb_might: this turn."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: the supported explicit-ready trigger gives Irelia +1 Might this turn when her controller readies her through a registered effect. Deflect targeting tax remains heuristic, choose-trigger coverage is incomplete, and automatic ready-step trigger timing remains deferred.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 12,
+      "quantity": 2,
+      "originalName": "Guardian Angel",
+      "sourceCardId": "SFD-051",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bdad308c64675ca8833",
+          "name": "Guardian Angel",
+          "type": "Gear",
+          "set": "Spiritforged",
+          "rulesText": "[Equip] :rb_rune_calm: (:rb_rune_calm:: Attach this to a unit you control.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha Equip lifecycle and printed Calm equip payment are implemented and tested. Full official Equip timing and replacement/reattachment edge cases remain deferred.",
+        "blocked": false
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 13,
+      "quantity": 2,
+      "originalName": "Stellacorn Herder",
+      "sourceCardId": "SFD-048",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bdfd308c64675ca888a",
+          "name": "Stellacorn Herder",
+          "type": "Unit",
+          "set": "Spiritforged",
+          "rulesText": "When I move, draw 1."
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "bucket": "Movement / location"
+    },
+    {
+      "sourceLine": 14,
+      "quantity": 6,
+      "originalName": "Calm Rune",
+      "sourceCardId": "OGN-042",
+      "sourceSetCode": "OGN",
+      "section": "Rune Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc9d308c64675ca86e4",
+          "name": "Calm Rune",
+          "type": "Rune",
+          "set": "Origins",
+          "rulesText": null
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "bucket": "Rune/payment"
+    },
+    {
+      "sourceLine": 15,
+      "quantity": 3,
+      "originalName": "Lonely Poro",
+      "sourceCardId": "SFD-036",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be2d308c64675ca88d1",
+          "name": "Lonely Poro",
+          "type": "Unit",
+          "set": "Spiritforged",
+          "rulesText": "[Deathknell] — If I died alone, draw 1. (When I die, get the effect. I'm alone if there are no other friendly units here.)"
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "bucket": "Draw / reveal / deck selection"
+    },
+    {
+      "sourceLine": 16,
+      "quantity": 2,
+      "originalName": "Flash",
+      "sourceCardId": "OGS-011",
+      "sourceSetCode": "OGS",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd9d308c64675ca8820",
+          "name": "Flash",
+          "type": "Spell",
+          "set": "Proving Grounds",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Move up to 2 friendly units to base."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists for moving up to two friendly battlefield Unit/Champion cards to Base. Full official any-time Reaction timing remains incomplete.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 17,
+      "quantity": 3,
+      "originalName": "Charm",
+      "sourceCardId": "OGN-043",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc9d308c64675ca86e6",
+          "name": "Charm",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "Move an enemy unit."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha support moves one enemy public battlefield Unit/Champion to Base. Broader official movement choices, control/location edge cases, and non-battlefield destinations remain deferred.",
+        "blocked": false
+      },
+      "bucket": "Movement / location"
+    },
+    {
+      "sourceLine": 18,
+      "quantity": 3,
+      "originalName": "Defy",
+      "sourceCardId": "OGN-045",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc9d308c64675ca86e8",
+          "name": "Defy",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Counter a spell that costs no more than :rb_energy_4: and no more than :rb_rune_rainbow:."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: Defy can counter supported public pending spell chain items that cost no more than 4 energy and no more than 1 premium rune during the current alpha chain window. Full official Reaction timing, broad spell/ability targets, and countering counters remain deferred.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 19,
+      "quantity": 2,
+      "originalName": "En Garde",
+      "sourceCardId": "OGN-046",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc9d308c64675ca86e9",
+          "name": "En Garde",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Give a friendly unit +1 :rb_might: this turn, then an additional +1 :rb_might: this turn if it is the only unit you control there."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists for giving a friendly battlefield Unit/Champion +1 Might, or +2 if it is your only unit there. Full official any-time Reaction timing remains incomplete.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 20,
+      "quantity": 3,
+      "originalName": "Discipline",
+      "sourceCardId": "OGN-058",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc9d308c64675ca86f5",
+          "name": "Discipline",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Give a unit +2 :rb_might: this turn. Draw 1."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists for giving a public battlefield Unit/Champion +2 Might this turn and drawing 1. Full official any-time Reaction timing remains incomplete.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 21,
+      "quantity": 1,
+      "originalName": "Zhonya's Hourglass",
+      "sourceCardId": "OGN-077",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bcad308c64675ca870a",
+          "name": "Zhonya's Hourglass",
+          "type": "Gear",
+          "set": "Origins",
+          "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)If a friendly unit would die, kill this instead. Heal that unit, exhaust it, and recall it. (Send it to base. This isn't a move.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: Zhonya's Hourglass can be played to Base and armed during your Main Phase to protect a friendly public Unit/Champion from the next supported death, destroying Zhonya instead, then healing, exhausting, and recalling that unit. Hidden Reaction-for-0 timing, competing replacement choices, and broad replacement timing remain deferred.",
+        "blocked": false
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 22,
+      "quantity": 6,
+      "originalName": "Chaos Rune",
+      "sourceCardId": "OGN-166",
+      "sourceSetCode": "OGN",
+      "section": "Rune Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd0d308c64675ca876d",
+          "name": "Chaos Rune",
+          "type": "Rune",
+          "set": "Origins",
+          "rulesText": null
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "bucket": "Rune/payment"
+    },
+    {
+      "sourceLine": 23,
+      "quantity": 1,
+      "originalName": "Ride the Wind",
+      "sourceCardId": "OGN-173",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd0d308c64675ca8775",
+          "name": "Ride The Wind",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Action] (Play on your turn or in showdowns.)Move a friendly unit and ready it."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Movement / location"
+    },
+    {
+      "sourceLine": 24,
+      "quantity": 1,
+      "originalName": "The Syren",
+      "sourceCardId": "OGN-184",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd1d308c64675ca8780",
+          "name": "The Syren",
+          "type": "Gear",
+          "set": "Origins",
+          "rulesText": ":rb_energy_1:, :rb_exhaust:: Move a friendly unit at a battlefield to its base."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: The Syren can be played to Base and activated during your Main Phase by paying 1 energy and exhausting it to move a friendly public battlefield Unit/Champion to Base. Broader activated ability timing and ability-chain support remain deferred.",
+        "blocked": false
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 25,
+      "quantity": 2,
+      "originalName": "Mindsplitter",
+      "sourceCardId": "OGN-192",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd1d308c64675ca8788",
+          "name": "Mindsplitter",
+          "type": "Unit",
+          "set": "Origins",
+          "rulesText": "When you play me, choose an opponent. They reveal their hand. Choose a card from it, and they discard that card."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Draw / reveal / deck selection"
+    },
+    {
+      "sourceLine": 26,
+      "quantity": 1,
+      "originalName": "Tideturner",
+      "sourceCardId": "OGN-199",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd1d308c64675ca8791",
+          "name": "Tideturner",
+          "type": "Unit",
+          "set": "Origins",
+          "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)When you play me, you may choose a unit you control at another location. Move me to its location and it to my original location."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: Hidden foundation exists, but later hidden play timing and the on-play location swap are not implemented yet.",
+        "blocked": false
+      },
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "sourceLine": 27,
+      "quantity": 1,
+      "originalName": "Targon's Peak",
+      "sourceCardId": "OGN-289",
+      "sourceSetCode": "OGN",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd6d308c64675ca87ee",
+          "name": "Targon's Peak",
+          "type": "Battlefield",
+          "set": "Origins",
+          "rulesText": "When you conquer here, ready up to 2 runes at the end of this turn."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    }
+  ],
+  "malformedLines": [],
+  "validation": {
+    "totalCards": 56,
+    "legendCount": 1,
+    "championCandidateCount": 3,
+    "inferredMainDeckCount": 39,
+    "runeCount": 12,
+    "battlefieldCount": 3,
+    "validConstructedShape": true,
+    "issues": []
+  },
+  "supportSummary": {
+    "uniqueCards": 27,
+    "counts": {
+      "SUPPORTED": 4,
+      "PARTIAL": 23,
+      "UNSUPPORTED": 0,
+      "BANNED": 0,
+      "NOT_AUDITED": 0
+    },
+    "canUseInEnforced": true,
+    "unresolvedCards": [],
+    "topBlockers": [
+      {
+        "cardName": "Irelia - Blade Dancer",
+        "sourceCardId": "SFD-195",
+        "status": "PARTIAL",
+        "bucket": "Legend text",
+        "reason": "Partial: the Legend-zone activated ready ability is implemented for Main Phase alpha play: exhaust Irelia, pay one rainbow/premium rune, and ready an exhausted friendly public Unit/Champion in Base or at a battlefield. The conquer trigger that may pay 1 energy to ready Irelia remains deferred."
+      },
+      {
+        "cardName": "Not So Fast",
+        "sourceCardId": "SFD-045",
+        "status": "PARTIAL",
+        "bucket": "Reaction / chain / counter",
+        "reason": "Partial: Not So Fast can counter a supported public pending enemy spell chain item only when that item chooses your friendly Unit/Champion Unit or Gear. Ability-chain targets, broad official Reaction timing, and countering counters remain deferred."
+      },
+      {
+        "cardName": "Abandoned Hall",
+        "sourceCardId": "UNL-205",
+        "status": "PARTIAL",
+        "bucket": "Battlefield effect",
+        "reason": "Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely."
+      },
+      {
+        "cardName": "Vex - Apathetic",
+        "sourceCardId": "UNL-150",
+        "status": "PARTIAL",
+        "bucket": "Champion text",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      },
+      {
+        "cardName": "Scuttle Crab",
+        "sourceCardId": "UNL-053",
+        "status": "PARTIAL",
+        "bucket": "Hidden / facedown",
+        "reason": "Partial: on-play draw and 1v1 private hand reveal Deathknell are implemented, but XP and facedown-card viewing are deferred."
+      }
+    ]
+  },
+  "archetype": "Irelia, Blade Dancer",
+  "key": "irelia",
+  "eventResult": "irelia wins s3 shanghai city challenge",
+  "priority": "Finish current/Irelia support polish",
+  "rawSourceFile": "decks/meta/raw/irelia_wins_s3_shanghai_city_challenge.txt",
+  "normalizedFile": "decks/meta/normalized/irelia_wins_s3_shanghai_city_challenge.json"
+}

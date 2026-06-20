@@ -5,10 +5,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CardInstance {
+  public static final String DEFAULT_BATTLEFIELD_LOCATION_ID = "bf-0";
+
   private String instanceId;
   private String cardId;
   private String ownerId;
   private ZoneName zone;
+  private String battlefieldLocationId;
   private int x;
   private int y;
   private int zIndex;
@@ -17,6 +20,12 @@ public class CardInstance {
   private int currentHealth;
   private int mightBonus;
   private int temporaryPowerModifier;
+  private Integer printedMight;
+  private Integer printedHealth;
+  private Integer effectiveMight;
+  private Integer effectiveMaxHealth;
+  private Integer markedDamage;
+  private List<String> statModifierLabels = new ArrayList<>();
   private String attachedToInstanceId;
   private boolean hasSummoningSickness;
   @JsonIgnore private List<String> tempKeywords = new ArrayList<>();
@@ -28,6 +37,7 @@ public class CardInstance {
     this.cardId = other.cardId;
     this.ownerId = other.ownerId;
     this.zone = other.zone;
+    this.battlefieldLocationId = other.battlefieldLocationId;
     this.x = other.x;
     this.y = other.y;
     this.zIndex = other.zIndex;
@@ -36,6 +46,12 @@ public class CardInstance {
     this.currentHealth = other.currentHealth;
     this.mightBonus = other.mightBonus;
     this.temporaryPowerModifier = other.temporaryPowerModifier;
+    this.printedMight = other.printedMight;
+    this.printedHealth = other.printedHealth;
+    this.effectiveMight = other.effectiveMight;
+    this.effectiveMaxHealth = other.effectiveMaxHealth;
+    this.markedDamage = other.markedDamage;
+    this.statModifierLabels = other.statModifierLabels == null ? new ArrayList<>() : new ArrayList<>(other.statModifierLabels);
     this.attachedToInstanceId = other.attachedToInstanceId;
     this.hasSummoningSickness = other.hasSummoningSickness;
     this.tempKeywords = new ArrayList<>(other.tempKeywords);
@@ -48,7 +64,30 @@ public class CardInstance {
   public String getOwnerId() { return ownerId; }
   public void setOwnerId(String ownerId) { this.ownerId = ownerId; }
   public ZoneName getZone() { return zone; }
-  public void setZone(ZoneName zone) { this.zone = zone; }
+  public void setZone(ZoneName zone) {
+    this.zone = zone;
+    if (zone == ZoneName.BATTLEFIELD && !faceDown) {
+      if (battlefieldLocationId == null || battlefieldLocationId.isBlank()) {
+        battlefieldLocationId = DEFAULT_BATTLEFIELD_LOCATION_ID;
+      }
+    } else {
+      battlefieldLocationId = null;
+    }
+  }
+  public String getBattlefieldLocationId() {
+    if (zone == ZoneName.BATTLEFIELD && !faceDown) {
+      return battlefieldLocationId == null || battlefieldLocationId.isBlank()
+          ? DEFAULT_BATTLEFIELD_LOCATION_ID
+          : battlefieldLocationId;
+    }
+    return null;
+  }
+  public void setBattlefieldLocationId(String battlefieldLocationId) {
+    this.battlefieldLocationId = battlefieldLocationId;
+    if (zone == ZoneName.BATTLEFIELD && (this.battlefieldLocationId == null || this.battlefieldLocationId.isBlank())) {
+      this.battlefieldLocationId = DEFAULT_BATTLEFIELD_LOCATION_ID;
+    }
+  }
   public int getX() { return x; }
   public void setX(int x) { this.x = x; }
   public int getY() { return y; }
@@ -65,6 +104,28 @@ public class CardInstance {
   public void setMightBonus(int mightBonus) { this.mightBonus = mightBonus; }
   public int getTemporaryPowerModifier() { return temporaryPowerModifier; }
   public void setTemporaryPowerModifier(int temporaryPowerModifier) { this.temporaryPowerModifier = temporaryPowerModifier; }
+  public Integer getPrintedMight() { return printedMight; }
+  public void setPrintedMight(Integer printedMight) { this.printedMight = printedMight; }
+  public Integer getPrintedHealth() { return printedHealth; }
+  public void setPrintedHealth(Integer printedHealth) { this.printedHealth = printedHealth; }
+  public Integer getEffectiveMight() { return effectiveMight; }
+  public void setEffectiveMight(Integer effectiveMight) { this.effectiveMight = effectiveMight; }
+  public Integer getEffectiveMaxHealth() { return effectiveMaxHealth; }
+  public void setEffectiveMaxHealth(Integer effectiveMaxHealth) { this.effectiveMaxHealth = effectiveMaxHealth; }
+  public Integer getMarkedDamage() { return markedDamage; }
+  public void setMarkedDamage(Integer markedDamage) { this.markedDamage = markedDamage; }
+  public List<String> getStatModifierLabels() { return statModifierLabels; }
+  public void setStatModifierLabels(List<String> statModifierLabels) {
+    this.statModifierLabels = statModifierLabels == null ? new ArrayList<>() : statModifierLabels;
+  }
+  public void clearProjectedStats() {
+    printedMight = null;
+    printedHealth = null;
+    effectiveMight = null;
+    effectiveMaxHealth = null;
+    markedDamage = null;
+    statModifierLabels = new ArrayList<>();
+  }
   public String getAttachedToInstanceId() { return attachedToInstanceId; }
   public void setAttachedToInstanceId(String attachedToInstanceId) { this.attachedToInstanceId = attachedToInstanceId; }
   public boolean isHasSummoningSickness() { return hasSummoningSickness; }

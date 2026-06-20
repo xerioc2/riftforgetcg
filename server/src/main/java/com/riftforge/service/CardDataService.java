@@ -245,6 +245,12 @@ public class CardDataService {
         || text.contains("deal") && text.contains("damage to target");
   }
 
+  public boolean requiresFriendlyAndEnemyTargets(String cardId) {
+    CardDefinition def = getCard(cardId);
+    String text = def == null || def.rulesText() == null ? "" : def.rulesText().toLowerCase();
+    return text.contains("friendly unit") && text.contains("enemy unit");
+  }
+
   public boolean requiresFriendlyTarget(String cardId) {
     CardDefinition def = getCard(cardId);
     String text = def.rulesText() == null ? "" : def.rulesText().toLowerCase();
@@ -268,6 +274,158 @@ public class CardDataService {
 
   public boolean isReactionCard(CardDefinition def) {
     return hasBracketedTiming(def, "reaction");
+  }
+
+  public boolean isGustReaction(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().toLowerCase();
+    boolean gustName = def.name() != null && def.name().trim().equalsIgnoreCase("Gust");
+    return "Spell".equalsIgnoreCase(def.type())
+        && isReactionCard(def)
+        && gustName
+        && text.contains("return a unit")
+        && text.contains("battlefield")
+        && (text.contains("3") || text.contains("three"))
+        && text.contains("owner");
+  }
+
+  public boolean isDisciplineReaction(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().toLowerCase();
+    boolean disciplineName = def.name() != null && def.name().trim().equalsIgnoreCase("Discipline");
+    return "Spell".equalsIgnoreCase(def.type())
+        && isReactionCard(def)
+        && disciplineName
+        && text.contains("give a unit")
+        && text.contains("+2")
+        && text.contains("draw 1");
+  }
+
+  public boolean isEnGardeReaction(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().toLowerCase();
+    boolean enGardeName = def.name() != null && def.name().trim().equalsIgnoreCase("En Garde");
+    return "Spell".equalsIgnoreCase(def.type())
+        && isReactionCard(def)
+        && enGardeName
+        && text.contains("friendly unit")
+        && text.contains("+1")
+        && text.contains("additional +1")
+        && text.contains("only unit you control");
+  }
+
+  public boolean isDefiantDanceReaction(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().toLowerCase();
+    boolean defiantDanceName = def.name() != null && def.name().trim().equalsIgnoreCase("Defiant Dance");
+    return "Spell".equalsIgnoreCase(def.type())
+        && isReactionCard(def)
+        && defiantDanceName
+        && text.contains("give a unit")
+        && text.contains("+2")
+        && text.contains("another unit")
+        && text.contains("-2");
+  }
+
+  public boolean isFlashReaction(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().toLowerCase();
+    boolean flashName = def.name() != null && def.name().trim().equalsIgnoreCase("Flash");
+    return "Spell".equalsIgnoreCase(def.type())
+        && isReactionCard(def)
+        && flashName
+        && text.contains("move up to 2 friendly units")
+        && text.contains("base");
+  }
+
+  public boolean isCharmMoveEffect(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().trim().toLowerCase();
+    boolean charmName = def.name() != null && def.name().trim().equalsIgnoreCase("Charm");
+    return "Spell".equalsIgnoreCase(def.type())
+        && charmName
+        && text.equals("move an enemy unit.");
+  }
+
+  public boolean isTheSyrenActivatedAbility(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().trim().toLowerCase();
+    return "Gear".equalsIgnoreCase(def.type())
+        && def.name() != null
+        && def.name().trim().equalsIgnoreCase("The Syren")
+        && text.equals(":rb_energy_1:, :rb_exhaust:: move a friendly unit at a battlefield to its base.");
+  }
+
+  public boolean isZhonyasHourglass(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().trim().toLowerCase();
+    return "Gear".equalsIgnoreCase(def.type())
+        && def.name() != null
+        && def.name().trim().equalsIgnoreCase("Zhonya's Hourglass")
+        && text.contains("[hidden]")
+        && text.contains("if a friendly unit would die")
+        && text.contains("kill this instead")
+        && text.contains("heal that unit")
+        && text.contains("exhaust it")
+        && text.contains("recall it");
+  }
+
+  public boolean isIreliaBladeDancerLegend(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().trim().toLowerCase();
+    return "Legend".equalsIgnoreCase(def.type())
+        && def.name() != null
+        && def.name().trim().equalsIgnoreCase("Irelia - Blade Dancer")
+        && text.contains("when you choose a friendly unit")
+        && text.contains("exhaust me")
+        && text.contains("ready it")
+        && text.contains("when you conquer")
+        && text.contains("ready me");
+  }
+
+  public boolean isIreliaFerventChampion(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().trim().toLowerCase();
+    return "Champion".equalsIgnoreCase(def.type())
+        && def.name() != null
+        && def.name().trim().equalsIgnoreCase("Irelia - Fervent")
+        && text.contains("[deflect]")
+        && text.contains("when you choose or ready me")
+        && text.contains("+1")
+        && text.contains(":rb_might:");
+  }
+
+  public boolean isDefyCounterReaction(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().toLowerCase();
+    boolean defyName = def.name() != null && def.name().trim().equalsIgnoreCase("Defy");
+    return "Spell".equalsIgnoreCase(def.type())
+        && isReactionCard(def)
+        && defyName
+        && text.contains("counter a spell");
+  }
+
+  public boolean isNotSoFastCounterReaction(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().toLowerCase();
+    boolean notSoFastName = def.name() != null && def.name().trim().equalsIgnoreCase("Not So Fast");
+    return "Spell".equalsIgnoreCase(def.type())
+        && isReactionCard(def)
+        && notSoFastName
+        && text.contains("counter an enemy spell or ability")
+        && text.contains("friendly unit or gear");
+  }
+
+  public boolean isAbandonCounterReaction(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().toLowerCase();
+    boolean abandonName = def.name() != null && def.name().trim().equalsIgnoreCase("Abandon");
+    return "Spell".equalsIgnoreCase(def.type())
+        && isReactionCard(def)
+        && abandonName
+        && text.contains("counter a spell")
+        && text.contains("owner's hand")
+        && text.contains("[predict]");
   }
 
   public boolean isHiddenCard(CardDefinition def) {
@@ -303,22 +461,40 @@ public class CardDataService {
     String text = def.rulesText();
     if (text == null) return false;
     String normalized = text.toLowerCase();
-    if ("Gear".equalsIgnoreCase(def.type())) return !isEquip(def);
+    if ("Gear".equalsIgnoreCase(def.type())) return !isEquip(def) && !isTheSyrenActivatedAbility(def) && !isZhonyasHourglass(def);
     if (!"Spell".equalsIgnoreCase(def.type())) return false;
-    boolean requiresMultipleTargets = normalized.contains("another unit")
-        || normalized.contains("a friendly unit and an enemy unit");
+    boolean supportedFriendlyEnemyReturn = normalized.contains("return")
+        && normalized.contains("friendly unit")
+        && normalized.contains("enemy unit");
+    boolean requiresMultipleTargets = (normalized.contains("another unit") && !isDefiantDanceReaction(def))
+        || (normalized.contains("a friendly unit and an enemy unit") && !supportedFriendlyEnemyReturn);
     boolean supportedEffect = normalized.contains(":rb_might:")
         || normalized.contains("return a unit")
+        || normalized.contains("move up to 2 friendly units")
+        || supportedFriendlyEnemyReturn
         || normalized.contains("ready it")
         || normalized.contains("draw 1")
-        || isStackedDeckEffect(normalized);
-    return normalized.contains("counter a spell")
-        || normalized.contains("counter an enemy spell")
+        || isCharmMoveEffect(def)
+        || isDefyCounterReaction(def)
+        || isNotSoFastCounterReaction(def)
+        || isAbandonCounterReaction(def)
+        || isDisciplineReaction(def)
+        || isEnGardeReaction(def)
+        || isDefiantDanceReaction(def)
+        || isFlashReaction(def)
+        || isStackedDeckEffectText(normalized);
+    return (normalized.contains("counter a spell") && !isDefyCounterReaction(def) && !isAbandonCounterReaction(def))
+        || (normalized.contains("counter an enemy spell") && !isNotSoFastCounterReaction(def))
         || requiresMultipleTargets
         || !supportedEffect;
   }
 
-  private boolean isStackedDeckEffect(String normalized) {
+  public boolean isStackedDeckEffect(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    return "Spell".equalsIgnoreCase(def.type()) && isStackedDeckEffectText(def.rulesText().toLowerCase());
+  }
+
+  private boolean isStackedDeckEffectText(String normalized) {
     return normalized.contains("look at the top 3")
         && normalized.contains("put 1")
         && normalized.contains("hand")

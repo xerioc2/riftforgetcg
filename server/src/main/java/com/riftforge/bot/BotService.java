@@ -11,18 +11,28 @@ import com.riftforge.model.PlayerState;
 import com.riftforge.model.RuneState;
 import com.riftforge.model.ZoneName;
 import com.riftforge.model.move.PassPhaseMove;
+import com.riftforge.model.move.PassChainFocusMove;
+import com.riftforge.model.move.PassShowdownFocusMove;
 import com.riftforge.model.move.PlayCardMove;
+import com.riftforge.model.move.AssignCombatDamageMove;
 import com.riftforge.model.move.MoveToBattlefieldMove;
 import com.riftforge.model.move.MulliganMove;
 import com.riftforge.model.move.MoveRequest;
 import com.riftforge.model.move.ResolveChoiceMove;
+import com.riftforge.model.move.ResolveChainTopMove;
 import com.riftforge.model.move.ResolveShowdownMove;
+import com.riftforge.model.move.SelectBattlefieldMove;
 import com.riftforge.model.move.TapRuneMove;
+import com.riftforge.engine.CombatDamageAssignmentPlanner;
+import com.riftforge.engine.CombatDamageRules;
+import com.riftforge.engine.CombatStatsService;
+import com.riftforge.engine.IllegalMoveException;
 import com.riftforge.rules.LegalAction;
 import com.riftforge.rules.LegalActionsService;
 import com.riftforge.service.CardDataService;
 import com.riftforge.service.GameService;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -32,6 +42,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import jakarta.annotation.PostConstruct;
 import org.springframework.context.event.EventListener;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -44,11 +55,30 @@ public class BotService {
   private final GameService gameService;
   private final CardDataService cardDataService;
   private final LegalActionsService legalActionsService;
+  private final CombatDamageAssignmentPlanner combatDamageAssignmentPlanner;
+  private final Set<String> rejectedCombatAssignmentSignatures = ConcurrentHashMap.newKeySet();
 
   public BotService(@Lazy GameService gameService, CardDataService cardDataService, LegalActionsService legalActionsService) {
+    this(
+        gameService,
+        cardDataService,
+        legalActionsService,
+        new CombatDamageAssignmentPlanner(
+            cardDataService,
+            new CombatStatsService(cardDataService),
+            new CombatDamageRules(cardDataService)));
+  }
+
+  @Autowired
+  public BotService(
+      @Lazy GameService gameService,
+      CardDataService cardDataService,
+      LegalActionsService legalActionsService,
+      CombatDamageAssignmentPlanner combatDamageAssignmentPlanner) {
     this.gameService = gameService;
     this.cardDataService = cardDataService;
     this.legalActionsService = legalActionsService;
+    this.combatDamageAssignmentPlanner = combatDamageAssignmentPlanner;
   }
 
   @PostConstruct
@@ -184,15 +214,37 @@ public class BotService {
     if (state.getPendingChoice() != null) {
       return resolvePendingChoiceIfPossible(roomCode, state, botId, legalActions);
     }
+    if (state.getChainState() != null) {
+      if (legalActions.contains(LegalAction.RESOLVE_CHAIN_TOP)) {
+        return processBotMove(roomCode, state, botId, new ResolveChainTopMove(botId));
+      } else if (legalActions.contains(LegalAction.PASS_CHAIN_FOCUS)) {
+        return processBotMove(roomCode, state, botId, new PassChainFocusMove(botId));
+      } else {
+        log.debug("Bot waiting during chain: room={}, bot={}, legalActions={}", roomCode, botId, legalActions);
+      }
+      return false;
+    }
     if (state.getActiveShowdown() != null) {
-      if (legalActions.contains(LegalAction.RESOLVE_SHOWDOWN)) {
+      if (legalActions.contains(LegalAction.ASSIGN_COMBAT_DAMAGE)) {
+        return assignCombatDamageIfPossible(roomCode, state, botId);
+      } else if (legalActions.contains(LegalAction.RESOLVE_SHOWDOWN)) {
         return processBotMove(roomCode, state, botId, new ResolveShowdownMove(botId));
+      } else if (legalActions.contains(LegalAction.PASS_SHOWDOWN_FOCUS)) {
+        return processBotMove(roomCode, state, botId, new PassShowdownFocusMove(botId));
       } else {
         log.debug("Bot waiting during showdown: room={}, bot={}, legalActions={}", roomCode, botId, legalActions);
       }
       return false;
     }
     return switch (state.getCurrentPhase()) {
+      case SELECT_BATTLEFIELD -> {
+        if (legalActions.contains(LegalAction.SELECT_BATTLEFIELD)) {
+          yield doSelectBattlefield(roomCode, state, botId);
+        } else {
+          log.warn("Bot cannot choose Battlefield because no selection action is legal: room={}, bot={}, legalActions={}", roomCode, botId, legalActions);
+          yield false;
+        }
+      }
       case MULLIGAN -> {
         if (legalActions.contains(LegalAction.MULLIGAN) || legalActions.contains(LegalAction.KEEP_HAND)) {
           yield doMulligan(roomCode, state, botId);
@@ -204,6 +256,18 @@ public class BotService {
       case AWAKEN, BEGINNING, CHANNEL, DRAW, END -> passIfLegal(roomCode, state, botId, legalActions);
       case MAIN -> doMain(roomCode, state, botId);
     };
+  }
+
+  private boolean doSelectBattlefield(String roomCode, LiveGameState state, String botId) {
+    return state.getPlayers().stream()
+        .filter(player -> botId.equals(player.getUserId()))
+        .findFirst()
+        .flatMap(player -> player.getSelectedBattlefields().stream().findFirst())
+        .map(battlefieldId -> processBotMove(roomCode, state, botId, new SelectBattlefieldMove(botId, battlefieldId)))
+        .orElseGet(() -> {
+          log.warn("Bot has no Battlefield choice available: room={}, bot={}", roomCode, botId);
+          return false;
+        });
   }
 
   private boolean doMulligan(String roomCode, LiveGameState state, String botId) {
@@ -288,6 +352,7 @@ public class BotService {
 
       List<CardInstance> readyBaseCards = state.getCards().stream()
           .filter(c -> botId.equals(c.getOwnerId()) && c.getZone() == ZoneName.BASE && !c.isTapped())
+          .filter(this::isCombatant)
           .toList();
       for (CardInstance card : readyBaseCards) {
         Set<LegalAction> actions = legalActions(state, botId);
@@ -320,10 +385,11 @@ public class BotService {
     if (!playableActions.contains(LegalAction.PLAY_CARD)) {
       return passIfLegal(roomCode, playableState, botId, playableActions) || acted;
     }
+    Set<String> rejectedCardInstanceIds = new HashSet<>();
     boolean anyPlayable = playableState != null && playableState.getCards().stream()
         .anyMatch(c -> botId.equals(c.getOwnerId())
             && c.getZone() == ZoneName.HAND
-            && cardDataService.getCard(c.getCardId()).cost() <= botEnergy(playableState, botId));
+            && isBotPlayableFromHand(playableState, c, botId, rejectedCardInstanceIds));
     if (!anyPlayable) {
       return passIfLegal(roomCode, playableState, botId, playableActions) || acted;
     }
@@ -337,7 +403,8 @@ public class BotService {
       int energy = botEnergy(current, botId);
       Optional<CardInstance> pick = current.getCards().stream()
           .filter(c -> botId.equals(c.getOwnerId()) && c.getZone() == ZoneName.HAND)
-          .filter(c -> hasValidSpellTarget(current, c, botId))
+          .filter(c -> !rejectedCardInstanceIds.contains(c.getInstanceId()))
+          .filter(c -> isBotPlayableFromHand(current, c, botId, rejectedCardInstanceIds))
           .filter(c -> cardDataService.getCard(c.getCardId()).cost() <= energy)
           .max(Comparator.comparingInt(c -> cardDataService.getCard(c.getCardId()).cost()));
 
@@ -346,10 +413,15 @@ public class BotService {
         String targetInstanceId = targetForCard(current, pickedDef, botId)
             .map(CardInstance::getInstanceId)
             .orElse(null);
+        List<PlayCardMove.TargetSelection> targets = targetsForCard(current, pickedDef, botId);
         int boardCount = (int) current.getCards().stream()
             .filter(c -> botId.equals(c.getOwnerId()) && (c.getZone() == ZoneName.BASE || c.getZone() == ZoneName.BATTLEFIELD))
             .count();
-        acted |= processBotMove(roomCode, current, botId, new PlayCardMove(botId, pick.get().getInstanceId(), ZoneName.BASE, 60 + boardCount * 100, 220, targetInstanceId));
+        boolean accepted = processBotMove(roomCode, current, botId, new PlayCardMove(botId, pick.get().getInstanceId(), ZoneName.BASE, 60 + boardCount * 100, 220, targetInstanceId, targets, false, List.of(), List.of()));
+        acted |= accepted;
+        if (!accepted) {
+          rejectedCardInstanceIds.add(pick.get().getInstanceId());
+        }
         sleepBriefly(300);
         played = true;
       }
@@ -390,6 +462,12 @@ public class BotService {
   private boolean processBotMove(String roomCode, LiveGameState state, String botId, MoveRequest move) {
     Phase beforePhase = state == null ? null : state.getCurrentPhase();
     String beforeActivePlayer = state == null ? null : state.getActivePlayerId();
+    String beforeWinner = state == null ? null : state.getWinnerId();
+    int beforeLogSize = state == null || state.getLog() == null ? 0 : state.getLog().size();
+    String beforeChain = chainSnapshot(state);
+    String beforeShowdown = showdownSnapshot(state);
+    String beforePendingChoice = pendingChoiceSnapshot(state);
+    String beforeMovedCard = move instanceof PlayCardMove play ? cardSnapshot(state, play.instanceId()) : null;
     log.debug(
         "Bot move before: room={}, bot={}, move={}, phaseBefore={}, activePlayerBefore={}, activeShowdown={}, gameMode={}",
         roomCode,
@@ -403,8 +481,17 @@ public class BotService {
     LiveGameState latest = gameService.currentState(roomCode);
     boolean phaseChanged = latest != null && beforePhase != latest.getCurrentPhase();
     boolean activePlayerChanged = latest != null && beforeActivePlayer != null && !beforeActivePlayer.equals(latest.getActivePlayerId());
+    boolean stateChanged = latest != null && (
+        phaseChanged
+            || activePlayerChanged
+            || !java.util.Objects.equals(beforeWinner, latest.getWinnerId())
+            || beforeLogSize != (latest.getLog() == null ? 0 : latest.getLog().size())
+            || !java.util.Objects.equals(beforeChain, chainSnapshot(latest))
+            || !java.util.Objects.equals(beforeShowdown, showdownSnapshot(latest))
+            || !java.util.Objects.equals(beforePendingChoice, pendingChoiceSnapshot(latest))
+            || (beforeMovedCard != null && !java.util.Objects.equals(beforeMovedCard, cardSnapshot(latest, ((PlayCardMove) move).instanceId()))));
     log.debug(
-        "Bot move after: room={}, bot={}, move={}, latestPhase={}, latestActivePlayer={}, phaseChanged={}, activePlayerChanged={}, winner={}, activeShowdown={}",
+        "Bot move after: room={}, bot={}, move={}, latestPhase={}, latestActivePlayer={}, phaseChanged={}, activePlayerChanged={}, stateChanged={}, winner={}, activeShowdown={}",
         roomCode,
         botId,
         move.getClass().getSimpleName(),
@@ -412,6 +499,7 @@ public class BotService {
         latest == null ? null : latest.getActivePlayerId(),
         phaseChanged,
         activePlayerChanged,
+        stateChanged,
         latest == null ? null : latest.getWinnerId(),
         latest != null && latest.getActiveShowdown() != null);
     if (move instanceof PassPhaseMove
@@ -426,27 +514,146 @@ public class BotService {
           latest.getCurrentPhase(),
           latest.getActivePlayerId());
     }
-    return true;
+    if (!stateChanged) {
+      log.warn(
+          "Bot move produced no state change and will not be retried in this decision cycle: room={}, bot={}, move={}",
+          roomCode,
+          botId,
+          move.getClass().getSimpleName());
+    }
+    return stateChanged;
+  }
+
+  private boolean isBotPlayableFromHand(LiveGameState state, CardInstance card, String botId, Set<String> rejectedCardInstanceIds) {
+    if (state == null || card == null || rejectedCardInstanceIds.contains(card.getInstanceId())) return false;
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    if (def == null) return false;
+    if (cardDataService.isUnsupportedAction(def.id())) return false;
+    if (cardDataService.hasUnsupportedAdditionalCost(def)) return false;
+    if (cardDataService.isReactionCard(def)) {
+      return state.getChainState() != null
+          && botId.equals(state.getChainState().focusedPlayerId())
+          && !state.getChainState().readyToResolveTop()
+          && (cardDataService.isGustReaction(def) || cardDataService.isDefyCounterReaction(def));
+    }
+    if (Math.max(0, def.premiumCost()) > 0) return false;
+    if (def.cost() > botEnergy(state, botId)) return false;
+    return hasValidSpellTarget(state, card, botId);
   }
 
   private boolean hasValidSpellTarget(LiveGameState state, CardInstance card, String botId) {
     CardDefinition def = cardDataService.getCard(card.getCardId());
     if (cardDataService.isUnsupportedAction(def.id())) return false;
     if (cardDataService.isEquip(def)) return true;
+    if (cardDataService.requiresFriendlyAndEnemyTargets(def.id())) return targetsForCard(state, def, botId).size() == 2;
     if (!cardDataService.requiresBattlefieldTarget(def.id())) return true;
     return targetForCard(state, def, botId).isPresent();
+  }
+
+  private boolean assignCombatDamageIfPossible(String roomCode, LiveGameState state, String botId) {
+    Optional<List<LiveGameState.CombatDamageAssignment>> planned =
+        combatDamageAssignmentPlanner.plan(state, botId);
+    if (planned.isEmpty()) {
+      log.warn(
+          "Bot could not build a valid combat damage assignment: room={}, bot={}, assigningPlayer={}, sources={}, targets={}",
+          roomCode,
+          botId,
+          state.getActiveShowdown() == null ? null : state.getActiveShowdown().assigningPlayerId(),
+          combatantSummary(state, botId, true),
+          combatantSummary(state, botId, false));
+      return false;
+    }
+
+    List<LiveGameState.CombatDamageAssignment> assignments = planned.get();
+    String signature = combatAssignmentSignature(state, botId, assignments);
+    if (rejectedCombatAssignmentSignatures.contains(signature)) {
+      log.warn(
+          "Bot skipping previously rejected combat assignment: room={}, bot={}, assigningPlayer={}, assignments={}",
+          roomCode,
+          botId,
+          state.getActiveShowdown() == null ? null : state.getActiveShowdown().assigningPlayerId(),
+          assignments);
+      return false;
+    }
+
+    try {
+      return processBotMove(roomCode, state, botId, new AssignCombatDamageMove(botId, assignments));
+    } catch (IllegalMoveException e) {
+      rejectedCombatAssignmentSignatures.add(signature);
+      log.warn(
+          "Bot combat assignment rejected: room={}, bot={}, assigningPlayer={}, sources={}, targets={}, assignments={}, error={}",
+          roomCode,
+          botId,
+          state.getActiveShowdown() == null ? null : state.getActiveShowdown().assigningPlayerId(),
+          combatantSummary(state, botId, true),
+          combatantSummary(state, botId, false),
+          assignments,
+          e.getMessage());
+      return false;
+    }
+  }
+
+  private boolean isCombatant(CardInstance card) {
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    return def != null && ("Unit".equalsIgnoreCase(def.type()) || "Champion".equalsIgnoreCase(def.type()));
+  }
+
+  private String combatAssignmentSignature(
+      LiveGameState state,
+      String botId,
+      List<LiveGameState.CombatDamageAssignment> assignments) {
+    return showdownSnapshot(state)
+        + "|bot=" + botId
+        + "|sources=" + combatantSummary(state, botId, true)
+        + "|targets=" + combatantSummary(state, botId, false)
+        + "|assignments=" + assignments;
+  }
+
+  private List<String> combatantSummary(LiveGameState state, String botId, boolean friendly) {
+    if (state == null) return List.of();
+    return state.getCards().stream()
+        .filter(card -> card.getZone() == ZoneName.BATTLEFIELD)
+        .filter(card -> friendly == botId.equals(card.getOwnerId()))
+        .filter(this::isCombatant)
+        .sorted(Comparator.comparing(CardInstance::getInstanceId))
+        .map(card -> card.getInstanceId()
+            + ":" + card.getCardId()
+            + ":owner=" + card.getOwnerId()
+            + ":health=" + card.getCurrentHealth()
+            + ":tank=" + cardDataService.hasKeyword(card, "TANK"))
+        .toList();
+  }
+
+  private List<PlayCardMove.TargetSelection> targetsForCard(LiveGameState state, CardDefinition def, String botId) {
+    if (!cardDataService.requiresFriendlyAndEnemyTargets(def.id())) return List.of();
+    Optional<CardInstance> friendly = publicUnitTarget(state, botId, true);
+    Optional<CardInstance> enemy = publicUnitTarget(state, botId, false);
+    if (friendly.isEmpty() || enemy.isEmpty()) return List.of();
+    return List.of(
+        new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.FRIENDLY_UNIT, friendly.get().getInstanceId()),
+        new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.ENEMY_UNIT, enemy.get().getInstanceId()));
   }
 
   private Optional<CardInstance> targetForCard(LiveGameState state, CardDefinition def, String botId) {
     if (!cardDataService.requiresBattlefieldTarget(def.id())) return Optional.empty();
     if (cardDataService.isEquip(def)) return Optional.empty();
+    if (cardDataService.requiresFriendlyAndEnemyTargets(def.id())) return Optional.empty();
     String text = def.rulesText() == null ? "" : def.rulesText().toLowerCase();
     boolean preferFriendly = cardDataService.requiresFriendlyTarget(def.id())
         || text.contains("give a unit")
         || text.contains("ready it");
+    return publicUnitTarget(state, botId, preferFriendly);
+  }
+
+  private Optional<CardInstance> publicUnitTarget(LiveGameState state, String botId, boolean friendly) {
     return state.getCards().stream()
-        .filter(candidate -> candidate.getZone() == ZoneName.BATTLEFIELD)
-        .filter(candidate -> preferFriendly == botId.equals(candidate.getOwnerId()))
+        .filter(candidate -> candidate.getZone() == ZoneName.BASE || candidate.getZone() == ZoneName.BATTLEFIELD)
+        .filter(candidate -> !candidate.isFaceDown())
+        .filter(candidate -> friendly == botId.equals(candidate.getOwnerId()))
+        .filter(candidate -> {
+          CardDefinition def = cardDataService.getCard(candidate.getCardId());
+          return def != null && ("Unit".equalsIgnoreCase(def.type()) || "Champion".equalsIgnoreCase(def.type()));
+        })
         .findFirst();
   }
 
@@ -478,8 +685,18 @@ public class BotService {
           && actions.contains(LegalAction.RESOLVE_CHOICE)
           && botChoiceMove(botId, state.getPendingChoice()).isPresent();
     }
-    if (state.getActiveShowdown() != null) return actions.contains(LegalAction.RESOLVE_SHOWDOWN);
+    if (state.getChainState() != null) {
+      return actions.contains(LegalAction.RESOLVE_CHAIN_TOP)
+          || actions.contains(LegalAction.PASS_CHAIN_FOCUS);
+    }
+    if (state.getActiveShowdown() != null) {
+      return actions.contains(LegalAction.RESOLVE_SHOWDOWN)
+          || actions.contains(LegalAction.PASS_SHOWDOWN_FOCUS)
+          || actions.contains(LegalAction.ASSIGN_COMBAT_DAMAGE)
+          || actions.contains(LegalAction.PLAY_CARD);
+    }
     return switch (state.getCurrentPhase()) {
+      case SELECT_BATTLEFIELD -> actions.contains(LegalAction.SELECT_BATTLEFIELD);
       case MULLIGAN -> actions.contains(LegalAction.MULLIGAN) || actions.contains(LegalAction.KEEP_HAND);
       case AWAKEN, BEGINNING, CHANNEL, DRAW, END ->
           actions.contains(LegalAction.PASS_PHASE) || actions.contains(LegalAction.END_TURN);
@@ -513,6 +730,13 @@ public class BotService {
     if (state.getPendingChoice() != null && isBotId(state.getPendingChoice().getPlayerId())) {
       return state.getPendingChoice().getPlayerId();
     }
+    if (state.getChainState() != null && isBotId(state.getChainState().focusedPlayerId())) {
+      return state.getChainState().focusedPlayerId();
+    }
+    if (state.getActiveShowdown() != null) {
+      if (isBotId(state.getActiveShowdown().assigningPlayerId())) return state.getActiveShowdown().assigningPlayerId();
+      if (isBotId(state.getActiveShowdown().focusedPlayerId())) return state.getActiveShowdown().focusedPlayerId();
+    }
     if (state.getCurrentPhase() == Phase.MULLIGAN) {
       return state.getPlayers().stream()
           .map(PlayerState::getUserId)
@@ -521,8 +745,47 @@ public class BotService {
           .findFirst()
           .orElse(null);
     }
+    if (state.getCurrentPhase() == Phase.SELECT_BATTLEFIELD) {
+      return state.getPlayers().stream()
+          .filter(player -> isBotId(player.getUserId()))
+          .filter(player -> !player.getSelectedBattlefields().isEmpty())
+          .filter(player -> player.getSelectedBattlefieldId() == null || player.getSelectedBattlefieldId().isBlank())
+          .map(PlayerState::getUserId)
+          .findFirst()
+          .orElse(null);
+    }
     if (isBotId(state.getActivePlayerId())) return state.getActivePlayerId();
     return null;
+  }
+
+  private String chainSnapshot(LiveGameState state) {
+    LiveGameState.ChainState chain = state == null ? null : state.getChainState();
+    if (chain == null) return "none";
+    return chain.chainId() + "|" + chain.focusedPlayerId() + "|" + chain.consecutivePasses() + "|" + chain.readyToResolveTop()
+        + "|" + chain.chainItems().stream()
+            .map(item -> item.itemId() + ":" + item.status())
+            .toList();
+  }
+
+  private String showdownSnapshot(LiveGameState state) {
+    LiveGameState.ShowdownState showdown = state == null ? null : state.getActiveShowdown();
+    if (showdown == null) return "none";
+    return showdown.step() + "|" + showdown.focusedPlayerId() + "|" + showdown.consecutivePasses() + "|" + showdown.readyToResolve()
+        + "|" + showdown.assigningPlayerId();
+  }
+
+  private String pendingChoiceSnapshot(LiveGameState state) {
+    PendingChoice choice = state == null ? null : state.getPendingChoice();
+    return choice == null ? "none" : choice.getChoiceId() + "|" + choice.getPlayerId() + "|" + choice.getType();
+  }
+
+  private String cardSnapshot(LiveGameState state, String instanceId) {
+    if (state == null || instanceId == null) return "none";
+    return state.getCards().stream()
+        .filter(card -> instanceId.equals(card.getInstanceId()))
+        .findFirst()
+        .map(card -> card.getInstanceId() + "|" + card.getCardId() + "|" + card.getZone() + "|" + card.isTapped())
+        .orElse("missing");
   }
 
   private String normalizeRoomCode(String roomCode) {

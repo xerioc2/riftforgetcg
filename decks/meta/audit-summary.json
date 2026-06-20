@@ -1,0 +1,927 @@
+{
+  "capturedDate": "2026-06-19",
+  "extraction": {
+    "guidePages": [
+      "https://riftbound.gg/irelia-blade-dancer-guide/",
+      "https://riftbound.gg/diana-scorn-of-the-moon-guide/",
+      "https://riftbound.gg/master-yi-wuju-bladesman-guide/",
+      "https://riftbound.gg/azir-emperor-of-the-sands-guide/",
+      "https://riftbound.gg/sivir-battle-mistress-guide/",
+      "https://riftbound.gg/vex-gloomist-guide/",
+      "https://riftbound.gg/leblanc-deceiver-guide/",
+      "https://riftbound.gg/annie-dark-child-guide/"
+    ],
+    "deckApi": "https://api.dotgg.gg/cgfw/getdeck?game=riftbound&slug=<slug>",
+    "cardApi": "https://api.dotgg.gg/cgfw/getcards?game=riftbound&mode=indexed",
+    "localCardCache": "C:\\Users\\xerio\\.riftforge\\cards-cache.json"
+  },
+  "archetypes": [
+    {
+      "key": "irelia",
+      "legend": "Irelia, Blade Dancer",
+      "guideUrl": "https://riftbound.gg/irelia-blade-dancer-guide/",
+      "supportStatus": "Blocked",
+      "extractedDecks": [
+        {
+          "slug": "irelia-wins-s3-shanghai-city-challenge",
+          "humanName": "Irelia Wins S3 Shanghai City Challenge",
+          "outputFile": "decks/meta/irelia/irelia-wins-s3-shanghai-city-challenge.json",
+          "summary": {
+            "uniqueCards": 33,
+            "counts": {
+              "SUPPORTED": 5,
+              "PARTIAL": 25,
+              "UNSUPPORTED": 3,
+              "BANNED": 0,
+              "NOT_AUDITED": 0
+            },
+            "unresolved": [],
+            "canUseInEnforced": false,
+            "topBlockers": [
+              {
+                "cardName": "Hard Bargain",
+                "status": "UNSUPPORTED",
+                "bucket": "Reaction / chain / counter",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Heart of Dark Ice",
+                "status": "UNSUPPORTED",
+                "bucket": "Equipment lifecycle/effect",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Switcheroo",
+                "status": "UNSUPPORTED",
+                "bucket": "Hidden / facedown",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Abandoned Hall",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely."
+              },
+              {
+                "cardName": "Sunken Temple",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              }
+            ]
+          }
+        },
+        {
+          "slug": "irelia-wins-sydney-regional-qualifier",
+          "humanName": "Irelia wins Sydney Regional Qualifier",
+          "outputFile": "decks/meta/irelia/irelia-wins-sydney-regional-qualifier.json",
+          "summary": {
+            "uniqueCards": 24,
+            "counts": {
+              "SUPPORTED": 3,
+              "PARTIAL": 21,
+              "UNSUPPORTED": 0,
+              "BANNED": 0,
+              "NOT_AUDITED": 0
+            },
+            "unresolved": [],
+            "canUseInEnforced": true,
+            "topBlockers": [
+              {
+                "cardName": "Abandoned Hall",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely."
+              },
+              {
+                "cardName": "Sunken Temple",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              },
+              {
+                "cardName": "Targon's Peak",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              },
+              {
+                "cardName": "Fizz - Trickster",
+                "status": "PARTIAL",
+                "bucket": "Champion text",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              },
+              {
+                "cardName": "Irelia - Fervent",
+                "status": "PARTIAL",
+                "bucket": "Champion text",
+                "reason": "Partial: the supported explicit-ready trigger gives Irelia +1 Might this turn when her controller readies her through a registered effect. Deflect targeting tax remains heuristic, choose-trigger coverage is incomplete, and automatic ready-step trigger timing remains deferred."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "key": "diana",
+      "legend": "Diana, Scorn of the Moon",
+      "guideUrl": "https://riftbound.gg/diana-scorn-of-the-moon-guide/",
+      "supportStatus": "Blocked",
+      "extractedDecks": [
+        {
+          "slug": "diana-wins-s3-suzhou-city-challenge",
+          "humanName": "Diana Wins S3 Suzhou City Challenge",
+          "outputFile": "decks/meta/diana/diana-wins-s3-suzhou-city-challenge.json",
+          "summary": {
+            "uniqueCards": 29,
+            "counts": {
+              "SUPPORTED": 1,
+              "PARTIAL": 24,
+              "UNSUPPORTED": 4,
+              "BANNED": 0,
+              "NOT_AUDITED": 0
+            },
+            "unresolved": [],
+            "canUseInEnforced": false,
+            "topBlockers": [
+              {
+                "cardName": "Hard Bargain",
+                "status": "UNSUPPORTED",
+                "bucket": "Reaction / chain / counter",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Invert Timelines",
+                "status": "UNSUPPORTED",
+                "bucket": "Draw / reveal / deck selection",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Turn to Dust",
+                "status": "UNSUPPORTED",
+                "bucket": "Damage / destroy",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Unchecked Power",
+                "status": "UNSUPPORTED",
+                "bucket": "Basic or descriptor-only",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Abandoned Hall",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely."
+              }
+            ]
+          }
+        },
+        {
+          "slug": "diana-wins-s3-shenzhen-city-challenge-tournament",
+          "humanName": "Diana Wins S3 Shenzhen City Challenge tournament",
+          "outputFile": "decks/meta/diana/diana-wins-s3-shenzhen-city-challenge-tournament.json",
+          "summary": {
+            "uniqueCards": 30,
+            "counts": {
+              "SUPPORTED": 1,
+              "PARTIAL": 24,
+              "UNSUPPORTED": 5,
+              "BANNED": 0,
+              "NOT_AUDITED": 0
+            },
+            "unresolved": [],
+            "canUseInEnforced": false,
+            "topBlockers": [
+              {
+                "cardName": "Bellows Breath",
+                "status": "UNSUPPORTED",
+                "bucket": "Basic or descriptor-only",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Downwell",
+                "status": "UNSUPPORTED",
+                "bucket": "Bounce / return",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Existential Dread",
+                "status": "UNSUPPORTED",
+                "bucket": "Bounce / return",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Hard Bargain",
+                "status": "UNSUPPORTED",
+                "bucket": "Reaction / chain / counter",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Turn to Dust",
+                "status": "UNSUPPORTED",
+                "bucket": "Damage / destroy",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              }
+            ]
+          }
+        },
+        {
+          "slug": "diana-top-4-at-sydney-regional-qualifier",
+          "humanName": "Diana Top 4 at Sydney Regional Qualifier",
+          "outputFile": "decks/meta/diana/diana-top-4-at-sydney-regional-qualifier.json",
+          "summary": {
+            "uniqueCards": 26,
+            "counts": {
+              "SUPPORTED": 1,
+              "PARTIAL": 22,
+              "UNSUPPORTED": 3,
+              "BANNED": 0,
+              "NOT_AUDITED": 0
+            },
+            "unresolved": [],
+            "canUseInEnforced": false,
+            "topBlockers": [
+              {
+                "cardName": "Fading Memories",
+                "status": "UNSUPPORTED",
+                "bucket": "Damage / destroy",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Frigid Jewel",
+                "status": "UNSUPPORTED",
+                "bucket": "Equipment lifecycle/effect",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Hard Bargain",
+                "status": "UNSUPPORTED",
+                "bucket": "Reaction / chain / counter",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Abandoned Hall",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely."
+              },
+              {
+                "cardName": "Ravenbloom Conservatory",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "key": "master-yi",
+      "legend": "Master Yi, Wuju Bladesman",
+      "guideUrl": "https://riftbound.gg/master-yi-wuju-bladesman-guide/",
+      "supportStatus": "Blocked",
+      "extractedDecks": [
+        {
+          "slug": "master-yi-wins-s3-guangzhou-city-challenge",
+          "humanName": "Master Yi Wins S3 Guangzhou City Challenge",
+          "outputFile": "decks/meta/master-yi/master-yi-wins-s3-guangzhou-city-challenge.json",
+          "summary": {
+            "uniqueCards": 27,
+            "counts": {
+              "SUPPORTED": 4,
+              "PARTIAL": 22,
+              "UNSUPPORTED": 1,
+              "BANNED": 0,
+              "NOT_AUDITED": 0
+            },
+            "unresolved": [],
+            "canUseInEnforced": false,
+            "topBlockers": [
+              {
+                "cardName": "Repulse",
+                "status": "UNSUPPORTED",
+                "bucket": "Reaction / chain / counter",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Amateur Recital",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              },
+              {
+                "cardName": "Grove of the God-Willow",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              },
+              {
+                "cardName": "Startipped Peak",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              },
+              {
+                "cardName": "Janna - Savior",
+                "status": "PARTIAL",
+                "bucket": "Champion text",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              }
+            ]
+          }
+        },
+        {
+          "slug": "master-yi-wins-s3-chongqing-city-challenge",
+          "humanName": "Master Yi Wins S3 Chongqing City Challenge",
+          "outputFile": "decks/meta/master-yi/master-yi-wins-s3-chongqing-city-challenge.json",
+          "summary": {
+            "uniqueCards": 26,
+            "counts": {
+              "SUPPORTED": 3,
+              "PARTIAL": 20,
+              "UNSUPPORTED": 3,
+              "BANNED": 0,
+              "NOT_AUDITED": 0
+            },
+            "unresolved": [],
+            "canUseInEnforced": false,
+            "topBlockers": [
+              {
+                "cardName": "Challenge",
+                "status": "UNSUPPORTED",
+                "bucket": "Damage / destroy",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Repulse",
+                "status": "UNSUPPORTED",
+                "bucket": "Reaction / chain / counter",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Sabotage",
+                "status": "UNSUPPORTED",
+                "bucket": "Draw / reveal / deck selection",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Altar to Unity",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              },
+              {
+                "cardName": "Star Spring",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              }
+            ]
+          }
+        },
+        {
+          "slug": "master-yi-top-16-at-sydney-regional-qualifier",
+          "humanName": "Master Yi Top 16 at Sydney Regional Qualifier",
+          "outputFile": "decks/meta/master-yi/master-yi-top-16-at-sydney-regional-qualifier.json",
+          "summary": {
+            "uniqueCards": 24,
+            "counts": {
+              "SUPPORTED": 3,
+              "PARTIAL": 20,
+              "UNSUPPORTED": 1,
+              "BANNED": 0,
+              "NOT_AUDITED": 0
+            },
+            "unresolved": [],
+            "canUseInEnforced": false,
+            "topBlockers": [
+              {
+                "cardName": "Alpha Strike",
+                "status": "UNSUPPORTED",
+                "bucket": "XP / Hunt / Level / Buff",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Startipped Peak",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              },
+              {
+                "cardName": "The Arena's Greatest",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              },
+              {
+                "cardName": "Vilemaw's Lair",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              },
+              {
+                "cardName": "Master Yi - Tempered",
+                "status": "PARTIAL",
+                "bucket": "Champion text",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "key": "azir",
+      "legend": "Azir, Emperor of the Sands",
+      "guideUrl": "https://riftbound.gg/azir-emperor-of-the-sands-guide/",
+      "supportStatus": "Blocked",
+      "extractedDecks": [
+        {
+          "slug": "azir-wins-lille-regional-qualifier",
+          "humanName": "Azir Wins Lille Regional Qualifier",
+          "outputFile": "decks/meta/azir/azir-wins-lille-regional-qualifier.json",
+          "summary": {
+            "uniqueCards": 26,
+            "counts": {
+              "SUPPORTED": 2,
+              "PARTIAL": 20,
+              "UNSUPPORTED": 4,
+              "BANNED": 0,
+              "NOT_AUDITED": 0
+            },
+            "unresolved": [],
+            "canUseInEnforced": false,
+            "topBlockers": [
+              {
+                "cardName": "Cull the Weak",
+                "status": "UNSUPPORTED",
+                "bucket": "Damage / destroy",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Facebreaker",
+                "status": "UNSUPPORTED",
+                "bucket": "Hidden / facedown",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Hidden Blade",
+                "status": "UNSUPPORTED",
+                "bucket": "Hidden / facedown",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Wind Wall",
+                "status": "UNSUPPORTED",
+                "bucket": "Reaction / chain / counter",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Hall of Legends",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "key": "sivir",
+      "legend": "Sivir, Battle Mistress",
+      "guideUrl": "https://riftbound.gg/sivir-battle-mistress-guide/",
+      "supportStatus": "Blocked",
+      "extractedDecks": [
+        {
+          "slug": "sivir-2nd-at-sydney-regional-qualifier",
+          "humanName": "Sivir 2nd at Sydney Regional Qualifier",
+          "outputFile": "decks/meta/sivir/sivir-2nd-at-sydney-regional-qualifier.json",
+          "summary": {
+            "uniqueCards": 22,
+            "counts": {
+              "SUPPORTED": 2,
+              "PARTIAL": 13,
+              "UNSUPPORTED": 7,
+              "BANNED": 0,
+              "NOT_AUDITED": 0
+            },
+            "unresolved": [],
+            "canUseInEnforced": false,
+            "topBlockers": [
+              {
+                "cardName": "Dazzling Aurora",
+                "status": "UNSUPPORTED",
+                "bucket": "Equipment lifecycle/effect",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Flurry of Blades",
+                "status": "UNSUPPORTED",
+                "bucket": "Reaction / chain / counter",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Lunar Boon",
+                "status": "UNSUPPORTED",
+                "bucket": "Reaction / chain / counter",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Pack of Wonders",
+                "status": "UNSUPPORTED",
+                "bucket": "Equipment lifecycle/effect",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Sabotage",
+                "status": "UNSUPPORTED",
+                "bucket": "Draw / reveal / deck selection",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "key": "vex",
+      "legend": "Vex, Gloomist",
+      "guideUrl": "https://riftbound.gg/vex-gloomist-guide/",
+      "supportStatus": "Blocked",
+      "extractedDecks": [
+        {
+          "slug": "vex-top-8-at-s3-zhongshan-city-challenge",
+          "humanName": "Vex Top 8 at S3 Zhongshan City Challenge",
+          "outputFile": "decks/meta/vex/vex-top-8-at-s3-zhongshan-city-challenge.json",
+          "summary": {
+            "uniqueCards": 33,
+            "counts": {
+              "SUPPORTED": 3,
+              "PARTIAL": 24,
+              "UNSUPPORTED": 5,
+              "BANNED": 0,
+              "NOT_AUDITED": 1
+            },
+            "unresolved": [
+              {
+                "sourceCardId": "UNL-041",
+                "name": "Allay - Eager Admirer",
+                "type": "Unit",
+                "supertype": "",
+                "setName": "Unleashed",
+                "rulesText": "[Deflect] (Opponents must pay :rb_rune_rainbow: to choose me with a spell or ability.)\nWhile I'm at a battlefield, your other units here have [Deflect].",
+                "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-041.webp"
+              }
+            ],
+            "canUseInEnforced": false,
+            "topBlockers": [
+              {
+                "cardName": "Allay - Eager Admirer",
+                "status": "NOT_AUDITED",
+                "bucket": "Triggered/static card text",
+                "reason": "No local RiftForge card matched \"Allay - Eager Admirer\"."
+              },
+              {
+                "cardName": "Blast Cone",
+                "status": "UNSUPPORTED",
+                "bucket": "Equipment lifecycle/effect",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Emperor's Divide",
+                "status": "UNSUPPORTED",
+                "bucket": "Hidden / facedown",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Existential Dread",
+                "status": "UNSUPPORTED",
+                "bucket": "Bounce / return",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Hard Bargain",
+                "status": "UNSUPPORTED",
+                "bucket": "Reaction / chain / counter",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              }
+            ]
+          }
+        },
+        {
+          "slug": "vex-top-8-at-city-challenge-wuhan",
+          "humanName": "Vex Top 8 at City Challenge — Wuhan",
+          "outputFile": "decks/meta/vex/vex-top-8-at-city-challenge-wuhan.json",
+          "summary": {
+            "uniqueCards": 28,
+            "counts": {
+              "SUPPORTED": 3,
+              "PARTIAL": 22,
+              "UNSUPPORTED": 3,
+              "BANNED": 0,
+              "NOT_AUDITED": 0
+            },
+            "unresolved": [],
+            "canUseInEnforced": false,
+            "topBlockers": [
+              {
+                "cardName": "Emperor's Divide",
+                "status": "UNSUPPORTED",
+                "bucket": "Hidden / facedown",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Seal of Focus",
+                "status": "UNSUPPORTED",
+                "bucket": "Equipment lifecycle/effect",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Wind Wall",
+                "status": "UNSUPPORTED",
+                "bucket": "Reaction / chain / counter",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Abandoned Hall",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely."
+              },
+              {
+                "cardName": "Aspirant's Climb",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              }
+            ]
+          }
+        },
+        {
+          "slug": "vex-top-4-at-sydney-regional-qualifier",
+          "humanName": "Vex Top 4 at Sydney Regional Qualifier",
+          "outputFile": "decks/meta/vex/vex-top-4-at-sydney-regional-qualifier.json",
+          "summary": {
+            "uniqueCards": 25,
+            "counts": {
+              "SUPPORTED": 2,
+              "PARTIAL": 20,
+              "UNSUPPORTED": 3,
+              "BANNED": 0,
+              "NOT_AUDITED": 0
+            },
+            "unresolved": [],
+            "canUseInEnforced": false,
+            "topBlockers": [
+              {
+                "cardName": "Emperor's Divide",
+                "status": "UNSUPPORTED",
+                "bucket": "Hidden / facedown",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Existential Dread",
+                "status": "UNSUPPORTED",
+                "bucket": "Bounce / return",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Switcheroo",
+                "status": "UNSUPPORTED",
+                "bucket": "Hidden / facedown",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Bandle Tree",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              },
+              {
+                "cardName": "Star Spring",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "key": "leblanc",
+      "legend": "LeBlanc, Deceiver",
+      "guideUrl": "https://riftbound.gg/leblanc-deceiver-guide/",
+      "supportStatus": "Blocked",
+      "extractedDecks": [
+        {
+          "slug": "leblanc-wins-s3-zhongshan-city-challenge",
+          "humanName": "LeBlanc Wins S3 Zhongshan City Challenge",
+          "outputFile": "decks/meta/leblanc/leblanc-wins-s3-zhongshan-city-challenge.json",
+          "summary": {
+            "uniqueCards": 24,
+            "counts": {
+              "SUPPORTED": 1,
+              "PARTIAL": 18,
+              "UNSUPPORTED": 5,
+              "BANNED": 0,
+              "NOT_AUDITED": 0
+            },
+            "unresolved": [],
+            "canUseInEnforced": false,
+            "topBlockers": [
+              {
+                "cardName": "Cull the Weak",
+                "status": "UNSUPPORTED",
+                "bucket": "Damage / destroy",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Deadly Flourish",
+                "status": "UNSUPPORTED",
+                "bucket": "Reaction / chain / counter",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Hidden Blade",
+                "status": "UNSUPPORTED",
+                "bucket": "Hidden / facedown",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Imperial Decree",
+                "status": "UNSUPPORTED",
+                "bucket": "Damage / destroy",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Mirror Image",
+                "status": "UNSUPPORTED",
+                "bucket": "Damage / destroy",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              }
+            ]
+          }
+        },
+        {
+          "slug": "leblanc-wins-city-challenge-changzhou",
+          "humanName": "LeBlanc wins City Challenge — Changzhou",
+          "outputFile": "decks/meta/leblanc/leblanc-wins-city-challenge-changzhou.json",
+          "summary": {
+            "uniqueCards": 25,
+            "counts": {
+              "SUPPORTED": 1,
+              "PARTIAL": 18,
+              "UNSUPPORTED": 6,
+              "BANNED": 0,
+              "NOT_AUDITED": 0
+            },
+            "unresolved": [],
+            "canUseInEnforced": false,
+            "topBlockers": [
+              {
+                "cardName": "Cull the Weak",
+                "status": "UNSUPPORTED",
+                "bucket": "Damage / destroy",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Facebreaker",
+                "status": "UNSUPPORTED",
+                "bucket": "Hidden / facedown",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Hidden Blade",
+                "status": "UNSUPPORTED",
+                "bucket": "Hidden / facedown",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Mirror Image",
+                "status": "UNSUPPORTED",
+                "bucket": "Damage / destroy",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Shadow's Call",
+                "status": "UNSUPPORTED",
+                "bucket": "Draw / reveal / deck selection",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              }
+            ]
+          }
+        },
+        {
+          "slug": "leblanc-top-8-at-sydney-regional-qualifier",
+          "humanName": "LeBlanc Top 8 at Sydney Regional Qualifier",
+          "outputFile": "decks/meta/leblanc/leblanc-top-8-at-sydney-regional-qualifier.json",
+          "summary": {
+            "uniqueCards": 26,
+            "counts": {
+              "SUPPORTED": 1,
+              "PARTIAL": 21,
+              "UNSUPPORTED": 4,
+              "BANNED": 0,
+              "NOT_AUDITED": 0
+            },
+            "unresolved": [],
+            "canUseInEnforced": false,
+            "topBlockers": [
+              {
+                "cardName": "Baited Hook",
+                "status": "UNSUPPORTED",
+                "bucket": "Equipment lifecycle/effect",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Hidden Blade",
+                "status": "UNSUPPORTED",
+                "bucket": "Hidden / facedown",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Mirror Image",
+                "status": "UNSUPPORTED",
+                "bucket": "Damage / destroy",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Turn to Dust",
+                "status": "UNSUPPORTED",
+                "bucket": "Damage / destroy",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Aspirant's Climb",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "key": "annie",
+      "legend": "Annie, Dark Child",
+      "guideUrl": "https://riftbound.gg/annie-dark-child-guide/",
+      "supportStatus": "Blocked",
+      "extractedDecks": [
+        {
+          "slug": "annie-4th-at-lille-regional-qualifier",
+          "humanName": "Annie 4th at Lille Regional Qualifier",
+          "outputFile": "decks/meta/annie/annie-4th-at-lille-regional-qualifier.json",
+          "summary": {
+            "uniqueCards": 27,
+            "counts": {
+              "SUPPORTED": 1,
+              "PARTIAL": 22,
+              "UNSUPPORTED": 4,
+              "BANNED": 0,
+              "NOT_AUDITED": 0
+            },
+            "unresolved": [],
+            "canUseInEnforced": false,
+            "topBlockers": [
+              {
+                "cardName": "Factory Recall",
+                "status": "UNSUPPORTED",
+                "bucket": "Bounce / return",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Hard Bargain",
+                "status": "UNSUPPORTED",
+                "bucket": "Reaction / chain / counter",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Switcheroo",
+                "status": "UNSUPPORTED",
+                "bucket": "Hidden / facedown",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Thermo Beam",
+                "status": "UNSUPPORTED",
+                "bucket": "Damage / destroy",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Seat of Power",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

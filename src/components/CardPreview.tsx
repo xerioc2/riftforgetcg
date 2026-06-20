@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { unsupportedCardReason } from '../lib/cardActions';
+import { cardDisplayStats } from '../lib/cardDisplayStats';
 import { keywordDescription } from '../lib/cardKeywords';
 import { cardSupportStatus } from '../lib/deckSupport';
+import { equipCostForCard, equipCostLabel, isEquipRulesText } from '../lib/equipment';
 import type { CardInstance, RiftCard } from '../types';
 
 const supportBadgeClass: Record<string, string> = {
@@ -12,12 +14,26 @@ const supportBadgeClass: Record<string, string> = {
   NOT_AUDITED: 'border-slate-500 text-slate-400',
 };
 
-export function CardPreview({ card, instance, onInspect }: { card: RiftCard | null; instance?: CardInstance; onInspect?: (card: CardInstance) => void }) {
+export function CardPreview({
+  card,
+  instance,
+  allInstances,
+  cardsById,
+  onInspect,
+}: {
+  card: RiftCard | null;
+  instance?: CardInstance;
+  allInstances?: CardInstance[];
+  cardsById?: Map<string, RiftCard>;
+  onInspect?: (card: CardInstance) => void;
+}) {
   const [position, setPosition] = useState({ x: 12, y: 12 });
 
   if (!card) return null;
   const unsupportedReason = unsupportedCardReason(card);
   const support = cardSupportStatus(card);
+  const stats = cardDisplayStats(card, instance, { allInstances, cardsById });
+  const equipCost = isEquipRulesText(card) ? equipCostForCard(card) : null;
 
   return (
     <aside
@@ -71,16 +87,26 @@ export function CardPreview({ card, instance, onInspect }: { card: RiftCard | nu
           <span className={`mt-2 inline-flex border px-2 py-1 text-xs font-semibold uppercase tracking-wide ${supportBadgeClass[support.status]}`} title={support.reason}>
             {support.status.replace('_', ' ')}
           </span>
-          {card.power != null && card.health != null ? (
+          {stats.hasCombatStats ? (
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-semibold text-slate-200">
-              <span className="border border-slate-700/80 bg-[#0b1017] px-2 py-1">
-                Might {card.power}
-                {(instance?.mightBonus ?? 0) > 0 ? ` (+${instance?.mightBonus})` : ''}
+              <span className={`border px-2 py-1 ${stats.mightModified ? 'border-forge/60 bg-[#161307] text-forge' : 'border-slate-700/80 bg-[#0b1017]'}`}>
+                {stats.mightLabel}
               </span>
               <span className="border border-slate-700/80 bg-[#0b1017] px-2 py-1">
-                Guard {instance?.currentHealth ?? card.health}/{card.health}
+                {stats.healthLabel}
               </span>
+              {stats.damageLabel ? <span className="col-span-2 border border-ember/60 bg-[#1a0d0a] px-2 py-1 text-ember">{stats.damageLabel}</span> : null}
+              {stats.equipmentModifierLabels.length ? (
+                <span className="col-span-2 border border-forge/50 bg-[#130f06] px-2 py-1 text-forge">
+                  {stats.equipmentModifierLabels.join('; ')}
+                </span>
+              ) : null}
             </div>
+          ) : null}
+          {equipCost ? (
+            <p className="mt-3 border border-forge/35 bg-[#130f06] px-2 py-2 text-xs font-semibold leading-5 text-forge">
+              Equip cost: {equipCostLabel(equipCost)}
+            </p>
           ) : null}
           {['Spell', 'Gear'].includes(card.type) ? (
             <p className={`mt-3 border border-slate-700/70 bg-[#0b1017] px-2 py-2 text-xs font-semibold leading-5 ${unsupportedReason ? 'text-ember' : 'text-mint'}`}>

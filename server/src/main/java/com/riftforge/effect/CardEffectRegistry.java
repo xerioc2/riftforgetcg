@@ -80,6 +80,14 @@ public class CardEffectRegistry {
     upsertSnapshot(state, revealedOwnerId, revealedOwnerId, handIds);
   }
 
+  public static void revealHandToViewer(LiveGameState state, String revealedToPlayerId, String revealedOwnerId) {
+    List<String> handIds = state.getCards().stream()
+        .filter(card -> card.getOwnerId().equals(revealedOwnerId) && card.getZone() == ZoneName.HAND)
+        .map(CardInstance::getInstanceId)
+        .toList();
+    upsertSnapshot(state, revealedToPlayerId, revealedOwnerId, handIds);
+  }
+
   private static void upsertSnapshot(LiveGameState state, String toPlayer, String owner, List<String> ids) {
     state.getRevealedHands().removeIf(snapshot ->
         snapshot.getRevealedToPlayerId().equals(toPlayer) && snapshot.getRevealedOwnerId().equals(owner));

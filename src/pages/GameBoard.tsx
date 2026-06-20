@@ -9,24 +9,42 @@ import { GameSidebar } from '../components/GameSidebar';
 import { HandRack } from '../components/HandRack';
 import { PhaseBar } from '../components/PhaseBar';
 import { PlayerPanel } from '../components/PlayerPanel';
+import { BattlefieldLocationDisplay } from '../components/board/BattlefieldLocationDisplay';
 import { CardSprite } from '../components/board/CardSprite';
 import { RuneSprite } from '../components/board/RuneSprite';
-import { autoPlaceInZone, computeLayout, runeSlotPositions, type ZoneRect } from '../components/board/BoardLayout';
+import {
+  autoPlaceInZone,
+  battlefieldLocationForPoint,
+  battlefieldLocationLabel,
+  battlefieldZoneForCard,
+  clampPlacementToZone,
+  computeLayout,
+  DEFAULT_BATTLEFIELD_LOCATION_ID,
+  normalizeBattlefieldLocationId,
+  runeSlotPositions,
+  type ZoneRect,
+} from '../components/board/BoardLayout';
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
 import { readableHttpError } from '../lib/http';
-import { hasUnsupportedAdditionalCost, isActionCard, isAmbushCard, isEquipCard, isLegalTargetForMode, isReactionCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode } from '../lib/cardActions';
+import { canUseSupportedChainResponse, hasUnsupportedAdditionalCost, isAbandonCounterCard, isActionCard, isAmbushCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isEquipCard, isGustReactionCard, isIreliaBladeDancerActivatedAbility, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
 import { appBuildLabel, APP_VERSION, BUILD_DATE, BUILD_TAG } from '../lib/appMetadata';
 import { buildDebugInfo } from '../lib/debugInfo';
+import { attachedGearDisplayPosition, attachedGearDisplayScale, attachedGearIsIndependentBoardPiece, attachedGearNamesForHost } from '../lib/attachments';
+import { battlefieldLaneDisplays } from '../lib/battlefieldDisplay';
 import { isBotPlayer, legalActionHint, phaseGuidance, waitingStatusText } from '../lib/gameGuidance';
+import { equipCostForCard, equipCostLabel, runeMatchesEquipDomain } from '../lib/equipment';
+import { hiddenCardDisplayForViewer } from '../lib/hiddenCards';
+import { loadPriorityStopSettings, savePriorityStopSettings, shouldLocalAutoPassPriority, type PriorityStopSettings } from '../lib/priorityStops';
 import { useLocalPlayer } from '../lib/playerContext';
+import { getServerBuildInfo } from '../lib/serverBuildInfo';
 import { getRoomSessionToken } from '../lib/roomSession';
 import { play, preload } from '../lib/sfx';
 import { createGameClient, joinGame, sendMove } from '../lib/stompGame';
 import { useCardStore } from '../store/cards';
 import { useGameStore } from '../store/game';
 import { notifyError, notifySuccess, notifyWarning, useToastStore } from '../store/toasts';
-import type { CardInstance, LegalAction, LiveGameState, PendingCardChoiceAssignment, RevealedHandSnapshot, RiftCard, ZoneName } from '../types';
+import type { CardInstance, ChainItem, LegalAction, LiveGameState, PendingCardChoiceAssignment, RevealedHandSnapshot, RiftCard, ZoneName } from '../types';
 
 const NAV_HEIGHT = 73;
 const SIDEBAR_WIDTH = 280;
@@ -36,7 +54,7 @@ const CARD_PREVIEW_DELAY_MS = 2000;
 const TOTAL_RUNE_SLOTS = 11;
 const GITHUB_ISSUES_URL = 'https://github.com/xerioc2/riftforgetcg/issues/new/choose';
 const ALPHA_LIMITATIONS = [
-  'Single-battlefield alpha: official multiple-battlefield positioning is deferred.',
+  'Multi-location Battlefield lanes are alpha support; Battlefield effects, hidden slots, and full official location rules are deferred.',
   'Reaction and chain/counterspell timing are not fully implemented.',
   'Hidden cards can be hidden, but play-from-hidden timing is incomplete.',
   'Ambush-as-Reaction and additional-cost Ambush cards are incomplete.',
@@ -81,11 +99,37 @@ function zoneKey(ownerId: string, zoneName: string) {
 }
 
 function visualZoneFor(instance: CardInstance, zones: ZoneRect[]) {
+  if (sameZone(instance.zone, 'battlefield')) {
+    return battlefieldZoneForCard(zones, instance.ownerId, instance.battlefieldLocationId);
+  }
   return zones.find((zone) => sameZone(zone.zoneName, instance.zone) && zone.ownerId === instance.ownerId);
 }
 
+function visualZoneKey(instance: CardInstance) {
+  if (sameZone(instance.zone, 'battlefield')) {
+    return `${instance.ownerId}:battlefield:${normalizeBattlefieldLocationId(instance.battlefieldLocationId)}`;
+  }
+  return zoneKey(instance.ownerId, instance.zone);
+}
+
 function shouldAutoPlacePublicCard(instance: CardInstance) {
-  return (sameZone(instance.zone, 'base') || sameZone(instance.zone, 'battlefield')) && instance.x === 0 && instance.y === 0;
+  if (!sameZone(instance.zone, 'base') && !sameZone(instance.zone, 'battlefield')) return false;
+  if (instance.x === 0 && instance.y === 0) return true;
+  return instance.ownerId.toLowerCase().startsWith('bot-player-');
+}
+
+function PriorityStopToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
+  return (
+    <label className="flex items-center justify-between gap-2">
+      <span>{label}</span>
+      <input
+        type="checkbox"
+        className="h-3.5 w-3.5 accent-[#e0b15a]"
+        checked={checked}
+        onChange={(event) => onChange(event.currentTarget.checked)}
+      />
+    </label>
+  );
 }
 
 export function GameBoard() {
@@ -107,6 +151,8 @@ export function GameBoard() {
   const [hoveredInstance, setHoveredInstance] = useState<CardInstance | undefined>();
   const [inspectCard, setInspectCard] = useState<CardInstance | null>(null);
   const [pendingTargetSelection, setPendingTargetSelection] = useState<{ instanceId: string; mode: TargetMode } | null>(null);
+  const [pendingChainTargetSelection, setPendingChainTargetSelection] = useState<{ instanceId: string; mode: 'DEFY' | 'NOT_SO_FAST' | 'ABANDON' } | null>(null);
+  const [pendingMultiTargetSelection, setPendingMultiTargetSelection] = useState<{ instanceId: string; requirements: TargetRequirement[]; selected: { role: TargetRole; instanceId: string }[] } | null>(null);
   const [pendingAccelerate, setPendingAccelerate] = useState<{ instanceId: string; card: RiftCard } | null>(null);
   const [pendingVision, setPendingVision] = useState<{ logId: string; cardId: string; cardName: string } | null>(null);
   const [choiceSubmitting, setChoiceSubmitting] = useState(false);
@@ -118,6 +164,10 @@ export function GameBoard() {
   const [handHeight, setHandHeight] = useState(230);
   const [wsConnected, setWsConnected] = useState(false);
   const [waitingTooLong, setWaitingTooLong] = useState(false);
+  const [awaitingServerUpdate, setAwaitingServerUpdate] = useState(false);
+  const [lastSubmittedActionType, setLastSubmittedActionType] = useState<string | null>(null);
+  const [lastActionFailureMessage, setLastActionFailureMessage] = useState<string | null>(null);
+  const [priorityStops, setPriorityStops] = useState<PriorityStopSettings>(() => loadPriorityStopSettings());
   const boardFrameRef = useRef<HTMLDivElement | null>(null);
   const stompClientRef = useRef<Client | null>(null);
   const prevCards = useRef<Map<string, CardInstance>>(new Map());
@@ -129,6 +179,7 @@ export function GameBoard() {
   const handledVisionLogRef = useRef<string | null>(null);
   const lastUserStateAt = useRef(0);
   const roomFallbackTimer = useRef<number | null>(null);
+  const lastLocalAutoPassKey = useRef<string | null>(null);
 
   const roomCode = code?.toUpperCase() ?? '';
   const cardsById = useMemo(() => new Map(cards.map((card) => [card.id, card])), [cards]);
@@ -146,6 +197,10 @@ export function GameBoard() {
     }
     return positionsByOwner;
   }, [playerIds, zones]);
+  const battlefieldDisplays = useMemo(() => {
+    if (!state) return [];
+    return battlefieldLaneDisplays(state.players, player.id, cardsById, zones);
+  }, [cardsById, player.id, state, zones]);
   const hand = useMemo(() => (state?.cards ?? []).filter((card) => card.ownerId === player.id && sameZone(card.zone, 'hand')), [player.id, state?.cards]);
   const handInstanceKey = useMemo(() => hand.map((card) => card.instanceId).sort().join(','), [hand]);
   const hasMulliganed = state?.mulligansDone?.includes(player.id) ?? false;
@@ -169,6 +224,10 @@ export function GameBoard() {
   }, []);
 
   useEffect(() => {
+    savePriorityStopSettings(priorityStops);
+  }, [priorityStops]);
+
+  useEffect(() => {
     const element = boardFrameRef.current;
     if (!element) return;
     const observer = new ResizeObserver(([entry]) => {
@@ -185,6 +244,7 @@ export function GameBoard() {
     if (state?.currentPhase !== 'MAIN' || state?.activeShowdown) {
       setPendingRuneTaps(new Set());
       setPendingTargetSelection(null);
+      setPendingMultiTargetSelection(null);
     }
   }, [state?.activeShowdown, state?.currentPhase]);
 
@@ -211,7 +271,10 @@ export function GameBoard() {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setPendingTargetSelection(null);
+      if (event.key === 'Escape') {
+        setPendingTargetSelection(null);
+        setPendingMultiTargetSelection(null);
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -250,6 +313,7 @@ export function GameBoard() {
       }
       prevCards.current = new Map(incoming.cards.map((card) => [card.instanceId, card]));
       prevState.current = incoming;
+      setAwaitingServerUpdate(false);
       setState(incoming);
     },
     [player.id, setState],
@@ -294,7 +358,15 @@ export function GameBoard() {
             }
             if (msg.type === 'ERROR') {
               addChat({ id: crypto.randomUUID(), userId: msg.playerId, email: null, text: msg.message, sentAt: new Date().toISOString() });
+              setAwaitingServerUpdate(false);
+              setLastActionFailureMessage(msg.message);
               notifyError('Action failed', msg.message);
+              window.setTimeout(() => {
+                void fetch(playerStateUrl)
+                  .then((r) => (r.ok ? r.json() as Promise<LiveGameState> : Promise.reject(new Error('State refresh failed.'))))
+                  .then(handleIncomingState)
+                  .catch(() => notifyWarning('Unable to refresh state after failed action.'));
+              }, 250);
             }
           },
           () => joinGame(client, roomCode),
@@ -349,6 +421,21 @@ export function GameBoard() {
       .catch(() => notifyWarning('Unable to refresh state.'));
   }, [handleIncomingState, playerStateUrl]);
 
+  useEffect(() => {
+    if (!awaitingServerUpdate) return;
+    const timer = window.setTimeout(() => {
+      setAwaitingServerUpdate(false);
+      fetchProjectedState();
+    }, 2500);
+    return () => window.clearTimeout(timer);
+  }, [awaitingServerUpdate, fetchProjectedState]);
+
+  useEffect(() => {
+    if (!waitingTooLong) return;
+    notifyWarning('Still waiting for server update', 'Refreshing the current game state once.');
+    fetchProjectedState();
+  }, [fetchProjectedState, waitingTooLong]);
+
   const publishMove = (move: Parameters<typeof sendMove>[2]) => {
     if (!stompClientRef.current || !wsConnected) {
       addChat({
@@ -361,13 +448,58 @@ export function GameBoard() {
       notifyWarning('Connection is not ready', 'RiftForge is reconnecting. Try again in a moment.');
       return;
     }
+    setAwaitingServerUpdate(true);
+    setLastSubmittedActionType(move.type);
+    setLastActionFailureMessage(null);
     sendMove(stompClientRef.current, roomCode, move);
     window.setTimeout(fetchProjectedState, 300);
+  };
+
+  const assignCombatDamage = () => {
+    if (!canTakeAction(state, 'ASSIGN_COMBAT_DAMAGE')) {
+      notifyWarning('Action unavailable', 'The server has no combat damage assignment action available right now.');
+      return;
+    }
+    if (!state?.activeShowdown) return;
+    const assignmentState = state.combatAssignmentState;
+    if (!assignmentState || assignmentState.assigningPlayerId !== player.id || !assignmentState.canAutoAssign) {
+      notifyWarning(
+        'Cannot auto-assign combat damage',
+        'The server did not provide a valid automatic assignment for this board state.',
+      );
+      return;
+    }
+    const assignments = assignmentState.suggestedAssignments ?? [];
+    publishMove({ type: 'ASSIGN_COMBAT_DAMAGE', playerId: player.id, assignments });
   };
 
   useEffect(() => {
     if (!state?.pendingChoice) setChoiceSubmitting(false);
   }, [state?.pendingChoice]);
+
+  useEffect(() => {
+    if (!state?.chainState) setPendingChainTargetSelection(null);
+  }, [state?.chainState]);
+
+  useEffect(() => {
+    const chain = state?.chainState;
+    const autoPassKey = chain
+      ? `${chain.chainId}:${chain.focusedPlayerId}:${chain.consecutivePasses ?? 0}:${chain.readyToResolveTop ? 'ready' : 'open'}:${state?.updatedAt ?? ''}`
+      : null;
+    if (!shouldLocalAutoPassPriority({
+      settings: priorityStops,
+      legalActions: state?.legalActions,
+      chainState: chain,
+      playerId: player.id,
+      activePlayerId: state?.activePlayerId,
+    })) {
+      lastLocalAutoPassKey.current = null;
+      return;
+    }
+    if (!autoPassKey || lastLocalAutoPassKey.current === autoPassKey) return;
+    lastLocalAutoPassKey.current = autoPassKey;
+    publishMove({ type: 'PASS_CHAIN_FOCUS', playerId: player.id });
+  }, [player.id, priorityStops, state?.activePlayerId, state?.chainState, state?.legalActions, state?.updatedAt]);
 
   const handleCardHover = (card: RiftCard | null, instance?: CardInstance) => {
     if (previewShowTimer.current != null) window.clearTimeout(previewShowTimer.current);
@@ -425,22 +557,248 @@ export function GameBoard() {
     return { paymentRuneIds: [...selectedRunes], premiumRuneIds };
   };
 
+  const selectPaymentRunesForEnergyCost = (label: string, energyCost: number) => {
+    const playerEnergy = state?.players.find((statePlayer) => statePlayer.userId === player.id)?.availableEnergy ?? 0;
+    const selectedRunes = new Set<string>();
+    let plannedEnergy = 0;
+    const neededEnergy = Math.max(0, energyCost - playerEnergy);
+    for (const runeId of pendingRuneTaps) {
+      if (plannedEnergy >= neededEnergy) break;
+      const rune = state?.runes?.find((candidate) => candidate.instanceId === runeId);
+      if (!rune || rune.ownerId !== player.id || rune.tapped) continue;
+      selectedRunes.add(rune.instanceId);
+      plannedEnergy += rune.normalEnergy;
+    }
+    for (const rune of state?.runes ?? []) {
+      if (plannedEnergy >= neededEnergy) break;
+      if (rune.ownerId !== player.id || rune.tapped || selectedRunes.has(rune.instanceId)) continue;
+      selectedRunes.add(rune.instanceId);
+      plannedEnergy += rune.normalEnergy;
+    }
+    if (plannedEnergy < neededEnergy) {
+      notifyWarning('Insufficient energy', `${label} needs ${neededEnergy} energy from ready runes.`);
+      return null;
+    }
+    setPendingRuneTaps(new Set());
+    return { paymentRuneIds: [...selectedRunes], premiumRuneIds: [] as string[] };
+  };
+
+  const selectPaymentRunesForPremiumCost = (label: string, premiumCost: number) => {
+    const premiumRuneIds: string[] = [];
+    const selected = new Set<string>();
+    for (const runeId of pendingRuneTaps) {
+      if (premiumRuneIds.length >= premiumCost) break;
+      const rune = state?.runes?.find((candidate) => candidate.instanceId === runeId);
+      if (!rune || rune.ownerId !== player.id || rune.tapped) continue;
+      premiumRuneIds.push(rune.instanceId);
+      selected.add(rune.instanceId);
+    }
+    for (const rune of state?.runes ?? []) {
+      if (premiumRuneIds.length >= premiumCost) break;
+      if (rune.ownerId !== player.id || rune.tapped || selected.has(rune.instanceId)) continue;
+      premiumRuneIds.push(rune.instanceId);
+    }
+    if (premiumRuneIds.length < premiumCost) {
+      notifyWarning('Insufficient premium payment', `${label} needs ${premiumCost} ready rune${premiumCost === 1 ? '' : 's'} for the rainbow payment.`);
+      return null;
+    }
+    setPendingRuneTaps(new Set());
+    return { paymentRuneIds: [] as string[], premiumRuneIds };
+  };
+
+  const canPayPremiumCost = (premiumCost: number) =>
+    (state?.runes ?? []).filter((rune) => rune.ownerId === player.id && !rune.tapped).length >= premiumCost;
+
+  const canPayEnergyCost = (energyCost: number) => {
+    const playerEnergy = state?.players.find((statePlayer) => statePlayer.userId === player.id)?.availableEnergy ?? 0;
+    const readyRuneEnergy = (state?.runes ?? [])
+      .filter((rune) => rune.ownerId === player.id && !rune.tapped)
+      .reduce((sum, rune) => sum + Math.max(0, rune.normalEnergy), 0);
+    return playerEnergy + readyRuneEnergy >= energyCost;
+  };
+
+  const equipPaymentForCard = (cardDef: RiftCard | undefined, showWarnings: boolean) => {
+    const cost = equipCostForCard(cardDef);
+    const playerEnergy = state?.players.find((statePlayer) => statePlayer.userId === player.id)?.availableEnergy ?? 0;
+    const readyRunes = (state?.runes ?? []).filter((rune) => rune.ownerId === player.id && !rune.tapped);
+    const premiumRuneIds: string[] = [];
+    const reservedRuneIds = new Set<string>();
+    for (const domain of cost.premiumDomains) {
+      const rune = readyRunes.find((candidate) =>
+        !reservedRuneIds.has(candidate.instanceId)
+        && runeMatchesEquipDomain(domain, cardsById.get(candidate.cardId)));
+      if (!rune) {
+        if (showWarnings) notifyWarning('Insufficient equip payment', `${cardDef?.name ?? 'That Equipment'} needs a ${domain.toLowerCase()} rune to equip.`);
+        return null;
+      }
+      premiumRuneIds.push(rune.instanceId);
+      reservedRuneIds.add(rune.instanceId);
+    }
+    const selectedRunes = new Set<string>();
+    let plannedEnergy = 0;
+    const neededEnergy = Math.max(0, cost.energyCost - playerEnergy);
+    for (const runeId of pendingRuneTaps) {
+      if (plannedEnergy >= neededEnergy) break;
+      const rune = state?.runes?.find((candidate) => candidate.instanceId === runeId);
+      if (!rune || rune.ownerId !== player.id || rune.tapped || reservedRuneIds.has(rune.instanceId)) continue;
+      selectedRunes.add(rune.instanceId);
+      plannedEnergy += rune.normalEnergy;
+    }
+    for (const rune of readyRunes) {
+      if (plannedEnergy >= neededEnergy) break;
+      if (reservedRuneIds.has(rune.instanceId) || selectedRunes.has(rune.instanceId)) continue;
+      selectedRunes.add(rune.instanceId);
+      plannedEnergy += rune.normalEnergy;
+    }
+    if (plannedEnergy < neededEnergy) {
+      if (showWarnings) notifyWarning('Insufficient energy', `${cardDef?.name ?? 'That Equipment'} needs ${neededEnergy} energy from ready runes to equip.`);
+      return null;
+    }
+    return { paymentRuneIds: [...selectedRunes], premiumRuneIds };
+  };
+
+  const canPayEquipCost = (cardDef: RiftCard | undefined) => equipPaymentForCard(cardDef, false) != null;
+
+  const selectPaymentRunesForEquip = (cardDef: RiftCard | undefined) => {
+    const payment = equipPaymentForCard(cardDef, true);
+    if (!payment) return null;
+    setPendingRuneTaps(new Set());
+    return payment;
+  };
+
   const legalTargetsForMode = (mode: TargetMode) =>
     (state?.cards ?? []).filter((instance) => {
       const targetDef = cardsById.get(instance.cardId);
       return isLegalTargetForMode(instance, targetDef, mode, player.id);
     });
 
+  const isLegalDefyChainTarget = (item: ChainItem) => {
+    if (item.status && item.status !== 'PENDING') return false;
+    if (!item.counterable || !item.targetableOnChain) return false;
+    if (item.chainItemType && item.chainItemType !== 'SPELL') return false;
+    if (item.sourceCardName === 'Hidden chain item') return false;
+    const sourceCard = item.sourceCardId ? cardsById.get(item.sourceCardId) : undefined;
+    if (!sourceCard || sourceCard.type?.toLowerCase() !== 'spell') return false;
+    return (sourceCard.cost ?? 0) <= 4 && (sourceCard.premiumCost ?? 0) <= 1;
+  };
+
+  const legalDefyChainTargets = () => (state?.chainState?.chainItems ?? []).filter(isLegalDefyChainTarget);
+
+  const isLegalAbandonChainTarget = (item: ChainItem) => {
+    if (item.status && item.status !== 'PENDING') return false;
+    if (!item.counterable || !item.targetableOnChain) return false;
+    if (item.chainItemType && item.chainItemType !== 'SPELL') return false;
+    if (item.sourceCardName === 'Hidden chain item') return false;
+    const sourceCard = item.sourceCardId ? cardsById.get(item.sourceCardId) : undefined;
+    return Boolean(sourceCard && sourceCard.type?.toLowerCase() === 'spell');
+  };
+
+  const legalAbandonChainTargets = () => (state?.chainState?.chainItems ?? []).filter(isLegalAbandonChainTarget);
+
+  const isLegalNotSoFastChainTarget = (item: ChainItem) => {
+    if (item.status && item.status !== 'PENDING') return false;
+    if (!item.counterable || !item.targetableOnChain) return false;
+    if (item.chainItemType && item.chainItemType !== 'SPELL') return false;
+    if (item.sourceCardName === 'Hidden chain item') return false;
+    if (item.controllerPlayerId === player.id) return false;
+    const sourceCard = item.sourceCardId ? cardsById.get(item.sourceCardId) : undefined;
+    if (!sourceCard || sourceCard.type?.toLowerCase() !== 'spell') return false;
+    return (item.chainTargets ?? []).some((target) =>
+      target.publicSafe
+      && target.targetControllerPlayerId === player.id
+      && ['UNIT', 'CHAMPION_UNIT', 'GEAR'].includes(String(target.targetKind ?? '').toUpperCase()));
+  };
+
+  const legalNotSoFastChainTargets = () => (state?.chainState?.chainItems ?? []).filter(isLegalNotSoFastChainTarget);
+
+  const hasLegalGustChainTarget = () => legalTargetsForMode('GUST_BATTLEFIELD_UNIT').length > 0;
+  const hasLegalDisciplineChainTarget = () => legalTargetsForMode('ANY_BATTLEFIELD_UNIT').length > 0;
+  const hasLegalEnGardeChainTarget = () => legalTargetsForMode('FRIENDLY_UNIT').length > 0;
+  const hasLegalDefiantDanceChainTarget = () => legalTargetsForMode('ANY_BATTLEFIELD_UNIT').length >= 2;
+  const hasLegalFlashChainTarget = () => legalTargetsForMode('FRIENDLY_UNIT').length > 0;
+
+  const canPlayChainReactionCard = (card: RiftCard | undefined) => {
+    return chainActive && canUseSupportedChainResponse(card, {
+      canPlayCard: canTakeAction(state, 'PLAY_CARD'),
+      hasLegalGustTarget: hasLegalGustChainTarget(),
+      hasLegalDisciplineTarget: hasLegalDisciplineChainTarget(),
+      hasLegalEnGardeTarget: hasLegalEnGardeChainTarget(),
+      hasLegalDefiantDanceTarget: hasLegalDefiantDanceChainTarget(),
+      hasLegalFlashTarget: hasLegalFlashChainTarget(),
+      hasLegalDefyTarget: legalDefyChainTargets().length > 0,
+      hasLegalNotSoFastTarget: legalNotSoFastChainTargets().length > 0,
+      hasLegalAbandonTarget: legalAbandonChainTargets().length > 0,
+    });
+  };
+
+  const beginChainTargetSelection = (instanceId: string, mode: 'DEFY' | 'NOT_SO_FAST' | 'ABANDON') => {
+    const hasTarget = mode === 'DEFY'
+      ? legalDefyChainTargets().length > 0
+      : mode === 'ABANDON'
+        ? legalAbandonChainTargets().length > 0
+      : legalNotSoFastChainTargets().length > 0;
+    if (!hasTarget) {
+      notifyWarning('No legal chain targets', mode === 'DEFY'
+        ? 'Defy needs a pending public spell chain item it can counter.'
+        : mode === 'ABANDON'
+          ? 'Abandon needs a pending public spell chain item it can counter.'
+        : 'Not So Fast needs an enemy pending spell that chooses your friendly Unit or Gear.');
+      return false;
+    }
+    setPendingTargetSelection(null);
+    setPendingMultiTargetSelection(null);
+    setPendingChainTargetSelection({ instanceId, mode });
+    return true;
+  };
+
   const beginTargetSelection = (instanceId: string, mode: TargetMode) => {
     if (legalTargetsForMode(mode).length === 0) {
       notifyWarning('No legal targets', noLegalTargetsMessage(mode));
       return false;
     }
+    setPendingMultiTargetSelection(null);
+    setPendingChainTargetSelection(null);
     setPendingTargetSelection({ instanceId, mode });
     return true;
   };
 
-  const playCardToBase = (instanceId: string, cardDef: RiftCard | undefined, accelerate = false, targetInstanceId?: string) => {
+  const beginMultiTargetSelection = (instanceId: string, requirements: TargetRequirement[]) => {
+    const missing = requirements.find((requirement) => !requirement.optional && legalTargetsForMode(requirement.mode).length === 0);
+    if (missing) {
+      notifyWarning('No legal targets', noLegalTargetsMessage(missing.mode));
+      return false;
+    }
+    setPendingTargetSelection(null);
+    setPendingChainTargetSelection(null);
+    setPendingMultiTargetSelection({ instanceId, requirements, selected: [] });
+    return true;
+  };
+
+  const playCounterReaction = (instanceId: string, targetChainItemId: string) => {
+    const instance = state?.cards.find((card) => card.instanceId === instanceId);
+    const cardDef = instance ? cardsById.get(instance.cardId) : undefined;
+    const payment = selectPaymentRunesForCard(cardDef);
+    if (!payment) return;
+    publishMove({
+      type: 'PLAY_CARD',
+      playerId: player.id,
+      instanceId,
+      targetZone: 'BASE',
+      x: 0,
+      y: 0,
+      targetChainItemId,
+      ...payment,
+    });
+    setPendingChainTargetSelection(null);
+  };
+
+  const playCardToBase = (
+    instanceId: string,
+    cardDef: RiftCard | undefined,
+    accelerate = false,
+    targetInstanceId?: string,
+    targets?: { role: TargetRole; instanceId: string }[],
+  ) => {
     const payment = selectPaymentRunesForCard(cardDef, accelerate ? 1 : 0);
     if (!payment) return;
     const isRune = cardDef?.type?.toLowerCase() === 'rune';
@@ -450,16 +808,25 @@ export function GameBoard() {
       const runePosition = runeZone ? runeSlotPositions(runeZone, TOTAL_RUNE_SLOTS)[Math.min(runeCount, TOTAL_RUNE_SLOTS - 1)] : undefined;
       const runeX = runePosition?.x ?? size.width / 2;
       const runeY = runePosition?.y ?? size.height / 2;
-      publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'RUNE', x: runeX, y: runeY, targetInstanceId, accelerate, ...payment });
+      publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'RUNE', x: runeX, y: runeY, targetInstanceId, targets, accelerate, ...payment });
       return;
     }
     const base = zones.find((zone) => zone.zoneName === 'base' && zone.ownerId === player.id);
     const baseCount = state?.cards.filter((card) => card.ownerId === player.id && sameZone(card.zone, 'base')).length ?? 0;
     const position = base ? autoPlaceInZone(base, baseCount, baseCount + 1) : { x: size.width / 2, y: size.height / 2 };
-    publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'BASE', ...position, targetInstanceId, accelerate, ...payment });
+    publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'BASE', ...position, targetInstanceId, targets, accelerate, ...payment });
   };
 
-  const deployChampionFromZone = (instanceId: string) => {
+  const submitPendingMultiTargets = (selection: typeof pendingMultiTargetSelection) => {
+    if (!selection || selection.selected.length === 0) return false;
+    const spellInstance = state?.cards.find((card) => card.instanceId === selection.instanceId);
+    const spellDef = spellInstance ? cardsById.get(spellInstance.cardId) : undefined;
+    playCardToBase(selection.instanceId, spellDef, false, undefined, selection.selected);
+    setPendingMultiTargetSelection(null);
+    return true;
+  };
+
+  const deployChampionFromZone = (instanceId: string, battlefieldLocationId = DEFAULT_BATTLEFIELD_LOCATION_ID) => {
     const instance = state?.cards.find((card) => card.instanceId === instanceId);
     const cardDef = instance ? cardsById.get(instance.cardId) : undefined;
     if (!state || !instance || !cardDef) return;
@@ -485,7 +852,7 @@ export function GameBoard() {
     }
     const payment = selectPaymentRunesForCard(cardDef);
     if (!payment) return;
-    publishMove({ type: 'MOVE_TO_BATTLEFIELD', playerId: player.id, instanceId, ...payment });
+    publishMove({ type: 'MOVE_TO_BATTLEFIELD', playerId: player.id, instanceId, battlefieldLocationId, ...payment });
   };
 
   const playCardWithAmbush = (instanceId: string) => {
@@ -519,8 +886,11 @@ export function GameBoard() {
     }
     const payment = selectPaymentRunesForCard(cardDef);
     if (!payment) return;
-    const battlefield = zones.find((zone) => zone.zoneName === 'battlefield' && zone.ownerId === player.id);
-    const battlefieldCount = state?.cards.filter((card) => card.ownerId === player.id && sameZone(card.zone, 'battlefield')).length ?? 0;
+    const battlefield = battlefieldZoneForCard(zones, player.id, DEFAULT_BATTLEFIELD_LOCATION_ID);
+    const battlefieldCount = state?.cards.filter((card) =>
+      card.ownerId === player.id
+      && sameZone(card.zone, 'battlefield')
+      && normalizeBattlefieldLocationId(card.battlefieldLocationId) === DEFAULT_BATTLEFIELD_LOCATION_ID).length ?? 0;
     const position = battlefield ? autoPlaceInZone(battlefield, battlefieldCount, battlefieldCount + 1) : { x: size.width / 2, y: size.height / 2 };
     publishMove({ type: 'PLAY_CARD', playerId: player.id, instanceId, targetZone: 'BATTLEFIELD', ...position, ...payment });
   };
@@ -548,7 +918,40 @@ export function GameBoard() {
   const playFromHand = (instanceId: string) => {
     const cardDef = cardsById.get(state?.cards.find((c) => c.instanceId === instanceId)?.cardId ?? '');
     const type = cardDef?.type?.toLowerCase();
-    if (showdownActive) {
+    if (chainActive) {
+      if (!isReactionCard(cardDef)) {
+        notifyWarning('Chain active', 'Only supported Reaction cards can be played while the chain is active.');
+        return;
+      }
+      if (!canTakeAction(state, 'PLAY_CARD')) {
+        notifyWarning('Reaction unavailable', 'Wait for your chain focus before playing a Reaction.');
+        return;
+      }
+      if (isGustReactionCard(cardDef)) {
+        beginTargetSelection(instanceId, 'GUST_BATTLEFIELD_UNIT');
+        return;
+      }
+      if (isDisciplineReactionCard(cardDef)) {
+        beginTargetSelection(instanceId, 'ANY_BATTLEFIELD_UNIT');
+        return;
+      }
+      if (isEnGardeReactionCard(cardDef)) {
+        beginTargetSelection(instanceId, 'FRIENDLY_UNIT');
+        return;
+      }
+      if (isDefyCounterCard(cardDef)) {
+        beginChainTargetSelection(instanceId, 'DEFY');
+        return;
+      }
+      if (isNotSoFastCounterCard(cardDef)) {
+        beginChainTargetSelection(instanceId, 'NOT_SO_FAST');
+        return;
+      }
+      if (isAbandonCounterCard(cardDef)) {
+        beginChainTargetSelection(instanceId, 'ABANDON');
+        return;
+      }
+    } else if (showdownActive) {
       if (isReactionCard(cardDef)) {
         notifyWarning('Reaction timing unavailable', 'Reaction timing is not implemented yet.');
         return;
@@ -562,6 +965,10 @@ export function GameBoard() {
         return;
       }
     }
+    if (isReactionCard(cardDef)) {
+      notifyWarning('Reaction timing unavailable', 'Supported Reactions can only be played during an active chain window in this alpha.');
+      return;
+    }
     if (!canTakeAction(state, 'PLAY_CARD')) {
       notifyWarning(
         'Action unavailable',
@@ -569,12 +976,10 @@ export function GameBoard() {
       );
       return;
     }
-    if (type === 'legend' || type === 'champion' || type === 'battlefield') {
+    if (type === 'legend' || type === 'battlefield') {
       const message = type === 'legend'
         ? 'Legends are identity cards and are not played from hand.'
-        : type === 'champion'
-          ? 'Champions start in the Champion zone and are not played from hand.'
-          : 'Battlefields are selected during setup and are not played from hand.';
+        : 'Battlefields are selected during setup and are not played from hand.';
       notifyWarning('Cannot play that card', message);
       return;
     }
@@ -582,6 +987,11 @@ export function GameBoard() {
     if (unsupportedReason) {
       addChat({ id: crypto.randomUUID(), userId: player.id, email: null, text: unsupportedReason, sentAt: new Date().toISOString() });
       notifyWarning('Unsupported card effect', unsupportedReason);
+      return;
+    }
+    const multiTargetRequirements = multiTargetRequirementsForCard(cardDef);
+    if (multiTargetRequirements.length > 0) {
+      beginMultiTargetSelection(instanceId, multiTargetRequirements);
       return;
     }
     const targetMode = targetModeForCard(cardDef);
@@ -617,10 +1027,55 @@ export function GameBoard() {
       notifyWarning('Attached gear', 'Attached Equipment follows its host and cannot be moved directly.');
       return;
     }
-    const zone = pointZone(x, y, zones, instance.zone);
+    const targetZoneRect = zones.find((candidate) => x >= candidate.x && x <= candidate.x + candidate.width && y >= candidate.y && y <= candidate.y + candidate.height);
+    const zone = targetZoneRect?.zoneName ?? pointZone(x, y, zones, instance.zone);
+    const targetBattlefieldLocationId = sameZone(zone, 'battlefield')
+      ? normalizeBattlefieldLocationId(battlefieldLocationForPoint(x, y, zones))
+      : undefined;
+    if (sameZone(instance.zone, 'battlefield') && sameZone(zone, 'battlefield') && instance.ownerId === player.id) {
+      const currentLocationId = normalizeBattlefieldLocationId(instance.battlefieldLocationId);
+      const destinationLocationId = targetBattlefieldLocationId ?? DEFAULT_BATTLEFIELD_LOCATION_ID;
+      if (destinationLocationId !== currentLocationId) {
+        if (!canTakeAction(state, 'MOVE_TO_BATTLEFIELD')) {
+          notifyWarning('Action unavailable', 'Battlefield lane movement is available only during your Main Phase before a showdown starts.');
+          window.setTimeout(fetchProjectedState, 100);
+          return;
+        }
+        const cardDef = cardsById.get(instance.cardId);
+        const type = cardDef?.type?.toLowerCase();
+        if (type !== 'unit' && type !== 'champion') {
+          notifyWarning('Cannot move lanes', 'Only face-up Units and Champions can move between battlefield lanes.');
+          window.setTimeout(fetchProjectedState, 100);
+          return;
+        }
+        publishMove({
+          type: 'MOVE_TO_BATTLEFIELD',
+          playerId: player.id,
+          instanceId,
+          battlefieldLocationId: destinationLocationId,
+        });
+        return;
+      }
+    }
     if (sameZone(instance.zone, 'legend') && sameZone(zone, 'battlefield') && instance.ownerId === player.id) {
       notifyWarning('Legend unavailable', 'Legends cannot be moved to the battlefield in this alpha model.');
       window.setTimeout(fetchProjectedState, 100);
+      return;
+    }
+    if (sameZone(instance.zone, 'battlefield') && sameZone(zone, 'base') && instance.ownerId === player.id) {
+      if (!canTakeAction(state, 'MOVE_TO_BASE')) {
+        notifyWarning('Action unavailable', 'Units can move back to Base only during your Main Phase before a showdown starts.');
+        window.setTimeout(fetchProjectedState, 100);
+        return;
+      }
+      const cardDef = cardsById.get(instance.cardId);
+      const type = cardDef?.type?.toLowerCase();
+      if (type !== 'unit' && type !== 'champion') {
+        notifyWarning('Cannot move to Base', 'Only face-up Units and Champions can move back to Base.');
+        window.setTimeout(fetchProjectedState, 100);
+        return;
+      }
+      publishMove({ type: 'MOVE_TO_BASE', playerId: player.id, instanceId });
       return;
     }
     if ((sameZone(instance.zone, 'base') || sameZone(instance.zone, 'champion')) && sameZone(zone, 'battlefield') && instance.ownerId === player.id) {
@@ -642,16 +1097,25 @@ export function GameBoard() {
         return;
       }
       if (sameZone(instance.zone, 'champion')) {
-        deployChampionFromZone(instanceId);
+        deployChampionFromZone(instanceId, targetBattlefieldLocationId ?? DEFAULT_BATTLEFIELD_LOCATION_ID);
         window.setTimeout(fetchProjectedState, 100);
         return;
       }
-      publishMove({ type: 'MOVE_TO_BATTLEFIELD', playerId: player.id, instanceId });
+      publishMove({
+        type: 'MOVE_TO_BATTLEFIELD',
+        playerId: player.id,
+        instanceId,
+        battlefieldLocationId: targetBattlefieldLocationId ?? DEFAULT_BATTLEFIELD_LOCATION_ID,
+      });
       return;
     }
-    const targetZoneRect = zones.find((candidate) => candidate.zoneName === zone && candidate.ownerId === instance.ownerId) ?? zones.find((candidate) => candidate.zoneName === zone);
-    const snappedX = targetZoneRect ? Math.max(targetZoneRect.x + 12, Math.min(targetZoneRect.x + targetZoneRect.width - 12, x)) : x;
-    const snappedY = targetZoneRect ? Math.max(targetZoneRect.y + 12, Math.min(targetZoneRect.y + targetZoneRect.height - 12, y)) : y;
+    const snappedZoneRect = sameZone(instance.zone, 'battlefield') && sameZone(zone, 'battlefield')
+      ? visualZoneFor(instance, zones)
+      : targetZoneRect && targetZoneRect.ownerId === instance.ownerId
+        ? targetZoneRect
+        : zones.find((candidate) => candidate.zoneName === zone && candidate.ownerId === instance.ownerId) ?? zones.find((candidate) => candidate.zoneName === zone);
+    const snappedX = snappedZoneRect ? Math.max(snappedZoneRect.x + 12, Math.min(snappedZoneRect.x + snappedZoneRect.width - 12, x)) : x;
+    const snappedY = snappedZoneRect ? Math.max(snappedZoneRect.y + 12, Math.min(snappedZoneRect.y + snappedZoneRect.height - 12, y)) : y;
     if (sameZone(instance.zone, zone) && instance.ownerId === player.id && canTakeAction(state, 'REPOSITION_CARD')) {
       publishMove({ type: 'REPOSITION_CARD', playerId: player.id, instanceId, x: snappedX, y: snappedY });
       return;
@@ -668,6 +1132,48 @@ export function GameBoard() {
     const instance = state?.cards.find((card) => card.instanceId === instanceId);
     if (!instance) return;
     const targetCard = cardsById.get(instance.cardId);
+    if (state?.pendingChoice?.type === 'TARGET_GEAR' && state.pendingChoice.playerId === player.id) {
+      if (!isLegalTargetForMode(instance, targetCard, 'ANY_PUBLIC_GEAR', player.id)) {
+        notifyWarning('Invalid target', 'Choose a Gear in play, or use Cancel to decline.');
+        return;
+      }
+      if (!canTakeAction(state, 'RESOLVE_CHOICE')) {
+        notifyWarning('Choice unavailable', 'The server has not approved resolving this choice yet.');
+        return;
+      }
+      setChoiceSubmitting(true);
+      publishMove({
+        type: 'RESOLVE_CHOICE',
+        playerId: player.id,
+        choiceId: state.pendingChoice.choiceId,
+        selectedTargetInstanceId: instanceId,
+      });
+      return;
+    }
+    if (pendingMultiTargetSelection) {
+      const requirement = pendingMultiTargetSelection.requirements[pendingMultiTargetSelection.selected.length];
+      if (!requirement) {
+        setPendingMultiTargetSelection(null);
+        return;
+      }
+      const alreadySelected = pendingMultiTargetSelection.selected.some((target) => target.instanceId === instanceId);
+      const isValidMultiTarget = isLegalTargetForMode(instance, targetCard, requirement.mode, player.id);
+      if (alreadySelected) {
+        notifyWarning('Invalid target', 'Targets must be different cards.');
+        return;
+      }
+      if (!isValidMultiTarget) {
+        notifyWarning('Invalid target', `${requirement.prompt} Press Esc or right-click to cancel.`);
+        return;
+      }
+      const nextSelected = [...pendingMultiTargetSelection.selected, { role: requirement.role, instanceId }];
+      if (nextSelected.length < pendingMultiTargetSelection.requirements.length) {
+        setPendingMultiTargetSelection({ ...pendingMultiTargetSelection, selected: nextSelected });
+        return;
+      }
+      submitPendingMultiTargets({ ...pendingMultiTargetSelection, selected: nextSelected });
+      return;
+    }
     const isValidPendingTarget = pendingTargetSelection
       ? isLegalTargetForMode(instance, targetCard, pendingTargetSelection.mode, player.id)
       : false;
@@ -687,12 +1193,57 @@ export function GameBoard() {
           notifyWarning('Equip unavailable', 'Equipment can be attached only when the server marks Equip legal.');
           return;
         }
-        publishMove({ type: 'EQUIP_GEAR', playerId: player.id, gearInstanceId: pendingTargetSelection.instanceId, targetInstanceId: instanceId });
+        const payment = selectPaymentRunesForEquip(spellDef);
+        if (!payment) return;
+        publishMove({ type: 'EQUIP_GEAR', playerId: player.id, gearInstanceId: pendingTargetSelection.instanceId, targetInstanceId: instanceId, ...payment });
+        setPendingTargetSelection(null);
+        return;
+      }
+      if (isTheSyrenActivatedAbility(spellDef) && sameZone(spellInstance.zone, 'base')) {
+        if (!canTakeAction(state, 'ACTIVATE_ABILITY')) {
+          notifyWarning('Ability unavailable', 'The Syren can activate during your Main Phase when it is ready, paid for, and has a legal target.');
+          return;
+        }
+        const payment = selectPaymentRunesForEnergyCost(spellDef?.name ?? 'The Syren', 1);
+        if (!payment) return;
+        publishMove({ type: 'ACTIVATE_ABILITY', playerId: player.id, sourceInstanceId: pendingTargetSelection.instanceId, abilityKey: 'THE_SYREN_RECALL', targetInstanceId: instanceId, ...payment });
+        setPendingTargetSelection(null);
+        return;
+      }
+      if (isZhonyasHourglassActivatedAbility(spellDef) && sameZone(spellInstance.zone, 'base')) {
+        if (!canTakeAction(state, 'ACTIVATE_ABILITY')) {
+          notifyWarning('Ability unavailable', 'Zhonya\'s Hourglass can be armed during your Main Phase when it has a legal friendly target.');
+          return;
+        }
+        const payment = selectPaymentRunesForEnergyCost(spellDef?.name ?? 'Zhonya\'s Hourglass', 0);
+        if (!payment) return;
+        publishMove({ type: 'ACTIVATE_ABILITY', playerId: player.id, sourceInstanceId: pendingTargetSelection.instanceId, abilityKey: 'ZHONYAS_HOURGLASS_PROTECT', targetInstanceId: instanceId, ...payment });
+        setPendingTargetSelection(null);
+        return;
+      }
+      if (isIreliaBladeDancerActivatedAbility(spellDef) && sameZone(spellInstance.zone, 'legend')) {
+        if (!canTakeAction(state, 'ACTIVATE_ABILITY')) {
+          notifyWarning('Ability unavailable', 'Irelia can ready a friendly unit during your Main Phase when she is ready, paid for, and has an exhausted friendly target.');
+          return;
+        }
+        if (!instance.tapped) {
+          notifyWarning('Invalid target', 'Irelia can only ready an exhausted friendly public Unit or Champion.');
+          return;
+        }
+        const payment = selectPaymentRunesForPremiumCost(spellDef?.name ?? 'Irelia - Blade Dancer', 1);
+        if (!payment) return;
+        publishMove({ type: 'ACTIVATE_ABILITY', playerId: player.id, sourceInstanceId: pendingTargetSelection.instanceId, abilityKey: 'IRELIA_BLADE_DANCER_READY_UNIT', targetInstanceId: instanceId, ...payment });
         setPendingTargetSelection(null);
         return;
       }
       playCardToBase(pendingTargetSelection.instanceId, spellDef, false, instanceId);
       setPendingTargetSelection(null);
+      return;
+    }
+
+    if (instance.attachedToInstanceId) {
+      setSelectedInstanceId(null);
+      setInspectCard(instance);
       return;
     }
 
@@ -705,16 +1256,71 @@ export function GameBoard() {
         notifyWarning('No legal targets', noLegalTargetsMessage('FRIENDLY_UNIT_FOR_EQUIP'));
         return;
       }
+      if (!canPayEquipCost(targetCard)) {
+        const cost = equipCostForCard(targetCard);
+        notifyWarning('Equip unavailable', `${targetCard?.name ?? 'That Equipment'} needs ${equipCostLabel(cost)}.`);
+        return;
+      }
       if (!canTakeAction(state, 'EQUIP_GEAR')) {
-        notifyWarning('Equip unavailable', 'Equipment can be attached during your Main Phase when a legal target exists.');
+        notifyWarning('Equip unavailable', 'Equipment can be attached during your Main Phase when a legal target and payment are available.');
         return;
       }
       beginTargetSelection(instanceId, 'FRIENDLY_UNIT_FOR_EQUIP');
       return;
     }
 
+    if (instance.ownerId === player.id && sameZone(instance.zone, 'base') && isTheSyrenActivatedAbility(targetCard)) {
+      if (instance.tapped) {
+        notifyWarning('Ability unavailable', 'The Syren is already exhausted.');
+        return;
+      }
+      if (legalTargetsForMode('FRIENDLY_UNIT').length === 0) {
+        notifyWarning('No legal targets', 'The Syren needs a friendly Unit or Champion at a battlefield.');
+        return;
+      }
+      if (!canPayEnergyCost(1)) {
+        notifyWarning('Ability unavailable', 'The Syren needs 1 energy to activate.');
+        return;
+      }
+      if (!canTakeAction(state, 'ACTIVATE_ABILITY')) {
+        notifyWarning('Ability unavailable', 'The Syren can activate during your Main Phase when a legal target and payment are available.');
+        return;
+      }
+      beginTargetSelection(instanceId, 'FRIENDLY_UNIT');
+      return;
+    }
+
+    if (instance.ownerId === player.id && sameZone(instance.zone, 'base') && isZhonyasHourglassActivatedAbility(targetCard)) {
+      if (legalTargetsForMode('FRIENDLY_PUBLIC_UNIT').length === 0) {
+        notifyWarning('No legal targets', 'Zhonya\'s Hourglass needs a friendly public Unit or Champion in Base or at a battlefield.');
+        return;
+      }
+      if (!canTakeAction(state, 'ACTIVATE_ABILITY')) {
+        notifyWarning('Ability unavailable', 'Zhonya\'s Hourglass can be armed during your Main Phase when a legal target is available.');
+        return;
+      }
+      beginTargetSelection(instanceId, 'FRIENDLY_PUBLIC_UNIT');
+      return;
+    }
+
     if (instance.ownerId === player.id && sameZone(instance.zone, 'legend')) {
-      notifyWarning('Legend unavailable', 'Legends cannot be moved to the battlefield in this alpha model.');
+      if (isIreliaBladeDancerActivatedAbility(targetCard)) {
+        if (instance.tapped) {
+          notifyWarning('Ability unavailable', 'Irelia - Blade Dancer is already exhausted.');
+          return;
+        }
+        if (legalTargetsForMode('FRIENDLY_PUBLIC_UNIT').filter((target) => target.tapped).length === 0) {
+          notifyWarning('No legal targets', 'Irelia needs an exhausted friendly public Unit or Champion in Base or at a battlefield.');
+          return;
+        }
+        if (!canPayPremiumCost(1)) {
+          notifyWarning('Ability unavailable', 'Irelia - Blade Dancer needs one ready rune for the rainbow payment.');
+          return;
+        }
+        beginTargetSelection(instanceId, 'FRIENDLY_PUBLIC_UNIT');
+        return;
+      }
+      notifyWarning('Legend unavailable', 'This Legend has no supported battlefield move or activated ability in the current alpha model.');
     }
     setSelectedInstanceId(instanceId);
   };
@@ -735,8 +1341,24 @@ export function GameBoard() {
   };
 
   const handlePassPhase = () => {
+    if (canTakeAction(state, 'RESOLVE_CHAIN_TOP')) {
+      publishMove({ type: 'RESOLVE_CHAIN_TOP', playerId: player.id });
+      return;
+    }
+    if (canTakeAction(state, 'PASS_CHAIN_FOCUS')) {
+      publishMove({ type: 'PASS_CHAIN_FOCUS', playerId: player.id });
+      return;
+    }
+    if (canTakeAction(state, 'ASSIGN_COMBAT_DAMAGE')) {
+      assignCombatDamage();
+      return;
+    }
     if (canTakeAction(state, 'RESOLVE_SHOWDOWN')) {
       publishMove({ type: 'RESOLVE_SHOWDOWN', playerId: player.id });
+      return;
+    }
+    if (canTakeAction(state, 'PASS_SHOWDOWN_FOCUS')) {
+      publishMove({ type: 'PASS_SHOWDOWN_FOCUS', playerId: player.id });
       return;
     }
     if (!canTakeAction(state, 'PASS_PHASE')) {
@@ -756,6 +1378,14 @@ export function GameBoard() {
       return;
     }
     publishMove({ type: 'MULLIGAN', playerId: player.id, discardInstanceIds });
+  };
+
+  const selectBattlefield = (battlefieldCardId: string) => {
+    if (!canTakeAction(state, 'SELECT_BATTLEFIELD')) {
+      notifyWarning('Action unavailable', 'Choose your Battlefield before mulligan begins.');
+      return;
+    }
+    publishMove({ type: 'SELECT_BATTLEFIELD', playerId: player.id, battlefieldCardId });
   };
 
   const sendChat = (text: string) => {
@@ -779,6 +1409,10 @@ export function GameBoard() {
       appVersion: APP_VERSION,
       buildTag: BUILD_TAG,
       buildDate: BUILD_DATE,
+      ...getServerBuildInfo(),
+      awaitingServerUpdate,
+      lastSubmittedActionType,
+      lastActionFailureMessage,
     });
 
   const copyDebugInfo = async () => {
@@ -813,12 +1447,24 @@ export function GameBoard() {
   const opponentName = opponent?.name?.trim() || opponent?.userId || 'Opponent';
   const activePlayerName = activePlayer?.userId === player.id ? 'you' : activePlayer?.name?.trim() || activePlayer?.userId || opponentName;
   const activePlayerIsBot = isBotPlayer(activePlayer?.userId, activePlayer?.name);
+  const showdownFocusPlayer = state.activeShowdown?.focusedPlayerId
+    ? state.players.find((statePlayer) => statePlayer.userId === state.activeShowdown?.focusedPlayerId)
+    : undefined;
+  const showdownFocusName = state.activeShowdown?.focusedPlayerId === player.id
+    ? 'you'
+    : showdownFocusPlayer?.name?.trim() || showdownFocusPlayer?.userId;
+  const chainFocusPlayer = state.chainState?.focusedPlayerId
+    ? state.players.find((statePlayer) => statePlayer.userId === state.chainState?.focusedPlayerId)
+    : undefined;
+  const chainFocusName = state.chainState?.focusedPlayerId === player.id
+    ? 'you'
+    : chainFocusPlayer?.name?.trim() || chainFocusPlayer?.userId;
   const opponentHand = state.cards.filter((card) => card.ownerId === opponent?.userId && sameZone(card.zone, 'hand')).length;
   const visibleCardsFor = (ownerId: string | undefined, zone: string) =>
     state.cards
       .filter((instance) => instance.ownerId === ownerId && sameZone(instance.zone, zone))
-      .map((instance) => ({ instanceId: instance.instanceId, card: cardsById.get(instance.cardId) }))
-      .filter((entry): entry is { instanceId: string; card: RiftCard } => Boolean(entry.card));
+      .map((instance) => ({ instanceId: instance.instanceId, instance, card: cardsById.get(instance.cardId) }))
+      .filter((entry): entry is { instanceId: string; instance: CardInstance; card: RiftCard } => Boolean(entry.card));
   const revealedCardsFor = (snapshot: RevealedHandSnapshot | undefined) =>
     (snapshot?.instanceIds ?? [])
       .map((instanceId) => {
@@ -847,16 +1493,24 @@ export function GameBoard() {
   const opponentUntappedRunes = (state.runes ?? []).filter((rune) => rune.ownerId === opponent?.userId && !rune.tapped).length;
   const isMyTurn = state.activePlayerId === player.id;
   const showdownActive = Boolean(state.activeShowdown);
+  const chainActive = Boolean(state.chainState);
   const canPlayCards = canTakeAction(state, 'PLAY_CARD');
   const canResolveChoice = canTakeAction(state, 'RESOLVE_CHOICE');
   const canMoveToBattlefield = canTakeAction(state, 'MOVE_TO_BATTLEFIELD');
+  const canMoveToBase = canTakeAction(state, 'MOVE_TO_BASE');
+  const canResolveChainTop = canTakeAction(state, 'RESOLVE_CHAIN_TOP');
+  const canPassChainFocus = canTakeAction(state, 'PASS_CHAIN_FOCUS');
+  const canAssignCombatDamage = canTakeAction(state, 'ASSIGN_COMBAT_DAMAGE');
   const canResolveShowdown = canTakeAction(state, 'RESOLVE_SHOWDOWN');
-  const canPlayReactions = false;
+  const canPassShowdownFocus = canTakeAction(state, 'PASS_SHOWDOWN_FOCUS');
+  const canPlayReactions = chainActive && canPlayCards;
   const hasSpellReaction = hand.some((instance) => cardsById.get(instance.cardId)?.type?.toLowerCase() === 'spell');
   const ownRuneZone = zones.find((zone) => zone.zoneName === 'rune' && zone.ownerId === player.id);
   const hasTappedOwnRune = (state.runes ?? []).some((rune) => rune.ownerId === player.id && rune.tapped);
   const canUndoRunes = canTakeAction(state, 'UNDO_RUNES') && hasTappedOwnRune;
-  const canPass = canTakeAction(state, 'PASS_PHASE') || canResolveShowdown;
+  const canPass = canTakeAction(state, 'PASS_PHASE') || canResolveChainTop || canPassChainFocus || canAssignCombatDamage || canResolveShowdown || canPassShowdownFocus;
+  const passLabel = canResolveChainTop ? 'Resolve Chain' : canPassChainFocus ? 'Pass Chain' : canAssignCombatDamage ? 'Resolve Damage' : canResolveShowdown ? 'Resolve Showdown' : canPassShowdownFocus ? 'Pass Focus' : 'Pass';
+  const canSelectBattlefield = canTakeAction(state, 'SELECT_BATTLEFIELD');
   const canMulligan = canTakeAction(state, 'MULLIGAN');
   const canKeepHand = canTakeAction(state, 'KEEP_HAND');
   const canHideCards = canTakeAction(state, 'HIDE_CARD');
@@ -878,10 +1532,40 @@ export function GameBoard() {
       && !showdownActive
       && spendableEnergy >= (selectedCardDef.cost ?? 0),
   );
-  const guidanceText = phaseGuidance(state.currentPhase, showdownActive, state.activeShowdown?.step);
+  const battlefieldChoices = me?.battlefieldChoices ?? [];
+  const selectedBattlefield = me?.selectedBattlefieldId ?? null;
+  const chainItems = state.chainState?.chainItems ?? [];
+  const topChainItem = chainItems.length > 0 ? chainItems[chainItems.length - 1] : undefined;
+  const chainPlayerNames = Object.fromEntries(state.players.map((statePlayer) => [
+    statePlayer.userId,
+    statePlayer.userId === player.id ? 'you' : statePlayer.name || statePlayer.userId,
+  ]));
+  const playerNames = Object.fromEntries(state.players.map((statePlayer) => [
+    statePlayer.userId,
+    statePlayer.userId === player.id ? 'you' : statePlayer.name || statePlayer.userId,
+  ]));
+  const activeShowdownLocationLabel = state.activeShowdown
+    ? battlefieldLocationLabel(state.activeShowdown.locationId)
+    : undefined;
+  const chainTargetNames = Object.fromEntries(state.cards
+    .filter((instance) => !instance.faceDown && !['hand', 'deck', 'hidden'].includes(instance.zone.toLowerCase()))
+    .map((instance) => [instance.instanceId, cardsById.get(instance.cardId)?.name ?? 'card']));
+  const guidanceText = phaseGuidance(
+    state.currentPhase,
+    showdownActive,
+    state.activeShowdown?.step,
+    chainActive,
+    state.chainState?.readyToResolveTop,
+    topChainItem,
+  );
   const actionHintText = legalActionHint(state.legalActions, { isPlayer: Boolean(me), isMyTurn, activePlayerName, activePlayerIsBot });
   const waitingText = waitingStatusText({ isMyTurn, activePlayerName, activePlayerIsBot, waitingLong: waitingTooLong });
   const connectionText = wsConnected ? 'Connected.' : 'Reconnecting to player-specific updates...';
+  const priorityWindowIsMine = state.chainState?.focusedPlayerId === player.id && canPassChainFocus;
+  const localEmptyPriorityWindow = priorityWindowIsMine && !canPlayCards;
+  const updatePriorityStop = (key: keyof PriorityStopSettings, value: boolean) => {
+    setPriorityStops((previous) => ({ ...previous, [key]: value }));
+  };
   const boardCardRenderItems = [...state.cards]
     .filter((instance) => !sameZone(instance.zone, 'hand') && !sameZone(instance.zone, 'deck') && !sameZone(instance.zone, 'hidden'))
     .sort((a, b) => a.zIndex - b.zIndex)
@@ -889,12 +1573,12 @@ export function GameBoard() {
   const zoneTotals = new Map<string, number>();
   boardCardRenderItems.forEach(({ instance }) => {
     if (!shouldAutoPlacePublicCard(instance)) return;
-    const key = zoneKey(instance.ownerId, instance.zone);
+    const key = visualZoneKey(instance);
     zoneTotals.set(key, (zoneTotals.get(key) ?? 0) + 1);
   });
   const zoneCounts = new Map<string, number>();
   const boardCardDisplayItems = boardCardRenderItems.map(({ instance, zone }) => {
-    const key = zoneKey(instance.ownerId, instance.zone);
+    const key = visualZoneKey(instance);
 
     if (instance.attachedToInstanceId) {
       const host = state.cards.find((candidate) => candidate.instanceId === instance.attachedToInstanceId);
@@ -902,16 +1586,19 @@ export function GameBoard() {
       if (host && hostZone) {
         let hostPosition = { x: host.x, y: host.y };
         if ((sameZone(host.zone, 'champion') || sameZone(host.zone, 'legend'))) {
-          hostPosition = { x: hostZone.x + 48, y: hostZone.y + 60 };
+          hostPosition = { x: hostZone.x + hostZone.width / 2, y: hostZone.y + Math.min(60, hostZone.height / 2) };
         } else if (shouldAutoPlacePublicCard(host)) {
           hostPosition = autoPlaceInZone(hostZone, 0, 1);
+        } else if (sameZone(host.zone, 'base') || sameZone(host.zone, 'battlefield')) {
+          hostPosition = clampPlacementToZone(host, hostZone);
         }
-        return { instance, displayInstance: { ...instance, x: hostPosition.x + 34, y: hostPosition.y + 34 } };
+        const position = attachedGearDisplayPosition(hostPosition);
+        return { instance, displayInstance: { ...instance, ...position }, displayScale: attachedGearDisplayScale(cardScale) };
       }
     }
 
     if ((sameZone(instance.zone, 'champion') || sameZone(instance.zone, 'legend')) && zone) {
-      return { instance, displayInstance: { ...instance, x: zone.x + 48, y: zone.y + 60 } };
+      return { instance, displayInstance: { ...instance, x: zone.x + zone.width / 2, y: zone.y + Math.min(60, zone.height / 2) } };
     }
 
     if (zone && shouldAutoPlacePublicCard(instance)) {
@@ -920,10 +1607,14 @@ export function GameBoard() {
       return { instance, displayInstance: { ...instance, ...autoPlaceInZone(zone, zoneIndex, zoneTotals.get(key) ?? zoneIndex + 1) } };
     }
 
+    if (zone && (sameZone(instance.zone, 'base') || sameZone(instance.zone, 'battlefield'))) {
+      return { instance, displayInstance: { ...instance, ...clampPlacementToZone(instance, zone) } };
+    }
+
     return { instance, displayInstance: instance };
   });
   const canDragBoardCard = (instance: CardInstance, cardDef: RiftCard) => {
-    if (instance.ownerId !== player.id || instance.attachedToInstanceId) return false;
+    if (instance.ownerId !== player.id || !attachedGearIsIndependentBoardPiece(instance)) return false;
     if (sameZone(instance.zone, 'legend')) return false;
     if (sameZone(instance.zone, 'champion')) {
       return cardDef.type?.toLowerCase() === 'champion'
@@ -934,15 +1625,29 @@ export function GameBoard() {
         && spendableEnergy >= (cardDef.cost ?? 0);
     }
     if (sameZone(instance.zone, 'base') || sameZone(instance.zone, 'battlefield')) {
-      return canMoveToBattlefield || canTakeAction(state, 'REPOSITION_CARD') || canTakeAction(state, 'SANDBOX_MOVE_CARD');
+      return canMoveToBattlefield || canMoveToBase || canTakeAction(state, 'REPOSITION_CARD') || canTakeAction(state, 'SANDBOX_MOVE_CARD');
     }
     return canTakeAction(state, 'SANDBOX_MOVE_CARD');
   };
+  const currentMultiTargetRequirement = pendingMultiTargetSelection?.requirements[pendingMultiTargetSelection.selected.length];
   const pendingChoice = state.pendingChoice;
+  const isGearTargetChoice = pendingChoice?.type === 'TARGET_GEAR' && pendingChoice.playerId === player.id;
+  const activeTargetMode = pendingTargetSelection?.mode ?? currentMultiTargetRequirement?.mode ?? (isGearTargetChoice ? 'ANY_PUBLIC_GEAR' : undefined);
+  const selectedMultiTargetIds = new Set(pendingMultiTargetSelection?.selected.map((target) => target.instanceId) ?? []);
   const pendingCardOptions = pendingChoice?.cardOptions ?? [];
   const isTopDeckChoice = pendingChoice?.type === 'TOP_DECK_PICK_ONE';
   const isPredictChoice = pendingChoice?.type === 'PREDICT_ORDER';
   const predictChoiceReady = isPredictChoice && pendingCardOptions.length > 0 && choiceAssignments.length === pendingCardOptions.length;
+  const cancelPendingGearTargetChoice = () => {
+    if (!pendingChoice || !isGearTargetChoice || choiceSubmitting) return;
+    setChoiceSubmitting(true);
+    publishMove({
+      type: 'RESOLVE_CHOICE',
+      playerId: player.id,
+      choiceId: pendingChoice.choiceId,
+      selectedOptionId: 'DECLINE',
+    });
+  };
   const assignChoiceCard = (optionId: string, action: 'TOP' | 'BOTTOM') => {
     setChoiceAssignments((current) => {
       const withoutOption = current.filter((assignment) => assignment.optionId !== optionId);
@@ -952,7 +1657,15 @@ export function GameBoard() {
 
   return (
     <main className="relative overflow-hidden bg-ink text-slate-100" style={{ height: `calc(100vh - ${NAV_HEIGHT}px)` }}>
-      {inspectCard ? <CardInspectModal card={inspectCard} cardDef={cardsById.get(inspectCard.cardId)} onClose={() => setInspectCard(null)} /> : null}
+      {inspectCard ? (
+        <CardInspectModal
+          card={inspectCard}
+          cardDef={cardsById.get(inspectCard.cardId)}
+          allInstances={state.cards}
+          cardsById={cardsById}
+          onClose={() => setInspectCard(null)}
+        />
+      ) : null}
       <div ref={boardFrameRef} className="absolute left-0 top-0 overflow-hidden" style={{ right: `${SIDEBAR_WIDTH}px`, bottom: handHeight + PHASE_BAR_HEIGHT }}>
         <Stage
           width={size.width}
@@ -961,10 +1674,33 @@ export function GameBoard() {
           onContextMenu={(event) => {
             event.evt.preventDefault();
             if (pendingTargetSelection) setPendingTargetSelection(null);
+            if (pendingMultiTargetSelection) {
+              const requirement = pendingMultiTargetSelection.requirements[pendingMultiTargetSelection.selected.length];
+              if (requirement?.optional && pendingMultiTargetSelection.selected.length > 0) submitPendingMultiTargets(pendingMultiTargetSelection);
+              else setPendingMultiTargetSelection(null);
+            }
+            if (isGearTargetChoice) cancelPendingGearTargetChoice();
           }}
         >
           <Layer listening={false}>
-            <ZoneOverlay zones={zones} />
+            <ZoneOverlay
+              zones={zones}
+              activeShowdownLocationId={state.activeShowdown?.locationId}
+              battlefieldController={state.battlefieldController}
+              playerNames={playerNames}
+            />
+          </Layer>
+          <Layer>
+            {battlefieldDisplays.map((display) => (
+              <BattlefieldLocationDisplay
+                key={`selected-battlefield-${display.locationId}`}
+                frame={display.frame}
+                card={display.card}
+                label={display.label}
+                imageUrl={display.imageUrl}
+                onHover={handleCardHover}
+              />
+            ))}
           </Layer>
           <Layer>
             {state.players.flatMap((statePlayer) => {
@@ -980,13 +1716,17 @@ export function GameBoard() {
             {(state.runes ?? []).map((rune) => {
               const ownerRunes = (state.runes ?? []).filter((candidate) => candidate.ownerId === rune.ownerId);
               const position = runePositions.get(rune.ownerId)?.[ownerRunes.indexOf(rune)];
+              const runeCard = cardsById.get(rune.cardId);
               if (!position) return null;
               return (
                 <RuneSprite
                   key={rune.instanceId}
                   instanceId={rune.instanceId}
+                  cardId={rune.cardId}
+                  cardDef={runeCard}
                   tapped={rune.tapped}
                   normalEnergy={rune.normalEnergy}
+                  premiumEnergy={rune.premiumEnergy}
                   isOwner={rune.ownerId === player.id}
                   pending={pendingRuneTaps.has(rune.instanceId)}
                   x={position.x}
@@ -996,21 +1736,23 @@ export function GameBoard() {
                     if (canTakeAction(state, 'DISCARD_RUNE')) publishMove({ type: 'DISCARD_RUNE', playerId: player.id, runeInstanceId: id });
                     else notifyWarning('Action unavailable', 'Discarding a rune is only legal during supported payment windows.');
                   }}
+                  onHover={handleCardHover}
                 />
               );
             })}
           </Layer>
           <Layer>
-            {boardCardDisplayItems.map(({ instance, displayInstance }) => {
+            {boardCardDisplayItems.map(({ instance, displayInstance, displayScale }) => {
               const cardDef = cardsById.get(instance.cardId);
               if (!cardDef) return null;
+              const attachedGearNames = attachedGearNamesForHost(state.cards, cardsById, instance.instanceId);
               return (
                 <CardSprite
                   key={instance.instanceId}
                   instance={displayInstance}
                   cardDef={cardDef}
                   isOwner={canDragBoardCard(instance, cardDef)}
-                  selected={selectedInstanceId === instance.instanceId}
+                  selected={selectedInstanceId === instance.instanceId && !instance.attachedToInstanceId}
                   onDragEnd={moveInstance}
                   onClick={handleCardClick}
                   onDoubleClick={(id) => {
@@ -1028,26 +1770,47 @@ export function GameBoard() {
                       setPendingTargetSelection(null);
                       return;
                     }
+                    if (pendingMultiTargetSelection) {
+                      const requirement = pendingMultiTargetSelection.requirements[pendingMultiTargetSelection.selected.length];
+                      if (requirement?.optional && pendingMultiTargetSelection.selected.length > 0) submitPendingMultiTargets(pendingMultiTargetSelection);
+                      else setPendingMultiTargetSelection(null);
+                      return;
+                    }
+                    if (isGearTargetChoice) {
+                      cancelPendingGearTargetChoice();
+                      return;
+                    }
                     if (canTakeAction(state, 'SANDBOX_FLIP_CARD')) publishMove({ type: 'FLIP_CARD', playerId: player.id, instanceId: id });
                     else notifyWarning('Sandbox only', 'Manual flip is only available in Sandbox games.');
                   }}
                   animate={pendingAnimations.current.delete(instance.instanceId)}
-                  scale={cardScale}
+                  scale={displayScale ?? cardScale}
+                  attachedGearNames={attachedGearNames}
+                  allInstances={state.cards}
+                  cardsById={cardsById}
                   onHover={handleCardHover}
                 />
               );
             })}
           </Layer>
           <Layer listening={false}>
-            {pendingTargetSelection
+            {activeTargetMode
               ? boardCardDisplayItems
                   .filter(({ instance }) => {
                     const cardDef = cardsById.get(instance.cardId);
-                    return isLegalTargetForMode(instance, cardDef, pendingTargetSelection.mode, player.id);
+                    return isLegalTargetForMode(instance, cardDef, activeTargetMode, player.id)
+                      && !selectedMultiTargetIds.has(instance.instanceId);
                   })
                   .map(({ instance, displayInstance }) => <Rect key={`target-top-${instance.instanceId}`} x={displayInstance.x - 44} y={displayInstance.y - 60} width={88} height={120} fill="rgba(229,108,79,0.12)" stroke="#e56c4f" shadowColor="#e56c4f" shadowBlur={20} cornerRadius={6} />)
               : null}
+            {pendingMultiTargetSelection
+              ? boardCardDisplayItems
+                  .filter(({ instance }) => selectedMultiTargetIds.has(instance.instanceId))
+                  .map(({ instance, displayInstance }) => <Rect key={`selected-target-${instance.instanceId}`} x={displayInstance.x - 48} y={displayInstance.y - 64} width={96} height={128} fill="rgba(234,179,8,0.10)" stroke="#eab308" shadowColor="#eab308" shadowBlur={16} cornerRadius={6} />)
+              : null}
             {pendingTargetSelection ? <Text x={0} y={8} width={size.width} text={`${targetPromptForMode(pendingTargetSelection.mode)} Esc/right-click to cancel.`} align="center" fontSize={13} fontStyle="bold" fill="#e56c4f" /> : null}
+            {pendingMultiTargetSelection && currentMultiTargetRequirement ? <Text x={0} y={8} width={size.width} text={`${currentMultiTargetRequirement.prompt} (${pendingMultiTargetSelection.selected.length + 1}/${pendingMultiTargetSelection.requirements.length}) ${currentMultiTargetRequirement.optional && pendingMultiTargetSelection.selected.length > 0 ? 'Right-click to resolve with selected target(s).' : 'Esc/right-click to cancel.'}`} align="center" fontSize={13} fontStyle="bold" fill="#e56c4f" /> : null}
+            {isGearTargetChoice ? <Text x={0} y={8} width={size.width} text="Choose a Gear in play. Right-click to cancel." align="center" fontSize={13} fontStyle="bold" fill="#e56c4f" /> : null}
           </Layer>
         </Stage>
       </div>
@@ -1107,10 +1870,31 @@ export function GameBoard() {
         currentPhase={state.currentPhase ?? 'MAIN'}
         isMyTurn={isMyTurn}
         canPass={canPass}
+        passLabel={passLabel}
         opponentName={opponentName}
         onPassPhase={handlePassPhase}
         activeShowdown={showdownActive}
         showdownStep={state.activeShowdown?.step}
+        showdownFocusName={showdownFocusName}
+        showdownLocationLabel={activeShowdownLocationLabel}
+        showdownReadyToResolve={state.activeShowdown?.readyToResolve}
+        activeChain={chainActive}
+        chainFocusName={chainFocusName}
+        chainReadyToResolve={state.chainState?.readyToResolveTop}
+        chainItemCount={state.chainState?.chainItems?.length ?? 0}
+        chainItems={state.chainState?.chainItems ?? []}
+        chainPlayerNames={chainPlayerNames}
+        chainTargetNames={chainTargetNames}
+        chainTargetSelectionActive={Boolean(pendingChainTargetSelection)}
+        isChainItemTargetable={(item) => pendingChainTargetSelection?.mode === 'NOT_SO_FAST'
+          ? isLegalNotSoFastChainTarget(item)
+          : pendingChainTargetSelection?.mode === 'ABANDON'
+            ? isLegalAbandonChainTarget(item)
+          : isLegalDefyChainTarget(item)}
+        onChainItemTarget={(itemId) => {
+          if (pendingChainTargetSelection) playCounterReaction(pendingChainTargetSelection.instanceId, itemId);
+        }}
+        onCancelChainTargetSelection={() => setPendingChainTargetSelection(null)}
         guidance={guidanceText}
         legalActionHint={actionHintText}
         waitingStatus={waitingText}
@@ -1119,7 +1903,59 @@ export function GameBoard() {
       />
       {canPlayReactions && hasSpellReaction ? (
         <div className="pointer-events-none absolute left-0 z-20 flex justify-center text-xs font-medium text-forge" style={{ right: `${SIDEBAR_WIDTH}px`, bottom: handHeight + PHASE_BAR_HEIGHT + 6 }}>
-          Supported Action window available
+          {chainActive ? 'Supported chain response available' : 'Supported Action window available'}
+        </div>
+      ) : null}
+
+      {chainActive ? (
+        <div className="pointer-events-auto absolute right-[296px] z-30 w-64 border border-line bg-panel/95 p-3 text-xs text-slate-300 shadow-glow" style={{ bottom: handHeight + PHASE_BAR_HEIGHT + 118 }}>
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-semibold uppercase tracking-wide text-forge">Priority stops</p>
+            {priorityWindowIsMine ? <span className="text-[10px] uppercase text-mint">Your priority</span> : <span className="text-[10px] uppercase text-slate-500">Public window</span>}
+          </div>
+          {localEmptyPriorityWindow ? (
+            <p className="mt-1 text-[11px] text-slate-400">No legal responses are available to you. You may still pass manually.</p>
+          ) : null}
+          <div className="mt-2 grid gap-1.5">
+            <PriorityStopToggle
+              label="Auto-pass empty windows"
+              checked={priorityStops.autoPassEmptyWindows}
+              onChange={(value) => updatePriorityStop('autoPassEmptyWindows', value)}
+            />
+            <PriorityStopToggle
+              label="Hold opponent turn"
+              checked={priorityStops.holdOpponentTurn}
+              onChange={(value) => updatePriorityStop('holdOpponentTurn', value)}
+            />
+            <PriorityStopToggle
+              label="Hold showdowns"
+              checked={priorityStops.holdShowdowns}
+              onChange={(value) => updatePriorityStop('holdShowdowns', value)}
+            />
+            <PriorityStopToggle
+              label="Hold before my spells"
+              checked={priorityStops.holdBeforeMySpells}
+              onChange={(value) => updatePriorityStop('holdBeforeMySpells', value)}
+            />
+            <PriorityStopToggle
+              label="Hold before opponent spells"
+              checked={priorityStops.holdBeforeOpponentSpells}
+              onChange={(value) => updatePriorityStop('holdBeforeOpponentSpells', value)}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {canAssignCombatDamage ? (
+        <div className="pointer-events-auto absolute left-1/2 z-30 w-80 -translate-x-1/2 border border-forge/60 bg-[#05080d] p-3 text-sm text-slate-100 shadow-[0_14px_44px_rgba(0,0,0,0.7)]" style={{ bottom: handHeight + PHASE_BAR_HEIGHT + 12 }}>
+          <p className="text-xs uppercase text-slate-500">Combat damage</p>
+          <p className="mt-1 font-semibold text-forge">Resolve your combat damage</p>
+          <p className="mt-1 text-xs text-slate-400">
+            Damage pool: {state.combatAssignmentState?.damagePool ?? 0}. RiftForge will use the server-planned assignment for this lane, respecting Tank and lethal-first rules.
+          </p>
+          <button className="btn-primary mt-3 w-full" onClick={assignCombatDamage}>
+            Resolve Combat Damage
+          </button>
         </div>
       ) : null}
 
@@ -1137,24 +1973,42 @@ export function GameBoard() {
       <div className="pointer-events-auto absolute right-[296px] top-3 z-20 flex max-w-[260px] flex-col gap-2 text-xs">
         {opponentHiddenCount > 0 ? (
           <div className="border border-line bg-panel/90 px-3 py-2 text-slate-300">
-            {opponentName} has {opponentHiddenCount} hidden card{opponentHiddenCount === 1 ? '' : 's'}.
+            <p>{opponentName} has {opponentHiddenCount} hidden card{opponentHiddenCount === 1 ? '' : 's'}.</p>
+            <div className="mt-2 flex flex-wrap gap-1" aria-label={`${opponentName} hidden cards`}>
+              {Array.from({ length: Math.min(opponentHiddenCount, 6) }).map((_, index) => (
+                <span
+                  key={index}
+                  className="flex h-10 w-7 items-center justify-center border border-slate-600 bg-[#0b1017] text-[10px] font-semibold text-slate-400 shadow-inner"
+                  title="Hidden card"
+                >
+                  ?
+                </span>
+              ))}
+              {opponentHiddenCount > 6 ? <span className="self-end text-[10px] text-slate-500">+{opponentHiddenCount - 6}</span> : null}
+            </div>
           </div>
         ) : null}
         {myHiddenCards.length > 0 ? (
           <div className="border border-forge/50 bg-panel/95 px-3 py-2">
             <p className="font-semibold text-forge">Hidden cards</p>
+            <p className="mt-1 text-[11px] text-slate-400">Only you can inspect these. Play from Hidden is deferred.</p>
             <div className="mt-1 flex flex-wrap gap-1">
-              {myHiddenCards.map(({ instanceId, card }) => (
-                <button
-                  key={instanceId}
-                  className="border border-line bg-ink px-2 py-1 text-left text-slate-200 hover:border-forge"
-                  onClick={() => notifyWarning('Hidden timing unavailable', 'Playing hidden cards later is not implemented yet.')}
-                  onMouseEnter={() => handleCardHover(card)}
-                  onMouseLeave={() => handleCardHover(null)}
-                >
-                  {card.name}
-                </button>
-              ))}
+              {myHiddenCards.map(({ instanceId, instance, card }) => {
+                const display = hiddenCardDisplayForViewer(instance, card, player.id);
+                return (
+                  <button
+                    key={instanceId}
+                    className="border border-line bg-ink px-2 py-1 text-left text-slate-200 hover:border-forge"
+                    onClick={() => setInspectCard(instance)}
+                    onMouseEnter={() => handleCardHover(display.previewCard, instance)}
+                    onMouseLeave={() => handleCardHover(null)}
+                    title="Inspect hidden card"
+                  >
+                    <span className="block font-semibold">{display.label}</span>
+                    <span className="block text-[10px] text-slate-500">{display.subtitle}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         ) : null}
@@ -1192,15 +2046,22 @@ export function GameBoard() {
           cardScale={cardScale}
           onHover={handleCardHover}
           effectiveEnergy={spendableEnergy}
-          canPlayCards={canPlayCards}
+          canPlayCards={canPlayCards && !chainActive}
           canAmbushCards={canAmbushCards}
           canHideCards={canHideCards}
           canPlayReactions={canPlayReactions}
+          canPlayReactionCard={canPlayChainReactionCard}
           embedded
           maxHeight={handHeight}
         />
       </div>
-      <CardPreview card={hoveredCard} instance={hoveredInstance} onInspect={setInspectCard} />
+      <CardPreview
+        card={hoveredCard}
+        instance={hoveredInstance}
+        allInstances={state.cards}
+        cardsById={cardsById}
+        onInspect={setInspectCard}
+      />
       {pendingAccelerate ? (
         <div className="absolute inset-0 z-40 grid place-items-center bg-ink/80 px-5">
           <section className="w-full max-w-sm border border-line bg-panel p-5 shadow-glow">
@@ -1390,6 +2251,53 @@ export function GameBoard() {
               )) : null}
             </div>
           </section>
+        </div>
+      ) : null}
+      {state.currentPhase === 'SELECT_BATTLEFIELD' ? (
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-ink/95 px-6 py-8">
+          {selectedBattlefield ? (
+            <section className="border border-line bg-panel px-10 py-8 text-center shadow-glow">
+              <h2 className="text-xl font-semibold text-forge">Battlefield locked in</h2>
+              <p className="mt-2 text-sm text-slate-400">Waiting for the other player to choose...</p>
+              <p className="mt-3 text-sm text-slate-300">{cardsById.get(selectedBattlefield)?.name ?? selectedBattlefield}</p>
+            </section>
+          ) : battlefieldChoices.length === 0 ? (
+            <section className="border border-line bg-panel px-10 py-8 text-center shadow-glow">
+              <h2 className="text-xl font-semibold text-forge">Waiting for Battlefields...</h2>
+              <p className="mt-2 text-sm text-slate-400">The server is preparing your Battlefield choices. If this persists, copy debug info and restart the room.</p>
+              <button type="button" className="btn-secondary mt-4" onClick={() => navigate('/')}>Back to Home</button>
+            </section>
+          ) : (
+            <section className="w-full max-w-4xl border border-line bg-panel p-6 shadow-glow">
+              <div className="mb-5">
+                <h2 className="text-2xl font-semibold text-forge">Choose your Battlefield</h2>
+                <p className="mt-1 text-sm text-slate-400">Pick one of your three Battlefields. It will be revealed and locked before mulligans begin.</p>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                {battlefieldChoices.map((cardId) => {
+                  const card = cardsById.get(cardId);
+                  return (
+                    <button
+                      type="button"
+                      key={cardId}
+                      className="group border border-line bg-void p-3 text-left transition-colors hover:border-forge hover:bg-forge/10 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={!wsConnected || !canSelectBattlefield}
+                      onMouseEnter={() => handleCardHover(card ?? null)}
+                      onMouseLeave={() => handleCardHover(null)}
+                      onClick={() => selectBattlefield(cardId)}
+                    >
+                      {card?.imageUrl ? <img className="aspect-[5/7] w-full object-contain" src={card.imageUrl} alt={card.name} /> : null}
+                      <span className="mt-3 block truncate text-sm font-semibold text-forge">{card?.name ?? cardId}</span>
+                      <span className="mt-1 block text-xs text-slate-400">Select Battlefield</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-6 flex items-center justify-between gap-3">
+                {!wsConnected ? <p className="text-sm text-ember">Connection lost - reconnecting...</p> : <p className="text-sm text-slate-500">Mulligans unlock after both players select.</p>}
+              </div>
+            </section>
+          )}
         </div>
       ) : null}
       {state.currentPhase === 'MULLIGAN' && (canKeepHand || canMulligan || hasMulliganed) ? (

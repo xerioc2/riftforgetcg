@@ -151,8 +151,8 @@ public class RoomService {
       if (i == chosenChampionIndex) continue;
       mainDeckCount++;
     }
-    if (format == DeckFormat.FULL_CONSTRUCTED && mainDeckCount != 40) {
-      throw new IllegalArgumentException("Main Deck must contain exactly 40 cards. Current count: " + mainDeckCount + ".");
+    if (format == DeckFormat.FULL_CONSTRUCTED && mainDeckCount != 39) {
+      throw new IllegalArgumentException("Main Deck must contain exactly 39 cards. Current count: " + mainDeckCount + ".");
     }
     if (format == DeckFormat.PLAYTEST_BOT && mainDeckCount < 20) {
       throw new IllegalArgumentException("Main deck must have at least 20 cards.");
@@ -274,8 +274,8 @@ public class RoomService {
   }
 
   private List<String> generateBotDeck() {
-    List<String> starterDeck = generateIreliaStarterDeck();
-    if (!starterDeck.isEmpty()) return starterDeck;
+    List<String> uploadedIrelia = generateUploadedIreliaPlaytestDeck();
+    if (!uploadedIrelia.isEmpty()) return uploadedIrelia;
 
     Set<String> playable = Set.of("unit", "spell", "gear");
     List<CardDefinition> all = new ArrayList<>(cardDataService.getAll().values());
@@ -299,59 +299,68 @@ public class RoomService {
     return deck;
   }
 
-  private List<String> generateIreliaStarterDeck() {
+  private List<String> generateUploadedIreliaPlaytestDeck() {
     Map<String, CardDefinition> byName = cardDataService.getAll().values().stream()
         .collect(Collectors.toMap(CardDefinition::name, card -> card, (first, ignored) -> first));
     List<String> requiredNames = List.of(
         "Irelia - Blade Dancer",
         "Irelia - Fervent",
-        "Defy",
-        "Discipline",
-        "Tideturner",
-        "Stellacorn Herder",
-        "Guardian Angel",
-        "Boots of Swiftness",
-        "Defiant Dance",
-        "Scuttle Crab",
-        "Charm",
-        "En Garde",
-        "Gust",
-        "Ride The Wind",
-        "Stacked Deck",
         "Not So Fast",
-        "Star-Crossed",
-        "Adaptatron",
-        "Calm Rune",
-        "Chaos Rune",
-        "Targon's Peak",
+        "Abandoned Hall",
+        "Vex - Apathetic",
+        "Scuttle Crab",
+        "Back Off",
         "Sunken Temple",
-        "Abandoned Hall");
+        "Defiant Dance",
+        "Edge of Night",
+        "Boots of Swiftness",
+        "Guardian Angel",
+        "Stellacorn Herder",
+        "Calm Rune",
+        "Lonely Poro",
+        "Flash",
+        "Charm",
+        "Defy",
+        "En Garde",
+        "Discipline",
+        "Zhonya's Hourglass",
+        "Chaos Rune",
+        "Ride The Wind",
+        "The Syren",
+        "Mindsplitter",
+        "Tideturner",
+        "Targon's Peak",
+        "Ride The Wind");
     if (requiredNames.stream().anyMatch(name -> !byName.containsKey(name))) return List.of();
 
     List<String> deck = new ArrayList<>();
     addCopies(deck, byName, "Irelia - Blade Dancer", 1);
     addCopies(deck, byName, "Irelia - Fervent", 1);
-    addCopies(deck, byName, "Defy", 3);
-    addCopies(deck, byName, "Discipline", 3);
-    addCopies(deck, byName, "Tideturner", 3);
-    addCopies(deck, byName, "Stellacorn Herder", 3);
-    addCopies(deck, byName, "Guardian Angel", 3);
-    addCopies(deck, byName, "Boots of Swiftness", 3);
-    addCopies(deck, byName, "Defiant Dance", 3);
+    addCopies(deck, byName, "Not So Fast", 1);
+    addCopies(deck, byName, "Vex - Apathetic", 2);
     addCopies(deck, byName, "Scuttle Crab", 3);
-    addCopies(deck, byName, "Charm", 2);
+    addCopies(deck, byName, "Back Off", 1);
+    addCopies(deck, byName, "Defiant Dance", 3);
+    addCopies(deck, byName, "Edge of Night", 1);
+    addCopies(deck, byName, "Boots of Swiftness", 2);
+    addCopies(deck, byName, "Guardian Angel", 2);
+    addCopies(deck, byName, "Stellacorn Herder", 2);
+    addCopies(deck, byName, "Lonely Poro", 3);
+    addCopies(deck, byName, "Flash", 2);
+    addCopies(deck, byName, "Charm", 3);
+    addCopies(deck, byName, "Defy", 3);
     addCopies(deck, byName, "En Garde", 2);
-    addCopies(deck, byName, "Gust", 2);
-    addCopies(deck, byName, "Ride The Wind", 2);
-    addCopies(deck, byName, "Stacked Deck", 2);
-    addCopies(deck, byName, "Not So Fast", 2);
-    addCopies(deck, byName, "Star-Crossed", 2);
-    addCopies(deck, byName, "Adaptatron", 2);
+    addCopies(deck, byName, "Discipline", 3);
+    addCopies(deck, byName, "Zhonya's Hourglass", 1);
+    addCopies(deck, byName, "Ride The Wind", 1);
+    addCopies(deck, byName, "The Syren", 1);
+    addCopies(deck, byName, "Mindsplitter", 2);
+    addCopies(deck, byName, "Tideturner", 1);
     addCopies(deck, byName, "Calm Rune", 6);
     addCopies(deck, byName, "Chaos Rune", 6);
-    addCopies(deck, byName, "Targon's Peak", 1);
-    addCopies(deck, byName, "Sunken Temple", 1);
     addCopies(deck, byName, "Abandoned Hall", 1);
+    addCopies(deck, byName, "Sunken Temple", 1);
+    addCopies(deck, byName, "Targon's Peak", 1);
     return deck;
   }
 

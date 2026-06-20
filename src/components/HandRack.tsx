@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { shouldShowRespondAction } from '../lib/cardActions';
 import { cardSupportStatus } from '../lib/deckSupport';
 import type { CardInstance, RiftCard } from '../types';
 
@@ -24,6 +25,7 @@ export function HandRack({
   canAmbushCards = false,
   canHideCards = false,
   canPlayReactions = false,
+  canPlayReactionCard,
   embedded = false,
   maxHeight,
 }: {
@@ -40,6 +42,7 @@ export function HandRack({
   canAmbushCards?: boolean;
   canHideCards?: boolean;
   canPlayReactions?: boolean;
+  canPlayReactionCard?: (card: RiftCard | undefined) => boolean;
   embedded?: boolean;
   maxHeight?: number;
 }) {
@@ -79,8 +82,11 @@ export function HandRack({
   const selectedCost = selectedCard?.cost ?? 0;
   const canAffordSelected = selectedCost <= effectiveEnergy;
   const selectedType = selectedCard?.type?.toLowerCase();
-  const selectedCanPlayFromHand = selectedType !== 'legend' && selectedType !== 'champion' && selectedType !== 'battlefield';
-  const selectedIsReaction = canPlayReactions && selectedCard?.type?.toLowerCase() === 'spell';
+  const selectedCanPlayFromHand = selectedType !== 'legend' && selectedType !== 'battlefield';
+  const selectedIsReaction = shouldShowRespondAction(selectedCard, {
+    canPlayReactions,
+    canPlayReactionCard: canPlayReactionCard?.(selectedCard),
+  });
   const canPlaySelected = selectedCanPlayFromHand && (canPlayCards || selectedIsReaction);
   const selectedHasHidden = (selectedCard?.rulesText ?? '').toLowerCase().includes('[hidden]')
     || (selectedCard?.keywords ?? []).some((keyword) => keyword.toUpperCase().startsWith('HIDDEN'));
@@ -168,8 +174,11 @@ export function HandRack({
           const isHovered = hovered === instance.instanceId;
           const isSelected = selected === instance.instanceId;
           const type = card?.type?.toLowerCase();
-          const canPlayFromHand = type !== 'legend' && type !== 'champion' && type !== 'battlefield';
-          const isReaction = canPlayReactions && card?.type?.toLowerCase() === 'spell';
+          const canPlayFromHand = type !== 'legend' && type !== 'battlefield';
+          const isReaction = shouldShowRespondAction(card, {
+            canPlayReactions,
+            canPlayReactionCard: canPlayReactionCard?.(card),
+          });
           const isPlayable = canPlayFromHand && (canPlayCards || isReaction);
           return (
             <button

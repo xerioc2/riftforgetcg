@@ -1,0 +1,672 @@
+{
+  "sourceFilename": "fiora_wins_s3_beijing_city_challenge.txt",
+  "parsedAt": "2026-06-19",
+  "entries": [
+    {
+      "sourceLine": 1,
+      "quantity": 1,
+      "originalName": "Fiora - Grand Duelist",
+      "sourceCardId": "SFD-205",
+      "sourceSetCode": "SFD",
+      "section": "Legend",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bdcd308c64675ca8856",
+          "name": "Fiora - Grand Duelist",
+          "type": "Legend",
+          "set": "Spiritforged",
+          "rulesText": "When one of your units becomes [Mighty], you may exhaust me to channel 1 rune exhausted. (A unit is Mighty while it has 5+ :rb_might:.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Legend text"
+    },
+    {
+      "sourceLine": 2,
+      "quantity": 2,
+      "originalName": "Punch First",
+      "sourceCardId": "SFD-097",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be2d308c64675ca88cc",
+          "name": "Punch First",
+          "type": "Spell",
+          "set": "Spiritforged",
+          "rulesText": "[Action] (Play on your turn or in showdowns.)Give a unit +5 :rb_might: this turn."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Basic or descriptor-only"
+    },
+    {
+      "sourceLine": 3,
+      "quantity": 2,
+      "originalName": "Sacrifice",
+      "sourceCardId": "UNL-173",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bead308c64675ca896b",
+          "name": "Sacrifice",
+          "type": "Spell",
+          "set": "Unleashed",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)As an additional cost to play this, kill a friendly [Mighty] unit. (A unit is Mighty while it has 5+ :rb_might:.)Draw 2 and channel 1 rune exhausted."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 4,
+      "quantity": 2,
+      "originalName": "Ashe - Focused",
+      "sourceCardId": "UNL-169",
+      "sourceSetCode": "UNL",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bebd308c64675ca897d",
+          "name": "Ashe - Focused",
+          "type": "Champion",
+          "set": "Unleashed",
+          "rulesText": "When you play me, choose an opponent. They reveal their hand. Choose a card revealed this way and banish it. When they hold, return it to their hand (even if I'm no longer on the board)."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 5,
+      "quantity": 2,
+      "originalName": "Shepherd's Heirloom",
+      "sourceCardId": "UNL-158",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69c8378e2c3db56eb7d760d7",
+          "name": "Shepherd's Heirloom",
+          "type": "Gear",
+          "set": "Unleashed",
+          "rulesText": "When you play this, gain 1 XP.[Equip] — Spend 1 XP (Pay the cost: Attach this to a unit you control.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 6,
+      "quantity": 2,
+      "originalName": "Kinkou Initiate",
+      "sourceCardId": "UNL-097",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69c5be69bf82ff7cb69f428f",
+          "name": "Kinkou Initiate",
+          "type": "Unit",
+          "set": "Unleashed",
+          "rulesText": "When you play me, draw 1 if your other units have total Might 5 or more."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Draw / reveal / deck selection"
+    },
+    {
+      "sourceLine": 7,
+      "quantity": 2,
+      "originalName": "Grim Resolve",
+      "sourceCardId": "UNL-095",
+      "sourceSetCode": "UNL",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69c56c6d7700f78fff1c757c",
+          "name": "Grim Resolve",
+          "type": "Spell",
+          "set": "Unleashed",
+          "rulesText": "[Action] (Play on your turn or in showdowns.)Give a friendly unit +3 :rb_might: this turn. When it wins a combat this turn, gain 2 XP."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "XP / Hunt / Level / Buff"
+    },
+    {
+      "sourceLine": 8,
+      "quantity": 1,
+      "originalName": "Sunken Temple",
+      "sourceCardId": "SFD-218",
+      "sourceSetCode": "SFD",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be8d308c64675ca893a",
+          "name": "Sunken Temple",
+          "type": "Battlefield",
+          "set": "Spiritforged",
+          "rulesText": "When you conquer here with one or more [Mighty] units, you may pay :rb_energy_1: to draw 1. (A unit is Mighty while it has 5+ :rb_might:.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 9,
+      "quantity": 3,
+      "originalName": "Riposte",
+      "sourceCardId": "SFD-206",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be5d308c64675ca890d",
+          "name": "Riposte",
+          "type": "Spell",
+          "set": "Spiritforged",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Choose a friendly unit and a spell. Counter that spell and give that unit +:rb_might: equal to that spell's Energy cost this turn."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 10,
+      "quantity": 3,
+      "originalName": "Unsung Hero",
+      "sourceCardId": "SFD-167",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bddd308c64675ca8866",
+          "name": "Unsung Hero",
+          "type": "Unit",
+          "set": "Spiritforged",
+          "rulesText": "[Deathknell] — If I was [Mighty], draw 2. (When I die, get the effect. I'm Mighty while I have 5+ :rb_might:.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Draw / reveal / deck selection"
+    },
+    {
+      "sourceLine": 11,
+      "quantity": 3,
+      "originalName": "B.F. Sword",
+      "sourceCardId": "SFD-161",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bddd308c64675ca886f",
+          "name": "B.F. Sword",
+          "type": "Gear",
+          "set": "Spiritforged",
+          "rulesText": "[Equip] :rb_rune_order: (:rb_rune_order:: Attach this to a unit you control.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Equipment lifecycle/effect"
+    },
+    {
+      "sourceLine": 12,
+      "quantity": 1,
+      "originalName": "Akshan - Mischievous",
+      "sourceCardId": "SFD-109",
+      "sourceSetCode": "SFD",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be8d308c64675ca8944",
+          "name": "Akshan - Mischievous",
+          "type": "Champion",
+          "set": "Spiritforged",
+          "rulesText": "[Weaponmaster]You may pay :rb_rune_body::rb_rune_body: as an additional cost to play me.When you play me, if you paid the additional cost, move an enemy gear to your base. You control it until I leave the board. If it's an Equipment, attach it to me."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 13,
+      "quantity": 1,
+      "originalName": "Sea Monkey",
+      "sourceCardId": "SFD-098",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be8d308c64675ca893f",
+          "name": "Sea Monkey",
+          "type": "Unit",
+          "set": "Spiritforged",
+          "rulesText": "You may pay :rb_energy_1: as an additional cost to play me.When you play me, if you paid the additional cost, buff me. (Give me a +1 :rb_might: buff if I don't already have one.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "XP / Hunt / Level / Buff"
+    },
+    {
+      "sourceLine": 14,
+      "quantity": 5,
+      "originalName": "Body Rune",
+      "sourceCardId": "OGN-126",
+      "sourceSetCode": "OGN",
+      "section": "Rune Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bcdd308c64675ca8740",
+          "name": "Body Rune",
+          "type": "Rune",
+          "set": "Origins",
+          "rulesText": null
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "bucket": "Rune/payment"
+    },
+    {
+      "sourceLine": 15,
+      "quantity": 1,
+      "originalName": "Trifarian War Camp",
+      "sourceCardId": "OGN-294",
+      "sourceSetCode": "OGN",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd6d308c64675ca87f3",
+          "name": "Trifarian War Camp",
+          "type": "Battlefield",
+          "set": "Origins",
+          "rulesText": "Units here have +1 :rb_might:. (This includes attackers.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 16,
+      "quantity": 1,
+      "originalName": "Monastery of Hirana",
+      "sourceCardId": "OGN-282",
+      "sourceSetCode": "OGN",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd6d308c64675ca87e7",
+          "name": "Monastery of Hirana",
+          "type": "Battlefield",
+          "set": "Origins",
+          "rulesText": "When you conquer here, you may spend a buff to draw 1."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 17,
+      "quantity": 1,
+      "originalName": "Fiora - Victorious",
+      "sourceCardId": "OGN-232",
+      "sourceSetCode": "OGN",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd3d308c64675ca87b5",
+          "name": "Fiora - Victorious",
+          "type": "Champion",
+          "set": "Origins",
+          "rulesText": "While I'm [Mighty], I have [Deflect], [Ganking], and [Shield]. (I'm Mighty while I have 5+ :rb_might:.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 18,
+      "quantity": 2,
+      "originalName": "Spectral Matron",
+      "sourceCardId": "OGN-226",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd3d308c64675ca87af",
+          "name": "Spectral Matron",
+          "type": "Unit",
+          "set": "Origins",
+          "rulesText": "When you play me, you may play a unit costing no more than :rb_energy_3: and no more than :rb_rune_rainbow: from your trash, ignoring its cost."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Triggered/static card text"
+    },
+    {
+      "sourceLine": 19,
+      "quantity": 7,
+      "originalName": "Order Rune",
+      "sourceCardId": "OGN-214",
+      "sourceSetCode": "OGN",
+      "section": "Rune Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd2d308c64675ca87a2",
+          "name": "Order Rune",
+          "type": "Rune",
+          "set": "Origins",
+          "rulesText": null
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "bucket": "Rune/payment"
+    },
+    {
+      "sourceLine": 20,
+      "quantity": 2,
+      "originalName": "Hidden Blade",
+      "sourceCardId": "OGN-213",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd2d308c64675ca87a1",
+          "name": "Hidden Blade",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)[Action] (Play on your turn or in showdowns.)Kill a unit at a battlefield. Its controller draws 2."
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "sourceLine": 21,
+      "quantity": 3,
+      "originalName": "Sett - Brawler",
+      "sourceCardId": "OGN-164",
+      "sourceSetCode": "OGN",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bcfd308c64675ca876a",
+          "name": "Sett - Brawler",
+          "type": "Champion",
+          "set": "Origins",
+          "rulesText": "When I'm played and when I conquer, buff me. (If I don't have a buff, I get a +1 :rb_might: buff.)Spend my buff: Give me +4 :rb_might: this turn."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 22,
+      "quantity": 3,
+      "originalName": "Pit Rookie",
+      "sourceCardId": "OGN-136",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bced308c64675ca874b",
+          "name": "Pit Rookie",
+          "type": "Unit",
+          "set": "Origins",
+          "rulesText": "When you play me, buff another friendly unit. (If it doesn't have a buff, it gets a +1 :rb_might: buff.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "XP / Hunt / Level / Buff"
+    },
+    {
+      "sourceLine": 23,
+      "quantity": 3,
+      "originalName": "First Mate",
+      "sourceCardId": "OGN-132",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bced308c64675ca8747",
+          "name": "First Mate",
+          "type": "Unit",
+          "set": "Origins",
+          "rulesText": "When you play me, ready another unit."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Triggered/static card text"
+    },
+    {
+      "sourceLine": 24,
+      "quantity": 3,
+      "originalName": "Challenge",
+      "sourceCardId": "OGN-128",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bcdd308c64675ca8743",
+          "name": "Challenge",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Action] (Play on your turn or in showdowns.)Choose a friendly unit and an enemy unit. They deal damage equal to their Mights to each other."
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Damage / destroy"
+    }
+  ],
+  "malformedLines": [],
+  "validation": {
+    "totalCards": 56,
+    "legendCount": 1,
+    "championCandidateCount": 7,
+    "inferredMainDeckCount": 39,
+    "runeCount": 12,
+    "battlefieldCount": 3,
+    "validConstructedShape": true,
+    "issues": []
+  },
+  "supportSummary": {
+    "uniqueCards": 24,
+    "counts": {
+      "SUPPORTED": 2,
+      "PARTIAL": 20,
+      "UNSUPPORTED": 2,
+      "BANNED": 0,
+      "NOT_AUDITED": 0
+    },
+    "canUseInEnforced": false,
+    "unresolvedCards": [],
+    "topBlockers": [
+      {
+        "cardName": "Hidden Blade",
+        "sourceCardId": "OGN-213",
+        "status": "UNSUPPORTED",
+        "bucket": "Hidden / facedown",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Challenge",
+        "sourceCardId": "OGN-128",
+        "status": "UNSUPPORTED",
+        "bucket": "Damage / destroy",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Fiora - Grand Duelist",
+        "sourceCardId": "SFD-205",
+        "status": "PARTIAL",
+        "bucket": "Legend text",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      },
+      {
+        "cardName": "Punch First",
+        "sourceCardId": "SFD-097",
+        "status": "PARTIAL",
+        "bucket": "Basic or descriptor-only",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      },
+      {
+        "cardName": "Sacrifice",
+        "sourceCardId": "UNL-173",
+        "status": "PARTIAL",
+        "bucket": "Reaction / chain / counter",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      }
+    ]
+  },
+  "archetype": "Fiora, Grand Duelist",
+  "key": "fiora",
+  "eventResult": "fiora wins s3 beijing city challenge",
+  "priority": "Additional meta data",
+  "rawSourceFile": "decks/meta/raw/fiora_wins_s3_beijing_city_challenge.txt",
+  "normalizedFile": "decks/meta/normalized/fiora_wins_s3_beijing_city_challenge.json"
+}

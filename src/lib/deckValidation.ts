@@ -36,7 +36,7 @@ export function validateDeck(deck: Deck, cardsById: Map<string, RiftCard>): Deck
   if (!legend) messages.push('Choose a Legend to set the deck domains.');
   if (missingCardIds.length > 0) messages.push(`${missingCardIds.length} saved card ID${missingCardIds.length === 1 ? '' : 's'} are missing from card data.`);
   if (championCards !== 1) messages.push('Choose exactly 1 Chosen Champion.');
-  if (mainDeckCards !== 40) messages.push(`Main Deck must contain exactly 40 cards. Current count: ${mainDeckCards}.`);
+  if (mainDeckCards !== 39) messages.push(`Main Deck must contain exactly 39 cards. Current count: ${mainDeckCards}.`);
   if (runeCards !== 12) messages.push(`Rune Pool must contain exactly 12 runes (${runeCards}/12).`);
   if (battlefieldCards !== 3) messages.push(`Choose exactly 3 Battlefields (${battlefieldCards}/3).`);
   if (new Set(battlefieldEntries.map(({ card }) => card.name)).size !== battlefieldCards) {

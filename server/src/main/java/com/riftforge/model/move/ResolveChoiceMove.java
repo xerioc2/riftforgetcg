@@ -9,6 +9,7 @@ public record ResolveChoiceMove(
     String selectedOptionId,
     String selectedCardOptionId,
     String selectedAction,
+    String selectedTargetInstanceId,
     List<PendingChoice.CardChoiceAssignment> assignments)
     implements MoveRequest {
 
@@ -17,6 +18,16 @@ public record ResolveChoiceMove(
   }
 
   public ResolveChoiceMove(String playerId, String choiceId, String selectedOptionId) {
-    this(playerId, choiceId, selectedOptionId, null, null, List.of());
+    this(playerId, choiceId, selectedOptionId, null, null, null, List.of());
+  }
+
+  public ResolveChoiceMove(
+      String playerId,
+      String choiceId,
+      String selectedOptionId,
+      String selectedCardOptionId,
+      String selectedAction,
+      List<PendingChoice.CardChoiceAssignment> assignments) {
+    this(playerId, choiceId, selectedOptionId, selectedCardOptionId, selectedAction, null, assignments);
   }
 }

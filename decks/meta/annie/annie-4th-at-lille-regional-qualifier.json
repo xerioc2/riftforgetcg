@@ -1,0 +1,950 @@
+{
+  "sourceGuideUrl": "https://riftbound.gg/annie-dark-child-guide/",
+  "deckApiUrl": "https://api.dotgg.gg/cgfw/getdeck?game=riftbound&slug=annie-4th-at-lille-regional-qualifier",
+  "sourceDeckSlug": "annie-4th-at-lille-regional-qualifier",
+  "slug": "annie-4th-at-lille-regional-qualifier",
+  "humanName": "Annie 4th at Lille Regional Qualifier",
+  "format": "Standard",
+  "sourceBoards": [
+    {
+      "OGN-004": "2",
+      "OGN-007": "6",
+      "OGN-012": "3",
+      "OGN-013": "3",
+      "OGN-022": "1",
+      "OGN-039": "3",
+      "OGN-166": "6",
+      "OGN-169": "2",
+      "OGN-172": "2",
+      "OGN-173": "2",
+      "OGN-183": "3",
+      "OGN-185": "3",
+      "OGN-192": "1",
+      "OGN-199": "2",
+      "OGN-290": "1",
+      "OGN-298": "1",
+      "OGS-010": "1",
+      "OGS-011": "3",
+      "OGS-017": "1",
+      "SFD-021": "3",
+      "SFD-022": "1",
+      "SFD-025": "3",
+      "SFD-029": "3",
+      "SFD-135": "1",
+      "SFD-136": "2",
+      "SFD-145": "1",
+      "SFD-217": "1"
+    },
+    {
+      "OGN-022": "1",
+      "OGN-169": "2",
+      "OGN-172": "1",
+      "SFD-022": "1",
+      "SFD-135": "1",
+      "SFD-136": "1",
+      "SFD-145": "1"
+    }
+  ],
+  "capturedDate": "2026-06-19",
+  "legend": "Annie, Dark Child",
+  "cards": [
+    {
+      "source": {
+        "sourceCardId": "SFD-217",
+        "name": "Seat of Power",
+        "type": "Battlefield",
+        "supertype": "",
+        "setName": "Spiritforged",
+        "rulesText": "When you conquer here, draw 1 for each other battlefield you or allies control.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-217.webp"
+      },
+      "quantity": 1,
+      "role": "Battlefields",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5be8d308c64675ca8939",
+          "name": "Seat of Power",
+          "type": "Battlefield",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Battlefield effect"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-290",
+        "name": "The Arena's Greatest",
+        "type": "Battlefield",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "At the start of each player's first Beginning Phase, that player gains 1 point.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-290.webp"
+      },
+      "quantity": 1,
+      "role": "Battlefields",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bd6d308c64675ca87ef",
+          "name": "The Arena's Greatest",
+          "type": "Battlefield",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Battlefield effect"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-298",
+        "name": "Zaun Warrens",
+        "type": "Battlefield",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "When you conquer here, discard 1, then draw 1.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-298.webp"
+      },
+      "quantity": 1,
+      "role": "Battlefields",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bd7d308c64675ca87f7",
+          "name": "Zaun Warrens",
+          "type": "Battlefield",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Battlefield effect"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGS-017",
+        "name": "Annie - Dark Child - Starter",
+        "type": "Champion",
+        "supertype": "Champion",
+        "setName": "Proving Grounds",
+        "rulesText": "At the end of your turn, ready up to 2 runes.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGS-017.webp"
+      },
+      "quantity": 1,
+      "role": "Champion / MainDeck candidate",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "base-name",
+        "localCard": {
+          "id": "69bc5bf2d308c64675ca8a02",
+          "name": "Annie - Dark Child",
+          "type": "Champion",
+          "set": "Riftbound Organized Play Promotional Cards"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Champion text"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGS-010",
+        "name": "Annie - Stubborn",
+        "type": "Champion",
+        "supertype": "Champion",
+        "setName": "Proving Grounds",
+        "rulesText": "When you play me, return a spell from your trash to your hand.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGS-010.webp"
+      },
+      "quantity": 1,
+      "role": "Champion / MainDeck candidate",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name-and-set",
+        "localCard": {
+          "id": "69bc5bd9d308c64675ca881f",
+          "name": "Annie - Stubborn",
+          "type": "Champion",
+          "set": "Proving Grounds"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Champion text"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-039",
+        "name": "Kai'Sa - Survivor",
+        "type": "Champion",
+        "supertype": "Champion",
+        "setName": "Origins",
+        "rulesText": "[Accelerate] (You may pay :rb_energy_1::rb_rune_fury: as an additional cost to have me enter ready.)\nWhen I conquer, draw 1.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-039.webp"
+      },
+      "quantity": 3,
+      "role": "Champion / MainDeck candidate",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bc8d308c64675ca86df",
+          "name": "Kai'Sa - Survivor",
+          "type": "Champion",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Accelerate"
+      ],
+      "bucket": "Champion text"
+    },
+    {
+      "source": {
+        "sourceCardId": "SFD-029",
+        "name": "Rek'Sai - Breacher",
+        "type": "Champion",
+        "supertype": "Champion",
+        "setName": "Spiritforged",
+        "rulesText": "[Accelerate] (You may pay :rb_energy_1::rb_rune_fury: as an additional cost to have me enter ready.)\n[Assault] (+1 :rb_might: while I'm an attacker.)\nFriendly units played from anywhere other than a player's hand have [Accelerate].",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-029.webp"
+      },
+      "quantity": 3,
+      "role": "Champion / MainDeck candidate",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5be2d308c64675ca88c5",
+          "name": "Rek'Sai - Breacher",
+          "type": "Champion",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Accelerate",
+        "Assault"
+      ],
+      "bucket": "Champion text"
+    },
+    {
+      "source": {
+        "sourceCardId": "SFD-025",
+        "name": "Rengar - Pouncing",
+        "type": "Champion",
+        "supertype": "Champion",
+        "setName": "Spiritforged",
+        "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve, including to a battlefield you control.)\n[Assault 2] (+2 :rb_might: while I'm an attacker.)\nI can be played to a battlefield you're attacking.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-025.webp"
+      },
+      "quantity": 3,
+      "role": "Champion / MainDeck candidate",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bdfd308c64675ca8898",
+          "name": "Rengar - Pouncing",
+          "type": "Champion",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Assault 2",
+        "Reaction"
+      ],
+      "bucket": "Champion text"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-004",
+        "name": "Cleave",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "[Action] (Play on your turn or in showdowns.)\nGive a unit [Assault 3] this turn. (+3 :rb_might: while it's an attacker.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-004.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bc6d308c64675ca86b9",
+          "name": "Cleave",
+          "type": "Spell",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Action",
+        "Assault 3"
+      ],
+      "bucket": "Triggered/static card text"
+    },
+    {
+      "source": {
+        "sourceCardId": "SFD-135",
+        "name": "Factory Recall",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Spiritforged",
+        "rulesText": "[Action] (Play on your turn or in showdowns.)\nReturn a gear to its owner's hand.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-135.webp"
+      },
+      "quantity": 1,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5be6d308c64675ca8917",
+          "name": "Factory Recall",
+          "type": "Spell",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "keywords": [
+        "Action"
+      ],
+      "bucket": "Bounce / return"
+    },
+    {
+      "source": {
+        "sourceCardId": "SFD-021",
+        "name": "Ferrous Forerunner",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Spiritforged",
+        "rulesText": "[Deathknell] — Play two 3 :rb_might: Mech unit tokens to your base. (When I die, get the effect.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-021.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bdfd308c64675ca8897",
+          "name": "Ferrous Forerunner",
+          "type": "Unit",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Deathknell"
+      ],
+      "bucket": "Token creation"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGS-011",
+        "name": "Flash",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Proving Grounds",
+        "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)\nMove up to 2 friendly units to base.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGS-011.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bd9d308c64675ca8820",
+          "name": "Flash",
+          "type": "Spell",
+          "set": "Proving Grounds"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists for moving up to two friendly battlefield Unit/Champion cards to Base. Full official any-time Reaction timing remains incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Reaction"
+      ],
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-169",
+        "name": "Gust",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)\nReturn a unit at a battlefield with 3 :rb_might: or less to its owner's hand.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-169.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bd0d308c64675ca8771",
+          "name": "Gust",
+          "type": "Spell",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists through Stacked Deck for returning a battlefield Unit/Champion with 3 Might or less, but full official any-time Reaction timing remains incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Reaction"
+      ],
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "source": {
+        "sourceCardId": "SFD-136",
+        "name": "Hard Bargain",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Spiritforged",
+        "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)\n[Repeat] :rb_energy_2: (You may pay the additional cost to repeat this spell's effect.)\nCounter a spell unless its controller pays :rb_energy_2:.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-136.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5be2d308c64675ca88cb",
+          "name": "Hard Bargain",
+          "type": "Spell",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "keywords": [
+        "Reaction",
+        "Repeat"
+      ],
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "source": {
+        "sourceCardId": "SFD-022",
+        "name": "Long Sword",
+        "type": "Gear",
+        "supertype": "",
+        "setName": "Spiritforged",
+        "rulesText": "[Quick-Draw] (This has [Reaction]. When you play it, attach it to a unit you control.)\n[Equip] :rb_rune_fury: (:rb_rune_fury:: Attach this to a unit you control.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-022.webp"
+      },
+      "quantity": 1,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bdad308c64675ca8834",
+          "name": "Long Sword",
+          "type": "Gear",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Equip",
+        "Quick-Draw",
+        "Reaction"
+      ],
+      "bucket": "Equipment: Quick-Draw"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-192",
+        "name": "Mindsplitter",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "When you play me, choose an opponent. They reveal their hand. Choose a card from it, and they discard that card.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-192.webp"
+      },
+      "quantity": 1,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bd1d308c64675ca8788",
+          "name": "Mindsplitter",
+          "type": "Unit",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Draw / reveal / deck selection"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-012",
+        "name": "Noxus Hopeful",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "[Legion] — I cost :rb_energy_2: less. (Get the effect if you've played another card this turn.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-012.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bc7d308c64675ca86c2",
+          "name": "Noxus Hopeful",
+          "type": "Unit",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Legion"
+      ],
+      "bucket": "Triggered/static card text"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-013",
+        "name": "Pouty Poro",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "[Deflect] (Opponents must pay :rb_rune_rainbow: to choose me with a spell or ability.)",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-013.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name-and-set",
+        "localCard": {
+          "id": "69bc5bc7d308c64675ca86c3",
+          "name": "Pouty Poro",
+          "type": "Unit",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Deflect"
+      ],
+      "bucket": "Basic or descriptor-only"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-172",
+        "name": "Rebuke",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "[Action] (Play on your turn or in showdowns.)\nReturn a unit at a battlefield to its owner's hand.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-172.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bd0d308c64675ca8774",
+          "name": "Rebuke",
+          "type": "Spell",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Action"
+      ],
+      "bucket": "Bounce / return"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-173",
+        "name": "Ride the Wind",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "[Action] (Play on your turn or in showdowns.)\nMove a friendly unit and ready it.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-173.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bd0d308c64675ca8775",
+          "name": "Ride The Wind",
+          "type": "Spell",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Action"
+      ],
+      "bucket": "Movement / location"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-183",
+        "name": "Stacked Deck",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "[Action] (Play on your turn or in showdowns.)\nLook at the top 3 cards of your Main Deck. Put 1 into your hand and recycle the rest.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-183.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name-and-set",
+        "localCard": {
+          "id": "69bc5bd0d308c64675ca877f",
+          "name": "Stacked Deck",
+          "type": "Spell",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: opens the narrow alpha chain, then resolves into a private top-3 choice; official ordering and broader timing remain incomplete.",
+        "blocked": false
+      },
+      "keywords": [
+        "Action"
+      ],
+      "bucket": "Draw / reveal / deck selection"
+    },
+    {
+      "source": {
+        "sourceCardId": "SFD-145",
+        "name": "Switcheroo",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Spiritforged",
+        "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)\n[Action] (Play on your turn or in showdowns.)\nSwap the Might of two units at the same battlefield this turn.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-145.webp"
+      },
+      "quantity": 1,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bded308c64675ca887b",
+          "name": "Switcheroo",
+          "type": "Spell",
+          "set": "Spiritforged"
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "keywords": [
+        "Action",
+        "Hidden"
+      ],
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-022",
+        "name": "Thermo Beam",
+        "type": "Spell",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "[Action] (Play on your turn or in showdowns.)\nKill all gear.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-022.webp"
+      },
+      "quantity": 1,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bc7d308c64675ca86cc",
+          "name": "Thermo Beam",
+          "type": "Spell",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "keywords": [
+        "Action"
+      ],
+      "bucket": "Damage / destroy"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-199",
+        "name": "Tideturner",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)\nWhen you play me, you may choose a unit you control at another location. Move me to its location and it to my original location.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-199.webp"
+      },
+      "quantity": 2,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bd1d308c64675ca8791",
+          "name": "Tideturner",
+          "type": "Unit",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: Hidden foundation exists, but later hidden play timing and the on-play location swap are not implemented yet.",
+        "blocked": false
+      },
+      "keywords": [
+        "Hidden"
+      ],
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-185",
+        "name": "Traveling Merchant",
+        "type": "Unit",
+        "supertype": "",
+        "setName": "Origins",
+        "rulesText": "When I move, discard 1, then draw 1.",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-185.webp"
+      },
+      "quantity": 3,
+      "role": "Main Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name",
+        "localCard": {
+          "id": "69bc5bd1d308c64675ca8781",
+          "name": "Traveling Merchant",
+          "type": "Unit",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Movement / location"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-166",
+        "name": "Chaos Rune",
+        "type": "Rune",
+        "supertype": "Basic",
+        "setName": "Origins",
+        "rulesText": "",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-166.webp"
+      },
+      "quantity": 6,
+      "role": "Rune Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name-and-set",
+        "localCard": {
+          "id": "69bc5bd0d308c64675ca876d",
+          "name": "Chaos Rune",
+          "type": "Rune",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Rune/payment"
+    },
+    {
+      "source": {
+        "sourceCardId": "OGN-007",
+        "name": "Fury Rune",
+        "type": "Rune",
+        "supertype": "Basic",
+        "setName": "Origins",
+        "rulesText": "",
+        "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-007.webp"
+      },
+      "quantity": 6,
+      "role": "Rune Deck",
+      "resolution": {
+        "status": "RESOLVED",
+        "method": "exact-name-and-set",
+        "localCard": {
+          "id": "69bc5bc6d308c64675ca86bc",
+          "name": "Fury Rune",
+          "type": "Rune",
+          "set": "Origins"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "keywords": [],
+      "bucket": "Rune/payment"
+    }
+  ],
+  "summary": {
+    "uniqueCards": 27,
+    "counts": {
+      "SUPPORTED": 1,
+      "PARTIAL": 22,
+      "UNSUPPORTED": 4,
+      "BANNED": 0,
+      "NOT_AUDITED": 0
+    },
+    "unresolved": [],
+    "canUseInEnforced": false,
+    "topBlockers": [
+      {
+        "cardName": "Factory Recall",
+        "status": "UNSUPPORTED",
+        "bucket": "Bounce / return",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Hard Bargain",
+        "status": "UNSUPPORTED",
+        "bucket": "Reaction / chain / counter",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Switcheroo",
+        "status": "UNSUPPORTED",
+        "bucket": "Hidden / facedown",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Thermo Beam",
+        "status": "UNSUPPORTED",
+        "bucket": "Damage / destroy",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Seat of Power",
+        "status": "PARTIAL",
+        "bucket": "Battlefield effect",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      }
+    ]
+  },
+  "outputFile": "C:\\Users\\xerio\\riftboungtcg\\decks\\meta\\annie\\annie-4th-at-lille-regional-qualifier.json"
+}

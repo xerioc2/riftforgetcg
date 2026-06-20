@@ -56,11 +56,25 @@ function isUnsupportedAction(card) {
   if (!card) return false;
   const type = String(card.type ?? '').toLowerCase();
   const text = String(card.rulesText ?? '').toLowerCase();
-  if (type === 'gear') return !text.includes('[equip]');
+  if (type === 'gear') {
+    const isTheSyren = String(card.name ?? '').trim().toUpperCase() === 'THE SYREN'
+      && text.trim() === ':rb_energy_1:, :rb_exhaust:: move a friendly unit at a battlefield to its base.';
+    const isZhonyasHourglass = String(card.name ?? '').trim().toUpperCase() === "ZHONYA'S HOURGLASS"
+      && text.includes('[hidden]')
+      && text.includes('if a friendly unit would die')
+      && text.includes('kill this instead')
+      && text.includes('heal that unit')
+      && text.includes('exhaust it')
+      && text.includes('recall it');
+    return !text.includes('[equip]') && !isTheSyren && !isZhonyasHourglass;
+  }
   if (type !== 'spell') return false;
+  const isCharm = String(card.name ?? '').trim().toUpperCase() === 'CHARM'
+    && text.trim() === 'move an enemy unit.';
   const requiresMultipleTargets = text.includes('another unit') || text.includes('a friendly unit and an enemy unit');
   const supportedEffect = text.includes(':rb_might:')
     || text.includes('return a unit')
+    || isCharm
     || text.includes('ready it')
     || text.includes('draw 1');
   return text.includes('counter a spell')
@@ -119,6 +133,7 @@ function bucket(card, keywords) {
   if (type === 'spell') {
     if (text.includes('draw') || text.includes('look at') || text.includes('reveal') || text.includes('top') || text.includes('deck')) return 'Spell: draw/card selection';
     if (text.includes('return') || text.includes('recall')) return 'Spell: bounce/return';
+    if (text.trim() === 'move an enemy unit.') return 'Spell: enemy movement';
     if (text.includes(':rb_might:') || text.includes('give a unit') || /[+-]\d/.test(text)) return 'Spell: stat/might modifier';
     if (text.includes('ready') || text.includes('exhaust')) return 'Spell: ready/exhaust';
     return 'Unsupported/unknown text pattern';

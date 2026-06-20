@@ -56,7 +56,7 @@ public class EffectHandlerRegistry {
       EffectSupportStatus status = keywordSupport(keyword);
       if (!status.implemented()) return status;
     }
-    if ("Gear".equalsIgnoreCase(card.type()) && !isSupportedEquip(card)) {
+    if ("Gear".equalsIgnoreCase(card.type()) && !isSupportedGear(card)) {
       return EffectSupportStatus.unsupported("That gear ability is not supported yet.");
     }
     if ("Spell".equalsIgnoreCase(card.type()) && !isSupportedSpell(card)) {
@@ -73,19 +73,109 @@ public class EffectHandlerRegistry {
     return card.rulesText() != null && card.rulesText().toLowerCase(Locale.ROOT).contains("[equip]");
   }
 
+  private boolean isSupportedGear(CardDefinition card) {
+    return isSupportedEquip(card) || isTheSyrenActivatedAbility(card) || isZhonyasHourglass(card);
+  }
+
+  private boolean isTheSyrenActivatedAbility(CardDefinition card) {
+    String normalized = card.rulesText() == null ? "" : card.rulesText().trim().toLowerCase(Locale.ROOT);
+    return "Gear".equalsIgnoreCase(card.type())
+        && card.name() != null
+        && card.name().trim().equalsIgnoreCase("The Syren")
+        && normalized.equals(":rb_energy_1:, :rb_exhaust:: move a friendly unit at a battlefield to its base.");
+  }
+
+  private boolean isZhonyasHourglass(CardDefinition card) {
+    String normalized = card.rulesText() == null ? "" : card.rulesText().trim().toLowerCase(Locale.ROOT);
+    return "Gear".equalsIgnoreCase(card.type())
+        && card.name() != null
+        && card.name().trim().equalsIgnoreCase("Zhonya's Hourglass")
+        && normalized.contains("[hidden]")
+        && normalized.contains("if a friendly unit would die")
+        && normalized.contains("kill this instead")
+        && normalized.contains("heal that unit")
+        && normalized.contains("exhaust it")
+        && normalized.contains("recall it");
+  }
+
   private boolean isSupportedSpell(CardDefinition card) {
     String normalized = card.rulesText() == null ? "" : card.rulesText().toLowerCase(Locale.ROOT);
-    boolean requiresMultipleTargets = normalized.contains("another unit")
-        || normalized.contains("a friendly unit and an enemy unit");
+    boolean supportedFriendlyEnemyReturn = normalized.contains("return")
+        && normalized.contains("friendly unit")
+        && normalized.contains("enemy unit");
+    boolean requiresMultipleTargets = (normalized.contains("another unit") && !isDefiantDanceEffect(card, normalized))
+        || (normalized.contains("a friendly unit and an enemy unit") && !supportedFriendlyEnemyReturn);
     boolean supportedEffect = normalized.contains(":rb_might:")
         || normalized.contains("return a unit")
+        || normalized.contains("move up to 2 friendly units")
+        || supportedFriendlyEnemyReturn
         || normalized.contains("ready it")
         || normalized.contains("draw 1")
+        || isCharmMoveEffect(card, normalized)
+        || isDefyCounterEffect(card, normalized)
+        || isNotSoFastCounterEffect(card, normalized)
+        || isAbandonCounterEffect(card, normalized)
+        || isDefiantDanceEffect(card, normalized)
+        || isFlashEffect(card, normalized)
         || isStackedDeckEffect(normalized);
-    return !normalized.contains("counter a spell")
-        && !normalized.contains("counter an enemy spell")
+    return !(normalized.contains("counter a spell") && !isDefyCounterEffect(card, normalized) && !isAbandonCounterEffect(card, normalized))
+        && !(normalized.contains("counter an enemy spell") && !isNotSoFastCounterEffect(card, normalized))
         && !requiresMultipleTargets
         && supportedEffect;
+  }
+
+  private boolean isDefyCounterEffect(CardDefinition card, String normalized) {
+    return "Spell".equalsIgnoreCase(card.type())
+        && card.name() != null
+        && card.name().trim().equalsIgnoreCase("Defy")
+        && normalized.contains("[reaction]")
+        && normalized.contains("counter a spell");
+  }
+
+  private boolean isAbandonCounterEffect(CardDefinition card, String normalized) {
+    return "Spell".equalsIgnoreCase(card.type())
+        && card.name() != null
+        && card.name().trim().equalsIgnoreCase("Abandon")
+        && normalized.contains("[reaction]")
+        && normalized.contains("counter a spell")
+        && normalized.contains("owner's hand")
+        && normalized.contains("[predict]");
+  }
+
+  private boolean isNotSoFastCounterEffect(CardDefinition card, String normalized) {
+    return "Spell".equalsIgnoreCase(card.type())
+        && card.name() != null
+        && card.name().trim().equalsIgnoreCase("Not So Fast")
+        && normalized.contains("[reaction]")
+        && normalized.contains("counter an enemy spell or ability")
+        && normalized.contains("friendly unit or gear");
+  }
+
+  private boolean isDefiantDanceEffect(CardDefinition card, String normalized) {
+    return "Spell".equalsIgnoreCase(card.type())
+        && card.name() != null
+        && card.name().trim().equalsIgnoreCase("Defiant Dance")
+        && normalized.contains("[reaction]")
+        && normalized.contains("give a unit")
+        && normalized.contains("+2")
+        && normalized.contains("another unit")
+        && normalized.contains("-2");
+  }
+
+  private boolean isFlashEffect(CardDefinition card, String normalized) {
+    return "Spell".equalsIgnoreCase(card.type())
+        && card.name() != null
+        && card.name().trim().equalsIgnoreCase("Flash")
+        && normalized.contains("[reaction]")
+        && normalized.contains("move up to 2 friendly units")
+        && normalized.contains("base");
+  }
+
+  private boolean isCharmMoveEffect(CardDefinition card, String normalized) {
+    return "Spell".equalsIgnoreCase(card.type())
+        && card.name() != null
+        && card.name().trim().equalsIgnoreCase("Charm")
+        && normalized.trim().equals("move an enemy unit.");
   }
 
   private boolean isStackedDeckEffect(String normalized) {

@@ -1,0 +1,648 @@
+{
+  "sourceFilename": "annie_4th_at_lille_regional_qualifier.txt",
+  "parsedAt": "2026-06-19",
+  "entries": [
+    {
+      "sourceLine": 1,
+      "quantity": 1,
+      "originalName": "Annie - Dark Child - Starter",
+      "sourceCardId": "OGS-017",
+      "sourceSetCode": "OGS",
+      "section": "Unresolved",
+      "resolved": {
+        "status": "UNRESOLVED",
+        "reason": "No local RiftForge card matched Annie - Dark Child - Starter in Proving Grounds."
+      },
+      "support": {
+        "status": "NOT_AUDITED",
+        "reason": "No local RiftForge card matched Annie - Dark Child - Starter in Proving Grounds.",
+        "blocked": true
+      },
+      "bucket": "Unresolved / missing card data"
+    },
+    {
+      "sourceLine": 2,
+      "quantity": 1,
+      "originalName": "The Arena's Greatest",
+      "sourceCardId": "OGN-290",
+      "sourceSetCode": "OGN",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd6d308c64675ca87ef",
+          "name": "The Arena's Greatest",
+          "type": "Battlefield",
+          "set": "Origins",
+          "rulesText": "At the start of each player's first Beginning Phase, that player gains 1 point."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 3,
+      "quantity": 1,
+      "originalName": "Seat of Power",
+      "sourceCardId": "SFD-217",
+      "sourceSetCode": "SFD",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be8d308c64675ca8939",
+          "name": "Seat of Power",
+          "type": "Battlefield",
+          "set": "Spiritforged",
+          "rulesText": "When you conquer here, draw 1 for each other battlefield you or allies control."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 4,
+      "quantity": 2,
+      "originalName": "Hard Bargain",
+      "sourceCardId": "SFD-136",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be2d308c64675ca88cb",
+          "name": "Hard Bargain",
+          "type": "Spell",
+          "set": "Spiritforged",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)[Repeat] :rb_energy_2: (You may pay the additional cost to repeat this spell's effect.)Counter a spell unless its controller pays :rb_energy_2:."
+        }
+      },
+      "support": {
+        "status": "UNSUPPORTED",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
+        "blocked": true
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 5,
+      "quantity": 3,
+      "originalName": "Rek'Sai - Breacher",
+      "sourceCardId": "SFD-029",
+      "sourceSetCode": "SFD",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5be2d308c64675ca88c5",
+          "name": "Rek'Sai - Breacher",
+          "type": "Champion",
+          "set": "Spiritforged",
+          "rulesText": "[Accelerate] (You may pay :rb_energy_1::rb_rune_fury: as an additional cost to have me enter ready.)[Assault] (+1 :rb_might: while I'm an attacker.)Friendly units played from anywhere other than a player's hand have [Accelerate]."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 6,
+      "quantity": 3,
+      "originalName": "Rengar - Pouncing",
+      "sourceCardId": "SFD-025",
+      "sourceSetCode": "SFD",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bdfd308c64675ca8898",
+          "name": "Rengar - Pouncing",
+          "type": "Champion",
+          "set": "Spiritforged",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve, including to a battlefield you control.)[Assault 2] (+2 :rb_might: while I'm an attacker.)I can be played to a battlefield you're attacking."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 7,
+      "quantity": 1,
+      "originalName": "Long Sword",
+      "sourceCardId": "SFD-022",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bdad308c64675ca8834",
+          "name": "Long Sword",
+          "type": "Gear",
+          "set": "Spiritforged",
+          "rulesText": "[Quick-Draw] (This has [Reaction]. When you play it, attach it to a unit you control.)[Equip] :rb_rune_fury: (:rb_rune_fury:: Attach this to a unit you control.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Equipment: Quick-Draw"
+    },
+    {
+      "sourceLine": 8,
+      "quantity": 3,
+      "originalName": "Ferrous Forerunner",
+      "sourceCardId": "SFD-021",
+      "sourceSetCode": "SFD",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bdfd308c64675ca8897",
+          "name": "Ferrous Forerunner",
+          "type": "Unit",
+          "set": "Spiritforged",
+          "rulesText": "[Deathknell] — Play two 3 :rb_might: Mech unit tokens to your base. (When I die, get the effect.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Token creation"
+    },
+    {
+      "sourceLine": 9,
+      "quantity": 3,
+      "originalName": "Flash",
+      "sourceCardId": "OGS-011",
+      "sourceSetCode": "OGS",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd9d308c64675ca8820",
+          "name": "Flash",
+          "type": "Spell",
+          "set": "Proving Grounds",
+          "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)Move up to 2 friendly units to base."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: alpha chain-window Reaction support exists for moving up to two friendly battlefield Unit/Champion cards to Base. Full official any-time Reaction timing remains incomplete.",
+        "blocked": false
+      },
+      "bucket": "Reaction / chain / counter"
+    },
+    {
+      "sourceLine": 10,
+      "quantity": 1,
+      "originalName": "Annie - Stubborn",
+      "sourceCardId": "OGS-010",
+      "sourceSetCode": "OGS",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd9d308c64675ca881f",
+          "name": "Annie - Stubborn",
+          "type": "Champion",
+          "set": "Proving Grounds",
+          "rulesText": "When you play me, return a spell from your trash to your hand."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 11,
+      "quantity": 1,
+      "originalName": "Zaun Warrens",
+      "sourceCardId": "OGN-298",
+      "sourceSetCode": "OGN",
+      "section": "Battlefields",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd7d308c64675ca87f7",
+          "name": "Zaun Warrens",
+          "type": "Battlefield",
+          "set": "Origins",
+          "rulesText": "When you conquer here, discard 1, then draw 1."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Battlefield effect"
+    },
+    {
+      "sourceLine": 12,
+      "quantity": 2,
+      "originalName": "Cleave",
+      "sourceCardId": "OGN-004",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc6d308c64675ca86b9",
+          "name": "Cleave",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Action] (Play on your turn or in showdowns.)Give a unit [Assault 3] this turn. (+3 :rb_might: while it's an attacker.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Triggered/static card text"
+    },
+    {
+      "sourceLine": 13,
+      "quantity": 2,
+      "originalName": "Tideturner",
+      "sourceCardId": "OGN-199",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd1d308c64675ca8791",
+          "name": "Tideturner",
+          "type": "Unit",
+          "set": "Origins",
+          "rulesText": "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)When you play me, you may choose a unit you control at another location. Move me to its location and it to my original location."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: Hidden foundation exists, but later hidden play timing and the on-play location swap are not implemented yet.",
+        "blocked": false
+      },
+      "bucket": "Hidden / facedown"
+    },
+    {
+      "sourceLine": 14,
+      "quantity": 3,
+      "originalName": "Kai'Sa - Survivor",
+      "sourceCardId": "OGN-039",
+      "sourceSetCode": "OGN",
+      "section": "Champion / MainDeck candidate",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc8d308c64675ca86df",
+          "name": "Kai'Sa - Survivor",
+          "type": "Champion",
+          "set": "Origins",
+          "rulesText": "[Accelerate] (You may pay :rb_energy_1::rb_rune_fury: as an additional cost to have me enter ready.)When I conquer, draw 1."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Champion text"
+    },
+    {
+      "sourceLine": 15,
+      "quantity": 6,
+      "originalName": "Fury Rune",
+      "sourceCardId": "OGN-007",
+      "sourceSetCode": "OGN",
+      "section": "Rune Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc6d308c64675ca86bc",
+          "name": "Fury Rune",
+          "type": "Rune",
+          "set": "Origins",
+          "rulesText": null
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Rune/payment"
+    },
+    {
+      "sourceLine": 16,
+      "quantity": 3,
+      "originalName": "Noxus Hopeful",
+      "sourceCardId": "OGN-012",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc7d308c64675ca86c2",
+          "name": "Noxus Hopeful",
+          "type": "Unit",
+          "set": "Origins",
+          "rulesText": "[Legion] — I cost :rb_energy_2: less. (Get the effect if you've played another card this turn.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Triggered/static card text"
+    },
+    {
+      "sourceLine": 17,
+      "quantity": 3,
+      "originalName": "Pouty Poro",
+      "sourceCardId": "OGN-013",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bc7d308c64675ca86c3",
+          "name": "Pouty Poro",
+          "type": "Unit",
+          "set": "Origins",
+          "rulesText": "[Deflect] (Opponents must pay :rb_rune_rainbow: to choose me with a spell or ability.)"
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Basic or descriptor-only"
+    },
+    {
+      "sourceLine": 18,
+      "quantity": 1,
+      "originalName": "Mindsplitter",
+      "sourceCardId": "OGN-192",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd1d308c64675ca8788",
+          "name": "Mindsplitter",
+          "type": "Unit",
+          "set": "Origins",
+          "rulesText": "When you play me, choose an opponent. They reveal their hand. Choose a card from it, and they discard that card."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Draw / reveal / deck selection"
+    },
+    {
+      "sourceLine": 19,
+      "quantity": 6,
+      "originalName": "Chaos Rune",
+      "sourceCardId": "OGN-166",
+      "sourceSetCode": "OGN",
+      "section": "Rune Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd0d308c64675ca876d",
+          "name": "Chaos Rune",
+          "type": "Rune",
+          "set": "Origins",
+          "rulesText": null
+        }
+      },
+      "support": {
+        "status": "SUPPORTED",
+        "reason": "Implemented and covered by current support policy.",
+        "blocked": false
+      },
+      "bucket": "Rune/payment"
+    },
+    {
+      "sourceLine": 20,
+      "quantity": 2,
+      "originalName": "Rebuke",
+      "sourceCardId": "OGN-172",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd0d308c64675ca8774",
+          "name": "Rebuke",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Action] (Play on your turn or in showdowns.)Return a unit at a battlefield to its owner's hand."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Bounce / return"
+    },
+    {
+      "sourceLine": 21,
+      "quantity": 2,
+      "originalName": "Ride the Wind",
+      "sourceCardId": "OGN-173",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd0d308c64675ca8775",
+          "name": "Ride The Wind",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Action] (Play on your turn or in showdowns.)Move a friendly unit and ready it."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Movement / location"
+    },
+    {
+      "sourceLine": 22,
+      "quantity": 3,
+      "originalName": "Stacked Deck",
+      "sourceCardId": "OGN-183",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd0d308c64675ca877f",
+          "name": "Stacked Deck",
+          "type": "Spell",
+          "set": "Origins",
+          "rulesText": "[Action] (Play on your turn or in showdowns.)Look at the top 3 cards of your Main Deck. Put 1 into your hand and recycle the rest."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Partial: opens the narrow alpha chain, then resolves into a private top-3 choice; official ordering and broader timing remain incomplete.",
+        "blocked": false
+      },
+      "bucket": "Draw / reveal / deck selection"
+    },
+    {
+      "sourceLine": 23,
+      "quantity": 3,
+      "originalName": "Traveling Merchant",
+      "sourceCardId": "OGN-185",
+      "sourceSetCode": "OGN",
+      "section": "Main Deck",
+      "resolved": {
+        "status": "RESOLVED",
+        "method": "name-and-set",
+        "card": {
+          "id": "69bc5bd1d308c64675ca8781",
+          "name": "Traveling Merchant",
+          "type": "Unit",
+          "set": "Origins",
+          "rulesText": "When I move, discard 1, then draw 1."
+        }
+      },
+      "support": {
+        "status": "PARTIAL",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "blocked": false
+      },
+      "bucket": "Movement / location"
+    }
+  ],
+  "malformedLines": [],
+  "validation": {
+    "totalCards": 56,
+    "legendCount": 0,
+    "championCandidateCount": 10,
+    "inferredMainDeckCount": 39,
+    "runeCount": 12,
+    "battlefieldCount": 3,
+    "validConstructedShape": false,
+    "issues": [
+      "Expected exactly 1 Legend, found 0."
+    ]
+  },
+  "supportSummary": {
+    "uniqueCards": 23,
+    "counts": {
+      "SUPPORTED": 1,
+      "PARTIAL": 20,
+      "UNSUPPORTED": 1,
+      "BANNED": 0,
+      "NOT_AUDITED": 1
+    },
+    "canUseInEnforced": false,
+    "unresolvedCards": [
+      {
+        "sourceCardId": "OGS-017",
+        "originalName": "Annie - Dark Child - Starter",
+        "reason": "No local RiftForge card matched Annie - Dark Child - Starter in Proving Grounds."
+      }
+    ],
+    "topBlockers": [
+      {
+        "cardName": "Annie - Dark Child - Starter",
+        "sourceCardId": "OGS-017",
+        "status": "NOT_AUDITED",
+        "bucket": "Unresolved / missing card data",
+        "reason": "No local RiftForge card matched Annie - Dark Child - Starter in Proving Grounds."
+      },
+      {
+        "cardName": "Hard Bargain",
+        "sourceCardId": "SFD-136",
+        "status": "UNSUPPORTED",
+        "bucket": "Reaction / chain / counter",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "The Arena's Greatest",
+        "sourceCardId": "OGN-290",
+        "status": "PARTIAL",
+        "bucket": "Battlefield effect",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      },
+      {
+        "cardName": "Seat of Power",
+        "sourceCardId": "SFD-217",
+        "status": "PARTIAL",
+        "bucket": "Battlefield effect",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      },
+      {
+        "cardName": "Rek'Sai - Breacher",
+        "sourceCardId": "SFD-029",
+        "status": "PARTIAL",
+        "bucket": "Champion text",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      }
+    ]
+  },
+  "archetype": "Annie, Dark Child",
+  "key": "annie",
+  "eventResult": "annie 4th at lille regional qualifier",
+  "priority": "Aurora shell with future Miss Fortune list",
+  "rawSourceFile": "decks/meta/raw/annie_4th_at_lille_regional_qualifier.txt",
+  "normalizedFile": "decks/meta/normalized/annie_4th_at_lille_regional_qualifier.json"
+}
