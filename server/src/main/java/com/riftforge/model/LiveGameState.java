@@ -181,6 +181,7 @@ public class LiveGameState {
     public static final String EFFECT_STACKED_DECK_PICK_ONE = "STACKED_DECK_PICK_ONE";
     public static final String EFFECT_DEFY_COUNTER = "DEFY_COUNTER";
     public static final String EFFECT_NOT_SO_FAST_COUNTER = "NOT_SO_FAST_COUNTER";
+    public static final String EFFECT_ABANDON_COUNTER_PREDICT = "ABANDON_COUNTER_PREDICT";
 
     public ChainItem(
         String itemId,

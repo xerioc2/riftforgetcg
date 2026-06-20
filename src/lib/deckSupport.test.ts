@@ -65,6 +65,15 @@ describe('deckSupport', () => {
     expect(status.reason).toContain('countering counters remain deferred');
   });
 
+  it('uses an Abandon-specific Partial reason for the narrow alpha counter path', () => {
+    const status = cardSupportStatus(spell('Abandon', "[Reaction] Counter a spell. Return it to its owner's hand instead of putting it in their trash. [Predict]."));
+
+    expect(status.status).toBe('PARTIAL');
+    expect(status.reason).toContain('return that spell card to hand');
+    expect(status.reason).toContain('private Predict choice');
+    expect(status.reason).toContain('ability targets remain deferred');
+  });
+
   it('uses alpha chain-window Partial reasons for Discipline and En Garde', () => {
     const discipline = cardSupportStatus(spell('Discipline', '[Reaction] Give a unit +2 Might this turn. Draw 1.'));
     const enGarde = cardSupportStatus(spell('En Garde', '[Reaction] Give a friendly unit +1 Might this turn, then an additional +1 Might this turn if it is the only unit you control there.'));

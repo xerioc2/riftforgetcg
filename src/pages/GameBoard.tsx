@@ -27,7 +27,7 @@ import {
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
 import { readableHttpError } from '../lib/http';
-import { canUseSupportedChainResponse, hasUnsupportedAdditionalCost, isActionCard, isAmbushCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isEquipCard, isGustReactionCard, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
+import { canUseSupportedChainResponse, hasUnsupportedAdditionalCost, isAbandonCounterCard, isActionCard, isAmbushCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isEquipCard, isGustReactionCard, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
 import { appBuildLabel, APP_VERSION, BUILD_DATE, BUILD_TAG } from '../lib/appMetadata';
 import { buildDebugInfo } from '../lib/debugInfo';
 import { attachedGearDisplayPosition, attachedGearDisplayScale, attachedGearIsIndependentBoardPiece, attachedGearNamesForHost } from '../lib/attachments';
@@ -151,7 +151,7 @@ export function GameBoard() {
   const [hoveredInstance, setHoveredInstance] = useState<CardInstance | undefined>();
   const [inspectCard, setInspectCard] = useState<CardInstance | null>(null);
   const [pendingTargetSelection, setPendingTargetSelection] = useState<{ instanceId: string; mode: TargetMode } | null>(null);
-  const [pendingChainTargetSelection, setPendingChainTargetSelection] = useState<{ instanceId: string; mode: 'DEFY' | 'NOT_SO_FAST' } | null>(null);
+  const [pendingChainTargetSelection, setPendingChainTargetSelection] = useState<{ instanceId: string; mode: 'DEFY' | 'NOT_SO_FAST' | 'ABANDON' } | null>(null);
   const [pendingMultiTargetSelection, setPendingMultiTargetSelection] = useState<{ instanceId: string; requirements: TargetRequirement[]; selected: { role: TargetRole; instanceId: string }[] } | null>(null);
   const [pendingAccelerate, setPendingAccelerate] = useState<{ instanceId: string; card: RiftCard } | null>(null);
   const [pendingVision, setPendingVision] = useState<{ logId: string; cardId: string; cardName: string } | null>(null);
@@ -658,6 +658,17 @@ export function GameBoard() {
 
   const legalDefyChainTargets = () => (state?.chainState?.chainItems ?? []).filter(isLegalDefyChainTarget);
 
+  const isLegalAbandonChainTarget = (item: ChainItem) => {
+    if (item.status && item.status !== 'PENDING') return false;
+    if (!item.counterable || !item.targetableOnChain) return false;
+    if (item.chainItemType && item.chainItemType !== 'SPELL') return false;
+    if (item.sourceCardName === 'Hidden chain item') return false;
+    const sourceCard = item.sourceCardId ? cardsById.get(item.sourceCardId) : undefined;
+    return Boolean(sourceCard && sourceCard.type?.toLowerCase() === 'spell');
+  };
+
+  const legalAbandonChainTargets = () => (state?.chainState?.chainItems ?? []).filter(isLegalAbandonChainTarget);
+
   const isLegalNotSoFastChainTarget = (item: ChainItem) => {
     if (item.status && item.status !== 'PENDING') return false;
     if (!item.counterable || !item.targetableOnChain) return false;
@@ -690,16 +701,21 @@ export function GameBoard() {
       hasLegalFlashTarget: hasLegalFlashChainTarget(),
       hasLegalDefyTarget: legalDefyChainTargets().length > 0,
       hasLegalNotSoFastTarget: legalNotSoFastChainTargets().length > 0,
+      hasLegalAbandonTarget: legalAbandonChainTargets().length > 0,
     });
   };
 
-  const beginChainTargetSelection = (instanceId: string, mode: 'DEFY' | 'NOT_SO_FAST') => {
+  const beginChainTargetSelection = (instanceId: string, mode: 'DEFY' | 'NOT_SO_FAST' | 'ABANDON') => {
     const hasTarget = mode === 'DEFY'
       ? legalDefyChainTargets().length > 0
+      : mode === 'ABANDON'
+        ? legalAbandonChainTargets().length > 0
       : legalNotSoFastChainTargets().length > 0;
     if (!hasTarget) {
       notifyWarning('No legal chain targets', mode === 'DEFY'
         ? 'Defy needs a pending public spell chain item it can counter.'
+        : mode === 'ABANDON'
+          ? 'Abandon needs a pending public spell chain item it can counter.'
         : 'Not So Fast needs an enemy pending spell that chooses your friendly Unit or Gear.');
       return false;
     }
@@ -903,6 +919,10 @@ export function GameBoard() {
       }
       if (isNotSoFastCounterCard(cardDef)) {
         beginChainTargetSelection(instanceId, 'NOT_SO_FAST');
+        return;
+      }
+      if (isAbandonCounterCard(cardDef)) {
+        beginChainTargetSelection(instanceId, 'ABANDON');
         return;
       }
     } else if (showdownActive) {
@@ -1794,6 +1814,8 @@ export function GameBoard() {
         chainTargetSelectionActive={Boolean(pendingChainTargetSelection)}
         isChainItemTargetable={(item) => pendingChainTargetSelection?.mode === 'NOT_SO_FAST'
           ? isLegalNotSoFastChainTarget(item)
+          : pendingChainTargetSelection?.mode === 'ABANDON'
+            ? isLegalAbandonChainTarget(item)
           : isLegalDefyChainTarget(item)}
         onChainItemTarget={(itemId) => {
           if (pendingChainTargetSelection) playCounterReaction(pendingChainTargetSelection.instanceId, itemId);

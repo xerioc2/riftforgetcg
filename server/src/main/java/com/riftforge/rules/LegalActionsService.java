@@ -73,7 +73,8 @@ public class LegalActionsService {
             || hasPlayableDefiantDanceInHand(state, playerId)
             || hasPlayableFlashInHand(state, playerId)
             || hasPlayableDefyInHand(state, playerId)
-            || hasPlayableNotSoFastInHand(state, playerId)) actions.add(LegalAction.PLAY_CARD);
+            || hasPlayableNotSoFastInHand(state, playerId)
+            || hasPlayableAbandonInHand(state, playerId)) actions.add(LegalAction.PLAY_CARD);
       }
       return actions;
     }
@@ -255,6 +256,18 @@ public class LegalActionsService {
             && canPay(state, playerId, def));
   }
 
+  private boolean hasPlayableAbandonInHand(LiveGameState state, String playerId) {
+    if (cardDataService == null) return false;
+    if (state.getChainState() == null || !hasLegalAbandonTarget(state)) return false;
+    return state.getCards().stream()
+        .filter(card -> playerId.equals(card.getOwnerId()) && card.getZone() == ZoneName.HAND)
+        .map(card -> cardDataService.getCard(card.getCardId()))
+        .anyMatch(def -> def != null
+            && cardDataService.isAbandonCounterReaction(def)
+            && !cardDataService.isUnsupportedAction(def.id())
+            && canPay(state, playerId, def));
+  }
+
   private boolean hasPlayableTargetedReactionInHand(LiveGameState state, String playerId) {
     return hasPlayableGustInHand(state, playerId)
         || hasPlayableDisciplineInHand(state, playerId)
@@ -303,6 +316,22 @@ public class LegalActionsService {
             && ("UNIT".equalsIgnoreCase(target.targetKind())
                 || "CHAMPION_UNIT".equalsIgnoreCase(target.targetKind())
                 || "GEAR".equalsIgnoreCase(target.targetKind())));
+  }
+
+  private boolean hasLegalAbandonTarget(LiveGameState state) {
+    LiveGameState.ChainState chain = state.getChainState();
+    if (chain == null) return false;
+    return chain.chainItems().stream().anyMatch(this::isLegalAbandonTarget);
+  }
+
+  private boolean isLegalAbandonTarget(LiveGameState.ChainItem item) {
+    if (item == null || !item.isPending() || !item.counterable() || !item.targetableOnChain()) return false;
+    if (!item.isPubliclyVisible()) return false;
+    if (!LiveGameState.ChainItem.TYPE_SPELL.equalsIgnoreCase(item.chainItemType())) return false;
+    CardDefinition def = item.sourceCardId() == null || item.sourceCardId().isBlank()
+        ? null
+        : cardDataService.getCard(item.sourceCardId());
+    return def != null && "Spell".equalsIgnoreCase(def.type());
   }
 
   private boolean isLegalGustTarget(CardInstance target) {

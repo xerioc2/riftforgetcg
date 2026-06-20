@@ -125,6 +125,29 @@ class EffectHandlerRegistryTest {
   }
 
   @Test
+  void exactAbandonEffectIsSupportedAsNarrowCounterPredictPattern() {
+    EffectHandlerRegistry registry = new EffectHandlerRegistry(List.of(new TankHandler()));
+
+    EffectSupportStatus status = registry.supportStatus(new CardDefinition(
+        "abandon",
+        "Abandon",
+        "Spell",
+        null,
+        List.of(),
+        0,
+        0,
+        null,
+        null,
+        null,
+        "[Reaction] Counter a spell. Return it to its owner's hand instead of putting it in their trash. [Predict].",
+        1,
+        1,
+        List.of()));
+
+    assertThat(status.implemented()).isTrue();
+  }
+
+  @Test
   void incompleteTopDeckEffectIsStillUnsupported() {
     EffectHandlerRegistry registry = new EffectHandlerRegistry(List.of(new TankHandler()));
 

@@ -98,6 +98,10 @@ class CardSupportServiceTest {
         .contains("friendly Unit/Champion Unit or Gear")
         .contains("Ability-chain targets")
         .contains("countering counters remain deferred");
+    assertThat(service.summarize(card("abandon", "Abandon", "Spell", "[Reaction] Counter a spell. Return it to its owner's hand instead of putting it in their trash. [Predict].")).reason())
+        .contains("return that spell card to hand")
+        .contains("private Predict choice")
+        .contains("ability targets remain deferred");
     assertThat(service.summarize(card("stacked-deck", "Stacked Deck", "Spell", "Look at the top 3 cards of your deck. Put 1 into hand and recycle the rest.")).reason())
         .contains("narrow alpha chain")
         .contains("private top-3 choice");

@@ -52,7 +52,7 @@ export function chainItemTargetSummary(
     const target = targetIds[0];
     return target ? `Target: ${cardNameByInstanceId[target] ?? 'unit'}` : 'Target: missing';
   }
-  if (effect === 'DEFY_COUNTER' || effect === 'NOT_SO_FAST_COUNTER') {
+  if (effect === 'DEFY_COUNTER' || effect === 'NOT_SO_FAST_COUNTER' || effect === 'ABANDON_COUNTER_PREDICT') {
     const chainTargetId = targetSummaries.find((target) => target.targetChainItemId)?.targetChainItemId ?? targetIds[0];
     const target = chainItems.find((candidate) => candidate.itemId === chainTargetId);
     return target ? `Target: ${chainItemDisplayLabel(target)}` : 'Target: chain item';

@@ -136,20 +136,14 @@
             "uniqueCards": 29,
             "counts": {
               "SUPPORTED": 1,
-              "PARTIAL": 23,
-              "UNSUPPORTED": 5,
+              "PARTIAL": 24,
+              "UNSUPPORTED": 4,
               "BANNED": 0,
               "NOT_AUDITED": 0
             },
             "unresolved": [],
             "canUseInEnforced": false,
             "topBlockers": [
-              {
-                "cardName": "Abandon",
-                "status": "UNSUPPORTED",
-                "bucket": "Reaction / chain / counter",
-                "reason": "Blocked in enforced play: this card's effect is not supported yet."
-              },
               {
                 "cardName": "Hard Bargain",
                 "status": "UNSUPPORTED",
@@ -173,6 +167,12 @@
                 "status": "UNSUPPORTED",
                 "bucket": "Basic or descriptor-only",
                 "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Abandoned Hall",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely."
               }
             ]
           }
@@ -185,20 +185,14 @@
             "uniqueCards": 30,
             "counts": {
               "SUPPORTED": 1,
-              "PARTIAL": 23,
-              "UNSUPPORTED": 6,
+              "PARTIAL": 24,
+              "UNSUPPORTED": 5,
               "BANNED": 0,
               "NOT_AUDITED": 0
             },
             "unresolved": [],
             "canUseInEnforced": false,
             "topBlockers": [
-              {
-                "cardName": "Abandon",
-                "status": "UNSUPPORTED",
-                "bucket": "Reaction / chain / counter",
-                "reason": "Blocked in enforced play: this card's effect is not supported yet."
-              },
               {
                 "cardName": "Bellows Breath",
                 "status": "UNSUPPORTED",
@@ -221,6 +215,12 @@
                 "cardName": "Hard Bargain",
                 "status": "UNSUPPORTED",
                 "bucket": "Reaction / chain / counter",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Turn to Dust",
+                "status": "UNSUPPORTED",
+                "bucket": "Damage / destroy",
                 "reason": "Blocked in enforced play: this card's effect is not supported yet."
               }
             ]
@@ -560,8 +560,8 @@
             "uniqueCards": 33,
             "counts": {
               "SUPPORTED": 3,
-              "PARTIAL": 23,
-              "UNSUPPORTED": 6,
+              "PARTIAL": 24,
+              "UNSUPPORTED": 5,
               "BANNED": 0,
               "NOT_AUDITED": 1
             },
@@ -578,12 +578,6 @@
             ],
             "canUseInEnforced": false,
             "topBlockers": [
-              {
-                "cardName": "Abandon",
-                "status": "UNSUPPORTED",
-                "bucket": "Reaction / chain / counter",
-                "reason": "Blocked in enforced play: this card's effect is not supported yet."
-              },
               {
                 "cardName": "Allay - Eager Admirer",
                 "status": "NOT_AUDITED",
@@ -606,6 +600,12 @@
                 "cardName": "Existential Dread",
                 "status": "UNSUPPORTED",
                 "bucket": "Bounce / return",
+                "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Hard Bargain",
+                "status": "UNSUPPORTED",
+                "bucket": "Reaction / chain / counter",
                 "reason": "Blocked in enforced play: this card's effect is not supported yet."
               }
             ]

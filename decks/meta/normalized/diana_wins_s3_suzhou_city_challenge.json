@@ -146,9 +146,9 @@
         }
       },
       "support": {
-        "status": "UNSUPPORTED",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
-        "blocked": true
+        "status": "PARTIAL",
+        "reason": "Partial: Abandon can counter a supported public pending spell chain item in the current alpha chain window, return that spell card to hand, then create a private Predict choice. Repeat, broad official Reaction timing, hidden/private chain targets, and ability targets remain deferred.",
+        "blocked": false
       },
       "bucket": "Reaction / chain / counter"
     },
@@ -643,8 +643,8 @@
     "uniqueCards": 25,
     "counts": {
       "SUPPORTED": 1,
-      "PARTIAL": 22,
-      "UNSUPPORTED": 2,
+      "PARTIAL": 23,
+      "UNSUPPORTED": 1,
       "BANNED": 0,
       "NOT_AUDITED": 0
     },
@@ -654,13 +654,6 @@
       {
         "cardName": "Hard Bargain",
         "sourceCardId": "SFD-136",
-        "status": "UNSUPPORTED",
-        "bucket": "Reaction / chain / counter",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet."
-      },
-      {
-        "cardName": "Abandon",
-        "sourceCardId": "UNL-131",
         "status": "UNSUPPORTED",
         "bucket": "Reaction / chain / counter",
         "reason": "Blocked in enforced play: this card's effect is not supported yet."
@@ -685,6 +678,13 @@
         "status": "PARTIAL",
         "bucket": "Battlefield effect",
         "reason": "Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely."
+      },
+      {
+        "cardName": "Moonfall",
+        "sourceCardId": "UNL-198",
+        "status": "PARTIAL",
+        "bucket": "Movement / location",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
       }
     ]
   },

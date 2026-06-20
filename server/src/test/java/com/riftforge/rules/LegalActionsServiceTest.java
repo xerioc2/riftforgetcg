@@ -319,6 +319,39 @@ class LegalActionsServiceTest {
   }
 
   @Test
+  void focusedPlayerWithAbandonSeesPlayCardForPublicPendingSpell() {
+    when(cardDataService.getCard("abandon")).thenReturn(new CardDefinition("abandon", "Abandon", "Spell", null, List.of(), 1, 0, null, null, null, "[Reaction] Counter a spell. Return it to its owner's hand instead of putting it in their trash. [Predict].", 0, 0, List.of()));
+    when(cardDataService.getCard("source-card")).thenReturn(new CardDefinition("source-card", "Stacked Deck", "Spell", null, List.of(), 5, 2, null, null, null, "Draw 1.", 0, 0, List.of()));
+    when(cardDataService.isReactionCard(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      return def != null && def.rulesText() != null && def.rulesText().toLowerCase().contains("[reaction]");
+    });
+    when(cardDataService.isAbandonCounterReaction(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      return def != null && "Abandon".equalsIgnoreCase(def.name());
+    });
+    when(cardDataService.isUnsupportedAction("abandon")).thenReturn(false);
+    LegalActionsService legalActions = new LegalActionsService(cardDataService);
+    RulesValidator validator = new RulesValidator(cardDataService, new ShowdownParticipantRules());
+    LiveGameState state = state(Phase.MAIN, "p1");
+    state.setChainState(chain(false, "p2"));
+    state.getPlayers().stream().filter(player -> "p2".equals(player.getUserId())).findFirst().orElseThrow().setAvailableEnergy(3);
+    state.getCards().add(card("abandon-1", "p2", "abandon", ZoneName.HAND));
+
+    assertThat(legalActions.legalActionsFor(state, "p2"))
+        .containsExactlyInAnyOrder(LegalAction.PASS_CHAIN_FOCUS, LegalAction.PLAY_CARD);
+    assertThatCode(() -> validator.validate(state, new PlayCardMove("p2", "abandon-1", ZoneName.BASE, 0, 0, null, "item-1", List.of(), false, List.of(), List.of())))
+        .doesNotThrowAnyException();
+
+    state.setChainState(nonCounterableChain(false, "p2"));
+    assertThat(legalActions.legalActionsFor(state, "p2"))
+        .containsExactly(LegalAction.PASS_CHAIN_FOCUS);
+    assertThatThrownBy(() -> validator.validate(state, new PlayCardMove("p2", "abandon-1", ZoneName.BASE, 0, 0, null, "item-1", List.of(), false, List.of(), List.of())))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Abandon can only counter a public pending spell.");
+  }
+
+  @Test
   void validatorAndLegalActionsAgreeForChainPassAndResolve() {
     RulesValidator validator = new RulesValidator(cardDataService, new ShowdownParticipantRules());
     LiveGameState state = state(Phase.MAIN, "p1");

@@ -173,6 +173,18 @@ public class PriorityWindowService {
           def.name(),
           null));
     }
+    if (cardDataService.isAbandonCounterReaction(def)) {
+      return Optional.of(new PriorityWindow(
+          PriorityWindowType.REACTION_PLAYED,
+          LiveGameState.ChainItem.EFFECT_ABANDON_COUNTER_PREDICT,
+          LiveGameState.ChainItem.TYPE_SPELL,
+          LiveGameState.ChainItem.VISIBILITY_PUBLIC,
+          false,
+          false,
+          ZoneName.HAND,
+          def.name(),
+          null));
+    }
     return Optional.empty();
   }
 

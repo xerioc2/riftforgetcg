@@ -121,6 +121,7 @@ const PARTIAL_REASONS = new Map([
   ['ZHONYA\'S HOURGLASS', 'Partial: Zhonya\'s Hourglass can be played to Base and armed during your Main Phase to protect a friendly public Unit/Champion from the next supported death, destroying Zhonya instead, then healing, exhausting, and recalling that unit. Hidden Reaction-for-0 timing, competing replacement choices, and broad replacement timing remain deferred.'],
   ['DEFY', 'Partial: Defy can counter supported public pending spell chain items that cost no more than 4 energy and no more than 1 premium rune during the current alpha chain window. Full official Reaction timing, broad spell/ability targets, and countering counters remain deferred.'],
   ['NOT SO FAST', 'Partial: Not So Fast can counter a supported public pending enemy spell chain item only when that item chooses your friendly Unit/Champion Unit or Gear. Ability-chain targets, broad official Reaction timing, and countering counters remain deferred.'],
+  ['ABANDON', 'Partial: Abandon can counter a supported public pending spell chain item in the current alpha chain window, return that spell card to hand, then create a private Predict choice. Repeat, broad official Reaction timing, hidden/private chain targets, and ability targets remain deferred.'],
   ['GUST', 'Partial: alpha chain-window Reaction support exists through Stacked Deck for returning a battlefield Unit/Champion with 3 Might or less, but full official any-time Reaction timing remains incomplete.'],
   ['STACKED DECK', 'Partial: opens the narrow alpha chain, then resolves into a private top-3 choice; official ordering and broader timing remain incomplete.'],
 ]);
@@ -286,6 +287,15 @@ function isNotSoFast(card) {
     && text.includes('friendly unit or gear');
 }
 
+function isAbandon(card) {
+  const text = textOf(card);
+  return normalize(card?.name) === 'ABANDON'
+    && text.includes('[reaction]')
+    && text.includes('counter a spell')
+    && text.includes("owner's hand")
+    && text.includes('[predict]');
+}
+
 function isDiscipline(card) {
   const text = textOf(card);
   return normalize(card?.name) === 'DISCIPLINE' && text.includes('give a unit') && text.includes('+2') && text.includes('draw 1');
@@ -363,12 +373,13 @@ function isUnsupportedAction(card) {
     || isTheSyren(card)
     || isDefy(card)
     || isNotSoFast(card)
+    || isAbandon(card)
     || isDiscipline(card)
     || isEnGarde(card)
     || isDefiantDance(card)
     || isFlash(card)
     || isStackedDeck(card);
-  return (text.includes('counter a spell') && !isDefy(card))
+  return (text.includes('counter a spell') && !isDefy(card) && !isAbandon(card))
     || (text.includes('counter an enemy spell') && !isNotSoFast(card))
     || requiresMultipleTargets
     || !supportedEffect;

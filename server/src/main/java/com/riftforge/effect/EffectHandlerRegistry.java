@@ -114,10 +114,11 @@ public class EffectHandlerRegistry {
         || isCharmMoveEffect(card, normalized)
         || isDefyCounterEffect(card, normalized)
         || isNotSoFastCounterEffect(card, normalized)
+        || isAbandonCounterEffect(card, normalized)
         || isDefiantDanceEffect(card, normalized)
         || isFlashEffect(card, normalized)
         || isStackedDeckEffect(normalized);
-    return !(normalized.contains("counter a spell") && !isDefyCounterEffect(card, normalized))
+    return !(normalized.contains("counter a spell") && !isDefyCounterEffect(card, normalized) && !isAbandonCounterEffect(card, normalized))
         && !(normalized.contains("counter an enemy spell") && !isNotSoFastCounterEffect(card, normalized))
         && !requiresMultipleTargets
         && supportedEffect;
@@ -129,6 +130,16 @@ public class EffectHandlerRegistry {
         && card.name().trim().equalsIgnoreCase("Defy")
         && normalized.contains("[reaction]")
         && normalized.contains("counter a spell");
+  }
+
+  private boolean isAbandonCounterEffect(CardDefinition card, String normalized) {
+    return "Spell".equalsIgnoreCase(card.type())
+        && card.name() != null
+        && card.name().trim().equalsIgnoreCase("Abandon")
+        && normalized.contains("[reaction]")
+        && normalized.contains("counter a spell")
+        && normalized.contains("owner's hand")
+        && normalized.contains("[predict]");
   }
 
   private boolean isNotSoFastCounterEffect(CardDefinition card, String normalized) {

@@ -23,7 +23,7 @@ See `docs/meta/UPLOADED_META_DECKS.md` for the complete table.
 | Archetype | Uploaded source | Shape check | Support status | S/P/U/NA | Top blockers |
 | --- | --- | --- | --- | --- | --- |
 | Irelia, Blade Dancer | decks/meta/raw/irelia_wins_s3_shanghai_city_challenge.txt | Pass | Playable | 4/23/0/0 | Irelia - Blade Dancer, Not So Fast, Abandoned Hall, Vex - Apathetic, Scuttle Crab |
-| Diana, Scorn of the Moon | decks/meta/raw/diana_wins_s3_suzhou_city_challenge.txt | Pass | Blocked | 1/22/2/0 | Hard Bargain, Abandon, Diana - Scorn of the Moon, Star Spring, Abandoned Hall |
+| Diana, Scorn of the Moon | decks/meta/raw/diana_wins_s3_suzhou_city_challenge.txt | Pass | Blocked | 1/23/1/0 | Hard Bargain, Diana - Scorn of the Moon, Star Spring, Abandoned Hall, Moonfall |
 | Annie, Dark Child | decks/meta/raw/annie_4th_at_lille_regional_qualifier.txt | Needs review | Blocked | 1/20/1/1 | Annie - Dark Child - Starter, Hard Bargain, The Arena's Greatest, Seat of Power, Rek'Sai - Breacher |
 | Master Yi, Wuju Bladesman | decks/meta/raw/master_yi_wins_s3_guangzhou_city_challenge.txt | Needs review | Blocked | 3/19/0/1 | Master Yi - Wuju Bladesman - Starter, Amateur Recital, Rengar - Trophy Hunter, Master Yi - Tempered, Dragonsoul Sage |
 | LeBlanc, Deceiver | decks/meta/raw/leblanc_wins_s3_zhongshan_city_challenge.txt | Pass | Blocked | 1/16/4/0 | Mirror Image, Deadly Flourish, Hidden Blade, Cull the Weak, LeBlanc - Deceiver |
@@ -38,11 +38,11 @@ See `docs/meta/UPLOADED_META_DECKS.md` for the complete table.
 | Legend / archetype | Meta share | Win rate | Deck count | Current support status | Guide list status | Top blockers | Next implementation target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Irelia, Blade Dancer | 8% | 54% | 1637 | Blocked | 2 list(s) extracted | Hard Bargain (UNSUPPORTED), Heart of Dark Ice (UNSUPPORTED), Switcheroo (UNSUPPORTED), Abandoned Hall (PARTIAL), Sunken Temple (PARTIAL) | Finish current/Irelia support slice |
-| Diana, Scorn of the Moon | 7% | 54% | 1438 | Blocked | 3 list(s) extracted | Abandon (UNSUPPORTED), Hard Bargain (UNSUPPORTED), Invert Timelines (UNSUPPORTED), Turn to Dust (UNSUPPORTED), Unchecked Power (UNSUPPORTED) | Reviewer-prioritized next interaction deck |
+| Diana, Scorn of the Moon | 7% | 54% | 1438 | Blocked | 3 list(s) extracted | Hard Bargain (UNSUPPORTED), Invert Timelines (UNSUPPORTED), Turn to Dust (UNSUPPORTED), Unchecked Power (UNSUPPORTED), Abandoned Hall (PARTIAL) | Reviewer-prioritized next interaction deck |
 | Master Yi, Wuju Bladesman | 9% | 60% | 1710 | Blocked | 3 list(s) extracted | Repulse (UNSUPPORTED), Amateur Recital (PARTIAL), Grove of the God-Willow (PARTIAL), Startipped Peak (PARTIAL), Janna - Savior (PARTIAL) | Raw meta leader; audit after gameplay notes |
 | Azir, Emperor of the Sands | 4% | 51% | 728 | Blocked | 1 list(s) extracted | Cull the Weak (UNSUPPORTED), Facebreaker (UNSUPPORTED), Hidden Blade (UNSUPPORTED), Wind Wall (UNSUPPORTED), Hall of Legends (PARTIAL) | Later raw-meta audit |
 | Sivir, Battle Mistress | n/a | n/a | n/a | Blocked | 1 list(s) extracted | Dazzling Aurora (UNSUPPORTED), Flurry of Blades (UNSUPPORTED), Lunar Boon (UNSUPPORTED), Pack of Wonders (UNSUPPORTED), Sabotage (UNSUPPORTED) | Additional guide-sourced archetype |
-| Vex, Gloomist | 5% | 46% | 971 | Blocked | 3 list(s) extracted | Abandon (UNSUPPORTED), Allay - Eager Admirer (NOT_AUDITED), Blast Cone (UNSUPPORTED), Emperor's Divide (UNSUPPORTED), Existential Dread (UNSUPPORTED) | Later raw-meta audit |
+| Vex, Gloomist | 5% | 46% | 971 | Blocked | 3 list(s) extracted | Allay - Eager Admirer (NOT_AUDITED), Blast Cone (UNSUPPORTED), Emperor's Divide (UNSUPPORTED), Existential Dread (UNSUPPORTED), Hard Bargain (UNSUPPORTED) | Later raw-meta audit |
 | LeBlanc, Deceiver | 7% | 52% | 1376 | Blocked | 3 list(s) extracted | Cull the Weak (UNSUPPORTED), Deadly Flourish (UNSUPPORTED), Hidden Blade (UNSUPPORTED), Imperial Decree (UNSUPPORTED), Mirror Image (UNSUPPORTED) | Later raw-meta audit |
 | Annie, Dark Child | n/a | n/a | n/a | Blocked | 1 list(s) extracted | Factory Recall (UNSUPPORTED), Hard Bargain (UNSUPPORTED), Switcheroo (UNSUPPORTED), Thermo Beam (UNSUPPORTED), Seat of Power (PARTIAL) | Aurora shell candidate with Miss Fortune |
 

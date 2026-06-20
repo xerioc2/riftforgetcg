@@ -145,6 +145,16 @@ export function isNotSoFastCounterCard(card: RiftCard | undefined) {
     && text.includes('friendly unit or gear');
 }
 
+export function isAbandonCounterCard(card: RiftCard | undefined) {
+  const text = (card?.rulesText ?? '').toLowerCase();
+  return card?.type?.toLowerCase() === 'spell'
+    && isReactionCard(card)
+    && card.name?.trim().toLowerCase() === 'abandon'
+    && text.includes('counter a spell')
+    && text.includes("owner's hand")
+    && text.includes('[predict]');
+}
+
 export function isDisciplineReactionCard(card: RiftCard | undefined) {
   const text = (card?.rulesText ?? '').toLowerCase();
   return card?.type?.toLowerCase() === 'spell'
@@ -200,7 +210,8 @@ export function isSupportedChainReactionCard(card: RiftCard | undefined) {
     || isDefiantDanceReactionCard(card)
     || isFlashReactionCard(card)
     || isDefyCounterCard(card)
-    || isNotSoFastCounterCard(card);
+    || isNotSoFastCounterCard(card)
+    || isAbandonCounterCard(card);
 }
 
 export function shouldShowRespondAction(
@@ -226,6 +237,7 @@ export function canUseSupportedChainResponse(
     hasLegalFlashTarget?: boolean;
     hasLegalDefyTarget: boolean;
     hasLegalNotSoFastTarget?: boolean;
+    hasLegalAbandonTarget?: boolean;
   },
 ) {
   if (!options.canPlayCard) return false;
@@ -236,6 +248,7 @@ export function canUseSupportedChainResponse(
   if (isFlashReactionCard(card)) return Boolean(options.hasLegalFlashTarget);
   if (isDefyCounterCard(card)) return options.hasLegalDefyTarget;
   if (isNotSoFastCounterCard(card)) return Boolean(options.hasLegalNotSoFastTarget);
+  if (isAbandonCounterCard(card)) return Boolean(options.hasLegalAbandonTarget);
   return false;
 }
 
@@ -353,12 +366,13 @@ export function unsupportedCardReason(card: RiftCard | undefined): string | null
     || text.includes('draw 1')
     || isDefyCounterCard(card)
     || isNotSoFastCounterCard(card)
+    || isAbandonCounterCard(card)
     || isDisciplineReactionCard(card)
     || isEnGardeReactionCard(card)
     || isDefiantDanceReactionCard(card)
     || isFlashReactionCard(card)
     || isStackedDeckEffectText(text);
-  if ((text.includes('counter a spell') && !isDefyCounterCard(card)) || (text.includes('counter an enemy spell') && !isNotSoFastCounterCard(card))) return 'Counter spells need the future reaction stack.';
+  if ((text.includes('counter a spell') && !isDefyCounterCard(card) && !isAbandonCounterCard(card)) || (text.includes('counter an enemy spell') && !isNotSoFastCounterCard(card))) return 'Counter spells need the future reaction stack.';
   if (text.includes('another unit') && !isDefiantDanceReactionCard(card)) return 'That targeting pattern is not supported yet.';
   return supported ? null : 'That spell effect is not supported yet.';
 }

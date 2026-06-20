@@ -111,6 +111,15 @@ class GameEngineChainTest {
           && text.contains("counter an enemy spell or ability")
           && text.contains("friendly unit or gear");
     });
+    when(cardDataService.isAbandonCounterReaction(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      String text = def == null || def.rulesText() == null ? "" : def.rulesText().toLowerCase();
+      return def != null && "Abandon".equalsIgnoreCase(def.name())
+          && text.contains("[reaction]")
+          && text.contains("counter a spell")
+          && text.contains("owner's hand")
+          && text.contains("[predict]");
+    });
     when(cardDataService.isStackedDeckEffect(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
       CardDefinition def = invocation.getArgument(0);
       String text = def == null || def.rulesText() == null ? "" : def.rulesText().toLowerCase();
@@ -539,6 +548,58 @@ class GameEngineChainTest {
     assertThat(state.getChainState()).isNull();
     assertThat(state.getPendingChoice()).isNull();
     assertThat(player(state, "p1").getDeckPool()).containsExactly("top-a", "top-b", "top-c");
+  }
+
+  @Test
+  void abandonCountersStackedDeckReturnsItToHandAndCreatesPredictChoice() {
+    stubCard("stacked", "Stacked Deck", "Spell", 2, 0, 0, stackedDeckText());
+    stubCard("abandon", "Abandon", "Spell", 1, 0, 0, abandonText());
+    stubCard("top-a", "Top Card", "Unit", 0, 0, 1, 1, "");
+    LiveGameState state = state(stackedDeckChain(false, "p2"));
+    player(state, "p2").setAvailableEnergy(3);
+    player(state, "p2").setDeckPool(new ArrayList<>(List.of("top-a")));
+    state.getCards().add(cardInstance("stacked-1", "p1", "stacked", ZoneName.LIMBO));
+    state.getCards().add(cardInstance("abandon-1", "p2", "abandon", ZoneName.HAND));
+
+    engine.applyMove(state, counter("p2", "abandon-1", "item-1"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new ResolveChainTopMove("p2"));
+
+    assertThat(state.getChainState()).isNotNull();
+    assertThat(state.getChainState().topItem().status()).isEqualTo(LiveGameState.ChainItem.STATUS_COUNTERED);
+    assertThat(state.getCards()).filteredOn(card -> card.getInstanceId().equals("stacked-1")).singleElement()
+        .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.HAND));
+    assertThat(state.getCards()).filteredOn(card -> card.getInstanceId().equals("abandon-1")).singleElement()
+        .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.DISCARD));
+    assertThat(state.getPendingChoice()).isNotNull();
+    assertThat(state.getPendingChoice().getPlayerId()).isEqualTo("p2");
+    assertThat(state.getPendingChoice().getType()).isEqualTo(PendingChoice.TYPE_PREDICT_ORDER);
+    assertThat(state.getPendingChoice().getCardOptions()).singleElement()
+        .satisfies(option -> assertThat(option.cardId()).isEqualTo("top-a"));
+    assertThat(state.getLog()).anySatisfy(entry -> assertThat(entry.text()).contains("countered Stacked Deck").contains("returned it to hand"));
+  }
+
+  @Test
+  void abandonRejectsCounteredTargetWithoutMutation() {
+    stubCard("stacked", "Stacked Deck", "Spell", 2, 0, 0, stackedDeckText());
+    stubCard("abandon", "Abandon", "Spell", 1, 0, 0, abandonText());
+    LiveGameState state = state(statusChain(LiveGameState.ChainItem.STATUS_COUNTERED, false, "p2"));
+    player(state, "p2").setAvailableEnergy(3);
+    state.getCards().add(cardInstance("stacked-1", "p1", "stacked", ZoneName.LIMBO));
+    state.getCards().add(cardInstance("abandon-1", "p2", "abandon", ZoneName.HAND));
+    int initialEnergy = player(state, "p2").getAvailableEnergy();
+
+    assertThatThrownBy(() -> engine.applyMove(state, counter("p2", "abandon-1", "item-1")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Only pending chain items can be countered.");
+
+    assertThat(player(state, "p2").getAvailableEnergy()).isEqualTo(initialEnergy);
+    assertThat(state.getCards()).filteredOn(card -> card.getInstanceId().equals("abandon-1")).singleElement()
+        .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.HAND));
+    assertThat(state.getCards()).filteredOn(card -> card.getInstanceId().equals("stacked-1")).singleElement()
+        .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.LIMBO));
+    assertThat(state.getPendingChoice()).isNull();
   }
 
   @Test
@@ -1766,6 +1827,10 @@ class GameEngineChainTest {
 
   private String notSoFastText() {
     return "[Reaction] (Play any time, even before spells and abilities resolve.) Counter an enemy spell or ability that chooses a friendly unit or gear.";
+  }
+
+  private String abandonText() {
+    return "[Reaction] (Play any time, even before spells and abilities resolve.) Counter a spell. Return it to its owner's hand instead of putting it in their trash. [Predict].";
   }
 
   private String disciplineText() {

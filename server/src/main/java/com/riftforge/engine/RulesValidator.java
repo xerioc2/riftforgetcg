@@ -314,6 +314,10 @@ public class RulesValidator {
       validateNotSoFastCounterTarget(state, move);
       return;
     }
+    if (spell && cardDataService.isAbandonCounterReaction(def)) {
+      validateAbandonCounterTarget(state, move);
+      return;
+    }
     if (spell && (cardDataService.requiresBattlefieldTarget(card.getCardId()) || hasExplicitTarget)) {
       validateTarget(state, move, card);
     }
@@ -334,7 +338,8 @@ public class RulesValidator {
           && !cardDataService.isDefiantDanceReaction(def)
           && !cardDataService.isFlashReaction(def)
           && !cardDataService.isDefyCounterReaction(def)
-          && !cardDataService.isNotSoFastCounterReaction(def)) {
+          && !cardDataService.isNotSoFastCounterReaction(def)
+          && !cardDataService.isAbandonCounterReaction(def)) {
         throw new IllegalMoveException("That Reaction is not supported yet.");
       }
       if (state.getChainState().readyToResolveTop()) {
@@ -393,7 +398,8 @@ public class RulesValidator {
   private boolean isSupportedReaction(CardDefinition def) {
     return isSupportedTargetedReaction(def)
         || cardDataService.isDefyCounterReaction(def)
-        || cardDataService.isNotSoFastCounterReaction(def);
+        || cardDataService.isNotSoFastCounterReaction(def)
+        || cardDataService.isAbandonCounterReaction(def);
   }
 
   private boolean isSupportedTargetedReaction(CardDefinition def) {
@@ -458,6 +464,32 @@ public class RulesValidator {
         .orElseThrow(() -> new IllegalMoveException("That chain item is no longer available."));
     if (!isLegalNotSoFastTarget(target, move.playerId())) {
       throw new IllegalMoveException("Not So Fast can only counter an enemy spell that chooses a friendly Unit or Gear.");
+    }
+  }
+
+  private void validateAbandonCounterTarget(LiveGameState state, PlayCardMove move) {
+    LiveGameState.ChainState chain = state.getChainState();
+    if (chain == null) throw new IllegalMoveException("No chain item can be countered.");
+    String targetChainItemId = move.targetChainItemId();
+    if (targetChainItemId == null || targetChainItemId.isBlank()) {
+      throw new IllegalMoveException("Choose a chain item to counter.");
+    }
+    LiveGameState.ChainItem target = chain.chainItems().stream()
+        .filter(item -> targetChainItemId.equals(item.itemId()))
+        .findFirst()
+        .orElseThrow(() -> new IllegalMoveException("That chain item is no longer available."));
+    if (!target.isPending()) throw new IllegalMoveException("Only pending chain items can be countered.");
+    if (!target.counterable() || !target.targetableOnChain() || !target.isPubliclyVisible()) {
+      throw new IllegalMoveException("Abandon can only counter a public pending spell.");
+    }
+    if (!LiveGameState.ChainItem.TYPE_SPELL.equalsIgnoreCase(target.chainItemType())) {
+      throw new IllegalMoveException("Abandon can only counter a spell.");
+    }
+    CardDefinition targetDef = target.sourceCardId() == null || target.sourceCardId().isBlank()
+        ? null
+        : cardDataService.getCard(target.sourceCardId());
+    if (targetDef == null || !"Spell".equalsIgnoreCase(targetDef.type())) {
+      throw new IllegalMoveException("Abandon can only counter a spell.");
     }
   }
 

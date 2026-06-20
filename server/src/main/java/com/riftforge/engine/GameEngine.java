@@ -196,6 +196,11 @@ public class GameEngine {
       addNotSoFastToChain(state, move, card, def);
       return state;
     }
+    if (cardDataService.isAbandonCounterReaction(def)) {
+      state.setCardPlayedThisTurn(true);
+      addAbandonToChain(state, move, card, def);
+      return state;
+    }
     if (cardDataService.isGustReaction(def)) {
       state.setCardPlayedThisTurn(true);
       addGustToChain(state, move, card, def);
@@ -733,6 +738,11 @@ public class GameEngine {
       moveChainSourceToTrash(state, item);
       return resolved ? LiveGameState.ChainItem.STATUS_RESOLVED : LiveGameState.ChainItem.STATUS_FIZZLED;
     }
+    if (LiveGameState.ChainItem.EFFECT_ABANDON_COUNTER_PREDICT.equals(item.effectKey())) {
+      boolean resolved = resolveAbandonCounterItem(state, item, description);
+      moveChainSourceToTrash(state, item);
+      return resolved ? LiveGameState.ChainItem.STATUS_RESOLVED : LiveGameState.ChainItem.STATUS_FIZZLED;
+    }
     if (LiveGameState.ChainItem.EFFECT_STACKED_DECK_PICK_ONE.equals(item.effectKey())) {
       resolveStackedDeckChainItem(state, item, description);
       moveChainSourceToTrash(state, item);
@@ -938,6 +948,44 @@ public class GameEngine {
   }
 
   private void addNotSoFastToChain(LiveGameState state, PlayCardMove move, CardInstance card, CardDefinition def) {
+    LiveGameState.ChainState chain = state.getChainState();
+    PriorityWindowService.PriorityWindow priorityWindow = priorityWindowService.reactionWindowFor(def).orElseThrow();
+    List<String> relevant = priorityWindowService.relevantPlayers(state, chain);
+    int order = chain.chainItems().size() + 1;
+    card.setZone(ZoneName.LIMBO);
+    card.setTapped(false);
+    card.setHasSummoningSickness(false);
+    LiveGameState.ChainItem item = new LiveGameState.ChainItem(
+        UUID.randomUUID().toString(),
+        move.playerId(),
+        card.getInstanceId(),
+        card.getCardId(),
+        def.name(),
+        priorityWindow.effectKey(),
+        List.of(move.targetChainItemId()),
+        order,
+        priorityWindow.publicDescription(),
+        priorityWindow.visibility(),
+        LiveGameState.ChainItem.STATUS_PENDING,
+        priorityWindow.counterable(),
+        priorityWindow.targetableOnChain(),
+        priorityWindow.chainItemType(),
+        priorityWindow.sourceZoneBeforeChain(),
+        chainTargetsForChainItem(chain, move.targetChainItemId(), "counterTarget"));
+    List<LiveGameState.ChainItem> items = new ArrayList<>(chain.chainItems());
+    items.add(item);
+    state.setChainState(new LiveGameState.ChainState(
+        chain.chainId(),
+        items,
+        relevant,
+        priorityWindowService.nextFocusedPlayerId(relevant, move.playerId()),
+        0,
+        false,
+        chain.sourceContext()));
+    log(state, move.playerId(), "Played " + def.name() + " onto the chain.");
+  }
+
+  private void addAbandonToChain(LiveGameState state, PlayCardMove move, CardInstance card, CardDefinition def) {
     LiveGameState.ChainState chain = state.getChainState();
     PriorityWindowService.PriorityWindow priorityWindow = priorityWindowService.reactionWindowFor(def).orElseThrow();
     List<String> relevant = priorityWindowService.relevantPlayers(state, chain);
@@ -1287,6 +1335,55 @@ public class GameEngine {
     return true;
   }
 
+  private boolean resolveAbandonCounterItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
+    String targetItemId = item.targetInstanceIds().stream().findFirst().orElse("");
+    LiveGameState.ChainState chain = state.getChainState();
+    if (chain == null || targetItemId.isBlank()) {
+      log(state, item.controllerPlayerId(), "Resolved " + description + ": target was no longer available.");
+      return false;
+    }
+    List<LiveGameState.ChainItem> updatedItems = new ArrayList<>();
+    boolean countered = false;
+    LiveGameState.ChainItem counteredItem = null;
+    for (LiveGameState.ChainItem candidate : chain.chainItems()) {
+      if (targetItemId.equals(candidate.itemId())
+          && isLegalAbandonTarget(candidate)) {
+        LiveGameState.ChainItem marked = candidate.withStatus(LiveGameState.ChainItem.STATUS_COUNTERED);
+        updatedItems.add(marked);
+        countered = true;
+        counteredItem = marked;
+      } else {
+        updatedItems.add(candidate);
+      }
+    }
+    if (!countered) {
+      log(state, item.controllerPlayerId(), "Resolved " + description + ": target was no longer legal.");
+      return false;
+    }
+    state.setChainState(new LiveGameState.ChainState(
+        chain.chainId(),
+        updatedItems,
+        chain.relevantPlayerIds(),
+        chain.focusedPlayerId(),
+        chain.consecutivePasses(),
+        chain.readyToResolveTop(),
+        chain.sourceContext()));
+    moveChainSourceToHand(state, counteredItem);
+    createPredictChoice(state, item);
+    log(state, item.controllerPlayerId(), "Resolved " + description + ": countered " + chainItemDescription(counteredItem) + " and returned it to hand.");
+    return true;
+  }
+
+  private boolean isLegalAbandonTarget(LiveGameState.ChainItem target) {
+    if (target == null || !target.isPending() || !target.counterable() || !target.targetableOnChain()) return false;
+    if (!target.isPubliclyVisible()) return false;
+    if (!LiveGameState.ChainItem.TYPE_SPELL.equalsIgnoreCase(target.chainItemType())) return false;
+    CardDefinition targetDef = target.sourceCardId() == null || target.sourceCardId().isBlank()
+        ? null
+        : cardDataService.getCard(target.sourceCardId());
+    return targetDef != null && "Spell".equalsIgnoreCase(targetDef.type());
+  }
+
   private boolean isLegalNotSoFastTarget(LiveGameState.ChainItem target, String playerId) {
     if (target == null || !target.isPending() || !target.counterable() || !target.targetableOnChain()) return false;
     if (!target.isPubliclyVisible()) return false;
@@ -1318,6 +1415,45 @@ public class GameEngine {
         .findFirst()
         .filter(card -> card.getZone() == ZoneName.LIMBO)
         .ifPresent(cardZoneService::moveToGraveyard);
+  }
+
+  private void moveChainSourceToHand(LiveGameState state, LiveGameState.ChainItem item) {
+    if (item.sourceCardInstanceId() == null || item.sourceCardInstanceId().isBlank()) return;
+    state.getCards().stream()
+        .filter(card -> card.getInstanceId().equals(item.sourceCardInstanceId()))
+        .findFirst()
+        .filter(card -> card.getZone() == ZoneName.LIMBO)
+        .ifPresent(card -> {
+          card.setZone(ZoneName.HAND);
+          card.setTapped(false);
+          card.setHasSummoningSickness(false);
+          card.setX(0);
+          card.setY(0);
+        });
+  }
+
+  private void createPredictChoice(LiveGameState state, LiveGameState.ChainItem item) {
+    PlayerState player = player(state, item.controllerPlayerId());
+    if (player.getDeckPool().isEmpty()) {
+      log(state, item.controllerPlayerId(), "Predict found no cards.");
+      return;
+    }
+    List<CardDefinition> topCards = player.getDeckPool().stream()
+        .limit(1)
+        .map(cardDataService::getCard)
+        .filter(card -> card != null)
+        .toList();
+    if (topCards.isEmpty()) {
+      log(state, item.controllerPlayerId(), "Predict found no cards.");
+      return;
+    }
+    state.setPendingChoice(PendingChoice.predictOrder(
+        UUID.randomUUID().toString(),
+        item.controllerPlayerId(),
+        item.sourceCardId(),
+        item.sourceCardInstanceId(),
+        topCards));
+    log(state, item.controllerPlayerId(), "Abandon is waiting for a private Predict choice.");
   }
 
   private void advanceShowdownFocusAfterAction(LiveGameState state, String playerId) {

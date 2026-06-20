@@ -418,9 +418,9 @@
         }
       },
       "support": {
-        "status": "UNSUPPORTED",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
-        "blocked": true
+        "status": "PARTIAL",
+        "reason": "Partial: Abandon can counter a supported public pending spell chain item in the current alpha chain window, return that spell card to hand, then create a private Predict choice. Repeat, broad official Reaction timing, hidden/private chain targets, and ability targets remain deferred.",
+        "blocked": false
       },
       "keywords": [
         "Predict",
@@ -1099,8 +1099,8 @@
     "uniqueCards": 33,
     "counts": {
       "SUPPORTED": 3,
-      "PARTIAL": 23,
-      "UNSUPPORTED": 6,
+      "PARTIAL": 24,
+      "UNSUPPORTED": 5,
       "BANNED": 0,
       "NOT_AUDITED": 1
     },
@@ -1117,12 +1117,6 @@
     ],
     "canUseInEnforced": false,
     "topBlockers": [
-      {
-        "cardName": "Abandon",
-        "status": "UNSUPPORTED",
-        "bucket": "Reaction / chain / counter",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet."
-      },
       {
         "cardName": "Allay - Eager Admirer",
         "status": "NOT_AUDITED",
@@ -1145,6 +1139,12 @@
         "cardName": "Existential Dread",
         "status": "UNSUPPORTED",
         "bucket": "Bounce / return",
+        "reason": "Blocked in enforced play: this card's effect is not supported yet."
+      },
+      {
+        "cardName": "Hard Bargain",
+        "status": "UNSUPPORTED",
+        "bucket": "Reaction / chain / counter",
         "reason": "Blocked in enforced play: this card's effect is not supported yet."
       }
     ]

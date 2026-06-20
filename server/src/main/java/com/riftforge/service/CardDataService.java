@@ -391,6 +391,18 @@ public class CardDataService {
         && text.contains("friendly unit or gear");
   }
 
+  public boolean isAbandonCounterReaction(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().toLowerCase();
+    boolean abandonName = def.name() != null && def.name().trim().equalsIgnoreCase("Abandon");
+    return "Spell".equalsIgnoreCase(def.type())
+        && isReactionCard(def)
+        && abandonName
+        && text.contains("counter a spell")
+        && text.contains("owner's hand")
+        && text.contains("[predict]");
+  }
+
   public boolean isHiddenCard(CardDefinition def) {
     if (def == null) return false;
     boolean keyword = def.keywords() != null
@@ -440,12 +452,13 @@ public class CardDataService {
         || isCharmMoveEffect(def)
         || isDefyCounterReaction(def)
         || isNotSoFastCounterReaction(def)
+        || isAbandonCounterReaction(def)
         || isDisciplineReaction(def)
         || isEnGardeReaction(def)
         || isDefiantDanceReaction(def)
         || isFlashReaction(def)
         || isStackedDeckEffectText(normalized);
-    return (normalized.contains("counter a spell") && !isDefyCounterReaction(def))
+    return (normalized.contains("counter a spell") && !isDefyCounterReaction(def) && !isAbandonCounterReaction(def))
         || (normalized.contains("counter an enemy spell") && !isNotSoFastCounterReaction(def))
         || requiresMultipleTargets
         || !supportedEffect;
