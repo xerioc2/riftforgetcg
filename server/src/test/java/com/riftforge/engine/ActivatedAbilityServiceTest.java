@@ -12,6 +12,7 @@ import com.riftforge.model.LiveGameState;
 import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
 import com.riftforge.model.RuneState;
+import com.riftforge.model.ShowdownStep;
 import com.riftforge.model.ZoneName;
 import com.riftforge.model.move.ActivateAbilityMove;
 import com.riftforge.service.CardDataService;
@@ -25,6 +26,7 @@ class ActivatedAbilityServiceTest {
       + "If a friendly unit would die, kill this instead. Heal that unit, exhaust it, and recall it. (Send it to base. This isn't a move.)";
   private static final String IRELIA_TEXT = "When you choose a friendly unit, you may exhaust me and pay :rb_rune_rainbow: to ready it."
       + "When you conquer, you may pay :rb_energy_1: to ready me.";
+  private static final String DIANA_TEXT = "[Reaction][>] :rb_exhaust:: [Add] :rb_energy_1:. Spend this Energy only during showdowns. (Abilities that add resources can't be reacted to.)";
 
   private CardDataService cardDataService;
   private ActivatedAbilityService service;
@@ -45,9 +47,14 @@ class ActivatedAbilityServiceTest {
       CardDefinition def = invocation.getArgument(0);
       return def != null && "Irelia - Blade Dancer".equals(def.name());
     });
+    when(cardDataService.isDianaScornShowdownEnergyLegend(any())).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      return def != null && def.name() != null && def.name().startsWith("Diana - Scorn of the Moon");
+    });
     when(cardDataService.getCard("syren-card")).thenReturn(card("syren-card", "The Syren", "Gear", SYREN_TEXT));
     when(cardDataService.getCard("zhonya-card")).thenReturn(card("zhonya-card", "Zhonya's Hourglass", "Gear", ZHONYA_TEXT));
     when(cardDataService.getCard("irelia-card")).thenReturn(card("irelia-card", "Irelia - Blade Dancer", "Legend", IRELIA_TEXT));
+    when(cardDataService.getCard("diana-card")).thenReturn(card("diana-card", "Diana - Scorn of the Moon", "Legend", DIANA_TEXT));
     when(cardDataService.getCard("unit-card")).thenReturn(card("unit-card", "Friendly Unit", "Unit", ""));
     when(cardDataService.getCard("enemy-card")).thenReturn(card("enemy-card", "Enemy Unit", "Unit", ""));
   }
@@ -101,6 +108,22 @@ class ActivatedAbilityServiceTest {
   }
 
   @Test
+  void exactCardRegistryExposesDianaScornShowdownEnergyAbilityDefinition() {
+    List<ActivatedAbilityDefinition> definitions = service.definitionsFor(card("diana-card", "Diana - Scorn of the Moon", "Legend", DIANA_TEXT));
+
+    assertThat(definitions).singleElement().satisfies(definition -> {
+      assertThat(definition.abilityKey()).isEqualTo(ActivatedAbilityService.DIANA_SCORN_SHOWDOWN_ENERGY);
+      assertThat(definition.sourceZone()).isEqualTo(ZoneName.LEGEND);
+      assertThat(definition.energyCost()).isZero();
+      assertThat(definition.premiumCost()).isZero();
+      assertThat(definition.requiresExhaust()).isTrue();
+      assertThat(definition.timing()).isEqualTo(ActivatedAbilityTiming.SHOWDOWN_FOCUS_RESOURCE);
+      assertThat(definition.targetKind()).isEqualTo(ActivatedAbilityTargetKind.NONE);
+      assertThat(definition.reactable()).isFalse();
+    });
+  }
+
+  @Test
   void validatesLegalImmediateActivation() {
     LiveGameState state = state(source("syren", "p1", ZoneName.BASE), unit("unit", "p1", ZoneName.BATTLEFIELD));
     state.getPlayers().getFirst().setAvailableEnergy(1);
@@ -135,6 +158,47 @@ class ActivatedAbilityServiceTest {
         new ActivateAbilityMove("p1", "irelia", ActivatedAbilityService.IRELIA_BLADE_DANCER_READY_UNIT, "unit", List.of(), List.of("rune-1")));
 
     assertThat(definition.abilityKey()).isEqualTo(ActivatedAbilityService.IRELIA_BLADE_DANCER_READY_UNIT);
+  }
+
+  @Test
+  void validatesLegalDianaActivationDuringFocusedShowdownWithoutTargetOrPayment() {
+    LiveGameState state = state(source("diana", "diana-card", "p1", ZoneName.LEGEND));
+    state.setActiveShowdown(showdown("p1"));
+
+    ActivatedAbilityDefinition definition = service.validate(
+        state,
+        new ActivateAbilityMove("p1", "diana", ActivatedAbilityService.DIANA_SCORN_SHOWDOWN_ENERGY, null, List.of(), List.of()));
+
+    assertThat(definition.abilityKey()).isEqualTo(ActivatedAbilityService.DIANA_SCORN_SHOWDOWN_ENERGY);
+  }
+
+  @Test
+  void rejectsDianaActivationOutsideFocusedShowdownOrWithTargetWithoutMutation() {
+    CardInstance diana = source("diana", "diana-card", "p1", ZoneName.LEGEND);
+    LiveGameState state = state(diana);
+
+    assertThatThrownBy(() -> service.validate(
+        state,
+        new ActivateAbilityMove("p1", "diana", ActivatedAbilityService.DIANA_SCORN_SHOWDOWN_ENERGY, null, List.of(), List.of())))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessageContaining("only during a showdown");
+    assertThat(diana.isTapped()).isFalse();
+
+    state.setActiveShowdown(showdown("p2"));
+    assertThatThrownBy(() -> service.validate(
+        state,
+        new ActivateAbilityMove("p1", "diana", ActivatedAbilityService.DIANA_SCORN_SHOWDOWN_ENERGY, null, List.of(), List.of())))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessageContaining("focused showdown player");
+    assertThat(diana.isTapped()).isFalse();
+
+    state.setActiveShowdown(showdown("p1"));
+    assertThatThrownBy(() -> service.validate(
+        state,
+        new ActivateAbilityMove("p1", "diana", ActivatedAbilityService.DIANA_SCORN_SHOWDOWN_ENERGY, "unit", List.of(), List.of())))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessageContaining("does not use a target");
+    assertThat(diana.isTapped()).isFalse();
   }
 
   @Test
@@ -280,6 +344,21 @@ class ActivatedAbilityServiceTest {
     assertThat(service.hasLegalActivation(state, "p1")).isFalse();
   }
 
+  @Test
+  void legalActivationIncludesDianaOnlyDuringFocusedShowdownWithReadyLegend() {
+    CardInstance diana = source("diana", "diana-card", "p1", ZoneName.LEGEND);
+    LiveGameState state = state(diana);
+
+    assertThat(service.hasLegalActivation(state, "p1")).isFalse();
+
+    state.setActiveShowdown(showdown("p1"));
+    assertThat(service.hasLegalActivation(state, "p1")).isTrue();
+    assertThat(service.hasLegalActivation(state, "p2")).isFalse();
+
+    diana.setTapped(true);
+    assertThat(service.hasLegalActivation(state, "p1")).isFalse();
+  }
+
   private LiveGameState state(CardInstance... cards) {
     LiveGameState state = new LiveGameState();
     state.setCurrentPhase(Phase.MAIN);
@@ -301,6 +380,22 @@ class ActivatedAbilityServiceTest {
     rune.setTapped(tapped);
     rune.setNormalEnergy(1);
     return rune;
+  }
+
+  private LiveGameState.ShowdownState showdown(String focusedPlayerId) {
+    return new LiveGameState.ShowdownState(
+        "p1",
+        List.of("attacker"),
+        new java.util.HashMap<>(),
+        ShowdownStep.ACTION_WINDOW,
+        List.of("p1", "p2"),
+        focusedPlayerId,
+        0,
+        false,
+        null,
+        List.of(),
+        List.of(),
+        "bf-0");
   }
 
   private CardInstance source(String instanceId, String ownerId, ZoneName zone) {

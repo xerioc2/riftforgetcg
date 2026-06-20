@@ -150,6 +150,7 @@ public class GameStateProjectionService {
     copy.setName(player.getName());
     copy.setScore(player.getScore());
     copy.setAvailableEnergy(player.getAvailableEnergy());
+    copy.setShowdownOnlyEnergy(player.getShowdownOnlyEnergy());
     copy.setRunePoolRemaining(player.getRunePoolRemaining());
     copy.setDeckPool(player.getDeckPool() == null ? new ArrayList<>() : new ArrayList<>(player.getDeckPool()));
     copy.setSelectedBattlefields(new ArrayList<>());

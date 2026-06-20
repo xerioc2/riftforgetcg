@@ -7,6 +7,7 @@ interface PlayerPanelProps {
   score: number;
   handCount: number;
   energy: number;
+  showdownOnlyEnergy?: number;
   untappedRunes: number;
   isActive: boolean;
   isMe: boolean;
@@ -29,6 +30,7 @@ export function PlayerPanel({
   score,
   handCount,
   energy,
+  showdownOnlyEnergy = 0,
   untappedRunes,
   isActive,
   isMe,
@@ -64,6 +66,7 @@ export function PlayerPanel({
             <span className={pendingEnergy > 0 ? 'text-mint' : undefined} title="Available energy">
               Energy {energy}
               {pendingEnergy > 0 ? `+${pendingEnergy}` : ''}
+              {showdownOnlyEnergy > 0 ? ` (${showdownOnlyEnergy} showdown)` : ''}
             </span>
             <span className="text-forge" title="Untapped runes">
               Runes {untappedRunes}

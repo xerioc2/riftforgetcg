@@ -10,6 +10,7 @@ public class PlayerState {
   private String name;
   private int score;
   private int availableEnergy;
+  private int showdownOnlyEnergy;
   private int runePoolRemaining;
   @JsonIgnore private List<String> deckPool = new ArrayList<>();
   @JsonIgnore private List<String> runeDeckPool = new ArrayList<>();
@@ -25,6 +26,8 @@ public class PlayerState {
   public void setScore(int score) { this.score = score; }
   public int getAvailableEnergy() { return availableEnergy; }
   public void setAvailableEnergy(int availableEnergy) { this.availableEnergy = availableEnergy; }
+  public int getShowdownOnlyEnergy() { return showdownOnlyEnergy; }
+  public void setShowdownOnlyEnergy(int showdownOnlyEnergy) { this.showdownOnlyEnergy = showdownOnlyEnergy; }
   public int getRunePoolRemaining() { return runePoolRemaining; }
   public void setRunePoolRemaining(int runePoolRemaining) { this.runePoolRemaining = runePoolRemaining; }
   @JsonIgnore

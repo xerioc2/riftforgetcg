@@ -165,6 +165,7 @@ export type PlayerGameState = {
   name: string;
   score: number;
   availableEnergy?: number;
+  showdownOnlyEnergy?: number;
   runePoolRemaining?: number;
   deckCount?: number;
   battlefieldChoices?: string[];

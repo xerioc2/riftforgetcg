@@ -31,7 +31,7 @@ Event/result: diana wins s3 suzhou city challenge
 
 ## Top Blockers
 
-- Diana - Scorn of the Moon (UNL-197): PARTIAL - Legend text. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Diana - Scorn of the Moon (UNL-197): PARTIAL - Legend text. Partial: Diana's exact Legend ability can be activated by the focused showdown player: exhaust Diana to add 1 showdown-only Energy. That restricted Energy can be spent only while a showdown is active. Broader official Reaction/resource timing remains deferred.
 - Hard Bargain (SFD-136): PARTIAL - Reaction / chain / counter. Partial: Hard Bargain can counter a supported public pending spell chain item unless that spell's controller pays 2 energy through an owner-only prompt. Repeat, broad official Reaction timing, ability targets, hidden/private chain targets, and countering counters remain deferred.
 - Star Spring (UNL-215): PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Abandoned Hall (UNL-205): PARTIAL - Battlefield effect. Partial: exact spell-play optional trigger is implemented for active Battlefield lanes. The spell's controller may choose a friendly public Unit/Champion here to get +1 Might this turn; full official trigger stacking and broader Battlefield rules remain deferred.
@@ -49,4 +49,4 @@ Event/result: diana wins s3 suzhou city challenge
 
 ## Recommended Implementation Order
 
-- Diana is enforced-playable by gate and selectable as a playtest bot deck, but remains Partial-heavy. Next fidelity slice should focus on Moonfall or Diana Legend/Champion text before broader timing work.
+- Diana is enforced-playable by gate and selectable as a playtest bot deck, but remains Partial-heavy. Next fidelity slice should focus on Star Spring/Battlefield effects, remaining Champion text, or another repeated Diana Partial blocker before broader timing work.

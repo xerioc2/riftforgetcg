@@ -218,6 +218,50 @@ class LegalActionsServiceTest {
   }
 
   @Test
+  void dianaScornActivationAppearsOnlyForFocusedShowdownPlayer() {
+    CardDefinition diana = new CardDefinition(
+        "diana",
+        "Diana - Scorn of the Moon",
+        "Legend",
+        null,
+        List.of("MIND", "CHAOS"),
+        0,
+        0,
+        null,
+        null,
+        null,
+        "[Reaction][>] :rb_exhaust:: [Add] :rb_energy_1:. Spend this Energy only during showdowns. (Abilities that add resources can't be reacted to.)",
+        0,
+        0,
+        List.of());
+    when(cardDataService.getCard("diana")).thenReturn(diana);
+    when(cardDataService.isDianaScornShowdownEnergyLegend(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      return def != null && "Diana - Scorn of the Moon".equalsIgnoreCase(def.name());
+    });
+    LegalActionsService legalActions = new LegalActionsService(cardDataService);
+    LiveGameState state = state(Phase.MAIN, "p1");
+    state.getCards().add(card("diana-1", "p1", "diana", ZoneName.LEGEND));
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        "p1",
+        List.of("attacker"),
+        Map.of(),
+        ShowdownStep.ACTION_WINDOW,
+        List.of("p1", "p2"),
+        "p1",
+        0,
+        false));
+
+    assertThat(legalActions.legalActionsFor(state, "p1"))
+        .contains(LegalAction.ACTIVATE_ABILITY, LegalAction.PASS_SHOWDOWN_FOCUS)
+        .doesNotContain(LegalAction.RESOLVE_SHOWDOWN);
+    assertThat(legalActions.legalActionsFor(state, "p2")).isEmpty();
+
+    state.getCards().getFirst().setTapped(true);
+    assertThat(legalActions.legalActionsFor(state, "p1")).doesNotContain(LegalAction.ACTIVATE_ABILITY);
+  }
+
+  @Test
   void pendingChoiceExposesOnlyResolveChoiceToOwner() {
     LiveGameState state = state(Phase.MAIN, "p1");
     state.setPendingChoice(PendingChoice.optionalDrawOne("choice-1", "p1", "source", "Draw a card?"));

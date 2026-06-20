@@ -27,7 +27,7 @@ import {
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
 import { readableHttpError } from '../lib/http';
-import { canUseSupportedChainResponse, hasUnsupportedAdditionalCost, isAbandonCounterCard, isActionCard, isAmbushCard, isDefyCounterCard, isDisciplineReactionCard, isEclipseReactionCard, isEnGardeReactionCard, isEquipCard, isGustReactionCard, isHardBargainCounterCard, isIreliaBladeDancerActivatedAbility, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isStupefyReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
+import { canUseSupportedChainResponse, hasUnsupportedAdditionalCost, isAbandonCounterCard, isActionCard, isAmbushCard, isDefyCounterCard, isDianaScornShowdownEnergyAbility, isDisciplineReactionCard, isEclipseReactionCard, isEnGardeReactionCard, isEquipCard, isGustReactionCard, isHardBargainCounterCard, isIreliaBladeDancerActivatedAbility, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isStupefyReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
 import { championDeployDestinations } from '../lib/championDeploy';
 import { appBuildLabel, APP_VERSION, BUILD_DATE, BUILD_TAG } from '../lib/appMetadata';
 import { buildDebugInfo } from '../lib/debugInfo';
@@ -518,8 +518,13 @@ export function GameBoard() {
     }, 1000);
   };
 
+  const playerEnergyForPayment = () => {
+    const playerState = state?.players.find((statePlayer) => statePlayer.userId === player.id);
+    return (playerState?.availableEnergy ?? 0) + (state?.activeShowdown ? (playerState?.showdownOnlyEnergy ?? 0) : 0);
+  };
+
   const selectPaymentRunesForCard = (cardDef: RiftCard | undefined, additionalCost = 0) => {
-    const playerEnergy = state?.players.find((statePlayer) => statePlayer.userId === player.id)?.availableEnergy ?? 0;
+    const playerEnergy = playerEnergyForPayment();
     const selectedRunes = new Set<string>();
     let plannedEnergy = 0;
     const neededEnergy = Math.max(0, (cardDef?.cost ?? 0) + additionalCost - playerEnergy);
@@ -559,7 +564,7 @@ export function GameBoard() {
   };
 
   const selectPaymentRunesForEnergyCost = (label: string, energyCost: number) => {
-    const playerEnergy = state?.players.find((statePlayer) => statePlayer.userId === player.id)?.availableEnergy ?? 0;
+    const playerEnergy = playerEnergyForPayment();
     const selectedRunes = new Set<string>();
     let plannedEnergy = 0;
     const neededEnergy = Math.max(0, energyCost - playerEnergy);
@@ -611,7 +616,7 @@ export function GameBoard() {
     (state?.runes ?? []).filter((rune) => rune.ownerId === player.id && !rune.tapped).length >= premiumCost;
 
   const canPayEnergyCost = (energyCost: number) => {
-    const playerEnergy = state?.players.find((statePlayer) => statePlayer.userId === player.id)?.availableEnergy ?? 0;
+    const playerEnergy = playerEnergyForPayment();
     const readyRuneEnergy = (state?.runes ?? [])
       .filter((rune) => rune.ownerId === player.id && !rune.tapped)
       .reduce((sum, rune) => sum + Math.max(0, rune.normalEnergy), 0);
@@ -1386,6 +1391,26 @@ export function GameBoard() {
     }
 
     if (instance.ownerId === player.id && sameZone(instance.zone, 'legend')) {
+      if (isDianaScornShowdownEnergyAbility(targetCard)) {
+        if (instance.tapped) {
+          notifyWarning('Ability unavailable', 'Diana - Scorn of the Moon is already exhausted.');
+          return;
+        }
+        if (!canTakeAction(state, 'ACTIVATE_ABILITY')) {
+          notifyWarning('Ability unavailable', 'Diana can add showdown energy only while you have showdown focus.');
+          return;
+        }
+        publishMove({
+          type: 'ACTIVATE_ABILITY',
+          playerId: player.id,
+          sourceInstanceId: instanceId,
+          abilityKey: 'DIANA_SCORN_SHOWDOWN_ENERGY',
+          targetInstanceId: null,
+          paymentRuneIds: [],
+          premiumRuneIds: [],
+        });
+        return;
+      }
       if (isIreliaBladeDancerActivatedAbility(targetCard)) {
         if (instance.tapped) {
           notifyWarning('Ability unavailable', 'Irelia - Blade Dancer is already exhausted.');
@@ -1569,6 +1594,7 @@ export function GameBoard() {
     .filter((rune) => pendingRuneTaps.has(rune.instanceId))
     .reduce((total, rune) => total + rune.normalEnergy, 0);
   const spendableEnergy = (me?.availableEnergy ?? 0)
+    + (state.activeShowdown ? (me?.showdownOnlyEnergy ?? 0) : 0)
     + (state.runes ?? [])
         .filter((rune) => rune.ownerId === player.id && !rune.tapped)
         .reduce((total, rune) => total + rune.normalEnergy, 0);
@@ -1918,6 +1944,7 @@ export function GameBoard() {
           score={opponent.score}
           handCount={opponentHand}
           energy={opponent.availableEnergy ?? 0}
+          showdownOnlyEnergy={opponent.showdownOnlyEnergy ?? 0}
           untappedRunes={opponentUntappedRunes}
           isActive={state.activePlayerId === opponent.userId}
           isMe={false}
@@ -1936,7 +1963,8 @@ export function GameBoard() {
           score={me.score}
           handCount={hand.length}
           energy={me.availableEnergy ?? 0}
-          effectiveEnergy={(me.availableEnergy ?? 0) + pendingRuneEnergy}
+          showdownOnlyEnergy={me.showdownOnlyEnergy ?? 0}
+          effectiveEnergy={(me.availableEnergy ?? 0) + (state.activeShowdown ? (me.showdownOnlyEnergy ?? 0) : 0) + pendingRuneEnergy}
           untappedRunes={myUntappedRunes}
           isActive={state.activePlayerId === player.id}
           isMe

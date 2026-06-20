@@ -666,11 +666,14 @@ Current implementation notes:
 - Effect architecture scaffolding exists for keyword, on-play, triggered,
   activated, static modifier, and replacement handlers.
 - `ActivatedAbilityService` is the v1 server-authoritative activated ability
-  primitive for exact-card immediate Main Phase abilities; The Syren,
-  Zhonya's Hourglass, and Irelia - Blade Dancer are registered production
-  abilities. Irelia's Legend-zone alpha ability exhausts Irelia, pays one
-  rainbow/premium rune, and readies an exhausted friendly public Unit/Champion
-  in Base or at a battlefield. Her conquer-ready trigger remains deferred.
+  primitive for exact-card abilities; The Syren, Zhonya's Hourglass,
+  Irelia - Blade Dancer, and Diana - Scorn of the Moon are registered
+  production abilities. Irelia's Legend-zone alpha ability exhausts Irelia,
+  pays one rainbow/premium rune, and readies an exhausted friendly public
+  Unit/Champion in Base or at a battlefield. Diana's Legend-zone alpha ability
+  exhausts Diana while her controller has showdown focus and adds 1
+  showdown-only Energy without opening the chain. Irelia's conquer-ready trigger
+  and broader official resource/Reaction timing remain deferred.
 - `LegendChampionEffectService` is the v1 exact-card persistent source hook for
   public Legend/Champion text. It currently supports Irelia - Fervent's
   explicit-ready trigger for registered ready effects, giving her +1 Might this

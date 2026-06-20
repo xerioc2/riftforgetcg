@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canUseSupportedChainResponse, isAbandonCounterCard, isCharmMoveCard, isDefiantDanceReactionCard, isDefyCounterCard, isDisciplineReactionCard, isEclipseReactionCard, isEnGardeReactionCard, isFlashReactionCard, isGustReactionCard, isHardBargainCounterCard, isIreliaBladeDancerActivatedAbility, isLegalTargetForMode, isMoonfallActionCard, isNotSoFastCounterCard, isReactionCard, isStarCrossedReactionCard, isStupefyReactionCard, isSupportedChainReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, shouldShowRespondAction, targetModeForCard, unsupportedCardReason } from './cardActions';
+import { canUseSupportedChainResponse, isAbandonCounterCard, isCharmMoveCard, isDefiantDanceReactionCard, isDefyCounterCard, isDianaScornShowdownEnergyAbility, isDisciplineReactionCard, isEclipseReactionCard, isEnGardeReactionCard, isFlashReactionCard, isGustReactionCard, isHardBargainCounterCard, isIreliaBladeDancerActivatedAbility, isLegalTargetForMode, isMoonfallActionCard, isNotSoFastCounterCard, isReactionCard, isStarCrossedReactionCard, isStupefyReactionCard, isSupportedChainReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, shouldShowRespondAction, targetModeForCard, unsupportedCardReason } from './cardActions';
 import type { CardInstance, RiftCard } from '../types';
 
 describe('cardActions', () => {
@@ -264,6 +264,20 @@ describe('cardActions', () => {
     expect(isIreliaBladeDancerActivatedAbility(irelia)).toBe(true);
     expect(unsupportedCardReason(irelia)).toBeNull();
     expect(targetModeForCard(irelia)).toBe('NONE');
+  });
+
+  it('recognizes Diana Scorn of the Moon as the narrow showdown energy Legend helper', () => {
+    const diana: RiftCard = {
+      id: 'diana',
+      name: 'Diana - Scorn of the Moon',
+      type: 'Legend',
+      domains: ['MIND', 'CHAOS'],
+      rulesText: "[Reaction][>] :rb_exhaust:: [Add] :rb_energy_1:. Spend this Energy only during showdowns. (Abilities that add resources can't be reacted to.)",
+    };
+
+    expect(isDianaScornShowdownEnergyAbility(diana)).toBe(true);
+    expect(unsupportedCardReason(diana)).toBeNull();
+    expect(targetModeForCard(diana)).toBe('NONE');
   });
 
   it('marks Gust playable only when chain play and a legal Gust target are available', () => {

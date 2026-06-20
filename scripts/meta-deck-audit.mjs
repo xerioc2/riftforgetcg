@@ -106,6 +106,7 @@ const BANNED_NAMES = new Set([
 
 const PARTIAL_REASONS = new Map([
   ['IRELIA - BLADE DANCER', 'Partial: the Legend-zone activated ready ability is implemented for Main Phase alpha play: exhaust Irelia, pay one rainbow/premium rune, and ready an exhausted friendly public Unit/Champion in Base or at a battlefield. The conquer trigger that may pay 1 energy to ready Irelia remains deferred.'],
+  ['DIANA - SCORN OF THE MOON', 'Partial: Diana\'s exact Legend ability can be activated by the focused showdown player: exhaust Diana to add 1 showdown-only Energy. That restricted Energy can be spent only while a showdown is active. Broader official Reaction/resource timing remains deferred.'],
   ['IRELIA - FERVENT', 'Partial: the supported explicit-ready trigger gives Irelia +1 Might this turn when her controller readies her through a registered effect. Deflect targeting tax remains heuristic, choose-trigger coverage is incomplete, and automatic ready-step trigger timing remains deferred.'],
   ['DISCIPLINE', 'Partial: alpha chain-window Reaction support exists for giving a public battlefield Unit/Champion +2 Might this turn and drawing 1. Full official any-time Reaction timing remains incomplete.'],
   ['TIDETURNER', 'Partial: Hidden foundation exists, but later hidden play timing and the on-play location swap are not implemented yet.'],
@@ -701,7 +702,7 @@ function mainRoadmapMarkdown(results) {
     '',
     '## Recommended Next Sprint',
     '',
-    'Use the extracted Diana lists to choose one narrow fidelity slice, preferably `Moonfall` or Diana Legend/Champion text, then Star Spring. Keep Miss Fortune in the Aurora bucket until a real list is provided, and do not implement from archetype names alone.',
+    'Use the extracted Diana lists to choose one narrow fidelity slice, preferably Star Spring/Battlefield effects, remaining Champion text, or another repeated Diana Partial blocker. Keep Miss Fortune in the Aurora bucket until a real list is provided, and do not implement from archetype names alone.',
     '',
   ].join('\n');
 }

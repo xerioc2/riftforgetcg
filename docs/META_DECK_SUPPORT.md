@@ -80,4 +80,4 @@ Diana remains the recommended next fidelity target because reviewer signal says 
 
 ## Recommended Next Sprint
 
-Use the extracted Diana lists to choose one narrow fidelity slice, preferably `Moonfall` or Diana Legend/Champion text, then Star Spring. Keep Miss Fortune in the Aurora bucket until a real list is provided, and do not implement from archetype names alone.
+Use the extracted Diana lists to choose one narrow fidelity slice, preferably Star Spring/Battlefield effects, remaining Champion text, or another repeated Diana Partial blocker. Keep Miss Fortune in the Aurora bucket until a real list is provided, and do not implement from archetype names alone.

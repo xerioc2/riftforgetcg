@@ -344,6 +344,10 @@ public class GameEngine {
       target.setTapped(false);
       if (wasTapped) applyIreliaFerventReadyTrigger(state, target, move.playerId());
       log(state, move.playerId(), sourceDef.name() + " readied " + cardDataService.getCard(target.getCardId()).name() + ".");
+    } else if (ActivatedAbilityService.DIANA_SCORN_SHOWDOWN_ENERGY.equals(definition.abilityKey())) {
+      PlayerState player = player(state, move.playerId());
+      player.setShowdownOnlyEnergy(player.getShowdownOnlyEnergy() + 1);
+      log(state, move.playerId(), sourceDef.name() + " added 1 showdown-only Energy.");
     }
     return state;
   }
@@ -368,7 +372,13 @@ public class GameEngine {
         player.setRunePoolRemaining(player.getRuneDeckPool().size());
       }
     }
-    player.setAvailableEnergy(Math.max(0, player.getAvailableEnergy() + selectedEnergy - cost));
+    int remainingCost = Math.max(0, cost);
+    if (state.getActiveShowdown() != null && player.getShowdownOnlyEnergy() > 0) {
+      int restrictedSpent = Math.min(player.getShowdownOnlyEnergy(), remainingCost);
+      player.setShowdownOnlyEnergy(player.getShowdownOnlyEnergy() - restrictedSpent);
+      remainingCost -= restrictedSpent;
+    }
+    player.setAvailableEnergy(Math.max(0, player.getAvailableEnergy() + selectedEnergy - remainingCost));
   }
 
   private LiveGameState applyMoveCard(LiveGameState state, MoveCardMove move) {
@@ -633,6 +643,7 @@ public class GameEngine {
         .ifPresent(card -> card.setTemporaryPowerModifier(Math.max(0, card.getTemporaryPowerModifier() - bonus))));
     if (result.attackersRemain() && result.defendersEliminated()) conquerBattlefield(state, showdown.attackingPlayerId(), locationId);
     else if (!result.defendersEliminated()) returnBattlefieldCardsToBase(state, showdown.attackingPlayerId(), locationId);
+    clearShowdownOnlyEnergy(state);
     state.setActiveShowdown(null);
     state.setCurrentPhase(Phase.MAIN);
     log(state, move.playerId(), "Showdown resolved.");
@@ -689,6 +700,7 @@ public class GameEngine {
         .ifPresent(card -> card.setTemporaryPowerModifier(Math.max(0, card.getTemporaryPowerModifier() - bonus))));
     if (result.attackersRemain() && result.defendersEliminated()) conquerBattlefield(state, assigned.attackingPlayerId(), locationId);
     else if (!result.defendersEliminated()) returnBattlefieldCardsToBase(state, assigned.attackingPlayerId(), locationId);
+    clearShowdownOnlyEnergy(state);
     state.setActiveShowdown(null);
     state.setCurrentPhase(Phase.MAIN);
     log(state, move.playerId(), "Combat damage assigned. Showdown resolved.");
@@ -2054,7 +2066,14 @@ public class GameEngine {
   }
 
   private void clearEnergy(LiveGameState state) {
-    state.getPlayers().forEach(player -> player.setAvailableEnergy(0));
+    state.getPlayers().forEach(player -> {
+      player.setAvailableEnergy(0);
+      player.setShowdownOnlyEnergy(0);
+    });
+  }
+
+  private void clearShowdownOnlyEnergy(LiveGameState state) {
+    state.getPlayers().forEach(player -> player.setShowdownOnlyEnergy(0));
   }
 
   private void grantRunes(LiveGameState state, String playerId, int amount) {

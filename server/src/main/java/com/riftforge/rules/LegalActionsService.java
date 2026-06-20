@@ -116,6 +116,11 @@ public class LegalActionsService {
           && (hasSupportedActionCardInHand(state, playerId) || hasPlayableTargetedReactionInHand(state, playerId))) {
         actions.add(LegalAction.PLAY_CARD);
       }
+      if (!state.getActiveShowdown().readyToResolve()
+          && activatedAbilityService != null
+          && activatedAbilityService.hasLegalActivation(state, playerId)) {
+        actions.add(LegalAction.ACTIVATE_ABILITY);
+      }
       return actions;
     }
 
@@ -435,7 +440,8 @@ public class LegalActionsService {
     int availableEnergy = state.getPlayers().stream()
         .filter(player -> playerId.equals(player.getUserId()))
         .findFirst()
-        .map(player -> player.getAvailableEnergy())
+        .map(player -> player.getAvailableEnergy()
+            + (state.getActiveShowdown() == null ? 0 : player.getShowdownOnlyEnergy()))
         .orElse(0);
     int readyRuneEnergy = state.getRunes().stream()
         .filter(rune -> playerId.equals(rune.getOwnerId()) && !rune.isTapped())

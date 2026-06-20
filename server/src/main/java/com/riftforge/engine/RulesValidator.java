@@ -96,6 +96,7 @@ public class RulesValidator {
       if (move instanceof PassShowdownFocusMove pass) { validatePassShowdownFocus(state, pass); return; }
       if (move instanceof ResolveShowdownMove resolve) { validateResolveShowdown(state, resolve); return; }
       if (move instanceof PlayCardMove play) { validatePlayCard(state, play); return; }
+      if (move instanceof ActivateAbilityMove activate) { validateActivateAbility(state, activate); return; }
       throw new IllegalMoveException("Resolve the active showdown first.");
     }
     if (move instanceof AdjustScoreMove
@@ -282,7 +283,7 @@ public class RulesValidator {
     }
     validatePayment(state, move, def);
     int cost = def.cost() + (move.accelerate() ? 1 : 0);
-    int energy = state.getPlayers().stream().filter(p -> p.getUserId().equals(move.playerId())).findFirst().orElseThrow().getAvailableEnergy();
+    int energy = playerEnergy(state, move.playerId());
     int selectedEnergy = move.paymentRuneIds().stream()
         .map(this::requirePaymentRuneId)
         .map(id -> findRune(state, id))
@@ -1345,7 +1346,7 @@ public class RulesValidator {
     return state.getPlayers().stream()
         .filter(player -> playerId.equals(player.getUserId()))
         .findFirst()
-        .map(player -> player.getAvailableEnergy())
+        .map(player -> player.getAvailableEnergy() + (state.getActiveShowdown() == null ? 0 : player.getShowdownOnlyEnergy()))
         .orElse(0);
   }
 }

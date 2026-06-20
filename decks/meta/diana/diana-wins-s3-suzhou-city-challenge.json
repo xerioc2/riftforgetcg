@@ -287,7 +287,7 @@
       },
       "support": {
         "status": "PARTIAL",
-        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "reason": "Partial: Diana's exact Legend ability can be activated by the focused showdown player: exhaust Diana to add 1 showdown-only Energy. That restricted Energy can be spent only while a showdown is active. Broader official Reaction/resource timing remains deferred.",
         "blocked": false
       },
       "keywords": [

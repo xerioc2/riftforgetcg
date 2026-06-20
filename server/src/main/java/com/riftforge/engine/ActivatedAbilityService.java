@@ -6,6 +6,7 @@ import com.riftforge.model.LiveGameState;
 import com.riftforge.model.Phase;
 import com.riftforge.model.PlayerState;
 import com.riftforge.model.RuneState;
+import com.riftforge.model.ShowdownStep;
 import com.riftforge.model.ZoneName;
 import com.riftforge.model.move.ActivateAbilityMove;
 import com.riftforge.service.CardDataService;
@@ -20,6 +21,7 @@ public class ActivatedAbilityService {
   public static final String THE_SYREN_RECALL = "THE_SYREN_RECALL";
   public static final String ZHONYAS_HOURGLASS_PROTECT = "ZHONYAS_HOURGLASS_PROTECT";
   public static final String IRELIA_BLADE_DANCER_READY_UNIT = "IRELIA_BLADE_DANCER_READY_UNIT";
+  public static final String DIANA_SCORN_SHOWDOWN_ENERGY = "DIANA_SCORN_SHOWDOWN_ENERGY";
 
   private final CardDataService cardDataService;
 
@@ -67,6 +69,19 @@ public class ActivatedAbilityService {
           false,
           "Ready a friendly unit."));
     }
+    if (cardDataService.isDianaScornShowdownEnergyLegend(sourceDef)) {
+      return List.of(new ActivatedAbilityDefinition(
+          DIANA_SCORN_SHOWDOWN_ENERGY,
+          "Exhaust Diana to add 1 showdown-only energy.",
+          ZoneName.LEGEND,
+          0,
+          0,
+          true,
+          ActivatedAbilityTiming.SHOWDOWN_FOCUS_RESOURCE,
+          ActivatedAbilityTargetKind.NONE,
+          false,
+          "Add 1 Energy. Spend this Energy only during showdowns."));
+    }
     return List.of();
   }
 
@@ -85,7 +100,7 @@ public class ActivatedAbilityService {
   }
 
   public boolean hasLegalActivation(LiveGameState state, String playerId) {
-    if (state == null || playerId == null || state.getCurrentPhase() != Phase.MAIN || state.getActiveShowdown() != null) {
+    if (state == null || playerId == null) {
       return false;
     }
     return state.getCards().stream()
@@ -95,13 +110,12 @@ public class ActivatedAbilityService {
   }
 
   public ActivatedAbilityDefinition validate(LiveGameState state, ActivateAbilityMove move) {
-    if (state.getCurrentPhase() != Phase.MAIN) throw new IllegalMoveException("Activated abilities can only be used during your Main Phase.");
-    if (state.getActiveShowdown() != null) throw new IllegalMoveException("Resolve the active showdown first.");
     CardInstance source = findCard(state, move.sourceInstanceId());
     if (!move.playerId().equals(source.getOwnerId())) throw new IllegalMoveException("You do not own that card.");
     CardDefinition sourceDef = cardDataService.getCard(source.getCardId());
     ActivatedAbilityDefinition definition = definitionFor(sourceDef, move.abilityKey())
         .orElseThrow(() -> new IllegalMoveException("That activated ability is not supported yet."));
+    validateTiming(state, move.playerId(), definition);
     validateSource(source, definition);
     validateTarget(state, move, definition);
     validatePayment(state, move, definition);
@@ -109,6 +123,12 @@ public class ActivatedAbilityService {
   }
 
   public CardInstance validateTarget(LiveGameState state, ActivateAbilityMove move, ActivatedAbilityDefinition definition) {
+    if (definition.targetKind() == ActivatedAbilityTargetKind.NONE) {
+      if (move.targetInstanceId() != null && !move.targetInstanceId().isBlank()) {
+        throw new IllegalMoveException("This activated ability does not use a target.");
+      }
+      return null;
+    }
     if (definition.targetKind() == ActivatedAbilityTargetKind.FRIENDLY_PUBLIC_BATTLEFIELD_UNIT) {
       if (move.targetInstanceId() == null || move.targetInstanceId().isBlank()) {
         throw new IllegalMoveException("This ability requires a friendly Unit or Champion at a battlefield.");
@@ -144,6 +164,7 @@ public class ActivatedAbilityService {
 
   private boolean canActivate(LiveGameState state, String playerId, CardInstance source, ActivatedAbilityDefinition definition) {
     try {
+      validateTiming(state, playerId, definition);
       validateSource(source, definition);
       if (!canPayEnergy(state, playerId, definition.energyCost())) return false;
       if (!canPayPremium(state, playerId, definition.premiumCost())) return false;
@@ -154,6 +175,9 @@ public class ActivatedAbilityService {
   }
 
   private boolean hasLegalTarget(LiveGameState state, String playerId, ActivatedAbilityDefinition definition) {
+    if (definition.targetKind() == ActivatedAbilityTargetKind.NONE) {
+      return true;
+    }
     if (definition.targetKind() == ActivatedAbilityTargetKind.FRIENDLY_PUBLIC_BATTLEFIELD_UNIT) {
       return state.getCards().stream().anyMatch(card -> isFriendlyPublicBattlefieldUnit(card, playerId));
     }
@@ -164,6 +188,30 @@ public class ActivatedAbilityService {
       return state.getCards().stream().anyMatch(card -> isFriendlyPublicPlayUnit(card, playerId) && card.isTapped());
     }
     return false;
+  }
+
+  private void validateTiming(LiveGameState state, String playerId, ActivatedAbilityDefinition definition) {
+    if (definition.timing() == ActivatedAbilityTiming.MAIN_PHASE_IMMEDIATE) {
+      if (state.getCurrentPhase() != Phase.MAIN) throw new IllegalMoveException("Activated abilities can only be used during your Main Phase.");
+      if (state.getActiveShowdown() != null) throw new IllegalMoveException("Resolve the active showdown first.");
+      return;
+    }
+    if (definition.timing() == ActivatedAbilityTiming.SHOWDOWN_FOCUS_RESOURCE) {
+      if (state.getCurrentPhase() != Phase.MAIN || state.getActiveShowdown() == null) {
+        throw new IllegalMoveException("Diana can add showdown energy only during a showdown.");
+      }
+      if (state.getActiveShowdown().step() == ShowdownStep.ASSIGN_DAMAGE) {
+        throw new IllegalMoveException("Assign combat damage before activating more showdown abilities.");
+      }
+      if (state.getActiveShowdown().readyToResolve()) {
+        throw new IllegalMoveException("Showdown is ready to resolve.");
+      }
+      if (!playerId.equals(state.getActiveShowdown().focusedPlayerId())) {
+        throw new IllegalMoveException("Only the focused showdown player can activate this ability.");
+      }
+      return;
+    }
+    throw new IllegalMoveException("That activated ability timing is not supported yet.");
   }
 
   private void validateSource(CardInstance source, ActivatedAbilityDefinition definition) {
@@ -226,7 +274,7 @@ public class ActivatedAbilityService {
     return state.getPlayers().stream()
         .filter(player -> playerId.equals(player.getUserId()))
         .findFirst()
-        .map(PlayerState::getAvailableEnergy)
+        .map(player -> player.getAvailableEnergy() + (state.getActiveShowdown() == null ? 0 : player.getShowdownOnlyEnergy()))
         .orElse(0);
   }
 

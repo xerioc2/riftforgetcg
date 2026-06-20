@@ -224,6 +224,15 @@ describe('deckSupport', () => {
     expect(irelia.reason).toContain('conquer trigger');
   });
 
+  it('uses a Diana Scorn of the Moon-specific Partial reason for showdown-only energy', () => {
+    const diana = cardSupportStatus(legend('Diana - Scorn of the Moon', "[Reaction][>] :rb_exhaust:: [Add] :rb_energy_1:. Spend this Energy only during showdowns. (Abilities that add resources can't be reacted to.)"));
+
+    expect(diana.status).toBe('PARTIAL');
+    expect(diana.reason).toContain('focused showdown player');
+    expect(diana.reason).toContain('showdown-only Energy');
+    expect(diana.reason).toContain('Broader official Reaction/resource timing remains deferred');
+  });
+
   it('uses an Irelia Fervent-specific Partial reason for the alpha Champion trigger slice', () => {
     const irelia = cardSupportStatus(champion('Irelia - Fervent', '[Deflect] When you choose or ready me, give me +1 :rb_might: this turn.'));
 

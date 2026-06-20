@@ -122,7 +122,7 @@ function docFor(deck) {
 function recommendation(key) {
   const recommendations = {
     irelia: '- Continue current Irelia polish: Zhonya\'s Hourglass now has narrow Partial would-die replacement support; remaining blockers should focus on broader timing/replacement caveats and other Partial meta-card text.',
-    diana: '- Diana is enforced-playable by gate and selectable as a playtest bot deck, but remains Partial-heavy. Next fidelity slice should focus on Moonfall or Diana Legend/Champion text before broader timing work.',
+    diana: '- Diana is enforced-playable by gate and selectable as a playtest bot deck, but remains Partial-heavy. Next fidelity slice should focus on Star Spring/Battlefield effects, remaining Champion text, or another repeated Diana Partial blocker before broader timing work.',
     annie: '- Use Annie as the first Aurora-shell list while waiting for Miss Fortune; focus on shared Reaction/bounce/damage blockers only after MF is available.',
     'master-yi': '- Review gameplay notes before implementation; likely blockers are Gear, Champion/Legend text, and remaining movement/location edge cases beyond Charm\'s narrow alpha support.',
     leblanc: '- Defer until Diana/Aurora unless tester demand rises; blockers skew toward destroy/hidden/counter-style spell effects.',

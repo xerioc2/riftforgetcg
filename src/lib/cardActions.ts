@@ -135,6 +135,17 @@ export function isIreliaBladeDancerActivatedAbility(card: RiftCard | undefined) 
     && text.includes('ready me');
 }
 
+export function isDianaScornShowdownEnergyAbility(card: RiftCard | undefined) {
+  const text = (card?.rulesText ?? '').trim().toLowerCase();
+  return card?.type?.toLowerCase() === 'legend'
+    && card.name?.trim().toLowerCase().startsWith('diana - scorn of the moon')
+    && text.includes('[reaction]')
+    && text.includes(':rb_exhaust::')
+    && text.includes('[add]')
+    && text.includes(':rb_energy_1:')
+    && text.includes('spend this energy only during showdowns');
+}
+
 export function isActionCard(card: RiftCard | undefined) {
   return bracketedTiming(card, 'action');
 }

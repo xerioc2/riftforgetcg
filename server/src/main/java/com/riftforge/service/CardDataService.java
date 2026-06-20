@@ -435,6 +435,19 @@ public class CardDataService {
         && text.contains("ready me");
   }
 
+  public boolean isDianaScornShowdownEnergyLegend(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().trim().toLowerCase();
+    return "Legend".equalsIgnoreCase(def.type())
+        && def.name() != null
+        && def.name().trim().toLowerCase().startsWith("diana - scorn of the moon")
+        && text.contains("[reaction]")
+        && text.contains(":rb_exhaust::")
+        && text.contains("[add]")
+        && text.contains(":rb_energy_1:")
+        && text.contains("spend this energy only during showdowns");
+  }
+
   public boolean isIreliaFerventChampion(CardDefinition def) {
     if (def == null || def.rulesText() == null) return false;
     String text = def.rulesText().trim().toLowerCase();

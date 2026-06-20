@@ -141,6 +141,19 @@ class GameEnginePlayCardTypeTest {
           && text.contains("when you conquer")
           && text.contains("ready me");
     });
+    when(cardDataService.isDianaScornShowdownEnergyLegend(any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      String text = def == null || def.rulesText() == null ? "" : def.rulesText().trim().toLowerCase();
+      return def != null
+          && "Legend".equalsIgnoreCase(def.type())
+          && def.name() != null
+          && def.name().startsWith("Diana - Scorn of the Moon")
+          && text.contains("[reaction]")
+          && text.contains(":rb_exhaust::")
+          && text.contains("[add]")
+          && text.contains(":rb_energy_1:")
+          && text.contains("spend this energy only during showdowns");
+    });
     when(cardDataService.isIreliaFerventChampion(any(CardDefinition.class))).thenAnswer(invocation -> {
       CardDefinition def = invocation.getArgument(0);
       String text = def == null || def.rulesText() == null ? "" : def.rulesText().trim().toLowerCase();
@@ -3036,6 +3049,83 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void dianaScornActivatesDuringFocusedShowdownToAddRestrictedEnergy() {
+    stubCard("diana", "Diana - Scorn of the Moon", "Legend", 0, 0, 0, dianaScornText());
+    CardInstance diana = card("diana", "p1", ZoneName.LEGEND);
+    LiveGameState state = state(diana);
+    state.setActiveShowdown(focusedShowdown("p1", false));
+
+    engine.applyMove(state, new ActivateAbilityMove(
+        "p1",
+        "diana",
+        ActivatedAbilityService.DIANA_SCORN_SHOWDOWN_ENERGY,
+        null,
+        List.of(),
+        List.of()));
+
+    assertThat(find(state, "diana").isTapped()).isTrue();
+    assertThat(state.getPlayers().getFirst().getAvailableEnergy()).isZero();
+    assertThat(state.getPlayers().getFirst().getShowdownOnlyEnergy()).isEqualTo(1);
+    assertThat(state.getLog()).extracting(LiveGameState.LogEntry::text)
+        .contains("Diana - Scorn of the Moon added 1 showdown-only Energy.");
+  }
+
+  @Test
+  void dianaRestrictedEnergyCanPayOnlyDuringShowdownAndClearsWhenShowdownEnds() {
+    stubCard("diana", "Diana - Scorn of the Moon", "Legend", 0, 0, 0, dianaScornText());
+    stubCard("action", "Showdown Trick", "Spell", 1, 0, 0, "[Action] Draw 1.");
+    stubCard("attacker", "Attacker", "Unit", 0, 2, 2, "");
+    LiveGameState state = state(
+        card("diana", "p1", ZoneName.LEGEND),
+        card("action", "p1", ZoneName.HAND),
+        atLocation(card("attacker", "p1", ZoneName.BATTLEFIELD), "bf-0"));
+    state.setActiveShowdown(focusedShowdown("p1", false));
+
+    engine.applyMove(state, new ActivateAbilityMove(
+        "p1",
+        "diana",
+        ActivatedAbilityService.DIANA_SCORN_SHOWDOWN_ENERGY,
+        null,
+        List.of(),
+        List.of()));
+    engine.applyMove(state, play("action", ZoneName.BASE));
+
+    assertThat(find(state, "action").getZone()).isEqualTo(ZoneName.LIMBO);
+    assertThat(state.getPlayers().getFirst().getShowdownOnlyEnergy()).isZero();
+    assertThat(state.getPlayers().getFirst().getAvailableEnergy()).isZero();
+    assertThat(state.getRunes()).isEmpty();
+
+    state.getPlayers().getFirst().setShowdownOnlyEnergy(1);
+    state.setChainState(null);
+    state.setActiveShowdown(readyShowdown("p1"));
+    engine.applyMove(state, new ResolveShowdownMove("p1"));
+
+    assertThat(state.getActiveShowdown()).isNull();
+    assertThat(state.getPlayers().getFirst().getShowdownOnlyEnergy()).isZero();
+  }
+
+  @Test
+  void dianaActivationRejectsNonFocusedPlayerWithoutMutation() {
+    stubCard("diana", "Diana - Scorn of the Moon", "Legend", 0, 0, 0, dianaScornText());
+    CardInstance diana = card("diana", "p1", ZoneName.LEGEND);
+    LiveGameState state = state(diana);
+    state.setActiveShowdown(focusedShowdown("p2", false));
+
+    assertThatThrownBy(() -> engine.applyMove(state, new ActivateAbilityMove(
+        "p1",
+        "diana",
+        ActivatedAbilityService.DIANA_SCORN_SHOWDOWN_ENERGY,
+        null,
+        List.of(),
+        List.of())))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessageContaining("focused showdown player");
+
+    assertThat(find(state, "diana").isTapped()).isFalse();
+    assertThat(state.getPlayers().getFirst().getShowdownOnlyEnergy()).isZero();
+  }
+
+  @Test
   void zhonyasHourglassRejectsEnemyTargetWithoutMutation() {
     stubCard("zhonya", "Zhonya's Hourglass", "Gear", 2, 0, 0, zhonyasText());
     stubCard("enemy", "Enemy Unit", "Unit", 0, 2, 2, "");
@@ -3282,6 +3372,10 @@ class GameEnginePlayCardTypeTest {
   private String zhonyasText() {
     return "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)"
         + "If a friendly unit would die, kill this instead. Heal that unit, exhaust it, and recall it. (Send it to base. This isn't a move.)";
+  }
+
+  private String dianaScornText() {
+    return "[Reaction][>] :rb_exhaust:: [Add] :rb_energy_1:. Spend this Energy only during showdowns. (Abilities that add resources can't be reacted to.)";
   }
 
   private String moonfallText() {

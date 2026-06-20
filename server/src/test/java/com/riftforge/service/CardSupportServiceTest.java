@@ -117,6 +117,10 @@ class CardSupportServiceTest {
         .contains("+1 Might this turn")
         .contains("choose-trigger coverage is incomplete")
         .contains("automatic ready-step trigger timing remains deferred");
+    assertThat(service.summarize(card("diana-scorn", "Diana - Scorn of the Moon", "Legend", "[Reaction] :rb_exhaust:: [Add] :rb_energy_1:. Spend this Energy only during showdowns.")).reason())
+        .contains("focused showdown player")
+        .contains("showdown-only Energy")
+        .contains("Broader official Reaction/resource timing");
     assertThat(service.summarize(card("defy", "Defy", "Spell", "[Reaction] Counter a spell.")).reason())
         .contains("no more than 4 energy")
         .contains("no more than 1 premium rune")
