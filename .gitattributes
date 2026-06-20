@@ -1,0 +1,3 @@
+decks/meta/**/*.json text eol=lf
+docs/meta/**/*.md text eol=lf
+docs/META_DECK_SUPPORT.md text eol=lf

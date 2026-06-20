@@ -15,7 +15,7 @@
       "OGN-039": "3",
       "OGN-166": "6",
       "OGN-169": "2",
-      "OGN-172": "2",
+      "OGN-172": "1",
       "OGN-173": "2",
       "OGN-183": "3",
       "OGN-185": "3",
@@ -31,7 +31,7 @@
       "SFD-025": "3",
       "SFD-029": "3",
       "SFD-135": "1",
-      "SFD-136": "2",
+      "SFD-136": "1",
       "SFD-145": "1",
       "SFD-217": "1"
     },
@@ -467,7 +467,7 @@
         "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)\n[Repeat] :rb_energy_2: (You may pay the additional cost to repeat this spell's effect.)\nCounter a spell unless its controller pays :rb_energy_2:.",
         "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/SFD-136.webp"
       },
-      "quantity": 2,
+      "quantity": 1,
       "role": "Main Deck",
       "resolution": {
         "status": "RESOLVED",
@@ -628,7 +628,7 @@
         "rulesText": "[Action] (Play on your turn or in showdowns.)\nReturn a unit at a battlefield to its owner's hand.",
         "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-172.webp"
       },
-      "quantity": 2,
+      "quantity": 1,
       "role": "Main Deck",
       "resolution": {
         "status": "RESOLVED",

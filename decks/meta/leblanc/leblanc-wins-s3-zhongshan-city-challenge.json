@@ -24,7 +24,7 @@
       "UNL-152": "3",
       "UNL-153": "3",
       "UNL-172": "3",
-      "UNL-173": "2",
+      "UNL-173": "1",
       "UNL-176": "2",
       "UNL-179": "2",
       "UNL-199": "1",
@@ -629,7 +629,7 @@
         "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)\nAs an additional cost to play this, kill a friendly [Mighty] unit. (A unit is Mighty while it has 5+ :rb_might:.)\nDraw 2 and channel 1 rune exhausted.",
         "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/UNL-173.webp"
       },
-      "quantity": 2,
+      "quantity": 1,
       "role": "Main Deck",
       "resolution": {
         "status": "RESOLVED",
