@@ -1,7 +1,7 @@
 import type { RiftCard } from '../types';
 
 export type TargetMode = 'NONE' | 'FRIENDLY_UNIT' | 'ENEMY_UNIT' | 'ANY_BATTLEFIELD_UNIT' | 'GUST_BATTLEFIELD_UNIT' | 'FRIENDLY_PUBLIC_UNIT' | 'ENEMY_PUBLIC_UNIT' | 'FRIENDLY_UNIT_FOR_EQUIP' | 'ANY_PUBLIC_GEAR' | 'UNSUPPORTED';
-export type TargetRole = 'friendlyUnit' | 'enemyUnit' | 'boostUnit' | 'weakenUnit' | 'firstFriendlyUnit' | 'secondFriendlyUnit';
+export type TargetRole = 'friendlyUnit' | 'enemyUnit' | 'boostUnit' | 'weakenUnit' | 'firstFriendlyUnit' | 'secondFriendlyUnit' | 'battlefieldLocation' | 'optionalEnemyUnit';
 export type TargetRequirement = {
   role: TargetRole;
   mode: TargetMode;
@@ -67,6 +67,21 @@ export function multiTargetRequirementsForCard(card: RiftCard | undefined): Targ
         role: 'secondFriendlyUnit',
         mode: 'FRIENDLY_UNIT',
         prompt: 'Choose another friendly Unit or Champion, or right-click to resolve with one.',
+        optional: true,
+      },
+    ];
+  }
+  if (isMoonfallActionCard(card)) {
+    return [
+      {
+        role: 'battlefieldLocation',
+        mode: 'FRIENDLY_PUBLIC_UNIT',
+        prompt: 'Choose one of your Units or Champions at the battlefield Moonfall will affect.',
+      },
+      {
+        role: 'optionalEnemyUnit',
+        mode: 'ENEMY_PUBLIC_UNIT',
+        prompt: 'Choose an enemy Unit or Champion to move there, or right-click to resolve without moving one.',
         optional: true,
       },
     ];
@@ -247,6 +262,17 @@ export function isStupefyReactionCard(card: RiftCard | undefined) {
     && text.includes(':rb_might:')
     && text.includes('minimum of 1')
     && text.includes('draw 1');
+}
+
+export function isMoonfallActionCard(card: RiftCard | undefined) {
+  const text = (card?.rulesText ?? '').toLowerCase();
+  return card?.type?.toLowerCase() === 'spell'
+    && isActionCard(card)
+    && card.name?.trim().toLowerCase() === 'moonfall'
+    && text.includes('choose a battlefield where you have units')
+    && text.includes('move up to one enemy unit to that battlefield')
+    && text.includes('give enemy units there -2')
+    && text.includes(':rb_might:');
 }
 
 export function isCharmMoveCard(card: RiftCard | undefined) {
@@ -437,6 +463,10 @@ export function unsupportedCardReason(card: RiftCard | undefined): string | null
     || isEnGardeReactionCard(card)
     || isDefiantDanceReactionCard(card)
     || isFlashReactionCard(card)
+    || isStarCrossedReactionCard(card)
+    || isEclipseReactionCard(card)
+    || isStupefyReactionCard(card)
+    || isMoonfallActionCard(card)
     || isStackedDeckEffectText(text);
   if ((text.includes('counter a spell') && !isDefyCounterCard(card) && !isAbandonCounterCard(card) && !isHardBargainCounterCard(card)) || (text.includes('counter an enemy spell') && !isNotSoFastCounterCard(card))) return 'Counter spells need the future reaction stack.';
   if (text.includes('another unit') && !isDefiantDanceReactionCard(card)) return 'That targeting pattern is not supported yet.';

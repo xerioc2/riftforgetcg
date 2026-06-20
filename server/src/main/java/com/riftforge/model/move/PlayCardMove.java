@@ -45,5 +45,7 @@ public record PlayCardMove(
     public static final String WEAKEN_UNIT = "weakenUnit";
     public static final String FIRST_FRIENDLY_UNIT = "firstFriendlyUnit";
     public static final String SECOND_FRIENDLY_UNIT = "secondFriendlyUnit";
+    public static final String BATTLEFIELD_LOCATION = "battlefieldLocation";
+    public static final String OPTIONAL_ENEMY_UNIT = "optionalEnemyUnit";
   }
 }

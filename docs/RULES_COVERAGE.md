@@ -314,10 +314,10 @@ Current implementation notes:
 - Spells can be played during MAIN.
 - Spells resolve through the supported effect path and move to discard afterward.
 - Spells cannot move to the battlefield as units.
-- Targeted-spell heuristics require valid server-checked targets. Single-target spells use the legacy `targetInstanceId` path; narrow multi-target paths support required friendly Unit/Champion plus enemy Unit/Champion roles, Defiant Dance's +2/-2 target pair, and Flash's one-or-two friendly Unit/Champion recall targets.
+- Targeted-spell heuristics require valid server-checked targets. Single-target spells use the legacy `targetInstanceId` path; narrow multi-target paths support required friendly Unit/Champion plus enemy Unit/Champion roles, Defiant Dance's +2/-2 target pair, Flash's one-or-two friendly Unit/Champion recall targets, and Moonfall's battlefield-plus-optional-enemy target flow.
 - Simple helper-backed effect scripts currently cover draw 1, selected
   temporary Might boosts and reductions, selected unit/champion return-to-hand, paired
-  friendly/enemy unit return-to-hand, selected friendly unit/champion movement to Base, Charm's selected enemy public battlefield Unit/Champion movement to Base, and selected friendly unit/champion
+  friendly/enemy unit return-to-hand, selected friendly unit/champion movement to Base, Charm's selected enemy public battlefield Unit/Champion movement to Base, Moonfall's selected active battlefield / optional enemy Unit movement / enemy-unit -2 Might script, and selected friendly unit/champion
   readying.
 - Unsupported spell shapes are blocked by `CardDataService.isUnsupportedAction`.
 - A generic pending-choice framework exists for private yes/no, optional-payment,
@@ -333,7 +333,7 @@ Current implementation notes:
 Known gaps:
 - Chain timing, Reaction timing, broad countering spells/abilities, optional/three-plus/conditional multi-target spells, full optional trigger ordering, replacement/prevention, and many spell-specific effects are not complete.
 - Active-showdown response play is lightweight: focused showdown participants can play supported Action cards, play supported targeted Reactions, or pass focus. Once both relevant players pass in succession, the showdown becomes ready for the attacker to resolve. A narrow bluff-safe priority/chain foundation exists, with Stacked Deck and simple public `Draw 1` spells as the only real opener patterns and Gust/Discipline/En Garde/Defiant Dance/Flash/Star-Crossed/Eclipse/Stupefy/Defy/Not So Fast/Hard Bargain as the only connected Reactions; broader response-card support, hidden play, hidden Reaction timing, and unrestricted Reaction timing remain deferred.
-- Broad movement scripting is still deferred: Charm has only an exact-text alpha path that moves one enemy public battlefield Unit/Champion to Base.
+- Broad movement scripting is still deferred: Charm has only an exact-text alpha path that moves one enemy public battlefield Unit/Champion to Base, and Moonfall has only an exact-text alpha path for an active battlefield where its controller has a public Unit/Champion plus up to one enemy public battlefield Unit/Champion.
 
 Test coverage:
 - Rules validator keyword/target tests.

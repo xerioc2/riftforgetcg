@@ -154,6 +154,15 @@ describe('deckSupport', () => {
     expect(charm.reason).toContain('movement choices');
   });
 
+  it('uses a Moonfall-specific Partial reason for exact battlefield movement support', () => {
+    const moonfall = cardSupportStatus(spell('Moonfall', '[Action] Choose a battlefield where you have units. You may move up to one enemy unit to that battlefield. Then give enemy units there -2 :rb_might: this turn.'));
+
+    expect(moonfall.status).toBe('PARTIAL');
+    expect(moonfall.reason).toContain('active battlefield');
+    expect(moonfall.reason).toContain('may move one enemy');
+    expect(moonfall.reason).toContain('-2 Might');
+  });
+
   it('uses Battlefield-specific Partial reasons for Irelia Battlefield hooks', () => {
     const sunken = cardSupportStatus({
       id: 'sunken-temple',

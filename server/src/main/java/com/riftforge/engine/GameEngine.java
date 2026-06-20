@@ -287,7 +287,9 @@ public class GameEngine {
       String topCardName = topCardId.isBlank() ? "No card" : cardDataService.getCard(topCardId).name();
       log(state, move.playerId(), "VISION_PEEK|" + topCardId + "|" + topCardName);
     }
-    if (cardDataService.requiresFriendlyAndEnemyTargets(card.getCardId())) {
+    if (cardDataService.isMoonfallAction(def)) {
+      applyMoonfall(card, move, state, def);
+    } else if (cardDataService.requiresFriendlyAndEnemyTargets(card.getCardId())) {
       applyFriendlyAndEnemyReturn(card, move, state, def);
     } else if (cardDataService.isCharmMoveEffect(def)) {
       applyCharmMove(card, state, def, resolvedTarget);
@@ -2127,9 +2129,11 @@ public class GameEngine {
   }
 
   private String battlefieldLabel(String battlefieldId) {
-    return CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID.equals(BattlefieldLocationRules.normalize(battlefieldId))
-        ? "the battlefield"
-        : battlefieldId;
+    String normalized = BattlefieldLocationRules.normalize(battlefieldId);
+    if (CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID.equals(normalized)) return "the battlefield";
+    if ("bf-1".equals(normalized)) return "Battlefield 2";
+    if ("bf-2".equals(normalized)) return "Battlefield 3";
+    return normalized;
   }
 
   private void returnBattlefieldCardsToBase(LiveGameState state, String playerId, String locationId) {
@@ -2384,6 +2388,63 @@ public class GameEngine {
     log(state, source.getOwnerId(), sourceDef.name() + " returned a friendly unit and an enemy unit to hand.");
   }
 
+  private void applyMoonfall(CardInstance source, PlayCardMove move, LiveGameState state, CardDefinition sourceDef) {
+    String locationId = moonfallLocationId(state, move);
+    CardInstance enemyToMove = optionalStructuredTarget(state, move, PlayCardMove.TargetSelection.OPTIONAL_ENEMY_UNIT);
+    if (enemyToMove != null) {
+      if (!isPublicBattlefieldUnit(enemyToMove) || source.getOwnerId().equals(enemyToMove.getOwnerId())) {
+        log(state, source.getOwnerId(), sourceDef.name() + " could not move its enemy target because it was no longer legal.");
+      } else {
+        moveEnemyToBattlefieldLocation(state, source, sourceDef, enemyToMove, locationId);
+      }
+    }
+    List<CardInstance> enemyUnitsThere = state.getCards().stream()
+        .filter(this::isPublicBattlefieldUnit)
+        .filter(card -> !source.getOwnerId().equals(card.getOwnerId()))
+        .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
+        .toList();
+    for (CardInstance enemy : enemyUnitsThere) {
+      applyTemporaryMight(state, source, sourceDef, enemy, -2);
+    }
+    log(state, source.getOwnerId(), sourceDef.name() + " gave enemy units at " + battlefieldLabel(locationId) + " -2 Might this turn.");
+  }
+
+  private String moonfallLocationId(LiveGameState state, PlayCardMove move) {
+    String marker = move.targets().stream()
+        .filter(target -> PlayCardMove.TargetSelection.BATTLEFIELD_LOCATION.equals(target.role()))
+        .findFirst()
+        .map(PlayCardMove.TargetSelection::instanceId)
+        .orElse(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID);
+    if (marker == null || marker.isBlank()) return CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID;
+    CardInstance markerCard = findCardOrNull(state, marker);
+    return markerCard == null ? BattlefieldLocationRules.normalize(marker) : BattlefieldLocationRules.locationOf(markerCard);
+  }
+
+  private CardInstance optionalStructuredTarget(LiveGameState state, PlayCardMove move, String role) {
+    return move.targets().stream()
+        .filter(target -> role.equals(target.role()))
+        .findFirst()
+        .flatMap(target -> state.getCards().stream()
+            .filter(card -> card.getInstanceId().equals(target.instanceId()))
+            .findFirst())
+        .orElse(null);
+  }
+
+  private void moveEnemyToBattlefieldLocation(LiveGameState state, CardInstance source, CardDefinition sourceDef, CardInstance target, String locationId) {
+    String oldLocationId = BattlefieldLocationRules.locationOf(target);
+    if (oldLocationId.equals(locationId)) {
+      log(state, source.getOwnerId(), sourceDef.name() + " left " + cardDataService.getCard(target.getCardId()).name() + " at " + battlefieldLabel(locationId) + ".");
+      return;
+    }
+    target.setBattlefieldLocationId(locationId);
+    target.setX(0);
+    target.setY(0);
+    dispatchCardMoved(state, target, ZoneName.BATTLEFIELD, ZoneName.BATTLEFIELD, "MOVE_BATTLEFIELD_LOCATION");
+    updateBattlefieldControllerFromCombatants(state, oldLocationId);
+    updateBattlefieldControllerFromCombatants(state, locationId);
+    log(state, source.getOwnerId(), sourceDef.name() + " moved " + cardDataService.getCard(target.getCardId()).name() + " to " + battlefieldLabel(locationId) + ".");
+  }
+
   private void applyCharmMove(CardInstance source, LiveGameState state, CardDefinition sourceDef, CardInstance target) {
     if (target == null || !isPublicBattlefieldUnit(target) || source.getOwnerId().equals(target.getOwnerId())) {
       log(state, source.getOwnerId(), sourceDef.name() + " fizzled because its target was no longer legal.");
@@ -2532,6 +2593,10 @@ public class GameEngine {
 
   private CardInstance findCard(LiveGameState state, String id) {
     return state.getCards().stream().filter(c -> c.getInstanceId().equals(id)).findFirst().orElseThrow();
+  }
+
+  private CardInstance findCardOrNull(LiveGameState state, String id) {
+    return state.getCards().stream().filter(c -> c.getInstanceId().equals(id)).findFirst().orElse(null);
   }
 
   private RuneState findRune(LiveGameState state, String id) {

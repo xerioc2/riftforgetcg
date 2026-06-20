@@ -377,6 +377,19 @@ public class CardDataService {
         && text.contains("draw 1");
   }
 
+  public boolean isMoonfallAction(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().trim().toLowerCase();
+    return "Spell".equalsIgnoreCase(def.type())
+        && def.name() != null
+        && def.name().trim().equalsIgnoreCase("Moonfall")
+        && text.contains("[action]")
+        && text.contains("choose a battlefield where you have units")
+        && text.contains("move up to one enemy unit to that battlefield")
+        && text.contains("give enemy units there -2")
+        && text.contains(":rb_might:");
+  }
+
   public boolean isCharmMoveEffect(CardDefinition def) {
     if (def == null || def.rulesText() == null) return false;
     String text = def.rulesText().trim().toLowerCase();
@@ -564,6 +577,7 @@ public class CardDataService {
         || isStarCrossedReaction(def)
         || isEclipseReaction(def)
         || isStupefyReaction(def)
+        || isMoonfallAction(def)
         || isStackedDeckEffectText(normalized);
     return (normalized.contains("counter a spell") && !isDefyCounterReaction(def) && !isAbandonCounterReaction(def) && !isHardBargainCounterReaction(def))
         || (normalized.contains("counter an enemy spell") && !isNotSoFastCounterReaction(def))

@@ -332,6 +332,10 @@ public class RulesValidator {
       validatePublicUnitTarget(state, move, "Stupefy requires a public Unit or Champion target.");
       return;
     }
+    if (spell && cardDataService.isMoonfallAction(def)) {
+      validateMoonfallTargets(state, move);
+      return;
+    }
     if (spell && cardDataService.isCharmMoveEffect(def)) {
       validateCharmTarget(state, move);
       return;
@@ -772,6 +776,63 @@ public class RulesValidator {
     if (move.playerId().equals(target.getOwnerId())) {
       throw new IllegalMoveException("Charm can only target an enemy Unit or Champion.");
     }
+  }
+
+  private void validateMoonfallTargets(LiveGameState state, PlayCardMove move) {
+    if (move.targets().isEmpty() || move.targets().size() > 2) {
+      throw new IllegalMoveException("Moonfall requires a battlefield where you have units and may choose one enemy unit.");
+    }
+    PlayCardMove.TargetSelection battlefieldTarget = move.targets().stream()
+        .filter(target -> PlayCardMove.TargetSelection.BATTLEFIELD_LOCATION.equals(target.role()))
+        .findFirst()
+        .orElseThrow(() -> new IllegalMoveException("Moonfall requires choosing a battlefield where you have units."));
+    String locationId = moonfallLocationFromTarget(state, move.playerId(), battlefieldTarget.instanceId());
+    if (!BattlefieldLocationRules.isActiveLocation(state, locationId)) {
+      throw new IllegalMoveException("That battlefield lane is not active in this game.");
+    }
+    boolean hasFriendlyUnitThere = state.getCards().stream()
+        .anyMatch(card -> move.playerId().equals(card.getOwnerId())
+            && isPublicBattlefieldUnit(card)
+            && BattlefieldLocationRules.isAtLocation(card, locationId));
+    if (!hasFriendlyUnitThere) {
+      throw new IllegalMoveException("Moonfall requires a battlefield where you have units.");
+    }
+    List<PlayCardMove.TargetSelection> enemyTargets = move.targets().stream()
+        .filter(target -> PlayCardMove.TargetSelection.OPTIONAL_ENEMY_UNIT.equals(target.role()))
+        .toList();
+    if (enemyTargets.size() > 1) throw new IllegalMoveException("Moonfall can move up to one enemy unit.");
+    for (PlayCardMove.TargetSelection target : move.targets()) {
+      if (!PlayCardMove.TargetSelection.BATTLEFIELD_LOCATION.equals(target.role())
+          && !PlayCardMove.TargetSelection.OPTIONAL_ENEMY_UNIT.equals(target.role())) {
+        throw new IllegalMoveException("Moonfall uses only battlefield and optional enemy unit targets.");
+      }
+    }
+    if (!enemyTargets.isEmpty()) {
+      String targetId = enemyTargets.getFirst().instanceId();
+      if (targetId == null || targetId.isBlank()) throw new IllegalMoveException("Moonfall's enemy unit target is missing.");
+      CardInstance target = findCard(state, targetId);
+      if (!isPublicBattlefieldUnit(target)) {
+        throw new IllegalMoveException("Moonfall can only move a public enemy Unit or Champion at a battlefield.");
+      }
+      if (move.playerId().equals(target.getOwnerId())) {
+        throw new IllegalMoveException("Moonfall can only move an enemy Unit or Champion.");
+      }
+    }
+  }
+
+  private String moonfallLocationFromTarget(LiveGameState state, String playerId, String marker) {
+    if (marker == null || marker.isBlank()) {
+      throw new IllegalMoveException("Moonfall requires choosing a battlefield where you have units.");
+    }
+    CardInstance markerCard = state.getCards().stream()
+        .filter(card -> card.getInstanceId().equals(marker))
+        .findFirst()
+        .orElse(null);
+    if (markerCard == null) return BattlefieldLocationRules.normalize(marker);
+    if (!playerId.equals(markerCard.getOwnerId()) || !isPublicBattlefieldUnit(markerCard)) {
+      throw new IllegalMoveException("Moonfall requires choosing a battlefield where you have units.");
+    }
+    return BattlefieldLocationRules.locationOf(markerCard);
   }
 
   private CardInstance structuredTarget(LiveGameState state, PlayCardMove move, String role, String message) {

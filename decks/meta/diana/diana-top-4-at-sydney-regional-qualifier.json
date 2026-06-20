@@ -561,7 +561,7 @@
       },
       "support": {
         "status": "PARTIAL",
-        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "reason": "Partial: exact Action support chooses an active battlefield where you have a public Unit/Champion, may move one enemy public battlefield Unit/Champion there, then gives enemy units there -2 Might this turn. Full official timing and broader movement edge cases remain incomplete.",
         "blocked": false
       },
       "keywords": [

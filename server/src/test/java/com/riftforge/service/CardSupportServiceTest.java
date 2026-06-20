@@ -88,6 +88,10 @@ class CardSupportServiceTest {
         .contains("-1 Might")
         .contains("minimum of 1")
         .contains("drawing 1 privately");
+    assertThat(service.summarize(card("moonfall", "Moonfall", "Spell", "[Action] Choose a battlefield where you have units. You may move up to one enemy unit to that battlefield. Then give enemy units there -2 :rb_might: this turn.")).reason())
+        .contains("active battlefield")
+        .contains("may move one enemy")
+        .contains("-2 Might");
     assertThat(service.summarize(card("charm", "Charm", "Spell", "Move an enemy unit.")).reason())
         .contains("enemy public battlefield Unit/Champion")
         .contains("Base")

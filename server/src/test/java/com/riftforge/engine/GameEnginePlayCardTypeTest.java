@@ -88,6 +88,18 @@ class GameEnginePlayCardTypeTest {
           && "Charm".equalsIgnoreCase(def.name())
           && text.equals("move an enemy unit.");
     });
+    when(cardDataService.isMoonfallAction(any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      String text = def == null || def.rulesText() == null ? "" : def.rulesText().trim().toLowerCase();
+      return def != null
+          && "Spell".equalsIgnoreCase(def.type())
+          && "Moonfall".equalsIgnoreCase(def.name())
+          && text.contains("[action]")
+          && text.contains("choose a battlefield where you have units")
+          && text.contains("move up to one enemy unit to that battlefield")
+          && text.contains("give enemy units there -2")
+          && text.contains(":rb_might:");
+    });
     when(cardDataService.isAbandonedHallBattlefield(any(CardDefinition.class))).thenAnswer(invocation -> {
       CardDefinition def = invocation.getArgument(0);
       String text = def == null || def.rulesText() == null ? "" : def.rulesText().trim().toLowerCase();
@@ -2608,6 +2620,112 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void moonfallMovesOptionalEnemyToChosenBattlefieldAndWeakensEnemiesThere() {
+    CardInstance moonfall = card("moonfall", "p1", ZoneName.HAND);
+    CardInstance friendlyMarker = atLocation(card("friendly", "p1", ZoneName.BATTLEFIELD), "bf-1");
+    CardInstance enemyToMove = atLocation(card("enemy-moved", "p2", ZoneName.BATTLEFIELD), "bf-0");
+    CardInstance enemyAlreadyThere = atLocation(card("enemy-there", "p2", ZoneName.BATTLEFIELD), "bf-1");
+    CardInstance enemyElsewhere = atLocation(card("enemy-elsewhere", "p2", ZoneName.BATTLEFIELD), "bf-0");
+    LiveGameState state = state(moonfall, friendlyMarker, enemyToMove, enemyAlreadyThere, enemyElsewhere);
+    state.getBattlefieldController().put("bf-0", "p2");
+    state.getBattlefieldController().put("bf-1", "p1");
+    stubCard("moonfall", "Moonfall", "Spell", 0, 0, 0, moonfallText());
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    stubCard("enemy-moved", "Enemy Moved", "Unit", 0, 2, 2, null);
+    stubCard("enemy-there", "Enemy There", "Unit", 0, 2, 2, null);
+    stubCard("enemy-elsewhere", "Enemy Elsewhere", "Unit", 0, 2, 2, null);
+
+    engine.applyMove(state, playMoonfall("moonfall", "friendly", "enemy-moved"));
+
+    assertThat(moonfall.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(enemyToMove.getBattlefieldLocationId()).isEqualTo("bf-1");
+    assertThat(enemyToMove.getTemporaryPowerModifier()).isEqualTo(-2);
+    assertThat(enemyAlreadyThere.getTemporaryPowerModifier()).isEqualTo(-2);
+    assertThat(enemyElsewhere.getTemporaryPowerModifier()).isZero();
+    assertThat(state.getBattlefieldController()).containsEntry("bf-1", "p1");
+    assertThat(state.getBattlefieldController()).containsEntry("bf-0", "p2");
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().contains("Moonfall moved Enemy Moved to Battlefield 2."));
+  }
+
+  @Test
+  void moonfallCanResolveWithoutMovingEnemyUnit() {
+    CardInstance moonfall = card("moonfall", "p1", ZoneName.HAND);
+    CardInstance friendlyMarker = atLocation(card("friendly", "p1", ZoneName.BATTLEFIELD), "bf-1");
+    CardInstance enemyThere = atLocation(card("enemy-there", "p2", ZoneName.BATTLEFIELD), "bf-1");
+    CardInstance enemyElsewhere = atLocation(card("enemy-elsewhere", "p2", ZoneName.BATTLEFIELD), "bf-0");
+    LiveGameState state = state(moonfall, friendlyMarker, enemyThere, enemyElsewhere);
+    stubCard("moonfall", "Moonfall", "Spell", 0, 0, 0, moonfallText());
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    stubCard("enemy-there", "Enemy There", "Unit", 0, 2, 2, null);
+    stubCard("enemy-elsewhere", "Enemy Elsewhere", "Unit", 0, 2, 2, null);
+
+    engine.applyMove(state, playMoonfall("moonfall", "bf-1", null));
+
+    assertThat(moonfall.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(enemyThere.getTemporaryPowerModifier()).isEqualTo(-2);
+    assertThat(enemyElsewhere.getTemporaryPowerModifier()).isZero();
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("moved Enemy"));
+  }
+
+  @Test
+  void moonfallRequiresBattlefieldWhereControllerHasUnits() {
+    CardInstance moonfall = card("moonfall", "p1", ZoneName.HAND);
+    CardInstance enemy = atLocation(card("enemy", "p2", ZoneName.BATTLEFIELD), "bf-1");
+    LiveGameState state = state(moonfall, enemy);
+    stubCard("moonfall", "Moonfall", "Spell", 0, 0, 0, moonfallText());
+    stubCard("enemy", "Enemy Unit", "Unit", 0, 2, 2, null);
+
+    assertThatThrownBy(() -> engine.applyMove(state, playMoonfall("moonfall", "bf-1", "enemy")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Moonfall requires a battlefield where you have units.");
+
+    assertThat(moonfall.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(enemy.getBattlefieldLocationId()).isEqualTo("bf-1");
+    assertThat(enemy.getTemporaryPowerModifier()).isZero();
+  }
+
+  @Test
+  void moonfallRejectsHiddenTargetWithoutMutation() {
+    CardInstance moonfall = card("moonfall", "p1", ZoneName.HAND);
+    CardInstance friendlyMarker = atLocation(card("friendly", "p1", ZoneName.BATTLEFIELD), "bf-1");
+    CardInstance hiddenEnemy = atLocation(card("hidden-enemy", "p2", ZoneName.BATTLEFIELD), "bf-0");
+    hiddenEnemy.setFaceDown(true);
+    LiveGameState state = state(moonfall, friendlyMarker, hiddenEnemy);
+    stubCard("moonfall", "Moonfall", "Spell", 0, 0, 0, moonfallText());
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    stubCard("hidden-enemy", "Hidden Enemy", "Unit", 0, 2, 2, null);
+
+    assertThatThrownBy(() -> engine.applyMove(state, playMoonfall("moonfall", "friendly", "hidden-enemy")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Moonfall can only move a public enemy Unit or Champion at a battlefield.");
+
+    assertThat(moonfall.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(hiddenEnemy.getBattlefieldLocationId()).isNull();
+    assertThat(hiddenEnemy.getTemporaryPowerModifier()).isZero();
+  }
+
+  @Test
+  void moonfallMovementTriggersStellacornExactlyOnceForMovedEnemyOwner() {
+    CardInstance moonfall = card("moonfall", "p1", ZoneName.HAND);
+    CardInstance friendlyMarker = atLocation(card("friendly", "p1", ZoneName.BATTLEFIELD), "bf-1");
+    CardInstance herder = atLocation(card("herder", "p2", ZoneName.BATTLEFIELD), "bf-0");
+    LiveGameState state = state(moonfall, friendlyMarker, herder);
+    state.getPlayers().get(1).setDeckPool(new ArrayList<>(List.of("enemy-draw", "remaining")));
+    stubCard("moonfall", "Moonfall", "Spell", 0, 0, 0, moonfallText());
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    stubCard("herder", "Stellacorn Herder", "Unit", 0, 2, 2, "When I move, draw 1.");
+    stubCard("enemy-draw", "Enemy Draw", "Unit", 0, 1, 1, null);
+    stubCard("remaining", "Remaining", "Unit", 0, 1, 1, null);
+
+    engine.applyMove(state, playMoonfall("moonfall", "friendly", "herder"));
+
+    assertThat(herder.getBattlefieldLocationId()).isEqualTo("bf-1");
+    assertThat(state.getCards()).anyMatch(card -> card.getCardId().equals("enemy-draw") && card.getZone() == ZoneName.HAND && card.getOwnerId().equals("p2"));
+    assertThat(state.getPlayers().get(1).getDeckPool()).containsExactly("remaining");
+    assertThat(state.getLog()).filteredOn(entry -> entry.text().equals("Stellacorn Herder drew 1 after moving.")).hasSize(1);
+  }
+
+  @Test
   void oldBattlefieldCardsWithoutStoredLocationUseDefaultLocationId() {
     CardInstance unit = card("unit", "p1", ZoneName.BATTLEFIELD);
     unit.setBattlefieldLocationId("");
@@ -3034,6 +3152,15 @@ class GameEnginePlayCardTypeTest {
         List.of());
   }
 
+  private PlayCardMove playMoonfall(String instanceId, String battlefieldMarkerId, String optionalEnemyTargetId) {
+    List<PlayCardMove.TargetSelection> targets = new ArrayList<>();
+    targets.add(new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.BATTLEFIELD_LOCATION, battlefieldMarkerId));
+    if (optionalEnemyTargetId != null) {
+      targets.add(new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.OPTIONAL_ENEMY_UNIT, optionalEnemyTargetId));
+    }
+    return new PlayCardMove("p1", instanceId, ZoneName.BASE, 0, 0, null, targets, false, List.of(), List.of());
+  }
+
   private EquipGearMove equip(String gearInstanceId, String targetInstanceId) {
     return new EquipGearMove("p1", gearInstanceId, targetInstanceId);
   }
@@ -3155,6 +3282,11 @@ class GameEnginePlayCardTypeTest {
   private String zhonyasText() {
     return "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)"
         + "If a friendly unit would die, kill this instead. Heal that unit, exhaust it, and recall it. (Send it to base. This isn't a move.)";
+  }
+
+  private String moonfallText() {
+    return "[Action] (Play on your turn or in showdowns.)Choose a battlefield where you have units. "
+        + "You may move up to one enemy unit to that battlefield. Then give enemy units there -2 :rb_might: this turn.";
   }
 
   private String abandonedHallText() {

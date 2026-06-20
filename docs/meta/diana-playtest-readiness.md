@@ -28,7 +28,7 @@ rules-complete, golden, or reference-correct.
 | Hard Bargain | 1 | Partial: counters a supported public pending spell chain item unless that spell's controller pays 2 energy through an owner-only prompt. | Narrow counter-tax Reaction works on supported public spell chain items. | Repeat, broad Reaction timing, ability targets, hidden/private chain targets, and countering counters. | Medium | OK |
 | Star Spring | 1 | Playable for alpha testing, but card-specific behavior may be incomplete. | Battlefield selection/display works. | Exact Battlefield ability is not scripted. | High | OK with caveat |
 | Abandoned Hall | 1 | Exact spell-play optional trigger is implemented for active Battlefield lanes. | Spell controller may choose a friendly public Unit/Champion here for +1 Might this turn. | Trigger stacking and broader official Battlefield rules. | Medium | OK |
-| Moonfall | 3 | Playable for alpha testing, but card-specific behavior may be incomplete. | Card is playable by alpha support gate. | Exact movement/location text needs audit and scripting. | High | OK with caveat |
+| Moonfall | 3 | Partial: exact Action support chooses an active battlefield where you have a public Unit/Champion, may move one enemy public battlefield Unit/Champion there, then gives enemy units there -2 Might this turn. | Narrow exact Action script works, including optional enemy lane movement and enemy-unit -2 Might at the chosen battlefield. | Full official timing and broader movement/location edge cases. | Medium | OK |
 | Abandon | 1 | Partial: counters a supported public pending spell chain item, returns it to hand, then creates a private Predict choice. | Narrow public spell-chain counter plus private Predict foundation. | Repeat, broad Reaction timing, hidden/private chain targets, and ability targets. | Medium | OK |
 | Star-Crossed | 2 | Partial: alpha chain-window Reaction support returns one friendly public battlefield Unit/Champion and one enemy public battlefield Unit/Champion to their owners' hands. | Staged friendly/enemy return resolves from the chain. | Full official Reaction timing and edge cases. | Medium | OK with caveat |
 | Hwei - Brooding Painter | 3 | Playable for alpha testing, but card-specific behavior may be incomplete. | Main-deck Champion card handling works. | Exact Champion Unit text is not audited here. | Medium | OK with caveat |
@@ -51,11 +51,11 @@ rules-complete, golden, or reference-correct.
 
 ## Top Diana Accuracy Gaps
 
-1. `Moonfall` appears as a 3-of and likely drives Diana's location/interactions; audit exact text first.
-2. `Diana - Scorn of the Moon` and `Diana - Lunari` need Legend/Champion text fidelity.
-3. `Star Spring` is an unscripted Battlefield effect in the selected Battlefield package.
-4. `Tideturner` still lacks play-from-hidden timing and its on-play location swap.
-5. `Ride The Wind`, `Stupefy`, `Eclipse`, and the repeated Unit package need exact text audits before calling Diana rules-complete.
+1. `Diana - Scorn of the Moon` and `Diana - Lunari` need Legend/Champion text fidelity.
+2. `Star Spring` is an unscripted Battlefield effect in the selected Battlefield package.
+3. `Tideturner` still lacks play-from-hidden timing and its on-play location swap.
+4. `Ride The Wind`, the repeated Unit package, and broader official Reaction/Action timing need exact audits before calling Diana rules-complete.
+5. `Moonfall` now has narrow exact alpha support, but still does not claim full official timing or every movement/location edge case.
 
 ## Bot Wiring
 

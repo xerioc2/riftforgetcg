@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canUseSupportedChainResponse, isAbandonCounterCard, isCharmMoveCard, isDefiantDanceReactionCard, isDefyCounterCard, isDisciplineReactionCard, isEclipseReactionCard, isEnGardeReactionCard, isFlashReactionCard, isGustReactionCard, isHardBargainCounterCard, isIreliaBladeDancerActivatedAbility, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isStarCrossedReactionCard, isStupefyReactionCard, isSupportedChainReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, shouldShowRespondAction, targetModeForCard, unsupportedCardReason } from './cardActions';
+import { canUseSupportedChainResponse, isAbandonCounterCard, isCharmMoveCard, isDefiantDanceReactionCard, isDefyCounterCard, isDisciplineReactionCard, isEclipseReactionCard, isEnGardeReactionCard, isFlashReactionCard, isGustReactionCard, isHardBargainCounterCard, isIreliaBladeDancerActivatedAbility, isLegalTargetForMode, isMoonfallActionCard, isNotSoFastCounterCard, isReactionCard, isStarCrossedReactionCard, isStupefyReactionCard, isSupportedChainReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, shouldShowRespondAction, targetModeForCard, unsupportedCardReason } from './cardActions';
 import type { CardInstance, RiftCard } from '../types';
 
 describe('cardActions', () => {
@@ -231,6 +231,25 @@ describe('cardActions', () => {
     expect(isZhonyasHourglassActivatedAbility(zhonya)).toBe(true);
     expect(unsupportedCardReason(zhonya)).toBeNull();
     expect(targetModeForCard(zhonya)).toBe('NONE');
+  });
+
+  it('recognizes Moonfall and builds its battlefield plus optional enemy target flow', () => {
+    const moonfall: RiftCard = {
+      id: 'moonfall',
+      name: 'Moonfall',
+      type: 'Spell',
+      domains: ['MIND', 'CHAOS'],
+      cost: 3,
+      rulesText: '[Action] Choose a battlefield where you have units. You may move up to one enemy unit to that battlefield. Then give enemy units there -2 :rb_might: this turn.',
+    };
+
+    expect(isMoonfallActionCard(moonfall)).toBe(true);
+    expect(targetModeForCard(moonfall)).toBe('NONE');
+    expect(unsupportedCardReason(moonfall)).toBeNull();
+    expect(multiTargetRequirementsForCard(moonfall)).toEqual([
+      expect.objectContaining({ role: 'battlefieldLocation', mode: 'FRIENDLY_PUBLIC_UNIT' }),
+      expect.objectContaining({ role: 'optionalEnemyUnit', mode: 'ENEMY_PUBLIC_UNIT', optional: true }),
+    ]);
   });
 
   it('recognizes Irelia Blade Dancer as the narrow alpha Legend activated helper', () => {
