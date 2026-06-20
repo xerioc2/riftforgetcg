@@ -329,14 +329,8 @@ public class GameEngine {
     PlayerState player = player(state, move.playerId());
     for (String instanceId : move.selectedRecycleCardInstanceIds()) {
       CardInstance recycled = findCard(state, instanceId);
-      recycled.setZone(ZoneName.DECK);
-      recycled.setTapped(false);
-      recycled.setHasSummoningSickness(false);
-      recycled.setBattlefieldLocationId(null);
-      recycled.setAttachedToInstanceId(null);
-      recycled.setTemporaryPowerModifier(0);
-      recycled.getTempKeywords().clear();
       player.getDeckPool().add(recycled.getCardId());
+      state.getCards().remove(recycled);
     }
     log(state, move.playerId(), gearDef.name() + " recycled " + recycleCount + " cards from Trash.");
   }

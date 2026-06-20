@@ -16,7 +16,10 @@ import com.riftforge.model.RuneState;
 import com.riftforge.model.ZoneName;
 import com.riftforge.model.move.EquipGearMove;
 import com.riftforge.model.move.PlayCardMove;
+import com.riftforge.rules.LegalActionsService;
 import com.riftforge.service.CardDataService;
+import com.riftforge.service.GameStateProjectionService;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -249,7 +252,7 @@ class GameEngineEquipPaymentTest {
   }
 
   @Test
-  void lastRitesEquipsWithChaosRuneAndExactlyTwoRecycledTrashCards() {
+  void lastRitesEquipsWithChaosRuneAndExactlyTwoRecycledTrashCards() throws Exception {
     LiveGameState state = state(
         gear("last-rites-i", "last-rites"),
         unit("unit-i", "unit"),
@@ -271,9 +274,22 @@ class GameEngineEquipPaymentTest {
 
     assertThat(findCard(state, "last-rites-i").getAttachedToInstanceId()).isEqualTo("unit-i");
     assertThat(state.getRunes()).isEmpty();
-    assertThat(findCard(state, "trash-1").getZone()).isEqualTo(ZoneName.DECK);
-    assertThat(findCard(state, "trash-2").getZone()).isEqualTo(ZoneName.DECK);
+    assertThat(state.getCards()).noneMatch(card -> "trash-1".equals(card.getInstanceId()));
+    assertThat(state.getCards()).noneMatch(card -> "trash-2".equals(card.getInstanceId()));
+    assertThat(state.getCards()).noneMatch(card -> card.getZone() == ZoneName.DECK);
     assertThat(player(state).getDeckPool()).containsExactly("trash-card-1", "trash-card-2");
+    assertThat(new GameStateProjectionService(new LegalActionsService()).toPublicView(state, "p1").getCards())
+        .noneMatch(card -> "trash-1".equals(card.getInstanceId()) || "trash-2".equals(card.getInstanceId()) || card.getZone() == ZoneName.DECK);
+
+    autoDraw(state, "p1");
+
+    assertThat(player(state).getDeckPool()).containsExactly("trash-card-2");
+    assertThat(state.getCards()).anySatisfy(card -> {
+      assertThat(card.getCardId()).isEqualTo("trash-card-1");
+      assertThat(card.getOwnerId()).isEqualTo("p1");
+      assertThat(card.getZone()).isEqualTo(ZoneName.HAND);
+      assertThat(card.getInstanceId()).isNotEqualTo("trash-1");
+    });
     assertThat(state.getLog()).extracting(LiveGameState.LogEntry::text)
         .anyMatch(text -> text.contains("recycled 2 cards from Trash."));
   }
@@ -446,6 +462,12 @@ class GameEngineEquipPaymentTest {
         .filter(card -> instanceId.equals(card.getInstanceId()))
         .findFirst()
         .orElseThrow();
+  }
+
+  private void autoDraw(LiveGameState state, String playerId) throws Exception {
+    Method autoDraw = GameEngine.class.getDeclaredMethod("autoDraw", LiveGameState.class, String.class);
+    autoDraw.setAccessible(true);
+    autoDraw.invoke(engine, state, playerId);
   }
 
   private CardInstance gear(String instanceId, String cardId) {
