@@ -40,7 +40,7 @@ Extraction status: Extracted
 | --- | --- |
 | Battlefields | 1x Seat of Power, 1x The Arena's Greatest, 1x Zaun Warrens |
 | Champion / MainDeck candidate | 1x Annie - Dark Child - Starter, 1x Annie - Stubborn, 3x Kai'Sa - Survivor, 3x Rek'Sai - Breacher, 3x Rengar - Pouncing |
-| Main Deck | 2x Cleave, 1x Factory Recall, 3x Ferrous Forerunner, 3x Flash, 2x Gust, 1x Hard Bargain, 1x Long Sword, 1x Mindsplitter, 3x Noxus Hopeful, 3x Pouty Poro, 1x Rebuke, 2x Ride the Wind, 3x Stacked Deck, 1x Switcheroo, 1x Thermo Beam, 2x Tideturner, 3x Traveling Merchant |
+| Main Deck | 2x Cleave, 1x Factory Recall, 3x Ferrous Forerunner, 3x Flash, 2x Gust, 2x Hard Bargain, 1x Long Sword, 1x Mindsplitter, 3x Noxus Hopeful, 3x Pouty Poro, 2x Rebuke, 2x Ride the Wind, 3x Stacked Deck, 1x Switcheroo, 1x Thermo Beam, 2x Tideturner, 3x Traveling Merchant |
 | Rune Deck | 6x Chaos Rune, 6x Fury Rune |
 
 Top blockers:

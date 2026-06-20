@@ -40,7 +40,7 @@ class ConstructedSetupIntegrationTest {
           .filter(player -> playerId.equals(player.getUserId()))
           .findFirst()
           .orElseThrow();
-      assertThat(me.getDeckCount()).isEqualTo(36);
+      assertThat(me.getDeckCount()).isEqualTo(35);
       assertThat(me.getRunePoolRemaining()).isEqualTo(12);
 
       List<CardInstance> handCards = view.getCards().stream()
@@ -144,31 +144,36 @@ class ConstructedSetupIntegrationTest {
     starterCard("Sunken Temple", "Battlefield");
     starterCard("Abandoned Hall", "Battlefield");
     for (String name : List.of(
-        "Defy", "Discipline", "Tideturner", "Stellacorn Herder", "Guardian Angel",
-        "Boots of Swiftness", "Defiant Dance", "Scuttle Crab", "Charm", "En Garde",
-        "Gust", "Ride The Wind", "Stacked Deck", "Not So Fast", "Star-Crossed",
-        "Adaptatron")) {
+        "Not So Fast", "Vex - Apathetic", "Scuttle Crab", "Back Off",
+        "Defiant Dance", "Edge of Night", "Boots of Swiftness", "Guardian Angel",
+        "Stellacorn Herder", "Lonely Poro", "Flash", "Charm", "Defy",
+        "En Garde", "Discipline", "Zhonya's Hourglass", "Ride The Wind",
+        "The Syren", "Mindsplitter", "Tideturner")) {
       starterCard(name, "Unit");
     }
     return List.of(
         idFor("Irelia - Blade Dancer"),
         idFor("Irelia - Fervent"),
-        idFor("Defy"), idFor("Defy"), idFor("Defy"),
-        idFor("Discipline"), idFor("Discipline"), idFor("Discipline"),
-        idFor("Tideturner"), idFor("Tideturner"), idFor("Tideturner"),
-        idFor("Stellacorn Herder"), idFor("Stellacorn Herder"), idFor("Stellacorn Herder"),
-        idFor("Guardian Angel"), idFor("Guardian Angel"), idFor("Guardian Angel"),
-        idFor("Boots of Swiftness"), idFor("Boots of Swiftness"), idFor("Boots of Swiftness"),
-        idFor("Defiant Dance"), idFor("Defiant Dance"), idFor("Defiant Dance"),
+        idFor("Not So Fast"),
+        idFor("Vex - Apathetic"), idFor("Vex - Apathetic"),
         idFor("Scuttle Crab"), idFor("Scuttle Crab"), idFor("Scuttle Crab"),
-        idFor("Charm"), idFor("Charm"),
+        idFor("Back Off"),
+        idFor("Defiant Dance"), idFor("Defiant Dance"), idFor("Defiant Dance"),
+        idFor("Edge of Night"),
+        idFor("Boots of Swiftness"), idFor("Boots of Swiftness"),
+        idFor("Guardian Angel"), idFor("Guardian Angel"),
+        idFor("Stellacorn Herder"), idFor("Stellacorn Herder"),
+        idFor("Lonely Poro"), idFor("Lonely Poro"), idFor("Lonely Poro"),
+        idFor("Flash"), idFor("Flash"),
+        idFor("Charm"), idFor("Charm"), idFor("Charm"),
+        idFor("Defy"), idFor("Defy"), idFor("Defy"),
         idFor("En Garde"), idFor("En Garde"),
-        idFor("Gust"), idFor("Gust"),
-        idFor("Ride The Wind"), idFor("Ride The Wind"),
-        idFor("Stacked Deck"), idFor("Stacked Deck"),
-        idFor("Not So Fast"), idFor("Not So Fast"),
-        idFor("Star-Crossed"), idFor("Star-Crossed"),
-        idFor("Adaptatron"), idFor("Adaptatron"),
+        idFor("Discipline"), idFor("Discipline"), idFor("Discipline"),
+        idFor("Zhonya's Hourglass"),
+        idFor("Ride The Wind"),
+        idFor("The Syren"),
+        idFor("Mindsplitter"), idFor("Mindsplitter"),
+        idFor("Tideturner"),
         idFor("Calm Rune"), idFor("Calm Rune"), idFor("Calm Rune"), idFor("Calm Rune"), idFor("Calm Rune"), idFor("Calm Rune"),
         idFor("Chaos Rune"), idFor("Chaos Rune"), idFor("Chaos Rune"), idFor("Chaos Rune"), idFor("Chaos Rune"), idFor("Chaos Rune"),
         idFor("Targon's Peak"),

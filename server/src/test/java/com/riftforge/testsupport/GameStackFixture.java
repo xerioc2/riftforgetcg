@@ -67,7 +67,7 @@ public final class GameStackFixture {
   }
 
   /**
-   * Registers a tournament-shaped card pool (1 Legend, 1 Chosen Champion, 40 main
+   * Registers a tournament-shaped card pool (1 Legend, 1 Chosen Champion, 39 main
    * cards, 12 runes, 3 unique battlefields) and returns the matching
    * FULL_CONSTRUCTED deck list.
    */
@@ -77,7 +77,7 @@ public final class GameStackFixture {
     addCard("champion", "Test Champion", "Champion");
     deck.add("legend");
     deck.add("champion");
-    for (int i = 0; i < 40; i++) {
+    for (int i = 0; i < 39; i++) {
       addCard("unit-" + i, "Unit " + i, "Unit");
       deck.add("unit-" + i);
     }

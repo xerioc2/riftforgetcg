@@ -7,7 +7,7 @@ This document tracks RiftForge's rules-engine coverage against the current Riftb
 Reference baseline:
 - Official Riftbound site and Rules Hub entry point: https://riftbound.leagueoflegends.com/en-us/
 - Core Rules article notes that the Core Rules document is the technical rules source and that the Rules Hub has the most up-to-date references.
-- How to Play / Core Rules quick guide confirms the deck parts, 12-card rune deck, 40-card MainDeck, separate chosen Champion, battlefield setup, scoring, and rune payment basics.
+- How to Play / Core Rules quick guide confirms the deck parts, 12-card rune deck, MainDeck, separate chosen Champion, battlefield setup, scoring, and rune payment basics.
 - Unleashed Core Rules patch notes, 2026-03-30, clarify showdowns, combat cleanup, winning the game, dependent keywords, action/reaction timing, and new systems.
 - Tournament Rules and organized play articles remain the baseline for match procedure, decklists, penalties, and tournament legality.
 
@@ -23,12 +23,16 @@ Reference baseline:
 Status: Partial
 
 Current implementation notes:
-- `RoomService.validateDeck` validates `FULL_CONSTRUCTED` as exactly 1 Legend, exactly 1 chosen Champion role card, exactly 40 MainDeck cards, exactly 12 runes, exactly 3 unique battlefields, and a 3-copy limit for exact card IDs excluding only Legend, Rune, and Battlefield cards.
-- The chosen Champion copy is separate from the 40-card MainDeck but is included in exact-card copy counting. Champion-type Units in the MainDeck are allowed and count as MainDeck cards; only the role-selected chosen Champion starts in the Champion zone.
+- `RoomService.validateDeck` validates `FULL_CONSTRUCTED` as exactly 1 Legend, exactly 1 chosen Champion role card, exactly 39 MainDeck cards after the chosen Champion role card, exactly 12 runes, exactly 3 unique battlefields, and a 3-copy limit for exact card IDs excluding only Legend, Rune, and Battlefield cards.
+- The chosen Champion copy is separate from the 39-card MainDeck but is included in exact-card copy counting. Champion-type Units in the MainDeck are allowed and count as MainDeck cards; only the role-selected chosen Champion starts in the Champion zone.
 - `PLAYTEST_BOT` stays looser so bot games can run with generated test decks.
 - Constructed banlist names are centralized in `TournamentLegality` and rejected during `FULL_CONSTRUCTED` validation.
 - `CardSupportService` assigns conservative support metadata: Supported,
   Partial, Unsupported, Banned, or Not Audited.
+- Uploaded Irelia is the first enforced-playable uploaded meta deck and is the
+  default playtest RiftBot deck. It has no Unsupported or Not Audited cards in
+  the current audit, but many Partial alpha behavior caveats remain; it is not a
+  rules-complete, golden, or reference-correct list.
 - Current fully supported starter-deck cards are limited to basic runes,
   Vanguard Sergeant, Daring Poro, Laurent Duelist, Noxian Drummer,
   Loyal Poro, Lonely Poro, Vanguard Captain, and Stellacorn Herder.

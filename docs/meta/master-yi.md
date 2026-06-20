@@ -71,7 +71,7 @@ Top blockers:
 | --- | --- |
 | Battlefields | 1x Altar to Unity, 1x Star Spring, 1x Treasure Hoard |
 | Champion / MainDeck candidate | 3x Akshan - Mischievous, 1x Master Yi - Tempered, 1x Master Yi - Wuju Bladesman - Starter, 3x Rengar - Trophy Hunter |
-| Main Deck | 1x Back Off, 1x Challenge, 3x Charm, 3x Defy, 3x Discipline, 2x En Garde, 3x First Mate, 2x Guardian Angel, 3x Lonely Poro, 2x Punch First, 1x Repulse, 1x Ruin Runner, 3x Sabotage, 3x Scuttle Crab, 3x Tasty Faefolk, 2x Vilemaw, 3x Zhonya's Hourglass |
+| Main Deck | 1x Back Off, 2x Challenge, 3x Charm, 3x Defy, 3x Discipline, 2x En Garde, 3x First Mate, 2x Guardian Angel, 3x Lonely Poro, 2x Punch First, 1x Repulse, 1x Ruin Runner, 3x Sabotage, 3x Scuttle Crab, 3x Tasty Faefolk, 2x Vilemaw, 3x Zhonya's Hourglass |
 | Rune Deck | 7x Body Rune, 5x Calm Rune |
 
 Top blockers:

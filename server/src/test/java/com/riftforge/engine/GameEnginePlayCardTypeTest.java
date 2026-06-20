@@ -1877,6 +1877,26 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void moveToBaseRecomputesBattlefieldControllerAfterUnitLeaves() {
+    CardInstance herder = card("herder", "p1", ZoneName.BATTLEFIELD);
+    herder.setBattlefieldLocationId("bf-1");
+    herder.setTapped(false);
+    CardInstance opposing = card("opposing", "p2", ZoneName.BATTLEFIELD);
+    opposing.setBattlefieldLocationId("bf-1");
+    opposing.setTapped(true);
+    LiveGameState state = state(herder, opposing);
+    state.getBattlefieldController().put("bf-1", "p1");
+    stubCard("herder", "Stellacorn Herder", "Unit", 0, 2, 2, "When I move, draw 1.");
+    stubCard("opposing", "Opposing Unit", "Unit", 0, 2, 2, null);
+
+    engine.applyMove(state, new MoveToBaseMove("p1", "herder"));
+
+    assertThat(herder.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(herder.getBattlefieldLocationId()).isNull();
+    assertThat(state.getBattlefieldController()).containsEntry("bf-1", "p2");
+  }
+
+  @Test
   void invalidMoveToBaseDoesNotDrawOrClearLocation() {
     CardInstance herder = card("herder", "p1", ZoneName.BATTLEFIELD);
     herder.setBattlefieldLocationId("bf-1");
@@ -2488,6 +2508,9 @@ class GameEnginePlayCardTypeTest {
         .contains(
             "Irelia - Fervent gained +1 Might this turn from being readied.",
             "Irelia - Blade Dancer readied Irelia - Fervent.");
+    assertThat(state.getLog())
+        .filteredOn(entry -> entry.text().equals("Irelia - Fervent gained +1 Might this turn from being readied."))
+        .hasSize(1);
   }
 
   @Test

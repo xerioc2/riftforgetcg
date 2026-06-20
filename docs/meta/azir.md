@@ -41,7 +41,7 @@ Extraction status: Extracted
 | Battlefields | 1x Hall of Legends, 1x Seat of Power, 1x Trifarian War Camp |
 | Champion / MainDeck candidate | 1x Azir - Sovereign |
 | Legend | 1x Azir - Emperor of the Sands |
-| Main Deck | 3x Arise!, 3x B.F. Sword, 3x Brutalizer, 2x Charm, 1x Cull the Weak, 3x Deathgrip, 1x Defy, 3x Desert's Call, 3x Discipline, 3x Doran's Shield, 2x En Garde, 3x Eye of the Herald, 1x Facebreaker, 1x Guardian Angel, 3x Guards!, 3x Hidden Blade, 2x Sacred Shears, 1x Salvage, 2x Wind Wall |
+| Main Deck | 3x Arise!, 3x B.F. Sword, 3x Brutalizer, 2x Charm, 1x Cull the Weak, 3x Deathgrip, 2x Defy, 3x Desert's Call, 3x Discipline, 3x Doran's Shield, 2x En Garde, 3x Eye of the Herald, 1x Facebreaker, 1x Guardian Angel, 3x Guards!, 3x Hidden Blade, 2x Sacred Shears, 1x Salvage, 2x Wind Wall |
 | Rune Deck | 6x Calm Rune, 6x Order Rune |
 
 Top blockers:

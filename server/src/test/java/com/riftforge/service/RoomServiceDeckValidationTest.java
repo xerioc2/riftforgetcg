@@ -38,7 +38,7 @@ class RoomServiceDeckValidationTest {
     add("legend", "Legend");
     add("champion", "Champion");
     List<String> deck = new ArrayList<>(List.of("legend", "champion"));
-    addMainDeckCards(deck, 40);
+    addMainDeckCards(deck, 39);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
@@ -51,8 +51,8 @@ class RoomServiceDeckValidationTest {
   }
 
   @Test
-  void ireliaStarterDeckPassesValidation() {
-    List<String> deck = addIreliaStarterDeck();
+  void uploadedIreliaPlaytestDeckPassesValidation() {
+    List<String> deck = addUploadedIreliaPlaytestDeck();
     RoomState room = roomService.create("p1", "Player One", false);
 
     assertThatNoException().isThrownBy(() -> roomService.ready(room.getCode(), "p1", deck));
@@ -61,8 +61,8 @@ class RoomServiceDeckValidationTest {
   }
 
   @Test
-  void botUsesStarterDeckWhenCardsAreAvailable() {
-    addIreliaStarterDeck();
+  void botUsesUploadedIreliaPlaytestDeckWhenCardsAreAvailable() {
+    addUploadedIreliaPlaytestDeck();
 
     RoomState room = roomService.create("p1", "Player One", true);
     List<String> botDeck = room.getPlayers().stream()
@@ -71,7 +71,15 @@ class RoomServiceDeckValidationTest {
         .orElseThrow()
         .getDeckCardIds();
 
-    assertThat(botDeck).hasSize(57);
+    assertThat(botDeck).hasSize(56);
+    assertThat(botDeck.get(0)).isEqualTo("irelia-legend");
+    assertThat(botDeck.get(1)).isEqualTo("irelia-champion");
+    assertThat(botDeck).contains("vex-apathetic", "zhonyas-hourglass", "the-syren", "mindsplitter");
+    assertThat(frequency(botDeck, "vex-apathetic")).isEqualTo(2);
+    assertThat(frequency(botDeck, "scuttle-crab")).isEqualTo(3);
+    assertThat(frequency(botDeck, "charm")).isEqualTo(3);
+    assertThat(frequency(botDeck, "calm-rune")).isEqualTo(6);
+    assertThat(frequency(botDeck, "chaos-rune")).isEqualTo(6);
     assertThatNoException().isThrownBy(() -> roomService.setBotDeck(room.getCode(), botDeck));
   }
 
@@ -80,7 +88,7 @@ class RoomServiceDeckValidationTest {
     add("champion", "Champion");
     List<String> deck = new ArrayList<>();
     deck.add("champion");
-    addMainDeckCards(deck, 40);
+    addMainDeckCards(deck, 39);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
@@ -96,7 +104,7 @@ class RoomServiceDeckValidationTest {
     add("legend-2", "Legend");
     add("champion", "Champion");
     List<String> deck = new ArrayList<>(List.of("legend-1", "legend-2", "champion"));
-    addMainDeckCards(deck, 40);
+    addMainDeckCards(deck, 39);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
@@ -127,7 +135,7 @@ class RoomServiceDeckValidationTest {
     add("champion", "Champion");
     add("copy-card", "Unit");
     List<String> deck = new ArrayList<>(List.of("legend", "champion", "copy-card", "copy-card", "copy-card", "copy-card"));
-    addMainDeckCards(deck, 36);
+    addMainDeckCards(deck, 35);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
@@ -138,40 +146,40 @@ class RoomServiceDeckValidationTest {
   }
 
   @Test
-  void fullConstructedDeckWithThirtyNineMainDeckCardsIsRejected() {
+  void fullConstructedDeckWithThirtyEightMainDeckCardsIsRejected() {
     add("legend", "Legend");
     add("champion", "Champion");
     List<String> deck = new ArrayList<>(List.of("legend", "champion"));
-    addMainDeckCards(deck, 39);
+    addMainDeckCards(deck, 38);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
 
     assertThatThrownBy(() -> roomService.ready(room.getCode(), "p1", deck))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("Main Deck must contain exactly 40 cards. Current count: 39.");
+        .hasMessage("Main Deck must contain exactly 39 cards. Current count: 38.");
   }
 
   @Test
-  void fullConstructedDeckWithFortyOneMainDeckCardsIsRejected() {
+  void fullConstructedDeckWithFortyMainDeckCardsIsRejected() {
     add("legend", "Legend");
     add("champion", "Champion");
     List<String> deck = new ArrayList<>(List.of("legend", "champion"));
-    addMainDeckCards(deck, 41);
+    addMainDeckCards(deck, 40);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
 
     assertThatThrownBy(() -> roomService.ready(room.getCode(), "p1", deck))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("Main Deck must contain exactly 40 cards. Current count: 41.");
+        .hasMessage("Main Deck must contain exactly 39 cards. Current count: 40.");
   }
 
   @Test
   void fullConstructedDeckWithNoChampionIsRejected() {
     add("legend", "Legend");
     List<String> deck = new ArrayList<>(List.of("legend"));
-    addMainDeckCards(deck, 40);
+    addMainDeckCards(deck, 39);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
@@ -186,7 +194,7 @@ class RoomServiceDeckValidationTest {
     add("legend", "Legend");
     add("annie", "Champion", "Annie, Stubborn");
     List<String> deck = new ArrayList<>(List.of("legend"));
-    addMainDeckCards(deck, 39);
+    addMainDeckCards(deck, 38);
     deck.add("annie");
     addRunes(deck, 12);
     addBattlefields(deck, 3);
@@ -204,7 +212,7 @@ class RoomServiceDeckValidationTest {
     add("annie", "Champion", "Annie, Stubborn");
     add("fizz", "Champion", "Fizz, Trickster");
     List<String> deck = new ArrayList<>(List.of("legend", "chosen-champion", "annie", "fizz"));
-    addMainDeckCards(deck, 38);
+    addMainDeckCards(deck, 37);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
@@ -214,13 +222,13 @@ class RoomServiceDeckValidationTest {
   }
 
   @Test
-  void ireliaDeckWithFortyMainDeckCardsPassesValidation() {
+  void ireliaDeckWithThirtyNineMainDeckCardsPassesValidation() {
     add("legend", "Legend", "Irelia - Blade Dancer");
     add("chosen-champion", "Champion", "Irelia - Fervent");
     add("annie", "Champion", "Annie, Stubborn");
     add("fizz", "Champion", "Fizz, Trickster");
     List<String> deck = new ArrayList<>(List.of("legend", "chosen-champion", "annie", "fizz"));
-    addMainDeckCards(deck, 38);
+    addMainDeckCards(deck, 37);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
@@ -234,7 +242,7 @@ class RoomServiceDeckValidationTest {
     add("legend", "Legend");
     add("champion", "Champion");
     List<String> deck = new ArrayList<>(List.of("legend", "champion"));
-    addMainDeckCards(deck, 40);
+    addMainDeckCards(deck, 39);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
 
@@ -249,7 +257,7 @@ class RoomServiceDeckValidationTest {
     add("champion", "Champion");
     add("called-shot", "Unit", "Called Shot");
     List<String> deck = new ArrayList<>(List.of("legend", "champion", "called-shot"));
-    addMainDeckCards(deck, 39);
+    addMainDeckCards(deck, 38);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
@@ -265,7 +273,7 @@ class RoomServiceDeckValidationTest {
     add("champion", "Champion");
     add("dreaming-tree", "Battlefield", "Dreaming Tree");
     List<String> deck = new ArrayList<>(List.of("legend", "champion", "dreaming-tree"));
-    addMainDeckCards(deck, 40);
+    addMainDeckCards(deck, 39);
     addRunes(deck, 12);
     addBattlefields(deck, 2);
     RoomState room = roomService.create("p1", "Player One", false);
@@ -280,7 +288,7 @@ class RoomServiceDeckValidationTest {
     add("legend", "Legend");
     add("champion", "Champion");
     List<String> deck = new ArrayList<>(List.of("legend", "champion"));
-    addMainDeckCards(deck, 40);
+    addMainDeckCards(deck, 39);
     addRunes(deck, 12);
     addBattlefields(deck, 2);
     RoomState room = roomService.create("p1", "Player One", false);
@@ -328,7 +336,7 @@ class RoomServiceDeckValidationTest {
     add("legend", "Legend");
     add("champion", "Champion", "Test Champion");
     List<String> deck = new ArrayList<>(List.of("legend", "champion", "champion", "champion"));
-    addMainDeckCards(deck, 38);
+    addMainDeckCards(deck, 37);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
@@ -341,7 +349,7 @@ class RoomServiceDeckValidationTest {
     add("legend", "Legend");
     add("champion", "Champion", "Test Champion");
     List<String> deck = new ArrayList<>(List.of("legend", "champion", "champion", "champion", "champion"));
-    addMainDeckCards(deck, 37);
+    addMainDeckCards(deck, 36);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
@@ -358,7 +366,7 @@ class RoomServiceDeckValidationTest {
     add("unsupported-spell", "Spell", "Unimplemented Spell");
     when(cardDataService.isUnsupportedAction("unsupported-spell")).thenReturn(true);
     List<String> deck = new ArrayList<>(List.of("legend", "champion", "unsupported-spell"));
-    addMainDeckCards(deck, 39);
+    addMainDeckCards(deck, 38);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
@@ -374,7 +382,7 @@ class RoomServiceDeckValidationTest {
     add("legend", "Legend");
     add("champion", "Champion");
     List<String> deck = new ArrayList<>(List.of("legend", "champion"));
-    addMainDeckCards(deck, 40);
+    addMainDeckCards(deck, 39);
     addRunes(deck, 12);
     addBattlefields(deck, 3);
     RoomState room = roomService.create("p1", "Player One", false);
@@ -391,7 +399,7 @@ class RoomServiceDeckValidationTest {
     add("legend", "Legend");
     add("champion", "Champion");
     List<String> deck = new ArrayList<>(List.of("legend", "champion"));
-    addMainDeckCards(deck, 40);
+    addMainDeckCards(deck, 39);
     add("calm-rune", "Rune", "Calm Rune");
     addCopies(deck, "calm-rune", 12);
     addBattlefields(deck, 3);
@@ -430,53 +438,61 @@ class RoomServiceDeckValidationTest {
     }
   }
 
-  private List<String> addIreliaStarterDeck() {
+  private List<String> addUploadedIreliaPlaytestDeck() {
     add("irelia-legend", "Legend", "Irelia - Blade Dancer");
     add("irelia-champion", "Champion", "Irelia - Fervent");
-    add("defy", "Spell", "Defy");
-    add("discipline", "Spell", "Discipline");
-    add("tideturner", "Unit", "Tideturner");
-    add("stellacorn-herder", "Unit", "Stellacorn Herder");
-    add("guardian-angel", "Gear", "Guardian Angel");
-    add("boots-of-swiftness", "Gear", "Boots of Swiftness");
-    add("defiant-dance", "Spell", "Defiant Dance");
-    add("scuttle-crab", "Unit", "Scuttle Crab");
-    add("charm", "Spell", "Charm");
-    add("en-garde", "Spell", "En Garde");
-    add("gust", "Spell", "Gust");
-    add("ride-the-wind", "Spell", "Ride The Wind");
-    add("stacked-deck", "Spell", "Stacked Deck");
     add("not-so-fast", "Spell", "Not So Fast");
-    add("star-crossed", "Spell", "Star-Crossed");
-    add("adaptatron", "Unit", "Adaptatron");
-    add("calm-rune", "Rune", "Calm Rune");
-    add("chaos-rune", "Rune", "Chaos Rune");
-    add("targons-peak", "Battlefield", "Targon's Peak");
-    add("sunken-temple", "Battlefield", "Sunken Temple");
     add("abandoned-hall", "Battlefield", "Abandoned Hall");
+    add("vex-apathetic", "Champion", "Vex - Apathetic");
+    add("scuttle-crab", "Unit", "Scuttle Crab");
+    add("back-off", "Spell", "Back Off");
+    add("sunken-temple", "Battlefield", "Sunken Temple");
+    add("defiant-dance", "Spell", "Defiant Dance");
+    add("edge-of-night", "Gear", "Edge of Night");
+    add("boots-of-swiftness", "Gear", "Boots of Swiftness");
+    add("guardian-angel", "Gear", "Guardian Angel");
+    add("stellacorn-herder", "Unit", "Stellacorn Herder");
+    add("calm-rune", "Rune", "Calm Rune");
+    add("lonely-poro", "Unit", "Lonely Poro");
+    add("flash", "Spell", "Flash");
+    add("charm", "Spell", "Charm");
+    add("defy", "Spell", "Defy");
+    add("en-garde", "Spell", "En Garde");
+    add("discipline", "Spell", "Discipline");
+    add("zhonyas-hourglass", "Gear", "Zhonya's Hourglass");
+    add("chaos-rune", "Rune", "Chaos Rune");
+    add("ride-the-wind", "Spell", "Ride The Wind");
+    add("the-syren", "Gear", "The Syren");
+    add("mindsplitter", "Unit", "Mindsplitter");
+    add("tideturner", "Unit", "Tideturner");
+    add("targons-peak", "Battlefield", "Targon's Peak");
 
     List<String> deck = new ArrayList<>(List.of("irelia-legend", "irelia-champion"));
-    addCopies(deck, "defy", 3);
-    addCopies(deck, "discipline", 3);
-    addCopies(deck, "tideturner", 3);
-    addCopies(deck, "stellacorn-herder", 3);
-    addCopies(deck, "guardian-angel", 3);
-    addCopies(deck, "boots-of-swiftness", 3);
-    addCopies(deck, "defiant-dance", 3);
+    addCopies(deck, "not-so-fast", 1);
+    addCopies(deck, "vex-apathetic", 2);
     addCopies(deck, "scuttle-crab", 3);
-    addCopies(deck, "charm", 2);
+    addCopies(deck, "back-off", 1);
+    addCopies(deck, "defiant-dance", 3);
+    addCopies(deck, "edge-of-night", 1);
+    addCopies(deck, "boots-of-swiftness", 2);
+    addCopies(deck, "guardian-angel", 2);
+    addCopies(deck, "stellacorn-herder", 2);
+    addCopies(deck, "lonely-poro", 3);
+    addCopies(deck, "flash", 2);
+    addCopies(deck, "charm", 3);
+    addCopies(deck, "defy", 3);
     addCopies(deck, "en-garde", 2);
-    addCopies(deck, "gust", 2);
-    addCopies(deck, "ride-the-wind", 2);
-    addCopies(deck, "stacked-deck", 2);
-    addCopies(deck, "not-so-fast", 2);
-    addCopies(deck, "star-crossed", 2);
-    addCopies(deck, "adaptatron", 2);
+    addCopies(deck, "discipline", 3);
+    addCopies(deck, "zhonyas-hourglass", 1);
+    addCopies(deck, "ride-the-wind", 1);
+    addCopies(deck, "the-syren", 1);
+    addCopies(deck, "mindsplitter", 2);
+    addCopies(deck, "tideturner", 1);
     addCopies(deck, "calm-rune", 6);
     addCopies(deck, "chaos-rune", 6);
-    deck.add("targons-peak");
-    deck.add("sunken-temple");
     deck.add("abandoned-hall");
+    deck.add("sunken-temple");
+    deck.add("targons-peak");
     return deck;
   }
 
@@ -490,6 +506,10 @@ class RoomServiceDeckValidationTest {
 
   private void add(String id, String type, String name) {
     cards.put(id, new CardDefinition(id, name, type, null, List.of(), 0, 0, null, null, null, null, 1, 1, List.of()));
+  }
+
+  private int frequency(List<String> deck, String cardId) {
+    return (int) deck.stream().filter(cardId::equals).count();
   }
 
   private String name(String id) {

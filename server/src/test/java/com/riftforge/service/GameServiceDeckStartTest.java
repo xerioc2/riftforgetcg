@@ -51,7 +51,7 @@ class GameServiceDeckStartTest {
   void fullConstructedGameStartPartitionsDeckSections() {
     add("legend", "Legend");
     add("champion", "Champion");
-    addMainDeckCards(40);
+    addMainDeckCards(39);
     addRunes(12);
     addBattlefields(3);
     List<String> deck = constructedDeck("legend", "champion");
@@ -59,7 +59,7 @@ class GameServiceDeckStartTest {
     gameService.initGame("ROOM", List.of("p1"), Map.of("p1", deck), Map.of("p1", "Player One"));
 
     LiveGameState state = gameService.currentState("ROOM");
-    assertThat(state.getPlayers().getFirst().getDeckCount()).isEqualTo(36);
+    assertThat(state.getPlayers().getFirst().getDeckCount()).isEqualTo(35);
     assertThat(state.getPlayers().getFirst().getRunePoolRemaining()).isEqualTo(12);
     assertThat(state.getPlayers().getFirst().getSelectedBattlefields()).containsExactlyInAnyOrder("battlefield-0", "battlefield-1", "battlefield-2");
     assertThat(state.getPlayers().getFirst().getDeckPool())
@@ -86,7 +86,7 @@ class GameServiceDeckStartTest {
     add("chosen-champion", "Champion");
     add("annie", "Champion");
     add("fizz", "Champion");
-    addMainDeckCards(38);
+    addMainDeckCards(37);
     addRunes(12);
     addBattlefields(3);
     List<String> deck = constructedDeck("legend", "chosen-champion");
@@ -110,7 +110,7 @@ class GameServiceDeckStartTest {
         .map(card -> card.getCardId())
         .forEach(visibleAndDeckMain::add);
     assertThat(visibleAndDeckMain).contains("annie", "fizz");
-    assertThat(state.getPlayers().getFirst().getDeckCount()).isEqualTo(36);
+    assertThat(state.getPlayers().getFirst().getDeckCount()).isEqualTo(35);
   }
 
   @Test

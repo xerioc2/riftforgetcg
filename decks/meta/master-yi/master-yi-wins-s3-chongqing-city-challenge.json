@@ -15,7 +15,7 @@
       "OGN-075": "3",
       "OGN-077": "3",
       "OGN-126": "7",
-      "OGN-128": "1",
+      "OGN-128": "2",
       "OGN-132": "3",
       "OGN-156": "3",
       "OGN-275": "1",
@@ -308,7 +308,7 @@
         "rulesText": "[Action] (Play on your turn or in showdowns.)\nChoose a friendly unit and an enemy unit. They deal damage equal to their Mights to each other.",
         "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-128.webp"
       },
-      "quantity": 1,
+      "quantity": 2,
       "role": "Main Deck",
       "resolution": {
         "status": "RESOLVED",

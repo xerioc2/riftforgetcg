@@ -9,7 +9,7 @@
     {
       "OGN-042": "6",
       "OGN-043": "2",
-      "OGN-045": "1",
+      "OGN-045": "2",
       "OGN-046": "2",
       "OGN-058": "3",
       "OGN-064": "2",
@@ -396,7 +396,7 @@
         "rulesText": "[Reaction] (Play any time, even before spells and abilities resolve.)\nCounter a spell that costs no more than :rb_energy_4: and no more than :rb_rune_rainbow:.",
         "sourceImageUrl": "https://static.dotgg.gg/riftbound/cards/OGN-045.webp"
       },
-      "quantity": 1,
+      "quantity": 2,
       "role": "Main Deck",
       "resolution": {
         "status": "RESOLVED",

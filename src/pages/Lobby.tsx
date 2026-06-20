@@ -285,14 +285,18 @@ export function Lobby() {
             <div className="mt-5 border-t border-line pt-5">
               <h2 className="text-sm font-semibold text-slate-300">RiftBot deck</h2>
               <select className="input mt-2 w-full" value={botDeckId ?? ''} onChange={(e) => void handleSetBotDeck(e.target.value)} aria-label="Bot deck">
-                <option value="">Auto-generated</option>
+                <option value="">Irelia Uploaded Meta - Playtest</option>
                 {decks.map((deck) => (
                   <option key={deck.id} value={deck.id}>
                     {deck.name}
                   </option>
                 ))}
               </select>
-              <p className="mt-1 text-xs text-slate-500">{botDeckId ? 'Bot will use your selected deck' : 'Bot will use a balanced auto deck'}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {botDeckId
+                  ? 'Bot will use your selected deck.'
+                  : 'Default playtest bot deck. Enforced-playable alpha deck; many Partial card behaviors remain.'}
+              </p>
             </div>
           ) : null}
 

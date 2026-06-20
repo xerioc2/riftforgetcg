@@ -64,6 +64,9 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
   public Unit/Champion, then confirm the next supported death destroys Zhonya
   instead and heals/exhausts/recalls that unit. Hidden Reaction-for-0 timing is
   still deferred.
+- If Charm, Flash, or Defiant Dance appears, smoke only the implemented alpha
+  target/effect shape and keep broader timing/destination expectations in the
+  bug report as Partial caveats.
 - Hide a card if you draw a `[Hidden]` card.
 - Try Ambush if the UI says it is available.
 - Move a Unit to the battlefield.
@@ -133,6 +136,10 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 ## Human vs RiftBot
 
 - Start RiftForge and create a human vs RiftBot room.
+- Leave the RiftBot deck selector on `Irelia Uploaded Meta - Playtest` for the
+  default uploaded-meta smoke path. This is the first enforced-playable
+  uploaded meta deck, but it is not rules-complete, golden, or reference-correct;
+  many Partial alpha behavior caveats still apply.
 - Load or select a constructed deck.
 - Ready up, start the game, and confirm the Battlefield selection prompt appears before mulligan.
 - Choose one Battlefield, then confirm mulligan appears after both players have selected.
@@ -146,11 +153,17 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Keep the opening hand or mulligan at least one card.
 - Confirm your hand cards are visible to you after mulligan.
 - Confirm RiftBot advances through its turn steps without manual help.
+- Confirm RiftBot can draw, play, pay, move/pass, and resolve at least one
+  same-lane showdown without entering an illegal-action loop on Partial Irelia
+  cards.
 - Play a Unit from hand and confirm it stays in Base.
 - With Fiora Vanguard, confirm Vanguard Sergeant is treated as Supported and Daring Poro/Laurent Duelist remain readable Assault examples.
 - Play or attempt a targeted effect and confirm target prompts/errors are visible.
 - If an optional choice prompt appears, resolve it and confirm normal actions return afterward.
 - If an optional payment prompt appears, confirm only the prompted player sees Pay/Decline and the opponent view does not reveal prompt details.
+- With Stellacorn Herder, confirm any legal Base -> battlefield,
+  battlefield-to-battlefield, or battlefield -> Base movement draws exactly one
+  private card and same-lane movement remains rejected/inert.
 - If you draw Stacked Deck, play it and confirm the private card-selection modal is readable and returns to normal actions after resolving.
 - Play Equip Gear when available and confirm it enters Base first.
 - Click the Gear in Base, choose a friendly Unit/Champion, and confirm it attaches.
