@@ -33,7 +33,7 @@ Event/result: irelia wins s3 shanghai city challenge
 
 - Irelia - Blade Dancer (SFD-195): PARTIAL - Legend text. Partial: the Legend-zone activated ready ability is implemented for Main Phase alpha play: exhaust Irelia, pay one rainbow/premium rune, and ready an exhausted friendly public Unit/Champion in Base or at a battlefield. The conquer trigger that may pay 1 energy to ready Irelia remains deferred.
 - Not So Fast (SFD-045): PARTIAL - Reaction / chain / counter. Partial: Not So Fast can counter a supported public pending enemy spell chain item only when that item chooses your friendly Unit/Champion Unit or Gear. Ability-chain targets, broad official Reaction timing, and countering counters remain deferred.
-- Abandoned Hall (UNL-205): PARTIAL - Battlefield effect. Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.
+- Abandoned Hall (UNL-205): PARTIAL - Battlefield effect. Partial: exact spell-play optional trigger is implemented for active Battlefield lanes. The spell's controller may choose a friendly public Unit/Champion here to get +1 Might this turn; full official trigger stacking and broader Battlefield rules remain deferred.
 - Vex - Apathetic (UNL-150): PARTIAL - Champion text. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Scuttle Crab (UNL-053): PARTIAL - Hidden / facedown. Partial: on-play draw and 1v1 private hand reveal Deathknell are implemented, but XP and facedown-card viewing are deferred.
 

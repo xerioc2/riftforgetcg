@@ -10,7 +10,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Start a human vs RiftBot or human vs human game.
 - Choose one Battlefield before mulligan and confirm the opponent's unchosen Battlefield pool is not visible.
 - After both players choose, confirm selected Battlefield plaques appear in the active Battlefield lane area, can be hovered/read like cards, and cannot be targeted, moved, tapped, or fought.
-- Remember the current 1v1 alpha has two active shared Battlefield lanes. Deck construction still requires three Battlefield cards, but that does not mean three active lanes are used in Duel/bot games. Sunken Temple and Targon's Peak have narrow alpha conquer hooks; Abandoned Hall, most Battlefield effects, hidden slots, official "here" targeting, and full location rules remain deferred.
+- Remember the current 1v1 alpha has two active shared Battlefield lanes. Deck construction still requires three Battlefield cards, but that does not mean three active lanes are used in Duel/bot games. Sunken Temple, Targon's Peak, and Abandoned Hall have narrow exact-card alpha hooks; most other Battlefield effects, hidden slots, official "here" targeting, trigger stacking, and full location rules remain deferred.
 - Keep your opening hand or mulligan at least one card.
 - During Channel and payment, confirm in-play Rune cards show their card art/name when known, can be hovered like cards, and still tap or recycle with the existing click/right-click controls.
 - Play a Unit and confirm it stays visible in Base.

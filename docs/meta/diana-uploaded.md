@@ -34,7 +34,7 @@ Event/result: diana wins s3 suzhou city challenge
 - Diana - Scorn of the Moon (UNL-197): PARTIAL - Legend text. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Hard Bargain (SFD-136): PARTIAL - Reaction / chain / counter. Partial: Hard Bargain can counter a supported public pending spell chain item unless that spell's controller pays 2 energy through an owner-only prompt. Repeat, broad official Reaction timing, ability targets, hidden/private chain targets, and countering counters remain deferred.
 - Star Spring (UNL-215): PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
-- Abandoned Hall (UNL-205): PARTIAL - Battlefield effect. Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.
+- Abandoned Hall (UNL-205): PARTIAL - Battlefield effect. Partial: exact spell-play optional trigger is implemented for active Battlefield lanes. The spell's controller may choose a friendly public Unit/Champion here to get +1 Might this turn; full official trigger stacking and broader Battlefield rules remain deferred.
 - Moonfall (UNL-198): PARTIAL - Movement / location. Playable for alpha testing, but card-specific behavior may be incomplete.
 
 ## Normalized Sections

@@ -74,8 +74,8 @@ Current implementation notes:
 
 Known gaps:
 - Battlefield setup and play now use stable location ids, and current 1v1
-  Duel/bot games expose two active shared lanes. Sunken Temple and Targon's
-  Peak have narrow exact-card conquer hooks, but most printed Battlefield
+  Duel/bot games expose two active shared lanes. Sunken Temple, Targon's Peak,
+  and Abandoned Hall have narrow exact-card hooks, but most printed Battlefield
   effects, hidden slots, official "here" targeting, and non-Duel active-lane
   counts are still simplified.
 - Starting player selection is not fully derived from battlefield ownership/randomization.
@@ -105,7 +105,7 @@ Known gaps:
 - Multiplayer turn-order mulligan nuance is not deeply modeled.
 - UI/engine language should stay aligned with official "recycle up to 2" wording.
 - Full official-style multi-location Battlefield setup remains partial. Current 1v1 Duel/bot alpha renders two active shared Battlefield lanes (`bf-0`, `bf-1`) and can send move destinations, including ready Unit/Champion movement between active lanes during Main Phase when no showdown is active; `bf-2` remains a supported model id for future formats but is not an active 1v1 lane. Future support still needs hidden slots, richer "here" targeting, scoring nuance, bot strategy, and most card-specific location rules. This is separate from 3+ player multiplayer support.
-- Printed Battlefield abilities remain card-specific Partial unless explicitly scripted and tested. Sunken Temple's conquer-with-Mighty optional pay-1 draw and Targon's Peak's conquer-delayed end-turn rune readying are implemented as narrow active-lane hooks; Abandoned Hall and broader defend/spell-play/score-modification effects are still deferred.
+- Printed Battlefield abilities remain card-specific Partial unless explicitly scripted and tested. Sunken Temple's conquer-with-Mighty optional pay-1 draw, Targon's Peak's conquer-delayed end-turn rune readying, and Abandoned Hall's spell-play optional +1 Might target choice are implemented as narrow active-lane hooks; broader defend/spell-play/score-modification effects are still deferred.
 
 Test coverage:
 - `LegalActionsServiceTest`
@@ -406,7 +406,7 @@ Known gaps:
 - Player-facing multi-location Battlefield lanes and drag-to-lane movement
   destination sending exist for the active format lanes. Current 1v1 Duel/bot
   games expose `bf-0` and `bf-1`, while `bf-2` remains reserved for future or
-  non-Duel formats. Sunken Temple/Targon's Peak have narrow active-lane hooks,
+  non-Duel formats. Sunken Temple/Targon's Peak/Abandoned Hall have narrow exact-card active-lane hooks,
   while hidden slots, most Battlefield effects, and official "here" targeting
   remain deferred.
 - Movement costs, readiness/exhaustion edge cases, Ganking exceptions, and
@@ -441,7 +441,7 @@ Known gaps:
   post-alpha scope; current playtests now have readable shared-location lanes,
   but most Battlefield effects, hidden slots, official "here" text, and richer
   destination prompts remain future work beyond the narrow Sunken Temple/Targon's
-  Peak hooks.
+  Peak/Abandoned Hall hooks.
 - Control locking during showdowns/combat and chain items is incomplete.
 
 Test coverage:
@@ -547,7 +547,7 @@ Known gaps:
 - The official-style multi-location Battlefield model remains partial even
   though current alpha scoring is keyed by active lane. Most Battlefield effects,
   hidden slots, richer "here" targeting, and non-Duel active-lane setup are
-  intentionally deferred beyond the narrow Sunken Temple/Targon's Peak hooks.
+  intentionally deferred beyond the narrow Sunken Temple/Targon's Peak/Abandoned Hall hooks.
 
 Test coverage:
 - `GameEngineScoringTest`
@@ -813,7 +813,7 @@ Priority: P1.
 2. Play-card legality edge cases: action/reaction permissions, gear attachment detail, card-specific prompts.
 3. Movement legality edge cases: Ganking, effect-driven movement, and current
    active-lane readability. Full Battlefield effects/location rules remain
-   post-alpha beyond the narrow Sunken Temple/Targon's Peak hooks.
+   post-alpha beyond the narrow Sunken Temple/Targon's Peak/Abandoned Hall hooks.
 4. Showdown timing edge cases: interactive action windows, combat conversion, open states.
 5. Combat damage assignment edge cases: player assignment, multi-unit combat, prevention/replacement.
 6. Winning point edge cases: official cleanup timing, multiplayer/tie/burnout cases.

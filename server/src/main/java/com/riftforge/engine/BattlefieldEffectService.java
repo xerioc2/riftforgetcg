@@ -43,6 +43,24 @@ public class BattlefieldEffectService {
     }
   }
 
+  public void onSpellPlayed(LiveGameState state, String playerId) {
+    if (state.getPendingChoice() != null) return;
+    for (String locationId : BattlefieldLocationRules.activeLocationIds(state)) {
+      String normalizedLocation = BattlefieldLocationRules.normalize(locationId);
+      CardDefinition battlefield = battlefieldAtLocation(state, normalizedLocation);
+      if (battlefield == null || !cardDataService.isAbandonedHallBattlefield(battlefield)) continue;
+      if (!hasFriendlyUnitAtLocation(state, playerId, normalizedLocation)) continue;
+      state.setPendingChoice(PendingChoice.abandonedHallTarget(
+          UUID.randomUUID().toString(),
+          playerId,
+          battlefield.id(),
+          normalizedLocation,
+          "Give a unit you control at Abandoned Hall +1 Might this turn?"));
+      log(state, playerId, "Abandoned Hall is waiting for a unit choice.");
+      return;
+    }
+  }
+
   public void resolveEndTurnRuneReadying(LiveGameState state, String playerId) {
     Integer amount = state.getPendingEndTurnRuneReadying().remove(playerId);
     if (amount == null || amount <= 0) return;
@@ -72,6 +90,16 @@ public class BattlefieldEffectService {
         battlefield.id(),
         "Pay 1 to draw 1 with Sunken Temple?"));
     log(state, playerId, "Sunken Temple is waiting for an optional payment choice.");
+  }
+
+  private boolean hasFriendlyUnitAtLocation(LiveGameState state, String playerId, String locationId) {
+    return state.getCards().stream()
+        .filter(card -> card.getZone() == ZoneName.BATTLEFIELD)
+        .filter(card -> playerId.equals(card.getOwnerId()))
+        .filter(card -> !card.isFaceDown())
+        .filter(card -> BattlefieldLocationRules.isAtLocation(card, locationId))
+        .map(card -> cardDataService.getCard(card.getCardId()))
+        .anyMatch(def -> def != null && ("Unit".equalsIgnoreCase(def.type()) || "Champion".equalsIgnoreCase(def.type())));
   }
 
   private CardDefinition battlefieldAtLocation(LiveGameState state, String locationId) {

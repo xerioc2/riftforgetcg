@@ -137,7 +137,7 @@ describe('deckSupport', () => {
     expect(charm.reason).toContain('movement choices');
   });
 
-  it('uses Battlefield-specific Partial reasons for Sunken Temple and Targons Peak', () => {
+  it('uses Battlefield-specific Partial reasons for Irelia Battlefield hooks', () => {
     const sunken = cardSupportStatus({
       id: 'sunken-temple',
       name: 'Sunken Temple',
@@ -152,6 +152,13 @@ describe('deckSupport', () => {
       domains: [],
       rulesText: 'When you conquer here, ready up to 2 runes at the end of this turn.',
     });
+    const abandoned = cardSupportStatus({
+      id: 'abandoned-hall',
+      name: 'Abandoned Hall',
+      type: 'Battlefield',
+      domains: [],
+      rulesText: 'When a player plays a spell, they may give a unit they control here +1 Might this turn.',
+    });
 
     expect(sunken.status).toBe('PARTIAL');
     expect(sunken.reason).toContain('conquer-with-Mighty');
@@ -159,6 +166,9 @@ describe('deckSupport', () => {
     expect(targon.status).toBe('PARTIAL');
     expect(targon.reason).toContain('queues end-turn readying');
     expect(targon.reason).toContain('Player-selected rune choice');
+    expect(abandoned.status).toBe('PARTIAL');
+    expect(abandoned.reason).toContain('spell-play optional trigger');
+    expect(abandoned.reason).toContain('friendly public Unit/Champion here');
   });
 
   it('uses a The Syren-specific Partial reason for the alpha activated ability', () => {

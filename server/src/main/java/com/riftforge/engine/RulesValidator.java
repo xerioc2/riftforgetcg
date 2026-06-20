@@ -147,6 +147,11 @@ public class RulesValidator {
       validateDestroyGearChoiceTarget(state, move);
       return;
     }
+    if (PendingChoice.TYPE_TARGET_FRIENDLY_UNIT_HERE.equals(choice.getType())) {
+      if (PendingChoice.OPTION_DECLINE.equals(move.selectedOptionId())) return;
+      validateFriendlyUnitHereChoiceTarget(state, choice, move);
+      return;
+    }
     boolean validOption = choice.getOptions().stream()
         .anyMatch(option -> option.id().equals(move.selectedOptionId()));
     if (!validOption) throw new IllegalMoveException("Invalid choice option.");
@@ -168,6 +173,19 @@ public class RulesValidator {
     }
     CardInstance target = findCard(state, move.selectedTargetInstanceId());
     if (!isLegalGearDestroyTarget(target)) throw new IllegalMoveException("Choose a public Gear in play.");
+  }
+
+  private void validateFriendlyUnitHereChoiceTarget(LiveGameState state, PendingChoice choice, ResolveChoiceMove move) {
+    if (move.selectedTargetInstanceId() == null || move.selectedTargetInstanceId().isBlank()) {
+      throw new IllegalMoveException("Choose a friendly unit at that battlefield.");
+    }
+    CardInstance target = findCard(state, move.selectedTargetInstanceId());
+    String locationId = BattlefieldLocationRules.normalize(choice.getContext().get("locationId"));
+    if (!choice.getPlayerId().equals(target.getOwnerId())
+        || !isPublicBattlefieldUnit(target)
+        || !BattlefieldLocationRules.isAtLocation(target, locationId)) {
+      throw new IllegalMoveException("Choose a friendly public Unit or Champion at that battlefield.");
+    }
   }
 
   private void validatePredictChoice(PendingChoice choice, ResolveChoiceMove move) {

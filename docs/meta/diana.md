@@ -27,7 +27,7 @@ Extraction status: Extracted
 - Invert Timelines: UNSUPPORTED - Draw / reveal / deck selection. Blocked in enforced play: this card's effect is not supported yet.
 - Turn to Dust: UNSUPPORTED - Damage / destroy. Blocked in enforced play: this card's effect is not supported yet.
 - Unchecked Power: UNSUPPORTED - Basic or descriptor-only. Blocked in enforced play: this card's effect is not supported yet.
-- Abandoned Hall: PARTIAL - Battlefield effect. Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.
+- Abandoned Hall: PARTIAL - Battlefield effect. Partial: exact spell-play optional trigger is implemented for active Battlefield lanes. The spell's controller may choose a friendly public Unit/Champion here to get +1 Might this turn; full official trigger stacking and broader Battlefield rules remain deferred.
 - Star Spring: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Bellows Breath: UNSUPPORTED - Basic or descriptor-only. Blocked in enforced play: this card's effect is not supported yet.
 - Downwell: UNSUPPORTED - Bounce / return. Blocked in enforced play: this card's effect is not supported yet.
@@ -58,7 +58,7 @@ Top blockers:
 - Invert Timelines: UNSUPPORTED - Draw / reveal / deck selection. Blocked in enforced play: this card's effect is not supported yet.
 - Turn to Dust: UNSUPPORTED - Damage / destroy. Blocked in enforced play: this card's effect is not supported yet.
 - Unchecked Power: UNSUPPORTED - Basic or descriptor-only. Blocked in enforced play: this card's effect is not supported yet.
-- Abandoned Hall: PARTIAL - Battlefield effect. Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.
+- Abandoned Hall: PARTIAL - Battlefield effect. Partial: exact spell-play optional trigger is implemented for active Battlefield lanes. The spell's controller may choose a friendly public Unit/Champion here to get +1 Might this turn; full official trigger stacking and broader Battlefield rules remain deferred.
 - Star Spring: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 
 ### Diana Wins S3 Shenzhen City Challenge tournament
@@ -81,7 +81,7 @@ Top blockers:
 - Downwell: UNSUPPORTED - Bounce / return. Blocked in enforced play: this card's effect is not supported yet.
 - Existential Dread: UNSUPPORTED - Bounce / return. Blocked in enforced play: this card's effect is not supported yet.
 - Turn to Dust: UNSUPPORTED - Damage / destroy. Blocked in enforced play: this card's effect is not supported yet.
-- Abandoned Hall: PARTIAL - Battlefield effect. Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.
+- Abandoned Hall: PARTIAL - Battlefield effect. Partial: exact spell-play optional trigger is implemented for active Battlefield lanes. The spell's controller may choose a friendly public Unit/Champion here to get +1 Might this turn; full official trigger stacking and broader Battlefield rules remain deferred.
 
 ### Diana Top 4 at Sydney Regional Qualifier
 
@@ -101,7 +101,7 @@ Top blockers:
 
 - Fading Memories: UNSUPPORTED - Damage / destroy. Blocked in enforced play: this card's effect is not supported yet.
 - Frigid Jewel: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
-- Abandoned Hall: PARTIAL - Battlefield effect. Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.
+- Abandoned Hall: PARTIAL - Battlefield effect. Partial: exact spell-play optional trigger is implemented for active Battlefield lanes. The spell's controller may choose a friendly public Unit/Champion here to get +1 Might this turn; full official trigger stacking and broader Battlefield rules remain deferred.
 - Ravenbloom Conservatory: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Targon's Peak: PARTIAL - Battlefield effect. Partial: exact conquer trigger queues end-turn readying for up to two tapped friendly runes in active Battlefield lanes. Player-selected rune choice and full official location rules remain deferred.
 

@@ -13,10 +13,12 @@ public class PendingChoice {
   public static final String TYPE_TOP_DECK_PICK_ONE = "TOP_DECK_PICK_ONE";
   public static final String TYPE_PREDICT_ORDER = "PREDICT_ORDER";
   public static final String TYPE_TARGET_GEAR = "TARGET_GEAR";
+  public static final String TYPE_TARGET_FRIENDLY_UNIT_HERE = "TARGET_FRIENDLY_UNIT_HERE";
   public static final String EFFECT_NONE = "NONE";
   public static final String EFFECT_DRAW_1 = "DRAW_1";
   public static final String EFFECT_CREATE_DESTROY_GEAR_CHOICE = "CREATE_DESTROY_GEAR_CHOICE";
   public static final String EFFECT_DESTROY_GEAR = "DESTROY_GEAR";
+  public static final String EFFECT_ABANDONED_HALL_MIGHT = "ABANDONED_HALL_MIGHT";
   public static final String EFFECT_HARD_BARGAIN_COUNTER_UNLESS_PAY = "HARD_BARGAIN_COUNTER_UNLESS_PAY";
   public static final String OPTION_YES = "YES";
   public static final String OPTION_NO = "NO";
@@ -146,6 +148,25 @@ public class PendingChoice {
     choice.setEffect(EFFECT_DESTROY_GEAR);
     choice.setRequiredSelections(1);
     choice.setOptions(List.of(new ChoiceOption(OPTION_DECLINE, "Cancel")));
+    return choice;
+  }
+
+  public static PendingChoice abandonedHallTarget(
+      String choiceId,
+      String playerId,
+      String sourceCardId,
+      String locationId,
+      String prompt) {
+    PendingChoice choice = new PendingChoice();
+    choice.setChoiceId(choiceId);
+    choice.setPlayerId(playerId);
+    choice.setType(TYPE_TARGET_FRIENDLY_UNIT_HERE);
+    choice.setSourceCardId(sourceCardId);
+    choice.setPrompt(prompt);
+    choice.setEffect(EFFECT_ABANDONED_HALL_MIGHT);
+    choice.setRequiredSelections(1);
+    choice.setOptions(List.of(new ChoiceOption(OPTION_DECLINE, "Decline")));
+    choice.getContext().put("locationId", locationId);
     return choice;
   }
 

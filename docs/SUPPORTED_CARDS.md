@@ -112,7 +112,7 @@ and directly tested.
 | Chaos Rune | Irelia Tempo | Rune | Supported | Rune/payment rules | Basic rune setup/actions are covered; deeper payment edge cases remain roadmap work. |
 | Targon's Peak | Irelia Tempo | Battlefield | Partial | Battlefield ability | Exact conquer trigger queues end-turn readying for up to two tapped friendly runes in active Battlefield lanes. Player-selected rune choice and full official location rules remain deferred. |
 | Sunken Temple | Irelia Tempo | Battlefield | Partial | Battlefield ability | Exact conquer-with-Mighty optional pay-1 draw trigger is implemented for active Battlefield lanes. Broader Mighty threshold timing and full official location rules remain deferred. |
-| Abandoned Hall | Irelia Tempo | Battlefield | Partial | Battlefield ability | Needs spell-play trigger and per-controller unit buff target. |
+| Abandoned Hall | Irelia Tempo | Battlefield | Partial | Battlefield ability | Exact spell-play optional trigger is implemented for active Battlefield lanes. The spell's controller may choose a friendly public Unit/Champion here to get +1 Might this turn; full official trigger stacking and broader Battlefield rules remain deferred. |
 | Fiora - Grand Duelist | Fiora Vanguard | Legend | Partial | Legend text | Needs Mighty-state detection and optional exhausted rune channel trigger. |
 | Fiora - Worthy | Fiora Vanguard | Champion | Partial | Champion text | Needs Mighty-state detection, Order rune payment, and ready target trigger. |
 | Daring Poro | Fiora Vanguard | Unit | Supported | Basic Assault unit | Full printed text is the Assault descriptor; +1 Might while attacking only is directly tested with combat damage/destruction coverage. |

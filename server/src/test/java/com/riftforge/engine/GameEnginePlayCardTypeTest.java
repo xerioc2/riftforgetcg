@@ -88,6 +88,14 @@ class GameEnginePlayCardTypeTest {
           && "Charm".equalsIgnoreCase(def.name())
           && text.equals("move an enemy unit.");
     });
+    when(cardDataService.isAbandonedHallBattlefield(any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      String text = def == null || def.rulesText() == null ? "" : def.rulesText().trim().toLowerCase();
+      return def != null
+          && "Battlefield".equalsIgnoreCase(def.type())
+          && "Abandoned Hall".equalsIgnoreCase(def.name())
+          && text.equals("when a player plays a spell, they may give a unit they control here +1 :rb_might: this turn.");
+    });
     when(cardDataService.isTheSyrenActivatedAbility(any(CardDefinition.class))).thenAnswer(invocation -> {
       CardDefinition def = invocation.getArgument(0);
       String text = def == null || def.rulesText() == null ? "" : def.rulesText().trim().toLowerCase();
@@ -297,6 +305,156 @@ class GameEnginePlayCardTypeTest {
     engine.applyMove(state, play("spell", ZoneName.BASE));
 
     assertThat(state.getCards().getFirst().getZone()).isEqualTo(ZoneName.DISCARD);
+  }
+
+  @Test
+  void abandonedHallAcceptedSpellCreatesOwnerTargetChoiceAndBuffsUnitHere() {
+    CardInstance spell = card("spell", "p1", ZoneName.HAND);
+    CardInstance target = atLocation(card("friendly", "p1", ZoneName.BATTLEFIELD), "bf-0");
+    CardInstance offLocation = atLocation(card("off-location", "p1", ZoneName.BATTLEFIELD), "bf-1");
+    LiveGameState state = state(spell, target, offLocation);
+    selectBattlefields(state, "abandoned-hall", "sunken-temple");
+    stubCard("spell", "Simple Spell", "Spell", 0, 0, 0, "No effect.");
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    stubCard("off-location", "Off Location Unit", "Unit", 0, 2, 2, null);
+    stubCard("abandoned-hall", "Abandoned Hall", "Battlefield", 0, 0, 0, abandonedHallText());
+    stubCard("sunken-temple", "Sunken Temple", "Battlefield", 0, 0, 0, "When you conquer here with one or more [Mighty] units, you may pay :rb_energy_1: to draw 1.");
+
+    engine.applyMove(state, play("spell", ZoneName.BASE));
+
+    PendingChoice choice = state.getPendingChoice();
+    assertThat(choice).isNotNull();
+    assertThat(choice.getType()).isEqualTo(PendingChoice.TYPE_TARGET_FRIENDLY_UNIT_HERE);
+    assertThat(choice.getEffect()).isEqualTo(PendingChoice.EFFECT_ABANDONED_HALL_MIGHT);
+    assertThat(choice.getContext()).containsEntry("locationId", "bf-0");
+    assertThat(spell.getZone()).isEqualTo(ZoneName.DISCARD);
+
+    engine.applyMove(state, resolveTarget(choice, "friendly"));
+
+    assertThat(state.getPendingChoice()).isNull();
+    assertThat(target.getTemporaryPowerModifier()).isEqualTo(1);
+    assertThat(offLocation.getTemporaryPowerModifier()).isZero();
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Abandoned Hall gave Friendly Unit +1 Might this turn."));
+  }
+
+  @Test
+  void abandonedHallDoesNotTriggerWithoutFriendlyUnitHereOrFromNonSpell() {
+    CardInstance unit = card("unit", "p1", ZoneName.HAND);
+    CardInstance offLocation = atLocation(card("off-location", "p1", ZoneName.BATTLEFIELD), "bf-1");
+    LiveGameState state = state(unit, offLocation);
+    selectBattlefields(state, "abandoned-hall", "sunken-temple");
+    stubCard("unit", "Normal Unit", "Unit", 0, 2, 2, "No effect.");
+    stubCard("off-location", "Off Location Unit", "Unit", 0, 2, 2, null);
+    stubCard("abandoned-hall", "Abandoned Hall", "Battlefield", 0, 0, 0, abandonedHallText());
+    stubCard("sunken-temple", "Sunken Temple", "Battlefield", 0, 0, 0, "When you conquer here with one or more [Mighty] units, you may pay :rb_energy_1: to draw 1.");
+
+    engine.applyMove(state, play("unit", ZoneName.BASE));
+
+    assertThat(state.getPendingChoice()).isNull();
+  }
+
+  @Test
+  void abandonedHallDeclineClearsChoiceWithoutBuffingUnit() {
+    CardInstance spell = card("spell", "p1", ZoneName.HAND);
+    CardInstance target = atLocation(card("friendly", "p1", ZoneName.BATTLEFIELD), "bf-0");
+    LiveGameState state = state(spell, target);
+    selectBattlefields(state, "abandoned-hall", "sunken-temple");
+    stubCard("spell", "Simple Spell", "Spell", 0, 0, 0, "No effect.");
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    stubCard("abandoned-hall", "Abandoned Hall", "Battlefield", 0, 0, 0, abandonedHallText());
+    stubCard("sunken-temple", "Sunken Temple", "Battlefield", 0, 0, 0, "When you conquer here with one or more [Mighty] units, you may pay :rb_energy_1: to draw 1.");
+    engine.applyMove(state, play("spell", ZoneName.BASE));
+    PendingChoice choice = state.getPendingChoice();
+
+    engine.applyMove(state, new ResolveChoiceMove("p1", choice.getChoiceId(), PendingChoice.OPTION_DECLINE));
+
+    assertThat(state.getPendingChoice()).isNull();
+    assertThat(target.getTemporaryPowerModifier()).isZero();
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Player One declined Abandoned Hall."));
+  }
+
+  @Test
+  void abandonedHallRejectedSpellPlayDoesNotCreateChoice() {
+    CardInstance spell = card("spell", "p1", ZoneName.HAND);
+    CardInstance target = atLocation(card("friendly", "p1", ZoneName.BATTLEFIELD), "bf-0");
+    LiveGameState state = state(spell, target);
+    selectBattlefields(state, "abandoned-hall", "sunken-temple");
+    stubCard("spell", "Expensive Spell", "Spell", 2, 0, 0, "No effect.");
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    stubCard("abandoned-hall", "Abandoned Hall", "Battlefield", 0, 0, 0, abandonedHallText());
+    stubCard("sunken-temple", "Sunken Temple", "Battlefield", 0, 0, 0, "When you conquer here with one or more [Mighty] units, you may pay :rb_energy_1: to draw 1.");
+
+    assertThatThrownBy(() -> engine.applyMove(state, play("spell", ZoneName.BASE)))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Insufficient energy.");
+
+    assertThat(state.getPendingChoice()).isNull();
+    assertThat(target.getTemporaryPowerModifier()).isZero();
+    assertThat(spell.getZone()).isEqualTo(ZoneName.HAND);
+  }
+
+  @Test
+  void abandonedHallRejectsInvalidTargetWithoutMutation() {
+    CardInstance spell = card("spell", "p1", ZoneName.HAND);
+    CardInstance legal = atLocation(card("friendly", "p1", ZoneName.BATTLEFIELD), "bf-0");
+    CardInstance offLocation = atLocation(card("off-location", "p1", ZoneName.BATTLEFIELD), "bf-1");
+    CardInstance enemy = atLocation(card("enemy", "p2", ZoneName.BATTLEFIELD), "bf-0");
+    CardInstance hidden = atLocation(card("hidden", "p1", ZoneName.BATTLEFIELD), "bf-0");
+    hidden.setFaceDown(true);
+    LiveGameState state = state(spell, legal, offLocation, enemy, hidden);
+    selectBattlefields(state, "abandoned-hall", "sunken-temple");
+    stubCard("spell", "Simple Spell", "Spell", 0, 0, 0, "No effect.");
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    stubCard("off-location", "Off Location Unit", "Unit", 0, 2, 2, null);
+    stubCard("enemy", "Enemy Unit", "Unit", 0, 2, 2, null);
+    stubCard("hidden", "Hidden Unit", "Unit", 0, 2, 2, null);
+    stubCard("abandoned-hall", "Abandoned Hall", "Battlefield", 0, 0, 0, abandonedHallText());
+    stubCard("sunken-temple", "Sunken Temple", "Battlefield", 0, 0, 0, "When you conquer here with one or more [Mighty] units, you may pay :rb_energy_1: to draw 1.");
+    engine.applyMove(state, play("spell", ZoneName.BASE));
+    PendingChoice choice = state.getPendingChoice();
+
+    for (String invalidTarget : List.of("off-location", "enemy", "hidden")) {
+      assertThatThrownBy(() -> engine.applyMove(state, resolveTarget(choice, invalidTarget)))
+          .isInstanceOf(IllegalMoveException.class)
+          .hasMessage("Choose a friendly public Unit or Champion at that battlefield.");
+    }
+
+    assertThat(state.getPendingChoice()).isEqualTo(choice);
+    assertThat(legal.getTemporaryPowerModifier()).isZero();
+    assertThat(offLocation.getTemporaryPowerModifier()).isZero();
+    assertThat(enemy.getTemporaryPowerModifier()).isZero();
+    assertThat(hidden.getTemporaryPowerModifier()).isZero();
+  }
+
+  @Test
+  void abandonedHallTriggersOnceWhenChainBackedSpellIsPlayed() {
+    CardInstance spell = card("stacked", "p1", ZoneName.HAND);
+    CardInstance target = atLocation(card("friendly", "p1", ZoneName.BATTLEFIELD), "bf-0");
+    LiveGameState state = state(spell, target);
+    selectBattlefields(state, "abandoned-hall", "sunken-temple");
+    state.getPlayers().getFirst().setDeckPool(new ArrayList<>(List.of("top-one", "top-two", "top-three")));
+    stubCard("stacked", "Stacked Deck", "Spell", 0, 0, 0, "[Action] Look at the top 3 cards of your Main Deck. Put 1 of them into your hand and recycle the rest.");
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    stubCard("top-one", "Top One", "Unit", 0, 1, 1, null);
+    stubCard("top-two", "Top Two", "Unit", 0, 1, 1, null);
+    stubCard("top-three", "Top Three", "Unit", 0, 1, 1, null);
+    stubCard("abandoned-hall", "Abandoned Hall", "Battlefield", 0, 0, 0, abandonedHallText());
+    stubCard("sunken-temple", "Sunken Temple", "Battlefield", 0, 0, 0, "When you conquer here with one or more [Mighty] units, you may pay :rb_energy_1: to draw 1.");
+
+    engine.applyMove(state, play("stacked", ZoneName.BASE));
+
+    PendingChoice abandonedChoice = state.getPendingChoice();
+    assertThat(abandonedChoice).isNotNull();
+    assertThat(abandonedChoice.getType()).isEqualTo(PendingChoice.TYPE_TARGET_FRIENDLY_UNIT_HERE);
+    engine.applyMove(state, resolveTarget(abandonedChoice, "friendly"));
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new ResolveChainTopMove("p1"));
+
+    assertThat(target.getTemporaryPowerModifier()).isEqualTo(1);
+    assertThat(state.getPendingChoice()).isNotNull();
+    assertThat(state.getPendingChoice().getType()).isEqualTo(PendingChoice.TYPE_TOP_DECK_PICK_ONE);
+    assertThat(state.getLog()).filteredOn(entry -> entry.text().contains("Abandoned Hall is waiting")).hasSize(1);
   }
 
   @Test
@@ -2839,6 +2997,11 @@ class GameEnginePlayCardTypeTest {
     return state;
   }
 
+  private void selectBattlefields(LiveGameState state, String playerOneBattlefieldId, String playerTwoBattlefieldId) {
+    state.getPlayers().get(0).setSelectedBattlefieldId(playerOneBattlefieldId);
+    state.getPlayers().get(1).setSelectedBattlefieldId(playerTwoBattlefieldId);
+  }
+
   private PlayCardMove play(String instanceId, ZoneName targetZone) {
     return new PlayCardMove("p1", instanceId, targetZone, 0, 0, null, false, List.of(), List.of());
   }
@@ -2992,6 +3155,10 @@ class GameEnginePlayCardTypeTest {
   private String zhonyasText() {
     return "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)"
         + "If a friendly unit would die, kill this instead. Heal that unit, exhaust it, and recall it. (Send it to base. This isn't a move.)";
+  }
+
+  private String abandonedHallText() {
+    return "When a player plays a spell, they may give a unit they control here +1 :rb_might: this turn.";
   }
 
   private RevealedHandSnapshot revealedHand(String toPlayerId, String ownerId, String... instanceIds) {

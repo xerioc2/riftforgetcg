@@ -42,7 +42,7 @@ will raise regression risk faster than playtest value.
 | Ambush foundation | Medium | Medium | Pre-playtest | Done | Narrow Main-phase battlefield play path; Ambush-as-Reaction remains deferred. |
 | Deathknell / tokens | Medium | Medium | Pre-playtest | Done | Supports safe starter-unit scripts, token plumbing, and Scuttle Crab's 1v1 private hand reveal while XP/facedown remain deferred. |
 | Responsive board | High | Low | Pre-playtest | Done | Makes fullscreen playtests readable and reduces layout complaints. |
-| Multi-location Battlefield lanes v1 | High | Medium | Post-playtest | Done | The board renders the active Battlefield lanes for the current format: 1v1 Duel/bot games show `bf-0` and `bf-1`, while `bf-2` remains reserved for future formats. Cards are placed by `battlefieldLocationId`, drag-to-lane sends active destinations, active showdown lanes highlight, and per-lane controller indicators show. Sunken Temple and Targon's Peak have narrow active-lane conquer hooks; most Battlefield effects and full official location rules remain deferred. |
+| Multi-location Battlefield lanes v1 | High | Medium | Post-playtest | Done | The board renders the active Battlefield lanes for the current format: 1v1 Duel/bot games show `bf-0` and `bf-1`, while `bf-2` remains reserved for future formats. Cards are placed by `battlefieldLocationId`, drag-to-lane sends active destinations, active showdown lanes highlight, and per-lane controller indicators show. Sunken Temple, Targon's Peak, and Abandoned Hall have narrow exact-card active-lane hooks; most Battlefield effects and full official location rules remain deferred. |
 | Support badges | High | Low | Pre-playtest | Done | Sets tester expectations for Partial, Unsupported, Banned, and Not Audited cards. |
 | Privacy regression suite | High | Medium | Pre-playtest | Done | Protects hand, hidden, private-choice, projection, and debug-info surfaces. |
 | Issue/report flow | High | Low | Pre-playtest | Done | Gives testers a consistent path to submit useful bug reports. |
@@ -51,7 +51,7 @@ will raise regression risk faster than playtest value.
 | Reviewer-guided meta support audit | High | Low | Post-playtest | Done | Riftbound.gg guide lists are extracted, and exact uploaded exports are preserved under `decks/meta/raw/` with normalized support audits in `decks/meta/normalized/` and `docs/meta/`. Diana remains the next requested card/rules support target because it is interaction-heavy and growing. Aurora support has an Annie list, but Miss Fortune still needs a real list. Master Yi stays tracked as the raw meta leader, but implementation should wait for gameplay notes. |
 | Uploaded Irelia default playtest bot deck | High | Low | Post-playtest | Done | Uploaded Irelia is the first enforced-playable uploaded meta deck and is used as the default human-vs-RiftBot playtest deck. It has 0 Unsupported and 0 Not Audited cards, but remains Partial alpha behavior, not rules-complete, golden, or reference-correct. |
 | Stellacorn Herder move trigger | Medium | Medium | Post-playtest | Done | Migrated through the alpha trigger dispatcher; movement draws 1 and same-zone reposition stays inert. |
-| Abandoned Hall spell trigger | Medium | Medium | Post-playtest | Next | Useful battlefield trigger candidate, but depends on clearer prompt/payment policy. |
+| Abandoned Hall spell trigger | Medium | Medium | Post-playtest | Done | Exact spell-play optional trigger creates an owner-only target choice for the spell's controller, then gives a friendly public Unit/Champion at that Battlefield location +1 Might this turn. Full trigger stacking and official Battlefield rules remain deferred. |
 
 ## High Impact + High Risk: Plan Carefully After Playtest
 
@@ -62,7 +62,7 @@ will raise regression risk faster than playtest value.
 | Hidden play-from-hidden | High | High | Post-playtest | Deferred | Requires timing windows, payment, reveal/masking transitions, and target legality. |
 | Ambush-as-Reaction | High | High | Post-playtest | Deferred | Depends on chain/reaction windows and correct response priority. |
 | Reaction / counterspells on real cards | High | High | Post-playtest | Deferred | Required for many cards but likely the largest rules-system risk; Gust, Discipline, En Garde, Defiant Dance, Flash, Defy, Not So Fast, and Hard Bargain cover narrow public chain paths, with targeted Reactions now also available on the active player's turn and focused showdown windows. Riposte counter behavior, abilities, hidden reactions, countering counters, private/choice effects, and broad timing should still be added one card/pattern at a time. |
-| Full multi-location Battlefield model | High | High | Later | Deferred | A server/UI foundation now supports `bf-0`/`bf-1`/`bf-2` lanes, location-scoped movement, showdowns, combat, controller keys, scoring, drag-to-lane destinations, and narrow Sunken Temple/Targon's Peak conquer hooks. Official-style 1v1 play still needs most Battlefield effects, true selected Battlefield instances/objectives, "here" targeting, hidden slots, and bot strategy. It remains separate from 3+ player multiplayer support. |
+| Full multi-location Battlefield model | High | High | Later | Deferred | A server/UI foundation now supports `bf-0`/`bf-1`/`bf-2` lanes, location-scoped movement, showdowns, combat, controller keys, scoring, drag-to-lane destinations, and narrow Sunken Temple/Targon's Peak/Abandoned Hall hooks. Official-style 1v1 play still needs most Battlefield effects, true selected Battlefield instances/objectives, hidden slots, trigger stacking, and bot strategy. It remains separate from 3+ player multiplayer support. |
 | Sideboard / tournament match structure | Medium | High | Later | Deferred | Valuable for organized play after single-game alpha flow is stable. |
 
 ## Low Impact + Low Risk: Polish / Backlog
@@ -89,7 +89,7 @@ will raise regression risk faster than playtest value.
 
 The alpha should be described as:
 
-- 1v1 active-lane playtest model with narrow Sunken Temple/Targon's Peak
+- 1v1 active-lane playtest model with narrow Sunken Temple/Targon's Peak/Abandoned Hall
   conquer hooks, while most Battlefield effects and full official location
   rules remain deferred.
 - Constructed deck setup enforced, with role-separated Legend, chosen Champion, and pre-mulligan Battlefield selection.

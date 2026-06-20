@@ -191,57 +191,68 @@ public class GameEngine {
     var priorityWindow = priorityWindowService.openingWindowForPlayedCard(state, def, playedDuringShowdown);
     if (priorityWindow.isPresent()) {
       state.setCardPlayedThisTurn(true);
+      battlefieldEffectService.onSpellPlayed(state, move.playerId());
       openChain(state, move, card, def, priorityWindow.get());
       return state;
     }
     if (cardDataService.isDefyCounterReaction(def)) {
       state.setCardPlayedThisTurn(true);
+      battlefieldEffectService.onSpellPlayed(state, move.playerId());
       addDefyToChain(state, move, card, def);
       return state;
     }
     if (cardDataService.isNotSoFastCounterReaction(def)) {
       state.setCardPlayedThisTurn(true);
+      battlefieldEffectService.onSpellPlayed(state, move.playerId());
       addNotSoFastToChain(state, move, card, def);
       return state;
     }
     if (cardDataService.isAbandonCounterReaction(def)) {
       state.setCardPlayedThisTurn(true);
+      battlefieldEffectService.onSpellPlayed(state, move.playerId());
       addAbandonToChain(state, move, card, def);
       return state;
     }
     if (cardDataService.isHardBargainCounterReaction(def)) {
       state.setCardPlayedThisTurn(true);
+      battlefieldEffectService.onSpellPlayed(state, move.playerId());
       addHardBargainToChain(state, move, card, def);
       return state;
     }
     if (cardDataService.isGustReaction(def)) {
       state.setCardPlayedThisTurn(true);
+      battlefieldEffectService.onSpellPlayed(state, move.playerId());
       addGustToChain(state, move, card, def);
       return state;
     }
     if (cardDataService.isDisciplineReaction(def)) {
       state.setCardPlayedThisTurn(true);
+      battlefieldEffectService.onSpellPlayed(state, move.playerId());
       addTargetedReactionToChain(state, move, card, def, LiveGameState.ChainItem.EFFECT_DISCIPLINE_BOOST_DRAW);
       return state;
     }
     if (cardDataService.isEnGardeReaction(def)) {
       state.setCardPlayedThisTurn(true);
+      battlefieldEffectService.onSpellPlayed(state, move.playerId());
       addTargetedReactionToChain(state, move, card, def, LiveGameState.ChainItem.EFFECT_EN_GARDE_BOOST);
       return state;
     }
     if (cardDataService.isDefiantDanceReaction(def)) {
       state.setCardPlayedThisTurn(true);
+      battlefieldEffectService.onSpellPlayed(state, move.playerId());
       addStructuredTargetReactionToChain(state, move, card, def, LiveGameState.ChainItem.EFFECT_DEFIANT_DANCE_MODIFIERS);
       return state;
     }
     if (cardDataService.isFlashReaction(def)) {
       state.setCardPlayedThisTurn(true);
+      battlefieldEffectService.onSpellPlayed(state, move.playerId());
       addStructuredTargetReactionToChain(state, move, card, def, LiveGameState.ChainItem.EFFECT_FLASH_RECALL);
       return state;
     }
     applyLegion(state, card, cardPlayedEarlierThisTurn);
     applyPlayedCardTokenScripts(state, card, cardPlayedEarlierThisTurn);
     state.setCardPlayedThisTurn(true);
+    if ("spell".equals(cardTypeLower)) battlefieldEffectService.onSpellPlayed(state, move.playerId());
     CardInstance target = move.targetInstanceId() == null ? null : state.getCards().stream()
         .filter(candidate -> candidate.getInstanceId().equals(move.targetInstanceId()))
         .findFirst()
@@ -1789,6 +1800,12 @@ public class GameEngine {
       } else {
         destroyGearTarget(state, move, choice);
       }
+    } else if (PendingChoice.TYPE_TARGET_FRIENDLY_UNIT_HERE.equals(choice.getType())) {
+      if (PendingChoice.OPTION_DECLINE.equals(move.selectedOptionId())) {
+        log(state, move.playerId(), player(state, move.playerId()).getName() + " declined " + choicePromptLabel(choice) + ".");
+      } else {
+        applyAbandonedHallTarget(state, move, choice);
+      }
     }
     state.setPendingChoice(nextChoice);
     return state;
@@ -2254,6 +2271,22 @@ public class GameEngine {
     target.setAttachedToInstanceId(null);
     cardZoneService.moveToGraveyard(target);
     log(state, move.playerId(), choicePromptLabel(choice) + " destroyed " + targetDef.name() + ".");
+  }
+
+  private void applyAbandonedHallTarget(LiveGameState state, ResolveChoiceMove move, PendingChoice choice) {
+    CardInstance target = findCard(state, move.selectedTargetInstanceId());
+    String locationId = BattlefieldLocationRules.normalize(choice.getContext().get("locationId"));
+    if (!move.playerId().equals(target.getOwnerId())
+        || !isPublicBattlefieldUnit(target)
+        || !BattlefieldLocationRules.isAtLocation(target, locationId)) {
+      throw new IllegalMoveException("Choose a friendly public Unit or Champion at that battlefield.");
+    }
+    CardDefinition sourceDef = cardDataService.getCard(choice.getSourceCardId());
+    CardDefinition targetDef = cardDataService.getCard(target.getCardId());
+    target.setTemporaryPowerModifier(target.getTemporaryPowerModifier() + 1);
+    String sourceName = sourceDef == null ? "Abandoned Hall" : sourceDef.name();
+    String targetName = targetDef == null ? "that unit" : targetDef.name();
+    log(state, move.playerId(), sourceName + " gave " + targetName + " +1 Might this turn.");
   }
 
   private void applyFriendlyAndEnemyReturn(CardInstance source, PlayCardMove move, LiveGameState state, CardDefinition sourceDef) {

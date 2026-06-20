@@ -33,6 +33,9 @@ Battlefield effect integration:
 - Sunken Temple can create an owner-only optional pay-1 draw prompt when the
   conquering player has a Mighty Unit/Champion at that location.
 - Targon's Peak queues end-turn readying for up to two tapped friendly runes.
+- Abandoned Hall creates an owner-only target choice when a player plays a spell,
+  then gives one friendly public Unit/Champion at that Battlefield location +1
+  Might this turn.
 
 Deferred:
 
@@ -98,7 +101,7 @@ Deferred:
 
 - Full official movement timing and priority windows.
 - Card-specific movement swaps beyond currently registered effects.
-- Abandoned Hall, most multi-location battlefield effects, player-selected
+- Most multi-location battlefield effects, player-selected
   end-turn rune choices, and hidden battlefield slot rules.
 
 ## Would-Die Replacement Hook v1

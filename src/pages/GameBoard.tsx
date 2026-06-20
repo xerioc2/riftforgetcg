@@ -55,7 +55,7 @@ const CARD_PREVIEW_DELAY_MS = 2000;
 const TOTAL_RUNE_SLOTS = 11;
 const GITHUB_ISSUES_URL = 'https://github.com/xerioc2/riftforgetcg/issues/new/choose';
 const ALPHA_LIMITATIONS = [
-  'Multi-location Battlefield lanes are alpha support; Sunken Temple and Targon\'s Peak have narrow conquer hooks, while most Battlefield effects, hidden slots, and full official location rules are deferred.',
+  'Multi-location Battlefield lanes are alpha support; Sunken Temple, Targon\'s Peak, and Abandoned Hall have narrow exact-card hooks, while most Battlefield effects, hidden slots, and full official location rules are deferred.',
   'Reaction and chain/counterspell timing are not fully implemented.',
   'Hidden cards can be hidden, but play-from-hidden timing is incomplete.',
   'Ambush-as-Reaction and additional-cost Ambush cards are incomplete.',
@@ -1186,6 +1186,25 @@ export function GameBoard() {
     const instance = state?.cards.find((card) => card.instanceId === instanceId);
     if (!instance) return;
     const targetCard = cardsById.get(instance.cardId);
+    if (state?.pendingChoice?.type === 'TARGET_FRIENDLY_UNIT_HERE' && state.pendingChoice.playerId === player.id) {
+      const locationId = normalizeBattlefieldLocationId(state.pendingChoice.context?.locationId);
+      if (!isLegalTargetForMode(instance, targetCard, 'FRIENDLY_UNIT', player.id) || normalizeBattlefieldLocationId(instance.battlefieldLocationId) !== locationId) {
+        notifyWarning('Invalid target', 'Choose a friendly Unit or Champion at Abandoned Hall, or use Decline.');
+        return;
+      }
+      if (!canTakeAction(state, 'RESOLVE_CHOICE')) {
+        notifyWarning('Choice unavailable', 'The server has not approved resolving this choice yet.');
+        return;
+      }
+      setChoiceSubmitting(true);
+      publishMove({
+        type: 'RESOLVE_CHOICE',
+        playerId: player.id,
+        choiceId: state.pendingChoice.choiceId,
+        selectedTargetInstanceId: instanceId,
+      });
+      return;
+    }
     if (state?.pendingChoice?.type === 'TARGET_GEAR' && state.pendingChoice.playerId === player.id) {
       if (!isLegalTargetForMode(instance, targetCard, 'ANY_PUBLIC_GEAR', player.id)) {
         notifyWarning('Invalid target', 'Choose a Gear in play, or use Cancel to decline.');
@@ -1687,7 +1706,9 @@ export function GameBoard() {
   const currentMultiTargetRequirement = pendingMultiTargetSelection?.requirements[pendingMultiTargetSelection.selected.length];
   const pendingChoice = state.pendingChoice;
   const isGearTargetChoice = pendingChoice?.type === 'TARGET_GEAR' && pendingChoice.playerId === player.id;
-  const activeTargetMode = pendingTargetSelection?.mode ?? currentMultiTargetRequirement?.mode ?? (isGearTargetChoice ? 'ANY_PUBLIC_GEAR' : undefined);
+  const isAbandonedHallTargetChoice = pendingChoice?.type === 'TARGET_FRIENDLY_UNIT_HERE' && pendingChoice.playerId === player.id;
+  const abandonedHallChoiceLocationId = isAbandonedHallTargetChoice ? normalizeBattlefieldLocationId(pendingChoice.context?.locationId) : undefined;
+  const activeTargetMode = pendingTargetSelection?.mode ?? currentMultiTargetRequirement?.mode ?? (isGearTargetChoice ? 'ANY_PUBLIC_GEAR' : isAbandonedHallTargetChoice ? 'FRIENDLY_UNIT' : undefined);
   const selectedMultiTargetIds = new Set(pendingMultiTargetSelection?.selected.map((target) => target.instanceId) ?? []);
   const pendingCardOptions = pendingChoice?.cardOptions ?? [];
   const isTopDeckChoice = pendingChoice?.type === 'TOP_DECK_PICK_ONE';
@@ -1854,6 +1875,7 @@ export function GameBoard() {
                   .filter(({ instance }) => {
                     const cardDef = cardsById.get(instance.cardId);
                     return isLegalTargetForMode(instance, cardDef, activeTargetMode, player.id)
+                      && (!abandonedHallChoiceLocationId || normalizeBattlefieldLocationId(instance.battlefieldLocationId) === abandonedHallChoiceLocationId)
                       && !selectedMultiTargetIds.has(instance.instanceId);
                   })
                   .map(({ instance, displayInstance }) => <Rect key={`target-top-${instance.instanceId}`} x={displayInstance.x - 44} y={displayInstance.y - 60} width={88} height={120} fill="rgba(229,108,79,0.12)" stroke="#e56c4f" shadowColor="#e56c4f" shadowBlur={20} cornerRadius={6} />)
@@ -1866,6 +1888,7 @@ export function GameBoard() {
             {pendingTargetSelection ? <Text x={0} y={8} width={size.width} text={`${targetPromptForMode(pendingTargetSelection.mode)} Esc/right-click to cancel.`} align="center" fontSize={13} fontStyle="bold" fill="#e56c4f" /> : null}
             {pendingMultiTargetSelection && currentMultiTargetRequirement ? <Text x={0} y={8} width={size.width} text={`${currentMultiTargetRequirement.prompt} (${pendingMultiTargetSelection.selected.length + 1}/${pendingMultiTargetSelection.requirements.length}) ${currentMultiTargetRequirement.optional && pendingMultiTargetSelection.selected.length > 0 ? 'Right-click to resolve with selected target(s).' : 'Esc/right-click to cancel.'}`} align="center" fontSize={13} fontStyle="bold" fill="#e56c4f" /> : null}
             {isGearTargetChoice ? <Text x={0} y={8} width={size.width} text="Choose a Gear in play. Right-click to cancel." align="center" fontSize={13} fontStyle="bold" fill="#e56c4f" /> : null}
+            {isAbandonedHallTargetChoice ? <Text x={0} y={8} width={size.width} text="Choose a friendly unit at Abandoned Hall, or decline." align="center" fontSize={13} fontStyle="bold" fill="#e56c4f" /> : null}
           </Layer>
         </Stage>
       </div>

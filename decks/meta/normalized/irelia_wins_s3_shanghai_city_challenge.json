@@ -72,7 +72,7 @@
       },
       "support": {
         "status": "PARTIAL",
-        "reason": "Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.",
+        "reason": "Partial: exact spell-play optional trigger is implemented for active Battlefield lanes. The spell's controller may choose a friendly public Unit/Champion here to get +1 Might this turn; full official trigger stacking and broader Battlefield rules remain deferred.",
         "blocked": false
       },
       "bucket": "Battlefield effect"
@@ -720,7 +720,7 @@
         "sourceCardId": "UNL-205",
         "status": "PARTIAL",
         "bucket": "Battlefield effect",
-        "reason": "Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely."
+        "reason": "Partial: exact spell-play optional trigger is implemented for active Battlefield lanes. The spell's controller may choose a friendly public Unit/Champion here to get +1 Might this turn; full official trigger stacking and broader Battlefield rules remain deferred."
       },
       {
         "cardName": "Vex - Apathetic",

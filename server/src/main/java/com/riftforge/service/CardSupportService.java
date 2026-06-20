@@ -35,7 +35,7 @@ public class CardSupportService {
       Map.entry("TIDETURNER", "Partial: Hidden foundation exists, but later hidden play timing and the on-play location swap are not implemented yet."),
       Map.entry("GUARDIAN ANGEL", "Partial: alpha Equip lifecycle and printed Calm equip payment are implemented and tested. Full official Equip timing and replacement/reattachment edge cases remain deferred."),
       Map.entry("BOOTS OF SWIFTNESS", "Partial: alpha Equip lifecycle and printed Chaos equip payment are implemented and tested. Full official Equip timing and replacement/reattachment edge cases remain deferred."),
-      Map.entry("ABANDONED HALL", "Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely."),
+      Map.entry("ABANDONED HALL", "Partial: exact spell-play optional trigger is implemented for active Battlefield lanes. The spell's controller may choose a friendly public Unit/Champion here to get +1 Might this turn; full official trigger stacking and broader Battlefield rules remain deferred."),
       Map.entry("SUNKEN TEMPLE", "Partial: exact conquer-with-Mighty optional pay-1 draw trigger is implemented for active Battlefield lanes. Broader Mighty threshold timing and full official location rules remain deferred."),
       Map.entry("TARGON'S PEAK", "Partial: exact conquer trigger queues end-turn readying for up to two tapped friendly runes in active Battlefield lanes. Player-selected rune choice and full official location rules remain deferred."),
       Map.entry("ADAPTATRON", "Partial: conquer trigger, optional gear kill, and official Buff state are not implemented yet."),
