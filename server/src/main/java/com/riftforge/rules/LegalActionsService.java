@@ -511,6 +511,7 @@ public class LegalActionsService {
 
   private boolean canPayEquip(LiveGameState state, String playerId, CardDefinition gearDef) {
     EquipmentRules.EquipCost cost = EquipmentRules.equipCost(gearDef);
+    if (ownedTrashCount(state, playerId) < cost.recycleTrashCount()) return false;
     List<RuneState> remainingRunes = new ArrayList<>(state.getRunes().stream()
         .filter(rune -> playerId.equals(rune.getOwnerId()) && !rune.isTapped())
         .toList());
@@ -528,6 +529,14 @@ public class LegalActionsService {
         .mapToInt(rune -> Math.max(0, rune.getNormalEnergy()))
         .sum();
     return availableEnergy + readyRuneEnergy >= cost.energyCost();
+  }
+
+  private long ownedTrashCount(LiveGameState state, String playerId) {
+    return state.getCards().stream()
+        .filter(card -> playerId.equals(card.getOwnerId()))
+        .filter(card -> card.getZone() == ZoneName.DISCARD)
+        .filter(card -> !card.isFaceDown())
+        .count();
   }
 
   private int firstMatchingRuneIndex(List<RuneState> runes, String requiredDomain) {

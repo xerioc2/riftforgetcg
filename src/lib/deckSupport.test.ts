@@ -206,6 +206,15 @@ describe('deckSupport', () => {
     expect(syren.reason).toContain('activated ability timing');
   });
 
+  it('uses a Last Rites-specific Partial reason for recycle-cost Equip', () => {
+    const lastRites = cardSupportStatus(gear('Last Rites', '[Equip] — :rb_rune_chaos:, Recycle 2 cards from your trash (Pay the cost: Attach this to a unit you control.)'));
+
+    expect(lastRites.status).toBe('PARTIAL');
+    expect(lastRites.reason).toContain('Chaos rune plus recycle-2-from-Trash equip cost');
+    expect(lastRites.reason).toContain("bottom of the owner's Main Deck pool");
+    expect(lastRites.reason).toContain('full official Equip timing');
+  });
+
   it('uses a Zhonyas Hourglass-specific Partial reason for the alpha would-die replacement', () => {
     const zhonya = cardSupportStatus(gear("Zhonya's Hourglass", "[Hidden] If a friendly unit would die, kill this instead. Heal that unit, exhaust it, and recall it."));
 

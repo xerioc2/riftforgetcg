@@ -11,13 +11,19 @@ public final class EquipmentRules {
   private static final Pattern EQUIP_HEADER = Pattern.compile("(?i)\\[equip\\]\\s*([^\\(\\[]*)");
   private static final Pattern ENERGY_ICON = Pattern.compile("(?i):rb_energy_(\\d+):");
   private static final Pattern RUNE_ICON = Pattern.compile("(?i):rb_rune_([a-z_]+):");
+  private static final Pattern RECYCLE_TRASH_COST = Pattern.compile("(?i)recycle\\s+(\\d+)\\s+cards?\\s+from\\s+your\\s+trash");
 
   private EquipmentRules() {}
 
-  public record EquipCost(int energyCost, List<String> premiumDomains) {
+  public record EquipCost(int energyCost, List<String> premiumDomains, int recycleTrashCount) {
     public EquipCost {
       energyCost = Math.max(0, energyCost);
       premiumDomains = premiumDomains == null ? List.of() : List.copyOf(premiumDomains);
+      recycleTrashCount = Math.max(0, recycleTrashCount);
+    }
+
+    public EquipCost(int energyCost, List<String> premiumDomains) {
+      this(energyCost, premiumDomains, 0);
     }
   }
 
@@ -36,7 +42,12 @@ public final class EquipmentRules {
     while (rune.find()) {
       premiumDomains.add(normalizeDomain(rune.group(1)));
     }
-    return new EquipCost(energyCost, premiumDomains);
+    int recycleTrashCount = 0;
+    Matcher recycle = RECYCLE_TRASH_COST.matcher(costText);
+    if (recycle.find()) {
+      recycleTrashCount = Integer.parseInt(recycle.group(1));
+    }
+    return new EquipCost(energyCost, premiumDomains, recycleTrashCount);
   }
 
   public static String normalizeDomain(String domain) {

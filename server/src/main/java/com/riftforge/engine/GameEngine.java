@@ -318,8 +318,27 @@ public class GameEngine {
     CardDefinition gearDef = cardDataService.getCard(gear.getCardId());
     CardInstance target = findCard(state, move.targetInstanceId());
     applyPayment(state, move.playerId(), move.paymentRuneIds(), move.premiumRuneIds(), EquipmentRules.equipCost(gearDef).energyCost());
+    applyEquipRecycleCost(state, move, gearDef);
     attachGear(state, gear, gearDef, target, move.playerId());
     return state;
+  }
+
+  private void applyEquipRecycleCost(LiveGameState state, EquipGearMove move, CardDefinition gearDef) {
+    int recycleCount = EquipmentRules.equipCost(gearDef).recycleTrashCount();
+    if (recycleCount <= 0) return;
+    PlayerState player = player(state, move.playerId());
+    for (String instanceId : move.selectedRecycleCardInstanceIds()) {
+      CardInstance recycled = findCard(state, instanceId);
+      recycled.setZone(ZoneName.DECK);
+      recycled.setTapped(false);
+      recycled.setHasSummoningSickness(false);
+      recycled.setBattlefieldLocationId(null);
+      recycled.setAttachedToInstanceId(null);
+      recycled.setTemporaryPowerModifier(0);
+      recycled.getTempKeywords().clear();
+      player.getDeckPool().add(recycled.getCardId());
+    }
+    log(state, move.playerId(), gearDef.name() + " recycled " + recycleCount + " cards from Trash.");
   }
 
   private LiveGameState applyActivateAbility(LiveGameState state, ActivateAbilityMove move) {

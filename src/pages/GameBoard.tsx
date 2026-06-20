@@ -34,7 +34,7 @@ import { buildDebugInfo } from '../lib/debugInfo';
 import { attachedGearDisplayPosition, attachedGearDisplayScale, attachedGearIsIndependentBoardPiece, attachedGearNamesForHost } from '../lib/attachments';
 import { battlefieldLaneDisplays } from '../lib/battlefieldDisplay';
 import { isBotPlayer, legalActionHint, phaseGuidance, waitingStatusText } from '../lib/gameGuidance';
-import { equipCostForCard, equipCostLabel, runeMatchesEquipDomain } from '../lib/equipment';
+import { equipCostForCard, equipCostLabel, runeMatchesEquipDomain, selectEquipRecycleCardInstanceIds } from '../lib/equipment';
 import { hiddenCardDisplayForViewer } from '../lib/hiddenCards';
 import { loadPriorityStopSettings, savePriorityStopSettings, shouldLocalAutoPassPriority, type PriorityStopSettings } from '../lib/priorityStops';
 import { useLocalPlayer } from '../lib/playerContext';
@@ -627,6 +627,11 @@ export function GameBoard() {
     const cost = equipCostForCard(cardDef);
     const playerEnergy = state?.players.find((statePlayer) => statePlayer.userId === player.id)?.availableEnergy ?? 0;
     const readyRunes = (state?.runes ?? []).filter((rune) => rune.ownerId === player.id && !rune.tapped);
+    const selectedRecycleCardInstanceIds = selectEquipRecycleCardInstanceIds(state?.cards, player.id, cost);
+    if (!selectedRecycleCardInstanceIds) {
+      if (showWarnings) notifyWarning('Insufficient recycle cost', `${cardDef?.name ?? 'That Equipment'} needs ${cost.recycleTrashCount} cards in your Trash to recycle.`);
+      return null;
+    }
     const premiumRuneIds: string[] = [];
     const reservedRuneIds = new Set<string>();
     for (const domain of cost.premiumDomains) {
@@ -660,7 +665,7 @@ export function GameBoard() {
       if (showWarnings) notifyWarning('Insufficient energy', `${cardDef?.name ?? 'That Equipment'} needs ${neededEnergy} energy from ready runes to equip.`);
       return null;
     }
-    return { paymentRuneIds: [...selectedRunes], premiumRuneIds };
+    return { paymentRuneIds: [...selectedRunes], premiumRuneIds, selectedRecycleCardInstanceIds };
   };
 
   const canPayEquipCost = (cardDef: RiftCard | undefined) => equipPaymentForCard(cardDef, false) != null;

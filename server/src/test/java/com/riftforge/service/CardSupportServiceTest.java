@@ -108,6 +108,10 @@ class CardSupportServiceTest {
         .contains("paying 1 energy")
         .contains("friendly public battlefield Unit/Champion")
         .contains("activated ability timing");
+    assertThat(service.summarize(card("last-rites", "Last Rites", "Gear", "[Equip] — :rb_rune_chaos:, Recycle 2 cards from your trash (Pay the cost: Attach this to a unit you control.)")).reason())
+        .contains("Chaos rune plus recycle-2-from-Trash equip cost")
+        .contains("bottom of the owner's Main Deck pool")
+        .contains("full official Equip timing");
     assertThat(service.summarize(card("zhonya", "Zhonya's Hourglass", "Gear", "[Hidden] If a friendly unit would die, kill this instead. Heal that unit, exhaust it, and recall it.")).reason())
         .contains("protect a friendly public Unit/Champion")
         .contains("Hidden Reaction-for-0 timing")

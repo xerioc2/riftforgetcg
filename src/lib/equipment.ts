@@ -1,8 +1,9 @@
-import type { RiftCard } from '../types';
+import type { CardInstance, RiftCard } from '../types';
 
 export type EquipCost = {
   energyCost: number;
   premiumDomains: string[];
+  recycleTrashCount: number;
 };
 
 export type EquipmentStatModifier = {
@@ -25,7 +26,8 @@ export function equipCostForCard(card: RiftCard | undefined): EquipCost {
     .reduce((total, match) => total + Number(match[1] ?? 0), 0);
   const premiumDomains = [...header.matchAll(/:rb_rune_([a-z_]+):/gi)]
     .map((match) => normalizeEquipDomain(match[1] ?? ''));
-  return { energyCost, premiumDomains };
+  const recycleTrashCount = Number(header.match(/recycle\s+(\d+)\s+cards?\s+from\s+your\s+trash/i)?.[1] ?? 0);
+  return { energyCost, premiumDomains, recycleTrashCount };
 }
 
 export function isEquipRulesText(card: RiftCard | undefined) {
@@ -44,7 +46,25 @@ export function equipCostLabel(cost: EquipCost) {
   const parts: string[] = [];
   if (cost.energyCost > 0) parts.push(`${cost.energyCost} energy`);
   parts.push(...cost.premiumDomains.map((domain) => `${domain.toLowerCase()} rune`));
+  if (cost.recycleTrashCount > 0) {
+    parts.push(`recycle ${cost.recycleTrashCount} from Trash`);
+  }
   return parts.length > 0 ? parts.join(' + ') : 'No printed Equip cost';
+}
+
+export function selectEquipRecycleCardInstanceIds(
+  cards: CardInstance[] | undefined,
+  playerId: string,
+  cost: EquipCost,
+) {
+  const required = Math.max(0, cost.recycleTrashCount);
+  if (required === 0) return [];
+  const candidates = (cards ?? []).filter((card) =>
+    card.ownerId === playerId
+    && card.zone.toLowerCase() === 'discard'
+    && !card.faceDown);
+  if (candidates.length < required) return null;
+  return candidates.slice(0, required).map((card) => card.instanceId);
 }
 
 export function equipmentStatModifierForCard(

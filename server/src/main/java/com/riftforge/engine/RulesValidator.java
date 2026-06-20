@@ -911,6 +911,7 @@ public class RulesValidator {
     CardInstance target = findCard(state, move.targetInstanceId());
     validateEquipTarget(move.playerId(), target);
     validateEquipPayment(state, move, gearDef);
+    validateEquipRecycleCost(state, move, gearDef);
   }
 
   private void validateActivateAbility(LiveGameState state, ActivateAbilityMove move) {
@@ -941,6 +942,38 @@ public class RulesValidator {
         .getAvailableEnergy();
     if (availableEnergy + selectedPaymentEnergy(state, move.paymentRuneIds()) < cost.energyCost()) {
       throw new IllegalMoveException("Insufficient equip payment.");
+    }
+  }
+
+  private void validateEquipRecycleCost(LiveGameState state, EquipGearMove move, CardDefinition gearDef) {
+    int requiredRecycle = EquipmentRules.equipCost(gearDef).recycleTrashCount();
+    if (requiredRecycle == 0) {
+      if (!move.selectedRecycleCardInstanceIds().isEmpty()) {
+        throw new IllegalMoveException("That Equipment does not require recycled trash cards.");
+      }
+      return;
+    }
+    if (move.selectedRecycleCardInstanceIds().size() != requiredRecycle) {
+      throw new IllegalMoveException("Last Rites requires exactly " + requiredRecycle + " cards from your Trash to recycle.");
+    }
+    Set<String> selected = new HashSet<>();
+    for (String rawInstanceId : move.selectedRecycleCardInstanceIds()) {
+      if (rawInstanceId == null || rawInstanceId.isBlank()) {
+        throw new IllegalMoveException("Recycle selection is missing a card.");
+      }
+      if (!selected.add(rawInstanceId)) {
+        throw new IllegalMoveException("Recycle selection cannot use the same card twice.");
+      }
+      CardInstance recycleCard = findCard(state, rawInstanceId);
+      if (!move.playerId().equals(recycleCard.getOwnerId())) {
+        throw new IllegalMoveException("You can only recycle your own Trash cards.");
+      }
+      if (recycleCard.getZone() != ZoneName.DISCARD) {
+        throw new IllegalMoveException("Last Rites can only recycle cards from your Trash.");
+      }
+      if (recycleCard.isFaceDown() || recycleCard.getZone() == ZoneName.HIDDEN) {
+        throw new IllegalMoveException("Hidden cards cannot be used for Last Rites recycle cost.");
+      }
     }
   }
 

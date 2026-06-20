@@ -37,6 +37,8 @@ class GameEngineEquipPaymentTest {
       "[Equip] :rb_rune_calm: (:rb_rune_calm:: Attach this to a unit you control.)";
   private static final String ENERGY_GEAR_TEXT = "[Equip] :rb_energy_2:";
   private static final String ENERGY_AND_PREMIUM_TEXT = "[Equip] :rb_energy_1::rb_rune_chaos:";
+  private static final String LAST_RITES_TEXT =
+      "[Equip] — :rb_rune_chaos:, Recycle 2 cards from your trash (Pay the cost: Attach this to a unit you control.)";
 
   @Mock CardDataService cardDataService;
   @Mock CardEffectRegistry effects;
@@ -246,6 +248,159 @@ class GameEngineEquipPaymentTest {
     assertThat(player(state).getAvailableEnergy()).isZero();
   }
 
+  @Test
+  void lastRitesEquipsWithChaosRuneAndExactlyTwoRecycledTrashCards() {
+    LiveGameState state = state(
+        gear("last-rites-i", "last-rites"),
+        unit("unit-i", "unit"),
+        rune("chaos-r", "chaos-rune", "p1"));
+    state.getCards().add(trash("trash-1", "trash-card-1", "p1"));
+    state.getCards().add(trash("trash-2", "trash-card-2", "p1"));
+    stubGear("last-rites", LAST_RITES_TEXT);
+    stubUnit("unit");
+    stubUnit("trash-card-1");
+    stubUnit("trash-card-2");
+    stubRune("chaos-rune", "CHAOS");
+
+    engine.applyMove(state, equip(
+        "last-rites-i",
+        "unit-i",
+        List.of(),
+        List.of("chaos-r"),
+        List.of("trash-1", "trash-2")));
+
+    assertThat(findCard(state, "last-rites-i").getAttachedToInstanceId()).isEqualTo("unit-i");
+    assertThat(state.getRunes()).isEmpty();
+    assertThat(findCard(state, "trash-1").getZone()).isEqualTo(ZoneName.DECK);
+    assertThat(findCard(state, "trash-2").getZone()).isEqualTo(ZoneName.DECK);
+    assertThat(player(state).getDeckPool()).containsExactly("trash-card-1", "trash-card-2");
+    assertThat(state.getLog()).extracting(LiveGameState.LogEntry::text)
+        .anyMatch(text -> text.contains("recycled 2 cards from Trash."));
+  }
+
+  @Test
+  void lastRitesRejectsInsufficientTrashWithoutMutation() {
+    LiveGameState state = state(
+        gear("last-rites-i", "last-rites"),
+        unit("unit-i", "unit"),
+        rune("chaos-r", "chaos-rune", "p1"));
+    state.getCards().add(trash("trash-1", "trash-card-1", "p1"));
+    stubGear("last-rites", LAST_RITES_TEXT);
+    stubUnit("unit");
+    stubUnit("trash-card-1");
+    stubRune("chaos-rune", "CHAOS");
+
+    assertThatThrownBy(() -> engine.applyMove(state, equip(
+        "last-rites-i",
+        "unit-i",
+        List.of(),
+        List.of("chaos-r"),
+        List.of("trash-1"))))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Last Rites requires exactly 2 cards from your Trash to recycle.");
+
+    assertLastRitesNoMutation(state);
+    assertThat(findCard(state, "trash-1").getZone()).isEqualTo(ZoneName.DISCARD);
+  }
+
+  @Test
+  void lastRitesRejectsDuplicateRecycleSelectionWithoutMutation() {
+    LiveGameState state = state(
+        gear("last-rites-i", "last-rites"),
+        unit("unit-i", "unit"),
+        rune("chaos-r", "chaos-rune", "p1"));
+    state.getCards().add(trash("trash-1", "trash-card-1", "p1"));
+    stubGear("last-rites", LAST_RITES_TEXT);
+    stubUnit("unit");
+    stubUnit("trash-card-1");
+    stubRune("chaos-rune", "CHAOS");
+
+    assertThatThrownBy(() -> engine.applyMove(state, equip(
+        "last-rites-i",
+        "unit-i",
+        List.of(),
+        List.of("chaos-r"),
+        List.of("trash-1", "trash-1"))))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Recycle selection cannot use the same card twice.");
+
+    assertLastRitesNoMutation(state);
+    assertThat(findCard(state, "trash-1").getZone()).isEqualTo(ZoneName.DISCARD);
+  }
+
+  @Test
+  void lastRitesRejectsOpponentOrNonTrashRecycleSelectionWithoutMutation() {
+    LiveGameState state = state(
+        gear("last-rites-i", "last-rites"),
+        unit("unit-i", "unit"),
+        rune("chaos-r", "chaos-rune", "p1"));
+    state.getCards().add(trash("trash-1", "trash-card-1", "p1"));
+    state.getCards().add(trash("opponent-trash", "trash-card-2", "p2"));
+    state.getCards().add(unit("base-card", "trash-card-3"));
+    stubGear("last-rites", LAST_RITES_TEXT);
+    stubUnit("unit");
+    stubUnit("trash-card-1");
+    stubUnit("trash-card-2");
+    stubUnit("trash-card-3");
+    stubRune("chaos-rune", "CHAOS");
+
+    assertThatThrownBy(() -> engine.applyMove(state, equip(
+        "last-rites-i",
+        "unit-i",
+        List.of(),
+        List.of("chaos-r"),
+        List.of("trash-1", "opponent-trash"))))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("You can only recycle your own Trash cards.");
+    assertLastRitesNoMutation(state);
+
+    assertThatThrownBy(() -> engine.applyMove(state, equip(
+        "last-rites-i",
+        "unit-i",
+        List.of(),
+        List.of("chaos-r"),
+        List.of("trash-1", "base-card"))))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Last Rites can only recycle cards from your Trash.");
+    assertLastRitesNoMutation(state);
+  }
+
+  @Test
+  void lastRitesInvalidRuneOrTargetRejectsBeforeRecycleOrAttach() {
+    LiveGameState state = state(
+        gear("last-rites-i", "last-rites"),
+        unit("unit-i", "unit"),
+        rune("calm-r", "calm-rune", "p1"));
+    state.getCards().add(trash("trash-1", "trash-card-1", "p1"));
+    state.getCards().add(trash("trash-2", "trash-card-2", "p1"));
+    stubGear("last-rites", LAST_RITES_TEXT);
+    stubUnit("unit");
+    stubUnit("trash-card-1");
+    stubUnit("trash-card-2");
+    stubRune("calm-rune", "CALM");
+
+    assertThatThrownBy(() -> engine.applyMove(state, equip(
+        "last-rites-i",
+        "unit-i",
+        List.of(),
+        List.of("calm-r"),
+        List.of("trash-1", "trash-2"))))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Equip payment uses the wrong rune domain.");
+
+    assertLastRitesNoMutation(state);
+
+    assertThatThrownBy(() -> engine.applyMove(state, equip(
+        "last-rites-i",
+        "missing-target",
+        List.of(),
+        List.of("calm-r"),
+        List.of("trash-1", "trash-2"))))
+        .isInstanceOf(IllegalMoveException.class);
+
+    assertLastRitesNoMutation(state);
+  }
+
   private void assertNoEquipMutation(LiveGameState state, String gearInstanceId) {
     CardInstance gear = findCard(state, gearInstanceId);
     assertThat(gear.getAttachedToInstanceId()).isNull();
@@ -253,6 +408,13 @@ class GameEngineEquipPaymentTest {
     assertThat(state.getRunes()).isNotEmpty();
     assertThat(state.getRunes()).allMatch(rune -> !rune.isTapped());
     assertThat(player(state).getRuneDeckPool()).isEmpty();
+  }
+
+  private void assertLastRitesNoMutation(LiveGameState state) {
+    assertThat(findCard(state, "last-rites-i").getAttachedToInstanceId()).isNull();
+    assertThat(findCard(state, "last-rites-i").getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(state.getRunes()).allMatch(rune -> !rune.isTapped());
+    assertThat(player(state).getDeckPool()).isEmpty();
   }
 
   private LiveGameState state(CardInstance gear, CardInstance unit, RuneState... runes) {
@@ -308,6 +470,13 @@ class GameEngineEquipPaymentTest {
     return unit;
   }
 
+  private CardInstance trash(String instanceId, String cardId, String ownerId) {
+    CardInstance card = unit(instanceId, cardId);
+    card.setOwnerId(ownerId);
+    card.setZone(ZoneName.DISCARD);
+    return card;
+  }
+
   private RuneState rune(String instanceId, String cardId, String ownerId) {
     RuneState rune = new RuneState();
     rune.setInstanceId(instanceId);
@@ -321,6 +490,15 @@ class GameEngineEquipPaymentTest {
   private EquipGearMove equip(
       String gearInstanceId, String targetInstanceId, List<String> paymentRuneIds, List<String> premiumRuneIds) {
     return new EquipGearMove("p1", gearInstanceId, targetInstanceId, paymentRuneIds, premiumRuneIds);
+  }
+
+  private EquipGearMove equip(
+      String gearInstanceId,
+      String targetInstanceId,
+      List<String> paymentRuneIds,
+      List<String> premiumRuneIds,
+      List<String> selectedRecycleCardInstanceIds) {
+    return new EquipGearMove("p1", gearInstanceId, targetInstanceId, paymentRuneIds, premiumRuneIds, selectedRecycleCardInstanceIds);
   }
 
   private void stubGear(String cardId, String rulesText) {

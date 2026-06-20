@@ -37,6 +37,18 @@ Battlefield effect integration:
   then gives one friendly public Unit/Champion at that Battlefield location +1
   Might this turn.
 
+Equip-cost integration:
+
+- `EquipmentRules` parses printed Equip headers into reusable cost metadata,
+  including normal energy, premium/domain rune requirements, and exact-card
+  recycle-from-Trash requirements.
+- Last Rites uses this path for its Chaos rune plus recycle-2-from-Trash Equip
+  cost. Server validation checks target legality, selected runes, duplicate
+  recycle IDs, owner, zone, and hidden state before any payment or attachment
+  mutation is applied.
+- Recycled cards move to the bottom of the owner's Main Deck pool under the
+  current alpha recycle convention.
+
 Deferred:
 
 - Ability-chain / reactable activated abilities.

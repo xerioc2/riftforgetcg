@@ -355,6 +355,9 @@ Current implementation notes:
 - Gear play cost and Equip cost are validated separately: playing Gear from
   hand uses the card's normal play cost, while the later Equip action pays the
   parsed `[Equip]` header cost.
+- Last Rites has exact-card alpha coverage for its printed Equip cost:
+  one Chaos rune plus recycling exactly two owned cards from Trash. Recycled
+  cards move to the bottom of the owner's Main Deck pool.
 - Equip target validation is intentionally strict: Equipment cannot attach to
   enemy cards, Battlefields, Runes, Legends, other Gear, hidden/face-down cards,
   or cards outside Base/Battlefield public play.

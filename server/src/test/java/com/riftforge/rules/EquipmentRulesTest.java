@@ -34,6 +34,17 @@ class EquipmentRulesTest {
 
     assertThat(cost.energyCost()).isEqualTo(2);
     assertThat(cost.premiumDomains()).containsExactly("CALM");
+    assertThat(cost.recycleTrashCount()).isZero();
+  }
+
+  @Test
+  void parsesLastRitesRecycleTrashCost() {
+    EquipCost cost = EquipmentRules.equipCost(gear(
+        "[Equip] — :rb_rune_chaos:, Recycle 2 cards from your trash (Pay the cost: Attach this to a unit you control.)"));
+
+    assertThat(cost.energyCost()).isZero();
+    assertThat(cost.premiumDomains()).containsExactly("CHAOS");
+    assertThat(cost.recycleTrashCount()).isEqualTo(2);
   }
 
   @Test

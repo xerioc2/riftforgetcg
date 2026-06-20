@@ -581,7 +581,7 @@
       },
       "support": {
         "status": "PARTIAL",
-        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "reason": "Partial: alpha Equip lifecycle supports the exact printed Chaos rune plus recycle-2-from-Trash equip cost. Recycled cards move to the bottom of the owner's Main Deck pool, and full official Equip timing or additional card-specific effects remain deferred.",
         "blocked": false
       },
       "keywords": [

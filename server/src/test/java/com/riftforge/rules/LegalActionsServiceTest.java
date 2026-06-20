@@ -144,6 +144,45 @@ class LegalActionsServiceTest {
   }
 
   @Test
+  void lastRitesEquipActionRequiresRecycleCostInTrash() {
+    when(cardDataService.getCard("last-rites")).thenReturn(new CardDefinition(
+        "last-rites",
+        "Last Rites",
+        "Gear",
+        null,
+        List.of("CHAOS"),
+        3,
+        0,
+        null,
+        null,
+        null,
+        "[Equip] — :rb_rune_chaos:, Recycle 2 cards from your trash (Pay the cost: Attach this to a unit you control.)",
+        0,
+        0,
+        List.of()));
+    when(cardDataService.getCard("friendly")).thenReturn(unitDef("friendly", 2, 2));
+    when(cardDataService.getCard("trash-a")).thenReturn(unitDef("trash-a", 1, 1));
+    when(cardDataService.getCard("trash-b")).thenReturn(unitDef("trash-b", 1, 1));
+    when(cardDataService.getCard("chaos-rune")).thenReturn(new CardDefinition("chaos-rune", "Chaos Rune", "Rune", null, List.of("CHAOS"), 0, 0, null, null, null, null, 0, 0, List.of()));
+    when(cardDataService.isEquip(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      return def != null && "Gear".equalsIgnoreCase(def.type()) && def.rulesText() != null && def.rulesText().toLowerCase().contains("[equip]");
+    });
+    LegalActionsService legalActions = new LegalActionsService(cardDataService);
+    LiveGameState state = state(Phase.MAIN, "p1");
+    state.getCards().add(card("last-rites-1", "p1", "last-rites", ZoneName.BASE));
+    state.getCards().add(card("friendly-1", "p1", "friendly", ZoneName.BASE));
+    state.setRunes(new ArrayList<>(List.of(rune("chaos-rune", "p1", false))));
+
+    assertThat(legalActions.legalActionsFor(state, "p1")).doesNotContain(LegalAction.EQUIP_GEAR);
+
+    state.getCards().add(card("trash-1", "p1", "trash-a", ZoneName.DISCARD));
+    state.getCards().add(card("trash-2", "p1", "trash-b", ZoneName.DISCARD));
+
+    assertThat(legalActions.legalActionsFor(state, "p1")).contains(LegalAction.EQUIP_GEAR);
+  }
+
+  @Test
   void theSyrenActivationRequiresReadyBaseSourceLegalTargetAndPayment() {
     CardDefinition syren = new CardDefinition(
         "syren",
