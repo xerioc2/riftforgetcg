@@ -30,7 +30,7 @@ Extraction status: Extracted
 - Sunken Temple: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Targon's Peak: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Fizz - Trickster: PARTIAL - Champion text. Playable for alpha testing, but card-specific behavior may be incomplete.
-- Irelia - Fervent: PARTIAL - Champion text. Partial: Deflect targeting tax is heuristic, and the choose/ready +1 Might trigger is not implemented yet.
+- Irelia - Fervent: PARTIAL - Champion text. Partial: the supported explicit-ready trigger gives Irelia +1 Might this turn when her controller readies her through a registered effect. Deflect targeting tax remains heuristic, choose-trigger coverage is incomplete, and automatic ready-step trigger timing remains deferred.
 
 ## Decklists
 
@@ -76,7 +76,7 @@ Top blockers:
 - Sunken Temple: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Targon's Peak: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Fizz - Trickster: PARTIAL - Champion text. Playable for alpha testing, but card-specific behavior may be incomplete.
-- Irelia - Fervent: PARTIAL - Champion text. Partial: Deflect targeting tax is heuristic, and the choose/ready +1 Might trigger is not implemented yet.
+- Irelia - Fervent: PARTIAL - Champion text. Partial: the supported explicit-ready trigger gives Irelia +1 Might this turn when her controller readies her through a registered effect. Deflect targeting tax remains heuristic, choose-trigger coverage is incomplete, and automatic ready-step trigger timing remains deferred.
 
 ## Recommended Implementation Order
 

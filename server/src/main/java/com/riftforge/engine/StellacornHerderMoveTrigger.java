@@ -22,7 +22,6 @@ public class StellacornHerderMoveTrigger implements TriggerHandler {
   @Override
   public boolean supports(TriggerEvent event) {
     return event.type() == TriggerType.CARD_MOVED
-        && event.oldZone() != event.newZone()
         && isSupportedAlphaMove(event.oldZone(), event.newZone())
         && isNamed(event.sourceCard(), "Stellacorn Herder");
   }
@@ -36,7 +35,8 @@ public class StellacornHerderMoveTrigger implements TriggerHandler {
 
   private boolean isSupportedAlphaMove(ZoneName oldZone, ZoneName newZone) {
     return (oldZone == ZoneName.BASE && newZone == ZoneName.BATTLEFIELD)
-        || (oldZone == ZoneName.BATTLEFIELD && newZone == ZoneName.BASE);
+        || (oldZone == ZoneName.BATTLEFIELD && newZone == ZoneName.BASE)
+        || (oldZone == ZoneName.BATTLEFIELD && newZone == ZoneName.BATTLEFIELD);
   }
 
   private boolean autoDraw(LiveGameState state, String playerId) {

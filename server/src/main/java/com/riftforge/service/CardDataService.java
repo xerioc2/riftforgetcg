@@ -370,6 +370,31 @@ public class CardDataService {
         && text.contains("recall it");
   }
 
+  public boolean isIreliaBladeDancerLegend(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().trim().toLowerCase();
+    return "Legend".equalsIgnoreCase(def.type())
+        && def.name() != null
+        && def.name().trim().equalsIgnoreCase("Irelia - Blade Dancer")
+        && text.contains("when you choose a friendly unit")
+        && text.contains("exhaust me")
+        && text.contains("ready it")
+        && text.contains("when you conquer")
+        && text.contains("ready me");
+  }
+
+  public boolean isIreliaFerventChampion(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().trim().toLowerCase();
+    return "Champion".equalsIgnoreCase(def.type())
+        && def.name() != null
+        && def.name().trim().equalsIgnoreCase("Irelia - Fervent")
+        && text.contains("[deflect]")
+        && text.contains("when you choose or ready me")
+        && text.contains("+1")
+        && text.contains(":rb_might:");
+  }
+
   public boolean isDefyCounterReaction(CardDefinition def) {
     if (def == null || def.rulesText() == null) return false;
     String text = def.rulesText().toLowerCase();

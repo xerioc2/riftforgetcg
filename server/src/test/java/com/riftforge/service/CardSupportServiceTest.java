@@ -86,6 +86,11 @@ class CardSupportServiceTest {
         .contains("protect a friendly public Unit/Champion")
         .contains("Hidden Reaction-for-0 timing")
         .contains("competing replacement choices");
+    assertThat(service.summarize(card("irelia-fervent", "Irelia - Fervent", "Champion", "[Deflect] When you choose or ready me, give me +1 :rb_might: this turn.")).reason())
+        .contains("explicit-ready trigger")
+        .contains("+1 Might this turn")
+        .contains("choose-trigger coverage is incomplete")
+        .contains("automatic ready-step trigger timing remains deferred");
     assertThat(service.summarize(card("defy", "Defy", "Spell", "[Reaction] Counter a spell.")).reason())
         .contains("no more than 4 energy")
         .contains("no more than 1 premium rune")

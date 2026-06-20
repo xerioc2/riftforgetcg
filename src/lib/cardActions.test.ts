@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canUseSupportedChainResponse, isAbandonCounterCard, isCharmMoveCard, isDefiantDanceReactionCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isFlashReactionCard, isGustReactionCard, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isSupportedChainReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, shouldShowRespondAction, targetModeForCard, unsupportedCardReason } from './cardActions';
+import { canUseSupportedChainResponse, isAbandonCounterCard, isCharmMoveCard, isDefiantDanceReactionCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isFlashReactionCard, isGustReactionCard, isIreliaBladeDancerActivatedAbility, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isSupportedChainReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, shouldShowRespondAction, targetModeForCard, unsupportedCardReason } from './cardActions';
 import type { CardInstance, RiftCard } from '../types';
 
 describe('cardActions', () => {
@@ -179,6 +179,20 @@ describe('cardActions', () => {
     expect(isZhonyasHourglassActivatedAbility(zhonya)).toBe(true);
     expect(unsupportedCardReason(zhonya)).toBeNull();
     expect(targetModeForCard(zhonya)).toBe('NONE');
+  });
+
+  it('recognizes Irelia Blade Dancer as the narrow alpha Legend activated helper', () => {
+    const irelia: RiftCard = {
+      id: 'irelia',
+      name: 'Irelia - Blade Dancer',
+      type: 'Legend',
+      domains: ['CALM'],
+      rulesText: 'When you choose a friendly unit, you may exhaust me and pay :rb_rune_rainbow: to ready it.When you conquer, you may pay :rb_energy_1: to ready me.',
+    };
+
+    expect(isIreliaBladeDancerActivatedAbility(irelia)).toBe(true);
+    expect(unsupportedCardReason(irelia)).toBeNull();
+    expect(targetModeForCard(irelia)).toBe('NONE');
   });
 
   it('marks Gust playable only when chain play and a legal Gust target are available', () => {

@@ -109,6 +109,17 @@ export function isZhonyasHourglassActivatedAbility(card: RiftCard | undefined) {
     && text.includes('recall it');
 }
 
+export function isIreliaBladeDancerActivatedAbility(card: RiftCard | undefined) {
+  const text = (card?.rulesText ?? '').trim().toLowerCase();
+  return card?.type?.toLowerCase() === 'legend'
+    && card.name?.trim().toLowerCase() === 'irelia - blade dancer'
+    && text.includes('when you choose a friendly unit')
+    && text.includes('exhaust me')
+    && text.includes('ready it')
+    && text.includes('when you conquer')
+    && text.includes('ready me');
+}
+
 export function isActionCard(card: RiftCard | undefined) {
   return bracketedTiming(card, 'action');
 }

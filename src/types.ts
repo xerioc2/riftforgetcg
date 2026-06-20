@@ -77,6 +77,7 @@ export type LegalAction =
   | 'END_TURN'
   | 'PLAY_CARD'
   | 'MOVE_TO_BATTLEFIELD'
+  | 'MOVE_TO_BASE'
   | 'REPOSITION_CARD'
   | 'PASS_CHAIN_FOCUS'
   | 'RESOLVE_CHAIN_TOP'

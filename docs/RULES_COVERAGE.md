@@ -616,10 +616,10 @@ Current implementation notes:
   Legion token trigger are card-specific Supported in the active-lane
   alpha.
 - Stellacorn Herder's full printed movement trigger is card-specific
-  Supported in the active-lane alpha: Base -> battlefield and
-  battlefield -> Base/recall movement each draw 1 privately, while play from
-  hand, return to hand, trash/death, setup/import, hidden transitions, and
-  same-zone repositioning do not trigger it.
+  Supported in the active-lane alpha: Base -> battlefield, battlefield
+  lane-to-lane, and battlefield -> Base movement each draw 1 privately, while
+  play from hand, return to hand, trash/death, setup/import, hidden
+  transitions, and same-zone repositioning do not trigger it.
 - `TriggerEvent`, `TriggerDispatcher`, and `TriggerHandler` provide a small
   deterministic trigger framework for alpha events. Movement triggers for
   Noxian Drummer and Stellacorn Herder now run through this dispatcher.
@@ -652,8 +652,16 @@ Current implementation notes:
 - Effect architecture scaffolding exists for keyword, on-play, triggered,
   activated, static modifier, and replacement handlers.
 - `ActivatedAbilityService` is the v1 server-authoritative activated ability
-  primitive for exact-card immediate Main Phase abilities; The Syren and
-  Zhonya's Hourglass are the first registered production abilities.
+  primitive for exact-card immediate Main Phase abilities; The Syren,
+  Zhonya's Hourglass, and Irelia - Blade Dancer are registered production
+  abilities. Irelia's Legend-zone alpha ability exhausts Irelia, pays one
+  rainbow/premium rune, and readies an exhausted friendly public Unit/Champion
+  in Base or at a battlefield. Her conquer-ready trigger remains deferred.
+- `LegendChampionEffectService` is the v1 exact-card persistent source hook for
+  public Legend/Champion text. It currently supports Irelia - Fervent's
+  explicit-ready trigger for registered ready effects, giving her +1 Might this
+  turn when her controller readies her. Broad "choose me" coverage, exact
+  Deflect payment tax, and automatic ready-step trigger timing remain deferred.
 - `DeathService` centralizes real Unit/Champion death cleanup for combat and
   explicit destroy paths, and `ReplacementEffectService` provides a narrow
   server-only would-die replacement hook for future exact-card effects.

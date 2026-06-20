@@ -7,6 +7,7 @@ public record ActivatedAbilityDefinition(
     String label,
     ZoneName sourceZone,
     int energyCost,
+    int premiumCost,
     boolean requiresExhaust,
     ActivatedAbilityTiming timing,
     ActivatedAbilityTargetKind targetKind,

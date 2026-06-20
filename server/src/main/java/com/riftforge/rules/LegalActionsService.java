@@ -127,6 +127,7 @@ public class LegalActionsService {
       actions.add(LegalAction.END_TURN);
       actions.add(LegalAction.PLAY_CARD);
       actions.add(LegalAction.MOVE_TO_BATTLEFIELD);
+      actions.add(LegalAction.MOVE_TO_BASE);
       actions.add(LegalAction.REPOSITION_CARD);
       actions.add(LegalAction.TAP_RUNE);
       actions.add(LegalAction.DISCARD_RUNE);

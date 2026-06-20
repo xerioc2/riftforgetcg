@@ -23,6 +23,8 @@ class ActivatedAbilityServiceTest {
   private static final String SYREN_TEXT = ":rb_energy_1:, :rb_exhaust:: Move a friendly unit at a battlefield to its base.";
   private static final String ZHONYA_TEXT = "[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)"
       + "If a friendly unit would die, kill this instead. Heal that unit, exhaust it, and recall it. (Send it to base. This isn't a move.)";
+  private static final String IRELIA_TEXT = "When you choose a friendly unit, you may exhaust me and pay :rb_rune_rainbow: to ready it."
+      + "When you conquer, you may pay :rb_energy_1: to ready me.";
 
   private CardDataService cardDataService;
   private ActivatedAbilityService service;
@@ -39,8 +41,13 @@ class ActivatedAbilityServiceTest {
       CardDefinition def = invocation.getArgument(0);
       return def != null && "Zhonya's Hourglass".equals(def.name());
     });
+    when(cardDataService.isIreliaBladeDancerLegend(any())).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      return def != null && "Irelia - Blade Dancer".equals(def.name());
+    });
     when(cardDataService.getCard("syren-card")).thenReturn(card("syren-card", "The Syren", "Gear", SYREN_TEXT));
     when(cardDataService.getCard("zhonya-card")).thenReturn(card("zhonya-card", "Zhonya's Hourglass", "Gear", ZHONYA_TEXT));
+    when(cardDataService.getCard("irelia-card")).thenReturn(card("irelia-card", "Irelia - Blade Dancer", "Legend", IRELIA_TEXT));
     when(cardDataService.getCard("unit-card")).thenReturn(card("unit-card", "Friendly Unit", "Unit", ""));
     when(cardDataService.getCard("enemy-card")).thenReturn(card("enemy-card", "Enemy Unit", "Unit", ""));
   }
@@ -53,6 +60,7 @@ class ActivatedAbilityServiceTest {
       assertThat(definition.abilityKey()).isEqualTo(ActivatedAbilityService.THE_SYREN_RECALL);
       assertThat(definition.sourceZone()).isEqualTo(ZoneName.BASE);
       assertThat(definition.energyCost()).isEqualTo(1);
+      assertThat(definition.premiumCost()).isZero();
       assertThat(definition.requiresExhaust()).isTrue();
       assertThat(definition.timing()).isEqualTo(ActivatedAbilityTiming.MAIN_PHASE_IMMEDIATE);
       assertThat(definition.targetKind()).isEqualTo(ActivatedAbilityTargetKind.FRIENDLY_PUBLIC_BATTLEFIELD_UNIT);
@@ -68,9 +76,26 @@ class ActivatedAbilityServiceTest {
       assertThat(definition.abilityKey()).isEqualTo(ActivatedAbilityService.ZHONYAS_HOURGLASS_PROTECT);
       assertThat(definition.sourceZone()).isEqualTo(ZoneName.BASE);
       assertThat(definition.energyCost()).isZero();
+      assertThat(definition.premiumCost()).isZero();
       assertThat(definition.requiresExhaust()).isFalse();
       assertThat(definition.timing()).isEqualTo(ActivatedAbilityTiming.MAIN_PHASE_IMMEDIATE);
       assertThat(definition.targetKind()).isEqualTo(ActivatedAbilityTargetKind.FRIENDLY_PUBLIC_PLAY_UNIT);
+      assertThat(definition.reactable()).isFalse();
+    });
+  }
+
+  @Test
+  void exactCardRegistryExposesIreliaBladeDancerReadyAbilityDefinition() {
+    List<ActivatedAbilityDefinition> definitions = service.definitionsFor(card("irelia-card", "Irelia - Blade Dancer", "Legend", IRELIA_TEXT));
+
+    assertThat(definitions).singleElement().satisfies(definition -> {
+      assertThat(definition.abilityKey()).isEqualTo(ActivatedAbilityService.IRELIA_BLADE_DANCER_READY_UNIT);
+      assertThat(definition.sourceZone()).isEqualTo(ZoneName.LEGEND);
+      assertThat(definition.energyCost()).isZero();
+      assertThat(definition.premiumCost()).isEqualTo(1);
+      assertThat(definition.requiresExhaust()).isTrue();
+      assertThat(definition.timing()).isEqualTo(ActivatedAbilityTiming.MAIN_PHASE_IMMEDIATE);
+      assertThat(definition.targetKind()).isEqualTo(ActivatedAbilityTargetKind.FRIENDLY_PUBLIC_PLAY_TAPPED_UNIT);
       assertThat(definition.reactable()).isFalse();
     });
   }
@@ -96,6 +121,20 @@ class ActivatedAbilityServiceTest {
         new ActivateAbilityMove("p1", "zhonya", ActivatedAbilityService.ZHONYAS_HOURGLASS_PROTECT, "unit", List.of(), List.of()));
 
     assertThat(definition.abilityKey()).isEqualTo(ActivatedAbilityService.ZHONYAS_HOURGLASS_PROTECT);
+  }
+
+  @Test
+  void validatesLegalIreliaActivationWithPremiumRune() {
+    CardInstance target = unit("unit", "p1", ZoneName.BASE);
+    target.setTapped(true);
+    LiveGameState state = state(source("irelia", "irelia-card", "p1", ZoneName.LEGEND), target);
+    state.setRunes(new java.util.ArrayList<>(List.of(rune("rune-1", "p1", false))));
+
+    ActivatedAbilityDefinition definition = service.validate(
+        state,
+        new ActivateAbilityMove("p1", "irelia", ActivatedAbilityService.IRELIA_BLADE_DANCER_READY_UNIT, "unit", List.of(), List.of("rune-1")));
+
+    assertThat(definition.abilityKey()).isEqualTo(ActivatedAbilityService.IRELIA_BLADE_DANCER_READY_UNIT);
   }
 
   @Test
@@ -146,6 +185,31 @@ class ActivatedAbilityServiceTest {
         .hasMessageContaining("friendly public Unit");
     assertThat(syren.isTapped()).isFalse();
     assertThat(enemy.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+  }
+
+  @Test
+  void rejectsIreliaActivationWithoutPremiumOrTappedTargetWithoutMutation() {
+    CardInstance irelia = source("irelia", "irelia-card", "p1", ZoneName.LEGEND);
+    CardInstance target = unit("unit", "p1", ZoneName.BASE);
+    target.setTapped(true);
+    LiveGameState state = state(irelia, target);
+
+    assertThatThrownBy(() -> service.validate(
+        state,
+        new ActivateAbilityMove("p1", "irelia", ActivatedAbilityService.IRELIA_BLADE_DANCER_READY_UNIT, "unit", List.of(), List.of())))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessageContaining("premium rune payment");
+    assertThat(irelia.isTapped()).isFalse();
+    assertThat(target.isTapped()).isTrue();
+
+    state.setRunes(new java.util.ArrayList<>(List.of(rune("rune-1", "p1", false))));
+    target.setTapped(false);
+    assertThatThrownBy(() -> service.validate(
+        state,
+        new ActivateAbilityMove("p1", "irelia", ActivatedAbilityService.IRELIA_BLADE_DANCER_READY_UNIT, "unit", List.of(), List.of("rune-1"))))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessageContaining("exhausted friendly public Unit");
+    assertThat(irelia.isTapped()).isFalse();
   }
 
   @Test
@@ -200,6 +264,22 @@ class ActivatedAbilityServiceTest {
     assertThat(service.hasLegalActivation(state, "p1")).isFalse();
   }
 
+  @Test
+  void legalActivationIncludesIreliaOnlyWithReadyLegendTappedTargetAndPremiumRune() {
+    CardInstance irelia = source("irelia", "irelia-card", "p1", ZoneName.LEGEND);
+    CardInstance target = unit("unit", "p1", ZoneName.BASE);
+    target.setTapped(true);
+    LiveGameState state = state(irelia, target);
+
+    assertThat(service.hasLegalActivation(state, "p1")).isFalse();
+
+    state.setRunes(new java.util.ArrayList<>(List.of(rune("rune-1", "p1", false))));
+    assertThat(service.hasLegalActivation(state, "p1")).isTrue();
+
+    irelia.setTapped(true);
+    assertThat(service.hasLegalActivation(state, "p1")).isFalse();
+  }
+
   private LiveGameState state(CardInstance... cards) {
     LiveGameState state = new LiveGameState();
     state.setCurrentPhase(Phase.MAIN);
@@ -212,6 +292,15 @@ class ActivatedAbilityServiceTest {
     state.setCards(new java.util.ArrayList<>(List.of(cards)));
     state.setRunes(List.of());
     return state;
+  }
+
+  private RuneState rune(String id, String ownerId, boolean tapped) {
+    RuneState rune = new RuneState();
+    rune.setInstanceId(id);
+    rune.setOwnerId(ownerId);
+    rune.setTapped(tapped);
+    rune.setNormalEnergy(1);
+    return rune;
   }
 
   private CardInstance source(String instanceId, String ownerId, ZoneName zone) {

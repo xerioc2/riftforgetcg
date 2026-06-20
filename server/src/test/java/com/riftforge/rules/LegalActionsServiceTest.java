@@ -60,7 +60,7 @@ class LegalActionsServiceTest {
     for (Phase phase : List.of(Phase.AWAKEN, Phase.BEGINNING, Phase.CHANNEL, Phase.DRAW)) {
       assertThat(service.legalActions(state(phase, "p1"), "p1"))
           .contains(LegalAction.PASS_PHASE)
-          .doesNotContain(LegalAction.PLAY_CARD, LegalAction.MOVE_TO_BATTLEFIELD);
+          .doesNotContain(LegalAction.PLAY_CARD, LegalAction.MOVE_TO_BATTLEFIELD, LegalAction.MOVE_TO_BASE);
     }
   }
 
@@ -72,6 +72,7 @@ class LegalActionsServiceTest {
             LegalAction.END_TURN,
             LegalAction.PLAY_CARD,
             LegalAction.MOVE_TO_BATTLEFIELD,
+            LegalAction.MOVE_TO_BASE,
             LegalAction.REPOSITION_CARD,
             LegalAction.TAP_RUNE,
             LegalAction.DISCARD_RUNE,
@@ -582,7 +583,7 @@ class LegalActionsServiceTest {
     state.setActiveShowdown(null);
 
     assertThat(service.legalActions(state, "p1"))
-        .contains(LegalAction.PLAY_CARD, LegalAction.MOVE_TO_BATTLEFIELD, LegalAction.REPOSITION_CARD)
+        .contains(LegalAction.PLAY_CARD, LegalAction.MOVE_TO_BATTLEFIELD, LegalAction.MOVE_TO_BASE, LegalAction.REPOSITION_CARD)
         .doesNotContain(LegalAction.RESOLVE_SHOWDOWN);
   }
 

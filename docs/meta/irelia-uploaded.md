@@ -31,7 +31,7 @@ Event/result: irelia wins s3 shanghai city challenge
 
 ## Top Blockers
 
-- Irelia - Blade Dancer (SFD-195): PARTIAL - Legend text. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Irelia - Blade Dancer (SFD-195): PARTIAL - Legend text. Partial: the Legend-zone activated ready ability is implemented for Main Phase alpha play: exhaust Irelia, pay one rainbow/premium rune, and ready an exhausted friendly public Unit/Champion in Base or at a battlefield. The conquer trigger that may pay 1 energy to ready Irelia remains deferred.
 - Not So Fast (SFD-045): PARTIAL - Reaction / chain / counter. Partial: Not So Fast can counter a supported public pending enemy spell chain item only when that item chooses your friendly Unit/Champion Unit or Gear. Ability-chain targets, broad official Reaction timing, and countering counters remain deferred.
 - Abandoned Hall (UNL-205): PARTIAL - Battlefield effect. Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.
 - Vex - Apathetic (UNL-150): PARTIAL - Champion text. Playable for alpha testing, but card-specific behavior may be incomplete.

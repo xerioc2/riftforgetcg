@@ -191,7 +191,7 @@ public class GameService {
       String championId = removeFirstCardType(remaining, "Champion");
       List<String> runes = remaining.stream()
           .filter(id -> isCardType(id, "Rune"))
-          .toList();
+          .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
       List<String> battlefields = remaining.stream()
           .filter(id -> isCardType(id, "Battlefield"))
           .toList();
@@ -207,6 +207,7 @@ public class GameService {
         state.getCards().add(createZoneCard(legendId, playerId, ZoneName.LEGEND, ++zIndex));
       }
       Collections.shuffle(dealable);
+      Collections.shuffle(runes);
       List<String> hand = dealable.stream().limit(4).toList();
       for (int i = 0; i < hand.size(); i++) {
         CardDefinition def = cardDataService.getCard(hand.get(i));

@@ -32,6 +32,26 @@ function gear(name: string, rulesText: string): RiftCard {
   };
 }
 
+function legend(name: string, rulesText: string): RiftCard {
+  return {
+    id: name.toLowerCase().replace(/\s+/g, '-'),
+    name,
+    type: 'Legend',
+    domains: [],
+    rulesText,
+  };
+}
+
+function champion(name: string, rulesText: string): RiftCard {
+  return {
+    id: name.toLowerCase().replace(/\s+/g, '-'),
+    name,
+    type: 'Champion',
+    domains: [],
+    rulesText,
+  };
+}
+
 describe('deckSupport', () => {
   it('matches backend/docs support for promoted playtest units', () => {
     expect(cardSupportStatus(unit('Lonely Poro', '[Deathknell] If I died alone, draw 1.')).status).toBe('SUPPORTED');
@@ -123,5 +143,24 @@ describe('deckSupport', () => {
     expect(zhonya.reason).toContain('protect a friendly public Unit/Champion');
     expect(zhonya.reason).toContain('Hidden Reaction-for-0 timing');
     expect(zhonya.reason).toContain('competing replacement choices');
+  });
+
+  it('uses an Irelia Blade Dancer-specific Partial reason for the alpha Legend ability', () => {
+    const irelia = cardSupportStatus(legend('Irelia - Blade Dancer', 'When you choose a friendly unit, you may exhaust me and pay :rb_rune_rainbow: to ready it.When you conquer, you may pay :rb_energy_1: to ready me.'));
+
+    expect(irelia.status).toBe('PARTIAL');
+    expect(irelia.reason).toContain('Legend-zone activated ready ability');
+    expect(irelia.reason).toContain('rainbow/premium rune');
+    expect(irelia.reason).toContain('conquer trigger');
+  });
+
+  it('uses an Irelia Fervent-specific Partial reason for the alpha Champion trigger slice', () => {
+    const irelia = cardSupportStatus(champion('Irelia - Fervent', '[Deflect] When you choose or ready me, give me +1 :rb_might: this turn.'));
+
+    expect(irelia.status).toBe('PARTIAL');
+    expect(irelia.reason).toContain('explicit-ready trigger');
+    expect(irelia.reason).toContain('+1 Might this turn');
+    expect(irelia.reason).toContain('choose-trigger coverage is incomplete');
+    expect(irelia.reason).toContain('automatic ready-step trigger timing remains deferred');
   });
 });

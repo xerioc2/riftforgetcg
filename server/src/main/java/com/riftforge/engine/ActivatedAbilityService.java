@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 public class ActivatedAbilityService {
   public static final String THE_SYREN_RECALL = "THE_SYREN_RECALL";
   public static final String ZHONYAS_HOURGLASS_PROTECT = "ZHONYAS_HOURGLASS_PROTECT";
+  public static final String IRELIA_BLADE_DANCER_READY_UNIT = "IRELIA_BLADE_DANCER_READY_UNIT";
 
   private final CardDataService cardDataService;
 
@@ -33,6 +34,7 @@ public class ActivatedAbilityService {
           "Move a friendly unit at a battlefield to its base.",
           ZoneName.BASE,
           1,
+          0,
           true,
           ActivatedAbilityTiming.MAIN_PHASE_IMMEDIATE,
           ActivatedAbilityTargetKind.FRIENDLY_PUBLIC_BATTLEFIELD_UNIT,
@@ -45,11 +47,25 @@ public class ActivatedAbilityService {
           "Protect a friendly unit from the next supported death.",
           ZoneName.BASE,
           0,
+          0,
           false,
           ActivatedAbilityTiming.MAIN_PHASE_IMMEDIATE,
           ActivatedAbilityTargetKind.FRIENDLY_PUBLIC_PLAY_UNIT,
           false,
           "Protect a friendly unit from the next supported death."));
+    }
+    if (cardDataService.isIreliaBladeDancerLegend(sourceDef)) {
+      return List.of(new ActivatedAbilityDefinition(
+          IRELIA_BLADE_DANCER_READY_UNIT,
+          "Ready a friendly unit.",
+          ZoneName.LEGEND,
+          0,
+          1,
+          true,
+          ActivatedAbilityTiming.MAIN_PHASE_IMMEDIATE,
+          ActivatedAbilityTargetKind.FRIENDLY_PUBLIC_PLAY_TAPPED_UNIT,
+          false,
+          "Ready a friendly unit."));
     }
     return List.of();
   }
@@ -113,6 +129,16 @@ public class ActivatedAbilityService {
       }
       return target;
     }
+    if (definition.targetKind() == ActivatedAbilityTargetKind.FRIENDLY_PUBLIC_PLAY_TAPPED_UNIT) {
+      if (move.targetInstanceId() == null || move.targetInstanceId().isBlank()) {
+        throw new IllegalMoveException("This ability requires an exhausted friendly public Unit or Champion in play.");
+      }
+      CardInstance target = findCard(state, move.targetInstanceId());
+      if (!isFriendlyPublicPlayUnit(target, move.playerId()) || !target.isTapped()) {
+        throw new IllegalMoveException("This ability can only target an exhausted friendly public Unit or Champion in Base or at a battlefield.");
+      }
+      return target;
+    }
     throw new IllegalMoveException("That activated ability target is not supported yet.");
   }
 
@@ -120,6 +146,7 @@ public class ActivatedAbilityService {
     try {
       validateSource(source, definition);
       if (!canPayEnergy(state, playerId, definition.energyCost())) return false;
+      if (!canPayPremium(state, playerId, definition.premiumCost())) return false;
       return hasLegalTarget(state, playerId, definition);
     } catch (IllegalMoveException ex) {
       return false;
@@ -132,6 +159,9 @@ public class ActivatedAbilityService {
     }
     if (definition.targetKind() == ActivatedAbilityTargetKind.FRIENDLY_PUBLIC_PLAY_UNIT) {
       return state.getCards().stream().anyMatch(card -> isFriendlyPublicPlayUnit(card, playerId));
+    }
+    if (definition.targetKind() == ActivatedAbilityTargetKind.FRIENDLY_PUBLIC_PLAY_TAPPED_UNIT) {
+      return state.getCards().stream().anyMatch(card -> isFriendlyPublicPlayUnit(card, playerId) && card.isTapped());
     }
     return false;
   }
@@ -157,7 +187,10 @@ public class ActivatedAbilityService {
       validatePaymentRune(state, move.playerId(), requirePaymentRuneId(runeId));
       if (!allRuneIds.add(runeId)) throw new IllegalMoveException("Payment cannot use the same rune twice.");
     }
-    if (!move.premiumRuneIds().isEmpty()) {
+    if (move.premiumRuneIds().size() != definition.premiumCost()) {
+      if (definition.premiumCost() > 0) {
+        throw new IllegalMoveException("This activated ability requires " + definition.premiumCost() + " premium rune payment.");
+      }
       throw new IllegalMoveException("This activated ability does not require premium payment.");
     }
     if (playerEnergy(state, move.playerId()) + selectedPaymentEnergy(state, move.paymentRuneIds()) < definition.energyCost()) {
@@ -171,6 +204,15 @@ public class ActivatedAbilityService {
         .filter(rune -> !rune.isTapped())
         .mapToInt(RuneState::getNormalEnergy)
         .sum() >= energyCost;
+  }
+
+  private boolean canPayPremium(LiveGameState state, String playerId, int premiumCost) {
+    if (premiumCost <= 0) return true;
+    long readyRunes = state.getRunes().stream()
+        .filter(rune -> playerId.equals(rune.getOwnerId()))
+        .filter(rune -> !rune.isTapped())
+        .count();
+    return readyRunes >= premiumCost;
   }
 
   private int selectedPaymentEnergy(LiveGameState state, List<String> paymentRuneIds) {

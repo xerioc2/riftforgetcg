@@ -21,6 +21,7 @@ import com.riftforge.model.move.ActivateAbilityMove;
 import com.riftforge.model.move.AssignCombatDamageMove;
 import com.riftforge.model.move.EquipGearMove;
 import com.riftforge.model.move.HideCardMove;
+import com.riftforge.model.move.MoveToBaseMove;
 import com.riftforge.model.move.MoveToBattlefieldMove;
 import com.riftforge.model.move.PassChainFocusMove;
 import com.riftforge.model.move.PassPhaseMove;
@@ -107,6 +108,29 @@ class GameEnginePlayCardTypeTest {
           && text.contains("heal that unit")
           && text.contains("exhaust it")
           && text.contains("recall it");
+    });
+    when(cardDataService.isIreliaBladeDancerLegend(any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      String text = def == null || def.rulesText() == null ? "" : def.rulesText().trim().toLowerCase();
+      return def != null
+          && "Legend".equalsIgnoreCase(def.type())
+          && "Irelia - Blade Dancer".equalsIgnoreCase(def.name())
+          && text.contains("when you choose a friendly unit")
+          && text.contains("exhaust me")
+          && text.contains("ready it")
+          && text.contains("when you conquer")
+          && text.contains("ready me");
+    });
+    when(cardDataService.isIreliaFerventChampion(any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      String text = def == null || def.rulesText() == null ? "" : def.rulesText().trim().toLowerCase();
+      return def != null
+          && "Champion".equalsIgnoreCase(def.type())
+          && "Irelia - Fervent".equalsIgnoreCase(def.name())
+          && text.contains("[deflect]")
+          && text.contains("when you choose or ready me")
+          && text.contains("+1")
+          && text.contains(":rb_might:");
     });
     when(cardDataService.isHiddenCard(any(CardDefinition.class))).thenAnswer(invocation -> {
       CardDefinition def = invocation.getArgument(0);
@@ -1810,6 +1834,68 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void stellacornHerderDrawsOneWhenMovedBetweenBattlefieldLocations() {
+    CardInstance herder = card("herder", "p1", ZoneName.BATTLEFIELD);
+    herder.setBattlefieldLocationId("bf-0");
+    herder.setTapped(false);
+    LiveGameState state = state(herder);
+    state.getPlayers().getFirst().setDeckPool(new ArrayList<>(List.of("lane-draw", "remaining")));
+    stubCard("herder", "Stellacorn Herder", "Unit", 0, 2, 2, "When I move, draw 1.");
+    stubCard("lane-draw", "Lane Draw", "Unit", 0, 1, 1, null);
+    stubCard("remaining", "Remaining", "Unit", 0, 1, 1, null);
+
+    engine.applyMove(state, new MoveToBattlefieldMove("p1", "herder", "bf-1", List.of(), List.of()));
+
+    assertThat(herder.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(herder.getBattlefieldLocationId()).isEqualTo("bf-1");
+    assertThat(state.getCards()).anyMatch(card -> card.getCardId().equals("lane-draw") && card.getZone() == ZoneName.HAND);
+    assertThat(state.getPlayers().getFirst().getDeckPool()).containsExactly("remaining");
+    assertThat(state.getLog()).filteredOn(entry -> entry.text().equals("Stellacorn Herder drew 1 after moving.")).hasSize(1);
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("Lane Draw"));
+  }
+
+  @Test
+  void moveToBaseClearsBattlefieldLocationAndTriggersStellacornOnce() {
+    CardInstance herder = card("herder", "p1", ZoneName.BATTLEFIELD);
+    herder.setBattlefieldLocationId("bf-1");
+    herder.setTapped(false);
+    LiveGameState state = state(herder);
+    state.getPlayers().getFirst().setDeckPool(new ArrayList<>(List.of("base-draw", "remaining")));
+    stubCard("herder", "Stellacorn Herder", "Unit", 0, 2, 2, "When I move, draw 1.");
+    stubCard("base-draw", "Base Draw", "Unit", 0, 1, 1, null);
+    stubCard("remaining", "Remaining", "Unit", 0, 1, 1, null);
+
+    engine.applyMove(state, new MoveToBaseMove("p1", "herder"));
+
+    assertThat(herder.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(herder.getBattlefieldLocationId()).isNull();
+    assertThat(herder.isTapped()).isTrue();
+    assertThat(state.getCards()).anyMatch(card -> card.getCardId().equals("base-draw") && card.getZone() == ZoneName.HAND);
+    assertThat(state.getPlayers().getFirst().getDeckPool()).containsExactly("remaining");
+    assertThat(state.getLog()).filteredOn(entry -> entry.text().equals("Stellacorn Herder drew 1 after moving.")).hasSize(1);
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Moved Stellacorn Herder to Base."));
+  }
+
+  @Test
+  void invalidMoveToBaseDoesNotDrawOrClearLocation() {
+    CardInstance herder = card("herder", "p1", ZoneName.BATTLEFIELD);
+    herder.setBattlefieldLocationId("bf-1");
+    herder.setTapped(true);
+    LiveGameState state = state(herder);
+    state.getPlayers().getFirst().setDeckPool(new ArrayList<>(List.of("base-draw")));
+    stubCard("herder", "Stellacorn Herder", "Unit", 0, 2, 2, "When I move, draw 1.");
+    stubCard("base-draw", "Base Draw", "Unit", 0, 1, 1, null);
+
+    assertThatThrownBy(() -> engine.applyMove(state, new MoveToBaseMove("p1", "herder")))
+        .hasMessage("Only ready cards can move back to Base.");
+
+    assertThat(herder.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(herder.getBattlefieldLocationId()).isEqualTo("bf-1");
+    assertThat(state.getCards()).noneMatch(card -> card.getCardId().equals("base-draw"));
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("Stellacorn Herder drew"));
+  }
+
+  @Test
   void stellacornHerderDrawsOneWhenReturnedFromBattlefieldToBaseAfterShowdown() {
     CardInstance herder = card("herder", "p1", ZoneName.BASE);
     CardInstance defender = card("defender", "p2", ZoneName.BATTLEFIELD);
@@ -2353,6 +2439,129 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void ireliaBladeDancerActivatesFromLegendZoneToReadyFriendlyUnit() {
+    stubCard("irelia", "Irelia - Blade Dancer", "Legend", 0, 0, 0, ireliaBladeDancerText());
+    stubCard("unit", "Friendly Unit", "Unit", 0, 2, 2, "");
+    CardInstance irelia = card("irelia", "p1", ZoneName.LEGEND);
+    CardInstance unit = card("unit", "p1", ZoneName.BASE);
+    unit.setTapped(true);
+    LiveGameState state = state(irelia, unit);
+    state.setRunes(new ArrayList<>(List.of(rune("rune-1", "p1", false))));
+
+    engine.applyMove(state, new ActivateAbilityMove(
+        "p1",
+        "irelia",
+        ActivatedAbilityService.IRELIA_BLADE_DANCER_READY_UNIT,
+        "unit",
+        List.of(),
+        List.of("rune-1")));
+
+    assertThat(find(state, "unit").isTapped()).isFalse();
+    assertThat(find(state, "irelia").isTapped()).isTrue();
+    assertThat(state.getRunes()).noneMatch(rune -> rune.getInstanceId().equals("rune-1"));
+    assertThat(state.getPlayers().getFirst().getRuneDeckPool()).containsExactly("rune-1");
+    assertThat(state.getLog()).extracting(LiveGameState.LogEntry::text)
+        .contains("Irelia - Blade Dancer readied Friendly Unit.");
+  }
+
+  @Test
+  void ireliaFerventGainsMightWhenReadiedBySupportedLegendAbility() {
+    stubCard("blade-dancer", "Irelia - Blade Dancer", "Legend", 0, 0, 0, ireliaBladeDancerText());
+    stubCard("fervent", "Irelia - Fervent", "Champion", 5, 4, 5, ireliaFerventText());
+    CardInstance bladeDancer = card("blade-dancer", "p1", ZoneName.LEGEND);
+    CardInstance fervent = card("fervent", "p1", ZoneName.BATTLEFIELD);
+    fervent.setTapped(true);
+    LiveGameState state = state(bladeDancer, fervent);
+    state.setRunes(new ArrayList<>(List.of(rune("rune-1", "p1", false))));
+
+    engine.applyMove(state, new ActivateAbilityMove(
+        "p1",
+        "blade-dancer",
+        ActivatedAbilityService.IRELIA_BLADE_DANCER_READY_UNIT,
+        "fervent",
+        List.of(),
+        List.of("rune-1")));
+
+    assertThat(find(state, "fervent").isTapped()).isFalse();
+    assertThat(find(state, "fervent").getTemporaryPowerModifier()).isEqualTo(1);
+    assertThat(state.getLog()).extracting(LiveGameState.LogEntry::text)
+        .contains(
+            "Irelia - Fervent gained +1 Might this turn from being readied.",
+            "Irelia - Blade Dancer readied Irelia - Fervent.");
+  }
+
+  @Test
+  void ireliaFerventReadyTriggerRequiresPublicPlayAndActualReadyTransition() {
+    stubCard("blade-dancer", "Irelia - Blade Dancer", "Legend", 0, 0, 0, ireliaBladeDancerText());
+    stubCard("fervent", "Irelia - Fervent", "Champion", 5, 4, 5, ireliaFerventText());
+    CardInstance bladeDancer = card("blade-dancer", "p1", ZoneName.LEGEND);
+    CardInstance fervent = card("fervent", "p1", ZoneName.CHAMPION);
+    fervent.setTapped(true);
+    LiveGameState state = state(bladeDancer, fervent);
+    state.setRunes(new ArrayList<>(List.of(rune("rune-1", "p1", false))));
+
+    assertThatThrownBy(() -> engine.applyMove(state, new ActivateAbilityMove(
+        "p1",
+        "blade-dancer",
+        ActivatedAbilityService.IRELIA_BLADE_DANCER_READY_UNIT,
+        "fervent",
+        List.of(),
+        List.of("rune-1"))))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessageContaining("Base or at a battlefield");
+    assertThat(find(state, "fervent").getTemporaryPowerModifier()).isZero();
+
+    fervent.setZone(ZoneName.BASE);
+    fervent.setTapped(false);
+    assertThatThrownBy(() -> engine.applyMove(state, new ActivateAbilityMove(
+        "p1",
+        "blade-dancer",
+        ActivatedAbilityService.IRELIA_BLADE_DANCER_READY_UNIT,
+        "fervent",
+        List.of(),
+        List.of("rune-1"))))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessageContaining("exhausted friendly public Unit");
+    assertThat(find(state, "fervent").getTemporaryPowerModifier()).isZero();
+  }
+
+  @Test
+  void ireliaBladeDancerRejectsMissingPremiumOrReadyTargetWithoutMutation() {
+    stubCard("irelia", "Irelia - Blade Dancer", "Legend", 0, 0, 0, ireliaBladeDancerText());
+    stubCard("unit", "Friendly Unit", "Unit", 0, 2, 2, "");
+    CardInstance irelia = card("irelia", "p1", ZoneName.LEGEND);
+    CardInstance unit = card("unit", "p1", ZoneName.BASE);
+    unit.setTapped(true);
+    LiveGameState state = state(irelia, unit);
+
+    assertThatThrownBy(() -> engine.applyMove(state, new ActivateAbilityMove(
+        "p1",
+        "irelia",
+        ActivatedAbilityService.IRELIA_BLADE_DANCER_READY_UNIT,
+        "unit",
+        List.of(),
+        List.of())))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessageContaining("premium rune payment");
+    assertThat(find(state, "unit").isTapped()).isTrue();
+    assertThat(find(state, "irelia").isTapped()).isFalse();
+
+    state.setRunes(new ArrayList<>(List.of(rune("rune-1", "p1", false))));
+    unit.setTapped(false);
+    assertThatThrownBy(() -> engine.applyMove(state, new ActivateAbilityMove(
+        "p1",
+        "irelia",
+        ActivatedAbilityService.IRELIA_BLADE_DANCER_READY_UNIT,
+        "unit",
+        List.of(),
+        List.of("rune-1"))))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessageContaining("exhausted friendly public Unit");
+    assertThat(find(state, "irelia").isTapped()).isFalse();
+    assertThat(state.getRunes()).anyMatch(rune -> rune.getInstanceId().equals("rune-1"));
+  }
+
+  @Test
   void zhonyasHourglassRejectsEnemyTargetWithoutMutation() {
     stubCard("zhonya", "Zhonya's Hourglass", "Gear", 2, 0, 0, zhonyasText());
     stubCard("enemy", "Enemy Unit", "Unit", 0, 2, 2, "");
@@ -2529,6 +2738,16 @@ class GameEnginePlayCardTypeTest {
   private CardInstance atLocation(CardInstance card, String locationId) {
     card.setBattlefieldLocationId(locationId);
     return card;
+  }
+
+  private String ireliaBladeDancerText() {
+    return "When you choose a friendly unit, you may exhaust me and pay :rb_rune_rainbow: to ready it."
+        + "When you conquer, you may pay :rb_energy_1: to ready me.";
+  }
+
+  private String ireliaFerventText() {
+    return "[Deflect] (Opponents must pay :rb_rune_rainbow: to choose me with a spell or ability.)"
+        + "When you choose or ready me, give me +1 :rb_might: this turn.";
   }
 
   private RuneState findRune(LiveGameState state, String instanceId) {

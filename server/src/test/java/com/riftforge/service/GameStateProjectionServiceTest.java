@@ -480,7 +480,7 @@ class GameStateProjectionServiceTest {
     LiveGameState view = projectionService.toPublicView(state, "p1");
 
     assertThat(view.getLegalActions())
-        .contains(LegalAction.PLAY_CARD, LegalAction.MOVE_TO_BATTLEFIELD, LegalAction.REPOSITION_CARD, LegalAction.PASS_PHASE)
+        .contains(LegalAction.PLAY_CARD, LegalAction.MOVE_TO_BATTLEFIELD, LegalAction.MOVE_TO_BASE, LegalAction.REPOSITION_CARD, LegalAction.PASS_PHASE)
         .doesNotContain(LegalAction.SANDBOX_DEAL_CARD);
   }
 
@@ -491,7 +491,7 @@ class GameStateProjectionServiceTest {
     LiveGameState view = projectionService.toPublicView(state, "p2");
 
     assertThat(view.getLegalActions())
-        .doesNotContain(LegalAction.PLAY_CARD, LegalAction.MOVE_TO_BATTLEFIELD, LegalAction.REPOSITION_CARD, LegalAction.PASS_PHASE);
+        .doesNotContain(LegalAction.PLAY_CARD, LegalAction.MOVE_TO_BATTLEFIELD, LegalAction.MOVE_TO_BASE, LegalAction.REPOSITION_CARD, LegalAction.PASS_PHASE);
   }
 
   @Test
@@ -526,6 +526,7 @@ class GameStateProjectionServiceTest {
             LegalAction.RESOLVE_SHOWDOWN,
             LegalAction.PLAY_CARD,
             LegalAction.MOVE_TO_BATTLEFIELD,
+            LegalAction.MOVE_TO_BASE,
             LegalAction.REPOSITION_CARD,
             LegalAction.PASS_PHASE,
             LegalAction.END_TURN)

@@ -156,6 +156,7 @@ class LegalActionsFlowIntegrationTest {
     assertThat(actions).contains(
         LegalAction.PLAY_CARD,
         LegalAction.MOVE_TO_BATTLEFIELD,
+        LegalAction.MOVE_TO_BASE,
         LegalAction.PASS_PHASE,
         LegalAction.END_TURN,
         LegalAction.TAP_RUNE,
@@ -169,6 +170,7 @@ class LegalActionsFlowIntegrationTest {
     assertThat(legalActionsFor(idle)).doesNotContain(
         LegalAction.PLAY_CARD,
         LegalAction.MOVE_TO_BATTLEFIELD,
+        LegalAction.MOVE_TO_BASE,
         LegalAction.PASS_PHASE,
         LegalAction.END_TURN);
   }

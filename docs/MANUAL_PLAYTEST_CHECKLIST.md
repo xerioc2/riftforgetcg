@@ -16,6 +16,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Play a Unit and confirm it stays visible in Base.
 - Confirm your Legend starts in the Legend zone and your chosen Champion starts in the Champion zone.
 - Confirm the Legend cannot be dragged to the battlefield, and the chosen Champion only deploys after you have enough available energy.
+- In Irelia, try using Irelia - Blade Dancer's supported Legend-zone ready ability on an exhausted Irelia - Fervent in public play; Fervent should ready and gain +1 Might this turn. Do not expect the broader choose trigger, automatic ready-step trigger, or exact Deflect tax to be complete yet.
 - If your deck has Champion Units in the MainDeck, confirm they draw/play as main-deck cards instead of starting in the Champion zone.
 - Use a targeted effect and confirm the target prompt and error messages make sense.
 - If an optional choice prompt appears, choose an option and confirm the game resumes.
@@ -80,7 +81,10 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Load or select a constructed deck, then ready and start.
 - Choose one Battlefield from the three-card setup prompt and confirm it appears on the board after both players choose.
 - Confirm in-play Rune cards display as card-backed resource plaques when they are channeled; hidden rune deck contents should not be visible.
+- Confirm Rune rows use the broad Base-aligned row without covering the phase bar or hand rack.
 - Move one Unit into each visible active lane across a few turns and confirm the card lands in the lane you dropped it on.
+- Move a ready Unit from a battlefield lane back to Base and confirm it returns through the normal move action instead of a sandbox-only warning.
+- With Stellacorn Herder, confirm Base -> battlefield, battlefield lane-to-lane, and battlefield -> Base each draw 1 privately, while same-lane repositioning does not.
 - Move opposing Units into the same lane and confirm a same-lane showdown starts with that lane highlighted.
 - Move opposing Units into different lanes and confirm no cross-lane showdown starts.
 - Keep the opening hand or mulligan at least one card.
@@ -111,7 +115,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Confirm the chain panel status updates do not imply counterspells or
   Reaction timing are broadly supported yet; Gust, Discipline, En Garde, Defy,
   and narrow Not So Fast are the only real alpha Reaction responses.
-- Confirm unsupported Reactions such as Defiant Dance do not appear as legal
+- Confirm unsupported Reactions do not appear as legal
   responses, even while the chain panel is active.
 - During human vs RiftBot, try clicking an unsupported Reaction such as Defiant
   Dance during a no-chain or opponent-turn window; confirm a local warning

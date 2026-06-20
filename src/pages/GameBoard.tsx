@@ -27,7 +27,7 @@ import {
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
 import { readableHttpError } from '../lib/http';
-import { canUseSupportedChainResponse, hasUnsupportedAdditionalCost, isAbandonCounterCard, isActionCard, isAmbushCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isEquipCard, isGustReactionCard, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
+import { canUseSupportedChainResponse, hasUnsupportedAdditionalCost, isAbandonCounterCard, isActionCard, isAmbushCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isEquipCard, isGustReactionCard, isIreliaBladeDancerActivatedAbility, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
 import { appBuildLabel, APP_VERSION, BUILD_DATE, BUILD_TAG } from '../lib/appMetadata';
 import { buildDebugInfo } from '../lib/debugInfo';
 import { attachedGearDisplayPosition, attachedGearDisplayScale, attachedGearIsIndependentBoardPiece, attachedGearNamesForHost } from '../lib/attachments';
@@ -583,6 +583,32 @@ export function GameBoard() {
     return { paymentRuneIds: [...selectedRunes], premiumRuneIds: [] as string[] };
   };
 
+  const selectPaymentRunesForPremiumCost = (label: string, premiumCost: number) => {
+    const premiumRuneIds: string[] = [];
+    const selected = new Set<string>();
+    for (const runeId of pendingRuneTaps) {
+      if (premiumRuneIds.length >= premiumCost) break;
+      const rune = state?.runes?.find((candidate) => candidate.instanceId === runeId);
+      if (!rune || rune.ownerId !== player.id || rune.tapped) continue;
+      premiumRuneIds.push(rune.instanceId);
+      selected.add(rune.instanceId);
+    }
+    for (const rune of state?.runes ?? []) {
+      if (premiumRuneIds.length >= premiumCost) break;
+      if (rune.ownerId !== player.id || rune.tapped || selected.has(rune.instanceId)) continue;
+      premiumRuneIds.push(rune.instanceId);
+    }
+    if (premiumRuneIds.length < premiumCost) {
+      notifyWarning('Insufficient premium payment', `${label} needs ${premiumCost} ready rune${premiumCost === 1 ? '' : 's'} for the rainbow payment.`);
+      return null;
+    }
+    setPendingRuneTaps(new Set());
+    return { paymentRuneIds: [] as string[], premiumRuneIds };
+  };
+
+  const canPayPremiumCost = (premiumCost: number) =>
+    (state?.runes ?? []).filter((rune) => rune.ownerId === player.id && !rune.tapped).length >= premiumCost;
+
   const canPayEnergyCost = (energyCost: number) => {
     const playerEnergy = state?.players.find((statePlayer) => statePlayer.userId === player.id)?.availableEnergy ?? 0;
     const readyRuneEnergy = (state?.runes ?? [])
@@ -1036,6 +1062,22 @@ export function GameBoard() {
       window.setTimeout(fetchProjectedState, 100);
       return;
     }
+    if (sameZone(instance.zone, 'battlefield') && sameZone(zone, 'base') && instance.ownerId === player.id) {
+      if (!canTakeAction(state, 'MOVE_TO_BASE')) {
+        notifyWarning('Action unavailable', 'Units can move back to Base only during your Main Phase before a showdown starts.');
+        window.setTimeout(fetchProjectedState, 100);
+        return;
+      }
+      const cardDef = cardsById.get(instance.cardId);
+      const type = cardDef?.type?.toLowerCase();
+      if (type !== 'unit' && type !== 'champion') {
+        notifyWarning('Cannot move to Base', 'Only face-up Units and Champions can move back to Base.');
+        window.setTimeout(fetchProjectedState, 100);
+        return;
+      }
+      publishMove({ type: 'MOVE_TO_BASE', playerId: player.id, instanceId });
+      return;
+    }
     if ((sameZone(instance.zone, 'base') || sameZone(instance.zone, 'champion')) && sameZone(zone, 'battlefield') && instance.ownerId === player.id) {
       if (!canTakeAction(state, 'MOVE_TO_BATTLEFIELD')) {
         notifyWarning(
@@ -1179,6 +1221,21 @@ export function GameBoard() {
         setPendingTargetSelection(null);
         return;
       }
+      if (isIreliaBladeDancerActivatedAbility(spellDef) && sameZone(spellInstance.zone, 'legend')) {
+        if (!canTakeAction(state, 'ACTIVATE_ABILITY')) {
+          notifyWarning('Ability unavailable', 'Irelia can ready a friendly unit during your Main Phase when she is ready, paid for, and has an exhausted friendly target.');
+          return;
+        }
+        if (!instance.tapped) {
+          notifyWarning('Invalid target', 'Irelia can only ready an exhausted friendly public Unit or Champion.');
+          return;
+        }
+        const payment = selectPaymentRunesForPremiumCost(spellDef?.name ?? 'Irelia - Blade Dancer', 1);
+        if (!payment) return;
+        publishMove({ type: 'ACTIVATE_ABILITY', playerId: player.id, sourceInstanceId: pendingTargetSelection.instanceId, abilityKey: 'IRELIA_BLADE_DANCER_READY_UNIT', targetInstanceId: instanceId, ...payment });
+        setPendingTargetSelection(null);
+        return;
+      }
       playCardToBase(pendingTargetSelection.instanceId, spellDef, false, instanceId);
       setPendingTargetSelection(null);
       return;
@@ -1247,7 +1304,23 @@ export function GameBoard() {
     }
 
     if (instance.ownerId === player.id && sameZone(instance.zone, 'legend')) {
-      notifyWarning('Legend unavailable', 'Legends cannot be moved to the battlefield in this alpha model.');
+      if (isIreliaBladeDancerActivatedAbility(targetCard)) {
+        if (instance.tapped) {
+          notifyWarning('Ability unavailable', 'Irelia - Blade Dancer is already exhausted.');
+          return;
+        }
+        if (legalTargetsForMode('FRIENDLY_PUBLIC_UNIT').filter((target) => target.tapped).length === 0) {
+          notifyWarning('No legal targets', 'Irelia needs an exhausted friendly public Unit or Champion in Base or at a battlefield.');
+          return;
+        }
+        if (!canPayPremiumCost(1)) {
+          notifyWarning('Ability unavailable', 'Irelia - Blade Dancer needs one ready rune for the rainbow payment.');
+          return;
+        }
+        beginTargetSelection(instanceId, 'FRIENDLY_PUBLIC_UNIT');
+        return;
+      }
+      notifyWarning('Legend unavailable', 'This Legend has no supported battlefield move or activated ability in the current alpha model.');
     }
     setSelectedInstanceId(instanceId);
   };
@@ -1424,6 +1497,7 @@ export function GameBoard() {
   const canPlayCards = canTakeAction(state, 'PLAY_CARD');
   const canResolveChoice = canTakeAction(state, 'RESOLVE_CHOICE');
   const canMoveToBattlefield = canTakeAction(state, 'MOVE_TO_BATTLEFIELD');
+  const canMoveToBase = canTakeAction(state, 'MOVE_TO_BASE');
   const canResolveChainTop = canTakeAction(state, 'RESOLVE_CHAIN_TOP');
   const canPassChainFocus = canTakeAction(state, 'PASS_CHAIN_FOCUS');
   const canAssignCombatDamage = canTakeAction(state, 'ASSIGN_COMBAT_DAMAGE');
@@ -1551,7 +1625,7 @@ export function GameBoard() {
         && spendableEnergy >= (cardDef.cost ?? 0);
     }
     if (sameZone(instance.zone, 'base') || sameZone(instance.zone, 'battlefield')) {
-      return canMoveToBattlefield || canTakeAction(state, 'REPOSITION_CARD') || canTakeAction(state, 'SANDBOX_MOVE_CARD');
+      return canMoveToBattlefield || canMoveToBase || canTakeAction(state, 'REPOSITION_CARD') || canTakeAction(state, 'SANDBOX_MOVE_CARD');
     }
     return canTakeAction(state, 'SANDBOX_MOVE_CARD');
   };

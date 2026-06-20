@@ -41,6 +41,7 @@ public class GameEngine {
   private final PriorityWindowService priorityWindowService;
   private final ActivatedAbilityService activatedAbilityService;
   private final DeathService deathService;
+  private final LegendChampionEffectService legendChampionEffectService;
   private final ShowdownParticipantRules showdownParticipantRules = new ShowdownParticipantRules();
   private final int targetScore;
 
@@ -64,11 +65,12 @@ public class GameEngine {
             cardZoneService,
             deathTriggerService,
             new ReplacementEffectService(cardDataService, cardZoneService)),
+        new LegendChampionEffectService(cardDataService),
         targetScore);
   }
 
   @Autowired
-  public GameEngine(RulesValidator rulesValidator, CombatResolver combatResolver, CardZoneService cardZoneService, CardDataService cardDataService, CardEffectRegistry effects, DeathTriggerService deathTriggerService, TokenFactory tokenFactory, TriggerDispatcher triggerDispatcher, PriorityWindowService priorityWindowService, ActivatedAbilityService activatedAbilityService, DeathService deathService, @Value("${riftforge.target-score}") int targetScore) {
+  public GameEngine(RulesValidator rulesValidator, CombatResolver combatResolver, CardZoneService cardZoneService, CardDataService cardDataService, CardEffectRegistry effects, DeathTriggerService deathTriggerService, TokenFactory tokenFactory, TriggerDispatcher triggerDispatcher, PriorityWindowService priorityWindowService, ActivatedAbilityService activatedAbilityService, DeathService deathService, LegendChampionEffectService legendChampionEffectService, @Value("${riftforge.target-score}") int targetScore) {
     this.rulesValidator = rulesValidator;
     this.combatResolver = combatResolver;
     this.cardZoneService = cardZoneService;
@@ -80,6 +82,7 @@ public class GameEngine {
     this.priorityWindowService = priorityWindowService;
     this.activatedAbilityService = activatedAbilityService;
     this.deathService = deathService;
+    this.legendChampionEffectService = legendChampionEffectService;
     this.targetScore = targetScore;
   }
 
@@ -95,6 +98,7 @@ public class GameEngine {
       case TapRuneMove m -> applyTapRune(state, m);
       case DiscardRuneMove m -> applyDiscardRune(state, m);
       case MoveToBattlefieldMove m -> applyMoveToBattlefield(state, m);
+      case MoveToBaseMove m -> applyMoveToBase(state, m);
       case SelectBattlefieldMove m -> applySelectBattlefield(state, m);
       case ResolveShowdownMove m -> applyResolveShowdown(state, m);
       case AssignCombatDamageMove m -> applyAssignCombatDamage(state, m);
@@ -295,6 +299,11 @@ public class GameEngine {
           source.getInstanceId(),
           target.getInstanceId());
       log(state, move.playerId(), sourceDef.name() + " is protecting " + cardDataService.getCard(target.getCardId()).name() + ".");
+    } else if (ActivatedAbilityService.IRELIA_BLADE_DANCER_READY_UNIT.equals(definition.abilityKey())) {
+      boolean wasTapped = target.isTapped();
+      target.setTapped(false);
+      if (wasTapped) applyIreliaFerventReadyTrigger(state, target, move.playerId());
+      log(state, move.playerId(), sourceDef.name() + " readied " + cardDataService.getCard(target.getCardId()).name() + ".");
     }
     return state;
   }
@@ -436,7 +445,11 @@ public class GameEngine {
     card.setTapped(!cardDataService.hasKeyword(card, "AMBUSH"));
     card.setHasSummoningSickness(false);
     int gankingBonus = applyGanking(state, card);
-    dispatchCardMoved(state, card, sourceZone, ZoneName.BATTLEFIELD, "MOVE_TO_BATTLEFIELD");
+    if (sourceZone == ZoneName.BATTLEFIELD && sourceLocationId != null && !sourceLocationId.equals(locationId)) {
+      dispatchCardMoved(state, card, ZoneName.BATTLEFIELD, ZoneName.BATTLEFIELD, "MOVE_BATTLEFIELD_LOCATION");
+    } else {
+      dispatchCardMoved(state, card, sourceZone, ZoneName.BATTLEFIELD, "MOVE_TO_BATTLEFIELD");
+    }
     effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onAttack(card, state));
     log(state, move.playerId(), playedFromChampionZone
         ? "Played " + def.name() + " from the Champion zone."
@@ -455,6 +468,22 @@ public class GameEngine {
         List.of(card.getInstanceId()),
         gankingBonus > 0 ? new HashMap<>(Map.of(card.getInstanceId(), gankingBonus)) : new HashMap<>()));
     log(state, move.playerId(), "Showdown started at the battlefield.");
+    return state;
+  }
+
+  private LiveGameState applyMoveToBase(LiveGameState state, MoveToBaseMove move) {
+    CardInstance card = findCard(state, move.instanceId());
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    String sourceLocationId = BattlefieldLocationRules.locationOf(card);
+    card.setZone(ZoneName.BASE);
+    card.setBattlefieldLocationId(null);
+    card.setX(0);
+    card.setY(0);
+    card.setTapped(true);
+    card.setHasSummoningSickness(false);
+    dispatchCardMoved(state, card, ZoneName.BATTLEFIELD, ZoneName.BASE, "MOVE_TO_BASE");
+    updateBattlefieldControllerFromCombatants(state, sourceLocationId);
+    log(state, move.playerId(), "Moved " + def.name() + " to Base.");
     return state;
   }
 
@@ -1903,7 +1932,7 @@ public class GameEngine {
   }
 
   private void dispatchCardMoved(LiveGameState state, CardInstance card, ZoneName sourceZone, ZoneName targetZone, String cause) {
-    if (sourceZone == targetZone) return;
+    if (sourceZone == targetZone && !"MOVE_BATTLEFIELD_LOCATION".equals(cause)) return;
     triggerDispatcher.dispatch(state, TriggerEvent.cardMoved(card, sourceZone, targetZone, BattlefieldLocationRules.locationOf(card), cause));
   }
 
@@ -2145,8 +2174,16 @@ public class GameEngine {
   }
 
   private void readyUnit(LiveGameState state, CardInstance source, CardDefinition sourceDef, CardInstance target) {
+    boolean wasTapped = target.isTapped();
     target.setTapped(false);
+    if (wasTapped) applyIreliaFerventReadyTrigger(state, target, source.getOwnerId());
     log(state, source.getOwnerId(), sourceDef.name() + " readied " + cardDataService.getCard(target.getCardId()).name() + ".");
+  }
+
+  private void applyIreliaFerventReadyTrigger(LiveGameState state, CardInstance target, String readyingPlayerId) {
+    if (legendChampionEffectService.applyIreliaFerventReadyTrigger(state, target, readyingPlayerId)) {
+      log(state, target.getOwnerId(), cardDataService.getCard(target.getCardId()).name() + " gained +1 Might this turn from being readied.");
+    }
   }
 
   private void returnAttachmentsToBase(LiveGameState state, CardInstance host) {

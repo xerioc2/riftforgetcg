@@ -17,6 +17,7 @@ Current production ability:
 
 - `THE_SYREN_RECALL`: The Syren may be activated from Base during its controller's Main Phase by paying 1 energy and exhausting it to move a friendly public battlefield Unit/Champion to Base.
 - `ZHONYAS_HOURGLASS_PROTECT`: Zhonya's Hourglass may be activated from Base during its controller's Main Phase for 0 energy to protect a friendly public Unit/Champion in Base or at a battlefield from the next supported death.
+- `IRELIA_BLADE_DANCER_READY_UNIT`: Irelia - Blade Dancer may be activated from the Legend zone during its controller's Main Phase by exhausting Irelia and paying one rainbow/premium rune to ready an exhausted friendly public Unit/Champion in Base or at a battlefield. Her separate conquer trigger remains deferred.
 
 Privacy and projection rules:
 
@@ -31,6 +32,65 @@ Deferred:
 - Full official priority windows for activated abilities.
 - Generic rules-text parsing for arbitrary activated abilities.
 - Hidden Reaction-for-0 activated ability timing.
+
+## Legend / Champion Persistent Source Hooks v1
+
+Status: Partial foundation.
+
+RiftForge has a small exact-card hook service for public Legend/Champion text
+that is active from special zones or public play zones without generic text
+parsing.
+
+Current production hook:
+
+- `LegendChampionEffectService.applyIreliaFerventReadyTrigger`: when a public
+  Irelia - Fervent in Base or at a battlefield is readied by her controller
+  through a supported registered effect, she gets +1 Might this turn.
+
+Current boundaries:
+
+- The hook is exact-card and exact-text only.
+- Hidden, face-down, hand, deck, trash, and Champion-zone identity cards do not
+  fire this trigger.
+- The supported slice covers explicit ready effects such as Irelia - Blade
+  Dancer's registered activated ability.
+
+Deferred:
+
+- Irelia - Fervent's broad "when you choose me" coverage.
+- Automatic ready-step trigger timing.
+- Exact Deflect targeting-tax payment prompts.
+- Generic Legend/Champion text parsing.
+
+## Movement Trigger / Move-to-Base v1
+
+Status: Partial foundation.
+
+RiftForge has explicit server-authoritative movement paths for the current
+active-lane alpha:
+
+- `MoveToBattlefieldMove` moves an owned public Unit/Champion from Base to a
+  visible battlefield lane, or between visible battlefield lanes.
+- `MoveToBaseMove` moves an owned ready public Unit/Champion from a battlefield
+  lane back to Base during Main Phase when no showdown is active.
+- `MoveToBaseMove` clears `battlefieldLocationId`, taps the moved card, and
+  leaves attached Gear attached because the host remains in public play.
+- Same-lane repositioning remains separate and does not fire movement triggers.
+
+Trigger integration:
+
+- `TriggerDispatcher` receives Base -> battlefield, battlefield lane-to-lane,
+  and battlefield -> Base movement events.
+- Stellacorn Herder uses this reusable movement event path for its exact
+  "When I move, draw 1" text.
+- Play from hand, return to hand, death/trash, setup/import, hidden transitions,
+  and same-lane repositioning do not trigger Stellacorn Herder.
+
+Deferred:
+
+- Full official movement timing and priority windows.
+- Card-specific movement swaps beyond currently registered effects.
+- Multi-location battlefield effects and hidden battlefield slot rules.
 
 ## Would-Die Replacement Hook v1
 

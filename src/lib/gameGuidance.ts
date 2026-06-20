@@ -80,7 +80,7 @@ export function legalActionHint(
   if (actions.has('HIDE_CARD')) parts.push('hide Hidden cards');
   if (actions.has('EQUIP_GEAR')) parts.push('equip Gear');
   if (actions.has('TAP_RUNE') || actions.has('DISCARD_RUNE') || actions.has('UNDO_RUNES')) parts.push('use runes');
-  if (actions.has('MOVE_TO_BATTLEFIELD')) parts.push('move units');
+  if (actions.has('MOVE_TO_BATTLEFIELD') || actions.has('MOVE_TO_BASE')) parts.push('move units');
   if (actions.has('VISION_CHOICE')) parts.push('choose Vision');
   if (actions.has('RESOLVE_CHOICE')) parts.push('choose an option');
   if (actions.has('PASS_PHASE') || actions.has('END_TURN')) parts.push('pass');

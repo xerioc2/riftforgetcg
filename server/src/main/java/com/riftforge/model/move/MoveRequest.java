@@ -14,6 +14,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
   @JsonSubTypes.Type(value = TapRuneMove.class, name = "TAP_RUNE"),
   @JsonSubTypes.Type(value = DiscardRuneMove.class, name = "DISCARD_RUNE"),
   @JsonSubTypes.Type(value = MoveToBattlefieldMove.class, name = "MOVE_TO_BATTLEFIELD"),
+  @JsonSubTypes.Type(value = MoveToBaseMove.class, name = "MOVE_TO_BASE"),
   @JsonSubTypes.Type(value = SelectBattlefieldMove.class, name = "SELECT_BATTLEFIELD"),
   @JsonSubTypes.Type(value = MulliganMove.class, name = "MULLIGAN"),
   @JsonSubTypes.Type(value = UndoRunesMove.class, name = "UNDO_RUNES"),
@@ -31,6 +32,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
   @JsonSubTypes.Type(value = ActivateAbilityMove.class, name = "ACTIVATE_ABILITY"),
   @JsonSubTypes.Type(value = ResolveChoiceMove.class, name = "RESOLVE_CHOICE")
 })
-public sealed interface MoveRequest permits DealCardMove, TapCardMove, FlipCardMove, PlayCardMove, MoveCardMove, RepositionCardMove, TapRuneMove, DiscardRuneMove, MoveToBattlefieldMove, SelectBattlefieldMove, MulliganMove, UndoRunesMove, PassPhaseMove, PassChainFocusMove, ResolveChainTopMove, PassShowdownFocusMove, ResolveShowdownMove, AssignCombatDamageMove, AdjustScoreMove, VisionChoiceMove, DismissRevealedMove, HideCardMove, EquipGearMove, ActivateAbilityMove, ResolveChoiceMove {
+public sealed interface MoveRequest permits DealCardMove, TapCardMove, FlipCardMove, PlayCardMove, MoveCardMove, RepositionCardMove, TapRuneMove, DiscardRuneMove, MoveToBattlefieldMove, MoveToBaseMove, SelectBattlefieldMove, MulliganMove, UndoRunesMove, PassPhaseMove, PassChainFocusMove, ResolveChainTopMove, PassShowdownFocusMove, ResolveShowdownMove, AssignCombatDamageMove, AdjustScoreMove, VisionChoiceMove, DismissRevealedMove, HideCardMove, EquipGearMove, ActivateAbilityMove, ResolveChoiceMove {
   String playerId();
 }

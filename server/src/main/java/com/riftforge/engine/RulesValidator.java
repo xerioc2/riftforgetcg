@@ -121,6 +121,7 @@ public class RulesValidator {
     if (move instanceof ActivateAbilityMove activate) { validateActivateAbility(state, activate); return; }
     if (move instanceof PlayCardMove play) { validatePlayCard(state, play); return; }
     if (move instanceof MoveToBattlefieldMove deploy) { validateMoveToBattlefield(state, deploy); return; }
+    if (move instanceof MoveToBaseMove recall) { validateMoveToBase(state, recall); return; }
     if (move instanceof RepositionCardMove reposition) { validateRepositionCard(state, reposition); return; }
     if (move instanceof TapRuneMove tapRune) { validateTapRune(state, tapRune); return; }
     if (move instanceof DiscardRuneMove discardRune) validateDiscardRune(state, discardRune);
@@ -914,6 +915,27 @@ public class RulesValidator {
       throw new IllegalMoveException("Not enough energy to play " + def.name() + ".");
     }
     if (card.isTapped()) throw new IllegalMoveException("Only ready cards can move to the battlefield.");
+  }
+
+  private void validateMoveToBase(LiveGameState state, MoveToBaseMove move) {
+    CardInstance card = findCard(state, move.instanceId());
+    if (!move.playerId().equals(card.getOwnerId())) throw new IllegalMoveException("You do not own that card.");
+    requireMain(state);
+    if (state.getActiveShowdown() != null) throw new IllegalMoveException("A showdown is already active.");
+    if (card.getZone() != ZoneName.BATTLEFIELD) {
+      throw new IllegalMoveException("Only cards at a battlefield can move back to Base.");
+    }
+    if (card.isFaceDown() || card.getZone() == ZoneName.HIDDEN) {
+      throw new IllegalMoveException("Hidden cards cannot move to Base this way.");
+    }
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    if (!isType(def, "Unit") && !isType(def, "Champion")) {
+      throw new IllegalMoveException("Only Units and Champions can move back to Base.");
+    }
+    if (card.getAttachedToInstanceId() != null && !card.getAttachedToInstanceId().isBlank()) {
+      throw new IllegalMoveException("Attached Equipment follows its host and cannot move as a combatant.");
+    }
+    if (card.isTapped()) throw new IllegalMoveException("Only ready cards can move back to Base.");
   }
 
   private void validateMoveToBattlefieldPayment(LiveGameState state, MoveToBattlefieldMove move, CardDefinition def) {
