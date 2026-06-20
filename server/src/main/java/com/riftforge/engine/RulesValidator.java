@@ -319,6 +319,10 @@ public class RulesValidator {
       validateAbandonCounterTarget(state, move);
       return;
     }
+    if (spell && cardDataService.isHardBargainCounterReaction(def)) {
+      validateHardBargainCounterTarget(state, move);
+      return;
+    }
     if (spell && (cardDataService.requiresBattlefieldTarget(card.getCardId()) || hasExplicitTarget)) {
       validateTarget(state, move, card);
     }
@@ -340,7 +344,8 @@ public class RulesValidator {
           && !cardDataService.isFlashReaction(def)
           && !cardDataService.isDefyCounterReaction(def)
           && !cardDataService.isNotSoFastCounterReaction(def)
-          && !cardDataService.isAbandonCounterReaction(def)) {
+          && !cardDataService.isAbandonCounterReaction(def)
+          && !cardDataService.isHardBargainCounterReaction(def)) {
         throw new IllegalMoveException("That Reaction is not supported yet.");
       }
       if (state.getChainState().readyToResolveTop()) {
@@ -400,7 +405,8 @@ public class RulesValidator {
     return isSupportedTargetedReaction(def)
         || cardDataService.isDefyCounterReaction(def)
         || cardDataService.isNotSoFastCounterReaction(def)
-        || cardDataService.isAbandonCounterReaction(def);
+        || cardDataService.isAbandonCounterReaction(def)
+        || cardDataService.isHardBargainCounterReaction(def);
   }
 
   private boolean isSupportedTargetedReaction(CardDefinition def) {
@@ -491,6 +497,32 @@ public class RulesValidator {
         : cardDataService.getCard(target.sourceCardId());
     if (targetDef == null || !"Spell".equalsIgnoreCase(targetDef.type())) {
       throw new IllegalMoveException("Abandon can only counter a spell.");
+    }
+  }
+
+  private void validateHardBargainCounterTarget(LiveGameState state, PlayCardMove move) {
+    LiveGameState.ChainState chain = state.getChainState();
+    if (chain == null) throw new IllegalMoveException("No chain item can be countered.");
+    String targetChainItemId = move.targetChainItemId();
+    if (targetChainItemId == null || targetChainItemId.isBlank()) {
+      throw new IllegalMoveException("Choose a chain item to counter.");
+    }
+    LiveGameState.ChainItem target = chain.chainItems().stream()
+        .filter(item -> targetChainItemId.equals(item.itemId()))
+        .findFirst()
+        .orElseThrow(() -> new IllegalMoveException("That chain item is no longer available."));
+    if (!target.isPending()) throw new IllegalMoveException("Only pending chain items can be countered.");
+    if (!target.counterable() || !target.targetableOnChain() || !target.isPubliclyVisible()) {
+      throw new IllegalMoveException("Hard Bargain can only target a public pending spell.");
+    }
+    if (!LiveGameState.ChainItem.TYPE_SPELL.equalsIgnoreCase(target.chainItemType())) {
+      throw new IllegalMoveException("Hard Bargain can only target a spell.");
+    }
+    CardDefinition targetDef = target.sourceCardId() == null || target.sourceCardId().isBlank()
+        ? null
+        : cardDataService.getCard(target.sourceCardId());
+    if (targetDef == null || !"Spell".equalsIgnoreCase(targetDef.type())) {
+      throw new IllegalMoveException("Hard Bargain can only target a spell.");
     }
   }
 
@@ -876,6 +908,13 @@ public class RulesValidator {
     boolean unit = isType(def, "Unit");
     boolean champion = isType(def, "Champion");
     boolean legend = isType(def, "Legend");
+    boolean championDeployToBase = champion && card.getZone() == ZoneName.CHAMPION && move.targetZone() == ZoneName.BASE;
+    if (move.targetZone() != ZoneName.BASE && move.targetZone() != ZoneName.BATTLEFIELD) {
+      throw new IllegalMoveException("Champion deployment destination must be Base or Battlefield.");
+    }
+    if (move.targetZone() == ZoneName.BASE && !championDeployToBase) {
+      throw new IllegalMoveException("Only Champions from your champion zone can be deployed to Base this way.");
+    }
     if (legend) throw new IllegalMoveException("Legends cannot be moved to the battlefield in this alpha model.");
     if (champion && card.getZone() == ZoneName.CHAMPION && state.getCurrentPhase() != Phase.MAIN) {
       throw new IllegalMoveException("You can only play your Champion during a legal play window.");
@@ -885,9 +924,6 @@ public class RulesValidator {
     if (!unit && !champion) {
       throw new IllegalMoveException("Only Units and Champions can move to the battlefield.");
     }
-    if (!BattlefieldLocationRules.isActiveLocation(state, destinationLocationId)) {
-      throw new IllegalMoveException("That battlefield lane is not active in this game.");
-    }
     if (card.getAttachedToInstanceId() != null && !card.getAttachedToInstanceId().isBlank()) {
       throw new IllegalMoveException("Attached Equipment follows its host and cannot move as a combatant.");
     }
@@ -895,7 +931,9 @@ public class RulesValidator {
       throw new IllegalMoveException("Hidden cards cannot move to a battlefield lane this way.");
     }
     boolean fromBattlefield = card.getZone() == ZoneName.BATTLEFIELD;
-    if (fromBattlefield) {
+    if (championDeployToBase) {
+      // Champion-zone deployment to Base is a play/deploy action, not lane movement.
+    } else if (fromBattlefield) {
       if (BattlefieldLocationRules.locationOf(card).equals(destinationLocationId)) {
         throw new IllegalMoveException("That card is already at that battlefield lane.");
       }
@@ -913,6 +951,15 @@ public class RulesValidator {
     }
     if (champion && card.getZone() == ZoneName.CHAMPION && playerEnergy(state, move.playerId()) + selectedPaymentEnergy(state, move.paymentRuneIds()) < Math.max(0, def.cost())) {
       throw new IllegalMoveException("Not enough energy to play " + def.name() + ".");
+    }
+    if (move.targetZone() == ZoneName.BATTLEFIELD && !BattlefieldLocationRules.isActiveLocation(state, destinationLocationId)) {
+      throw new IllegalMoveException("That battlefield lane is not active in this game.");
+    }
+    if (champion && card.getZone() == ZoneName.CHAMPION && move.targetZone() == ZoneName.BATTLEFIELD) {
+      String controller = state.getBattlefieldController().get(destinationLocationId);
+      if (!move.playerId().equals(controller)) {
+        throw new IllegalMoveException("You can only deploy your Champion to Base or a battlefield you control.");
+      }
     }
     if (card.isTapped()) throw new IllegalMoveException("Only ready cards can move to the battlefield.");
   }

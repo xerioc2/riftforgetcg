@@ -172,7 +172,7 @@
       },
       "support": {
         "status": "PARTIAL",
-        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "reason": "Partial: exact conquer-with-Mighty optional pay-1 draw trigger is implemented for active Battlefield lanes. Broader Mighty threshold timing and full official location rules remain deferred.",
         "blocked": false
       },
       "bucket": "Battlefield effect"
@@ -672,7 +672,7 @@
       },
       "support": {
         "status": "PARTIAL",
-        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "reason": "Partial: exact conquer trigger queues end-turn readying for up to two tapped friendly runes in active Battlefield lanes. Player-selected rune choice and full official location rules remain deferred.",
         "blocked": false
       },
       "bucket": "Battlefield effect"

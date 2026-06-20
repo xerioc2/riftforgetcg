@@ -103,6 +103,12 @@ public class CombatStatsService {
     return effectiveMight(card, context) >= 5;
   }
 
+  public boolean isMighty(LiveGameState state, CardInstance card, CombatContext context) {
+    CardDefinition def = cardDataService.getCard(card.getCardId());
+    if (def == null || (!"Unit".equalsIgnoreCase(def.type()) && !"Champion".equalsIgnoreCase(def.type()))) return false;
+    return effectiveMight(state, card, context) >= 5;
+  }
+
   private List<AppliedModifier> attachedEquipmentModifiers(LiveGameState state, CardInstance host) {
     if (state == null || host == null || host.getInstanceId() == null) return List.of();
     return state.getCards().stream()

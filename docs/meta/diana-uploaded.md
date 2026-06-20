@@ -18,12 +18,12 @@ Event/result: diana wins s3 suzhou city challenge
 
 ## Support Summary
 
-- Status: Blocked
+- Status: Partial
 - Supported: 1
-- Partial: 23
-- Unsupported: 1
+- Partial: 24
+- Unsupported: 0
 - Not Audited: 0
-- Enforced playable: No
+- Enforced playable: Yes
 
 ## Unresolved Cards
 
@@ -31,8 +31,8 @@ Event/result: diana wins s3 suzhou city challenge
 
 ## Top Blockers
 
-- Hard Bargain (SFD-136): UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Diana - Scorn of the Moon (UNL-197): PARTIAL - Legend text. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Hard Bargain (SFD-136): PARTIAL - Reaction / chain / counter. Partial: Hard Bargain can counter a supported public pending spell chain item unless that spell's controller pays 2 energy through an owner-only prompt. Repeat, broad official Reaction timing, ability targets, hidden/private chain targets, and countering counters remain deferred.
 - Star Spring (UNL-215): PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Abandoned Hall (UNL-205): PARTIAL - Battlefield effect. Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.
 - Moonfall (UNL-198): PARTIAL - Movement / location. Playable for alpha testing, but card-specific behavior may be incomplete.
@@ -49,4 +49,4 @@ Event/result: diana wins s3 suzhou city challenge
 
 ## Recommended Implementation Order
 
-- Diana remains next: start with Hard Bargain or a shared battlefield/effect blocker if it appears in the chosen support slice.
+- Diana remains next: Hard Bargain has narrow Partial support, so the next slice should focus on a repeated shared battlefield/effect blocker without broadening timing globally.

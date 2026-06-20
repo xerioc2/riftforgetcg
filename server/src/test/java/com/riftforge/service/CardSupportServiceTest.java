@@ -78,6 +78,14 @@ class CardSupportServiceTest {
         .contains("enemy public battlefield Unit/Champion")
         .contains("Base")
         .contains("movement choices");
+    assertThat(service.summarize(card("sunken-temple", "Sunken Temple", "Battlefield", "When you conquer here with one or more [Mighty] units, you may pay 1 to draw 1.")).reason())
+        .contains("conquer-with-Mighty")
+        .contains("optional pay-1 draw")
+        .contains("active Battlefield lanes");
+    assertThat(service.summarize(card("targons-peak", "Targon's Peak", "Battlefield", "When you conquer here, ready up to 2 runes at the end of this turn.")).reason())
+        .contains("queues end-turn readying")
+        .contains("up to two tapped friendly runes")
+        .contains("Player-selected rune choice");
     assertThat(service.summarize(card("the-syren", "The Syren", "Gear", ":rb_energy_1:, :rb_exhaust:: Move a friendly unit at a battlefield to its base.")).reason())
         .contains("paying 1 energy")
         .contains("friendly public battlefield Unit/Champion")
@@ -107,6 +115,11 @@ class CardSupportServiceTest {
         .contains("return that spell card to hand")
         .contains("private Predict choice")
         .contains("ability targets remain deferred");
+    assertThat(service.summarize(card("hard-bargain", "Hard Bargain", "Spell", "[Reaction] [Repeat] :rb_energy_2: Counter a spell unless its controller pays :rb_energy_2:.")).reason())
+        .contains("controller pays 2 energy")
+        .contains("owner-only prompt")
+        .contains("Repeat")
+        .contains("countering counters remain deferred");
     assertThat(service.summarize(card("stacked-deck", "Stacked Deck", "Spell", "Look at the top 3 cards of your deck. Put 1 into hand and recycle the rest.")).reason())
         .contains("narrow alpha chain")
         .contains("private top-3 choice");

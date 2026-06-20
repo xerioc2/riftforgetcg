@@ -480,9 +480,9 @@
         }
       },
       "support": {
-        "status": "UNSUPPORTED",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
-        "blocked": true
+        "status": "PARTIAL",
+        "reason": "Partial: Hard Bargain can counter a supported public pending spell chain item unless that spell's controller pays 2 energy through an owner-only prompt. Repeat, broad official Reaction timing, ability targets, hidden/private chain targets, and countering counters remain deferred.",
+        "blocked": false
       },
       "keywords": [
         "Reaction",
@@ -906,8 +906,8 @@
     "uniqueCards": 27,
     "counts": {
       "SUPPORTED": 1,
-      "PARTIAL": 22,
-      "UNSUPPORTED": 4,
+      "PARTIAL": 23,
+      "UNSUPPORTED": 3,
       "BANNED": 0,
       "NOT_AUDITED": 0
     },
@@ -918,12 +918,6 @@
         "cardName": "Factory Recall",
         "status": "UNSUPPORTED",
         "bucket": "Bounce / return",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet."
-      },
-      {
-        "cardName": "Hard Bargain",
-        "status": "UNSUPPORTED",
-        "bucket": "Reaction / chain / counter",
         "reason": "Blocked in enforced play: this card's effect is not supported yet."
       },
       {
@@ -940,6 +934,12 @@
       },
       {
         "cardName": "Seat of Power",
+        "status": "PARTIAL",
+        "bucket": "Battlefield effect",
+        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      },
+      {
+        "cardName": "The Arena's Greatest",
         "status": "PARTIAL",
         "bucket": "Battlefield effect",
         "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."

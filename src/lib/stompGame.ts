@@ -11,7 +11,7 @@ export type MoveRequest =
   | { type: 'PLAY_CARD'; playerId: string; instanceId: string; targetZone: string; x: number; y: number; targetInstanceId?: string; targetChainItemId?: string; targets?: { role: TargetRole; instanceId: string }[]; accelerate?: boolean; paymentRuneIds?: string[]; premiumRuneIds?: string[] }
   | { type: 'MOVE_CARD'; playerId: string; instanceId: string; targetZone: string; x: number; y: number }
   | { type: 'REPOSITION_CARD'; playerId: string; instanceId: string; x: number; y: number }
-  | { type: 'MOVE_TO_BATTLEFIELD'; playerId: string; instanceId: string; battlefieldLocationId?: string; paymentRuneIds?: string[]; premiumRuneIds?: string[] }
+  | { type: 'MOVE_TO_BATTLEFIELD'; playerId: string; instanceId: string; battlefieldLocationId?: string; targetZone?: 'BASE' | 'BATTLEFIELD'; paymentRuneIds?: string[]; premiumRuneIds?: string[] }
   | { type: 'MOVE_TO_BASE'; playerId: string; instanceId: string }
   | { type: 'SELECT_BATTLEFIELD'; playerId: string; battlefieldCardId: string }
   | { type: 'TAP_RUNE'; playerId: string; runeInstanceId: string }

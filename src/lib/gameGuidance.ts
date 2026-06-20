@@ -13,7 +13,7 @@ const PHASE_GUIDANCE: Record<string, string> = {
 
 const SHOWDOWN_GUIDANCE: Record<string, string> = {
   STAGED: 'Showdown in progress. Resolve showdown to continue.',
-  ACTION_WINDOW: 'Showdown focus window. The focused player may play supported Action cards or pass focus.',
+  ACTION_WINDOW: 'Showdown focus window. The focused player may play supported Action or Reaction cards, or pass focus.',
   ASSIGN_DAMAGE: 'Showdown damage assignment is resolving.',
   RESOLVE_DAMAGE: 'Showdown damage is resolving.',
   CLEANUP: 'Showdown cleanup is resolving.',
@@ -69,11 +69,11 @@ export function legalActionHint(
   if (actions.has('PASS_CHAIN_FOCUS') && actions.has('PLAY_CARD')) return 'You may respond or pass priority.';
   if (actions.has('PASS_CHAIN_FOCUS')) return 'You can pass priority.';
   if (actions.has('ASSIGN_COMBAT_DAMAGE')) return 'Assign combat damage to continue the showdown.';
-  if (actions.has('PASS_SHOWDOWN_FOCUS') && actions.has('PLAY_CARD')) return 'You may play a supported Action card or pass showdown focus.';
+  if (actions.has('PASS_SHOWDOWN_FOCUS') && actions.has('PLAY_CARD')) return 'You may play a supported Action or Reaction card, or pass showdown focus.';
   if (actions.has('PASS_SHOWDOWN_FOCUS')) return 'You can pass showdown focus.';
-  if (actions.has('RESOLVE_SHOWDOWN') && actions.has('PLAY_CARD')) return 'You may play supported Action cards or resolve the showdown.';
+  if (actions.has('RESOLVE_SHOWDOWN') && actions.has('PLAY_CARD')) return 'You may play supported Action or Reaction cards, or resolve the showdown.';
   if (actions.has('RESOLVE_SHOWDOWN')) return 'You can resolve this showdown.';
-  if (actions.has('PLAY_CARD') && actions.size === 1) return 'You may play supported Action cards.';
+  if (actions.has('PLAY_CARD') && actions.size === 1) return 'You may play supported Action or Reaction cards.';
 
   const parts: string[] = [];
   if (actions.has('PLAY_CARD')) parts.push('play cards');

@@ -94,6 +94,16 @@ describe('deckSupport', () => {
     expect(status.reason).toContain('ability targets remain deferred');
   });
 
+  it('uses a Hard Bargain-specific Partial reason for the tax counter path', () => {
+    const status = cardSupportStatus(spell('Hard Bargain', "[Reaction] [Repeat] :rb_energy_2: Counter a spell unless its controller pays :rb_energy_2:."));
+
+    expect(status.status).toBe('PARTIAL');
+    expect(status.reason).toContain("controller pays 2 energy");
+    expect(status.reason).toContain('owner-only prompt');
+    expect(status.reason).toContain('Repeat');
+    expect(status.reason).toContain('countering counters remain deferred');
+  });
+
   it('uses alpha chain-window Partial reasons for Discipline and En Garde', () => {
     const discipline = cardSupportStatus(spell('Discipline', '[Reaction] Give a unit +2 Might this turn. Draw 1.'));
     const enGarde = cardSupportStatus(spell('En Garde', '[Reaction] Give a friendly unit +1 Might this turn, then an additional +1 Might this turn if it is the only unit you control there.'));
@@ -125,6 +135,30 @@ describe('deckSupport', () => {
     expect(charm.reason).toContain('enemy public battlefield Unit/Champion');
     expect(charm.reason).toContain('Base');
     expect(charm.reason).toContain('movement choices');
+  });
+
+  it('uses Battlefield-specific Partial reasons for Sunken Temple and Targons Peak', () => {
+    const sunken = cardSupportStatus({
+      id: 'sunken-temple',
+      name: 'Sunken Temple',
+      type: 'Battlefield',
+      domains: [],
+      rulesText: 'When you conquer here with one or more [Mighty] units, you may pay 1 to draw 1.',
+    });
+    const targon = cardSupportStatus({
+      id: 'targons-peak',
+      name: "Targon's Peak",
+      type: 'Battlefield',
+      domains: [],
+      rulesText: 'When you conquer here, ready up to 2 runes at the end of this turn.',
+    });
+
+    expect(sunken.status).toBe('PARTIAL');
+    expect(sunken.reason).toContain('conquer-with-Mighty');
+    expect(sunken.reason).toContain('optional pay-1 draw');
+    expect(targon.status).toBe('PARTIAL');
+    expect(targon.reason).toContain('queues end-turn readying');
+    expect(targon.reason).toContain('Player-selected rune choice');
   });
 
   it('uses a The Syren-specific Partial reason for the alpha activated ability', () => {

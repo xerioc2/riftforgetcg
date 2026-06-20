@@ -46,9 +46,9 @@
         }
       },
       "support": {
-        "status": "UNSUPPORTED",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
-        "blocked": true
+        "status": "PARTIAL",
+        "reason": "Partial: Hard Bargain can counter a supported public pending spell chain item unless that spell's controller pays 2 energy through an owner-only prompt. Repeat, broad official Reaction timing, ability targets, hidden/private chain targets, and countering counters remain deferred.",
+        "blocked": false
       },
       "bucket": "Reaction / chain / counter"
     },
@@ -372,7 +372,7 @@
       },
       "support": {
         "status": "PARTIAL",
-        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "reason": "Partial: exact conquer trigger queues end-turn readying for up to two tapped friendly runes in active Battlefield lanes. Player-selected rune choice and full official location rules remain deferred.",
         "blocked": false
       },
       "bucket": "Battlefield effect"
@@ -643,27 +643,27 @@
     "uniqueCards": 25,
     "counts": {
       "SUPPORTED": 1,
-      "PARTIAL": 23,
-      "UNSUPPORTED": 1,
+      "PARTIAL": 24,
+      "UNSUPPORTED": 0,
       "BANNED": 0,
       "NOT_AUDITED": 0
     },
-    "canUseInEnforced": false,
+    "canUseInEnforced": true,
     "unresolvedCards": [],
     "topBlockers": [
-      {
-        "cardName": "Hard Bargain",
-        "sourceCardId": "SFD-136",
-        "status": "UNSUPPORTED",
-        "bucket": "Reaction / chain / counter",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet."
-      },
       {
         "cardName": "Diana - Scorn of the Moon",
         "sourceCardId": "UNL-197",
         "status": "PARTIAL",
         "bucket": "Legend text",
         "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+      },
+      {
+        "cardName": "Hard Bargain",
+        "sourceCardId": "SFD-136",
+        "status": "PARTIAL",
+        "bucket": "Reaction / chain / counter",
+        "reason": "Partial: Hard Bargain can counter a supported public pending spell chain item unless that spell's controller pays 2 energy through an owner-only prompt. Repeat, broad official Reaction timing, ability targets, hidden/private chain targets, and countering counters remain deferred."
       },
       {
         "cardName": "Star Spring",

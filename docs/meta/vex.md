@@ -14,7 +14,7 @@ Extraction status: Extracted
 
 | Deck slug | Deck name | Unique cards | Supported | Partial | Unsupported | Not Audited | Enforced playable |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| vex-top-8-at-s3-zhongshan-city-challenge | Vex Top 8 at S3 Zhongshan City Challenge | 33 | 3 | 24 | 5 | 1 | No |
+| vex-top-8-at-s3-zhongshan-city-challenge | Vex Top 8 at S3 Zhongshan City Challenge | 33 | 3 | 25 | 4 | 1 | No |
 | vex-top-8-at-city-challenge-wuhan | Vex Top 8 at City Challenge — Wuhan | 28 | 3 | 22 | 3 | 0 | No |
 | vex-top-4-at-sydney-regional-qualifier | Vex Top 4 at Sydney Regional Qualifier | 25 | 2 | 20 | 3 | 0 | No |
 
@@ -28,12 +28,11 @@ Extraction status: Extracted
 - Blast Cone: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Emperor's Divide: UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
 - Existential Dread: UNSUPPORTED - Bounce / return. Blocked in enforced play: this card's effect is not supported yet.
-- Hard Bargain: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
+- Switcheroo: UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
 - Seal of Focus: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Wind Wall: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Abandoned Hall: PARTIAL - Battlefield effect. Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.
 - Aspirant's Climb: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
-- Switcheroo: UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
 - Bandle Tree: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Star Spring: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 
@@ -59,7 +58,7 @@ Top blockers:
 - Blast Cone: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Emperor's Divide: UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
 - Existential Dread: UNSUPPORTED - Bounce / return. Blocked in enforced play: this card's effect is not supported yet.
-- Hard Bargain: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
+- Switcheroo: UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
 
 ### Vex Top 8 at City Challenge — Wuhan
 

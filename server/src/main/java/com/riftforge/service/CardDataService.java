@@ -428,6 +428,45 @@ public class CardDataService {
         && text.contains("[predict]");
   }
 
+  public boolean isAbandonedHallBattlefield(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().trim().toLowerCase();
+    return "Battlefield".equalsIgnoreCase(def.type())
+        && def.name() != null
+        && def.name().trim().equalsIgnoreCase("Abandoned Hall")
+        && text.equals("when a player plays a spell, they may give a unit they control here +1 :rb_might: this turn.");
+  }
+
+  public boolean isSunkenTempleBattlefield(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().trim().toLowerCase();
+    return "Battlefield".equalsIgnoreCase(def.type())
+        && def.name() != null
+        && def.name().trim().equalsIgnoreCase("Sunken Temple")
+        && text.contains("when you conquer here with one or more [mighty] units")
+        && text.contains("you may pay :rb_energy_1: to draw 1");
+  }
+
+  public boolean isTargonsPeakBattlefield(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().trim().toLowerCase();
+    return "Battlefield".equalsIgnoreCase(def.type())
+        && def.name() != null
+        && def.name().trim().equalsIgnoreCase("Targon's Peak")
+        && text.equals("when you conquer here, ready up to 2 runes at the end of this turn.");
+  }
+
+  public boolean isHardBargainCounterReaction(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().toLowerCase();
+    boolean hardBargainName = def.name() != null && def.name().trim().equalsIgnoreCase("Hard Bargain");
+    return "Spell".equalsIgnoreCase(def.type())
+        && isReactionCard(def)
+        && hardBargainName
+        && text.contains("counter a spell unless its controller pays")
+        && text.contains(":rb_energy_2:");
+  }
+
   public boolean isHiddenCard(CardDefinition def) {
     if (def == null) return false;
     boolean keyword = def.keywords() != null
@@ -478,12 +517,13 @@ public class CardDataService {
         || isDefyCounterReaction(def)
         || isNotSoFastCounterReaction(def)
         || isAbandonCounterReaction(def)
+        || isHardBargainCounterReaction(def)
         || isDisciplineReaction(def)
         || isEnGardeReaction(def)
         || isDefiantDanceReaction(def)
         || isFlashReaction(def)
         || isStackedDeckEffectText(normalized);
-    return (normalized.contains("counter a spell") && !isDefyCounterReaction(def) && !isAbandonCounterReaction(def))
+    return (normalized.contains("counter a spell") && !isDefyCounterReaction(def) && !isAbandonCounterReaction(def) && !isHardBargainCounterReaction(def))
         || (normalized.contains("counter an enemy spell") && !isNotSoFastCounterReaction(def))
         || requiresMultipleTargets
         || !supportedEffect;

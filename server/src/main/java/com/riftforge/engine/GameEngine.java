@@ -29,6 +29,7 @@ import org.springframework.stereotype.Component;
 public class GameEngine {
   private static final Logger LOGGER = LoggerFactory.getLogger(GameEngine.class);
   private static final int MAX_RUNES = 11;
+  private static final String HARD_BARGAIN_TARGET_CHAIN_ITEM_ID = "targetChainItemId";
 
   private final RulesValidator rulesValidator;
   private final CombatResolver combatResolver;
@@ -42,6 +43,7 @@ public class GameEngine {
   private final ActivatedAbilityService activatedAbilityService;
   private final DeathService deathService;
   private final LegendChampionEffectService legendChampionEffectService;
+  private final BattlefieldEffectService battlefieldEffectService;
   private final ShowdownParticipantRules showdownParticipantRules = new ShowdownParticipantRules();
   private final int targetScore;
 
@@ -66,11 +68,12 @@ public class GameEngine {
             deathTriggerService,
             new ReplacementEffectService(cardDataService, cardZoneService)),
         new LegendChampionEffectService(cardDataService),
+        new BattlefieldEffectService(cardDataService),
         targetScore);
   }
 
   @Autowired
-  public GameEngine(RulesValidator rulesValidator, CombatResolver combatResolver, CardZoneService cardZoneService, CardDataService cardDataService, CardEffectRegistry effects, DeathTriggerService deathTriggerService, TokenFactory tokenFactory, TriggerDispatcher triggerDispatcher, PriorityWindowService priorityWindowService, ActivatedAbilityService activatedAbilityService, DeathService deathService, LegendChampionEffectService legendChampionEffectService, @Value("${riftforge.target-score}") int targetScore) {
+  public GameEngine(RulesValidator rulesValidator, CombatResolver combatResolver, CardZoneService cardZoneService, CardDataService cardDataService, CardEffectRegistry effects, DeathTriggerService deathTriggerService, TokenFactory tokenFactory, TriggerDispatcher triggerDispatcher, PriorityWindowService priorityWindowService, ActivatedAbilityService activatedAbilityService, DeathService deathService, LegendChampionEffectService legendChampionEffectService, BattlefieldEffectService battlefieldEffectService, @Value("${riftforge.target-score}") int targetScore) {
     this.rulesValidator = rulesValidator;
     this.combatResolver = combatResolver;
     this.cardZoneService = cardZoneService;
@@ -83,6 +86,7 @@ public class GameEngine {
     this.activatedAbilityService = activatedAbilityService;
     this.deathService = deathService;
     this.legendChampionEffectService = legendChampionEffectService;
+    this.battlefieldEffectService = battlefieldEffectService;
     this.targetScore = targetScore;
   }
 
@@ -203,6 +207,11 @@ public class GameEngine {
     if (cardDataService.isAbandonCounterReaction(def)) {
       state.setCardPlayedThisTurn(true);
       addAbandonToChain(state, move, card, def);
+      return state;
+    }
+    if (cardDataService.isHardBargainCounterReaction(def)) {
+      state.setCardPlayedThisTurn(true);
+      addHardBargainToChain(state, move, card, def);
       return state;
     }
     if (cardDataService.isGustReaction(def)) {
@@ -436,6 +445,17 @@ public class GameEngine {
         }
       }
       player.setAvailableEnergy(Math.max(0, player.getAvailableEnergy() + selectedEnergy - Math.max(0, def.cost())));
+    }
+    if (playedFromChampionZone && move.targetZone() == ZoneName.BASE) {
+      card.setZone(ZoneName.BASE);
+      card.setBattlefieldLocationId(null);
+      card.setX(0);
+      card.setY(0);
+      card.setTapped(true);
+      card.setHasSummoningSickness(true);
+      card.setCurrentHealth(def.health());
+      log(state, move.playerId(), "Played " + def.name() + " from the Champion zone to Base.");
+      return state;
     }
     String locationId = BattlefieldLocationRules.normalize(move.battlefieldLocationId());
     card.setZone(ZoneName.BATTLEFIELD);
@@ -772,6 +792,11 @@ public class GameEngine {
       moveChainSourceToTrash(state, item);
       return resolved ? LiveGameState.ChainItem.STATUS_RESOLVED : LiveGameState.ChainItem.STATUS_FIZZLED;
     }
+    if (LiveGameState.ChainItem.EFFECT_HARD_BARGAIN_COUNTER_TAX.equals(item.effectKey())) {
+      boolean resolved = resolveHardBargainCounterItem(state, item, description);
+      moveChainSourceToTrash(state, item);
+      return resolved ? LiveGameState.ChainItem.STATUS_RESOLVED : LiveGameState.ChainItem.STATUS_FIZZLED;
+    }
     if (LiveGameState.ChainItem.EFFECT_STACKED_DECK_PICK_ONE.equals(item.effectKey())) {
       resolveStackedDeckChainItem(state, item, description);
       moveChainSourceToTrash(state, item);
@@ -1015,6 +1040,44 @@ public class GameEngine {
   }
 
   private void addAbandonToChain(LiveGameState state, PlayCardMove move, CardInstance card, CardDefinition def) {
+    LiveGameState.ChainState chain = state.getChainState();
+    PriorityWindowService.PriorityWindow priorityWindow = priorityWindowService.reactionWindowFor(def).orElseThrow();
+    List<String> relevant = priorityWindowService.relevantPlayers(state, chain);
+    int order = chain.chainItems().size() + 1;
+    card.setZone(ZoneName.LIMBO);
+    card.setTapped(false);
+    card.setHasSummoningSickness(false);
+    LiveGameState.ChainItem item = new LiveGameState.ChainItem(
+        UUID.randomUUID().toString(),
+        move.playerId(),
+        card.getInstanceId(),
+        card.getCardId(),
+        def.name(),
+        priorityWindow.effectKey(),
+        List.of(move.targetChainItemId()),
+        order,
+        priorityWindow.publicDescription(),
+        priorityWindow.visibility(),
+        LiveGameState.ChainItem.STATUS_PENDING,
+        priorityWindow.counterable(),
+        priorityWindow.targetableOnChain(),
+        priorityWindow.chainItemType(),
+        priorityWindow.sourceZoneBeforeChain(),
+        chainTargetsForChainItem(chain, move.targetChainItemId(), "counterTarget"));
+    List<LiveGameState.ChainItem> items = new ArrayList<>(chain.chainItems());
+    items.add(item);
+    state.setChainState(new LiveGameState.ChainState(
+        chain.chainId(),
+        items,
+        relevant,
+        priorityWindowService.nextFocusedPlayerId(relevant, move.playerId()),
+        0,
+        false,
+        chain.sourceContext()));
+    log(state, move.playerId(), "Played " + def.name() + " onto the chain.");
+  }
+
+  private void addHardBargainToChain(LiveGameState state, PlayCardMove move, CardInstance card, CardDefinition def) {
     LiveGameState.ChainState chain = state.getChainState();
     PriorityWindowService.PriorityWindow priorityWindow = priorityWindowService.reactionWindowFor(def).orElseThrow();
     List<String> relevant = priorityWindowService.relevantPlayers(state, chain);
@@ -1403,7 +1466,46 @@ public class GameEngine {
     return true;
   }
 
+  private boolean resolveHardBargainCounterItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
+    String targetItemId = item.targetInstanceIds().stream().findFirst().orElse("");
+    LiveGameState.ChainState chain = state.getChainState();
+    if (chain == null || targetItemId.isBlank()) {
+      log(state, item.controllerPlayerId(), "Resolved " + description + ": target was no longer available.");
+      return false;
+    }
+    LiveGameState.ChainItem target = chain.chainItems().stream()
+        .filter(candidate -> targetItemId.equals(candidate.itemId()))
+        .findFirst()
+        .orElse(null);
+    if (!isLegalHardBargainTarget(target)) {
+      log(state, item.controllerPlayerId(), "Resolved " + description + ": target was no longer legal.");
+      return false;
+    }
+    PendingChoice choice = PendingChoice.optionalPayment(
+        UUID.randomUUID().toString(),
+        target.controllerPlayerId(),
+        item.sourceCardId(),
+        "Pay 2 to stop Hard Bargain from countering " + chainItemDescription(target) + "?",
+        2,
+        PendingChoice.EFFECT_HARD_BARGAIN_COUNTER_UNLESS_PAY);
+    choice.setSourceCardInstanceId(item.sourceCardInstanceId());
+    choice.getContext().put(HARD_BARGAIN_TARGET_CHAIN_ITEM_ID, target.itemId());
+    state.setPendingChoice(choice);
+    log(state, item.controllerPlayerId(), "Resolved " + description + ": " + player(state, target.controllerPlayerId()).getName() + " may pay 2 to stop it.");
+    return true;
+  }
+
   private boolean isLegalAbandonTarget(LiveGameState.ChainItem target) {
+    if (target == null || !target.isPending() || !target.counterable() || !target.targetableOnChain()) return false;
+    if (!target.isPubliclyVisible()) return false;
+    if (!LiveGameState.ChainItem.TYPE_SPELL.equalsIgnoreCase(target.chainItemType())) return false;
+    CardDefinition targetDef = target.sourceCardId() == null || target.sourceCardId().isBlank()
+        ? null
+        : cardDataService.getCard(target.sourceCardId());
+    return targetDef != null && "Spell".equalsIgnoreCase(targetDef.type());
+  }
+
+  private boolean isLegalHardBargainTarget(LiveGameState.ChainItem target) {
     if (target == null || !target.isPending() || !target.counterable() || !target.targetableOnChain()) return false;
     if (!target.isPubliclyVisible()) return false;
     if (!LiveGameState.ChainItem.TYPE_SPELL.equalsIgnoreCase(target.chainItemType())) return false;
@@ -1658,7 +1760,17 @@ public class GameEngine {
       }
     } else if (PendingChoice.TYPE_OPTIONAL_PAY_1_DRAW_ONE.equals(choice.getType())
         || PendingChoice.TYPE_OPTIONAL_PAYMENT.equals(choice.getType())) {
-      if (PendingChoice.OPTION_PAY_1.equals(move.selectedOptionId())) {
+      if (PendingChoice.EFFECT_HARD_BARGAIN_COUNTER_UNLESS_PAY.equals(choice.getEffect())) {
+        if (PendingChoice.OPTION_PAY_1.equals(move.selectedOptionId())) {
+          PlayerState player = player(state, move.playerId());
+          int amount = optionalPaymentAmount(choice);
+          player.setAvailableEnergy(Math.max(0, player.getAvailableEnergy() - amount));
+          log(state, move.playerId(), player.getName() + " paid " + amount + " for " + choicePromptLabel(choice) + ".");
+        } else {
+          counterHardBargainTarget(state, choice);
+          log(state, move.playerId(), player(state, move.playerId()).getName() + " declined " + choicePromptLabel(choice) + ".");
+        }
+      } else if (PendingChoice.OPTION_PAY_1.equals(move.selectedOptionId())) {
         PlayerState player = player(state, move.playerId());
         int amount = optionalPaymentAmount(choice);
         player.setAvailableEnergy(Math.max(0, player.getAvailableEnergy() - amount));
@@ -1680,6 +1792,40 @@ public class GameEngine {
     }
     state.setPendingChoice(nextChoice);
     return state;
+  }
+
+  private void counterHardBargainTarget(LiveGameState state, PendingChoice choice) {
+    String targetChainItemId = choice.getContext().get(HARD_BARGAIN_TARGET_CHAIN_ITEM_ID);
+    LiveGameState.ChainState chain = state.getChainState();
+    if (chain == null || targetChainItemId == null || targetChainItemId.isBlank()) {
+      log(state, choice.getPlayerId(), "Hard Bargain's target was no longer available.");
+      return;
+    }
+    List<LiveGameState.ChainItem> updatedItems = new ArrayList<>();
+    LiveGameState.ChainItem counteredItem = null;
+    for (LiveGameState.ChainItem candidate : chain.chainItems()) {
+      if (targetChainItemId.equals(candidate.itemId()) && isLegalHardBargainTarget(candidate)) {
+        LiveGameState.ChainItem marked = candidate.withStatus(LiveGameState.ChainItem.STATUS_COUNTERED);
+        updatedItems.add(marked);
+        counteredItem = marked;
+      } else {
+        updatedItems.add(candidate);
+      }
+    }
+    if (counteredItem == null) {
+      log(state, choice.getPlayerId(), "Hard Bargain's target was no longer legal.");
+      return;
+    }
+    state.setChainState(new LiveGameState.ChainState(
+        chain.chainId(),
+        updatedItems,
+        chain.relevantPlayerIds(),
+        chain.focusedPlayerId(),
+        chain.consecutivePasses(),
+        chain.readyToResolveTop(),
+        chain.sourceContext()));
+    moveChainSourceToTrash(state, counteredItem);
+    log(state, choice.getPlayerId(), "Hard Bargain countered " + chainItemDescription(counteredItem) + ".");
   }
 
   private PendingChoice applyChoiceEffect(LiveGameState state, String playerId, PendingChoice choice) {
@@ -1846,7 +1992,10 @@ public class GameEngine {
 
   private void conquerBattlefield(LiveGameState state, String playerId, String battlefieldId) {
     String locationId = BattlefieldLocationRules.normalize(battlefieldId);
+    String previousController = state.getBattlefieldController().get(locationId);
     state.getBattlefieldController().put(locationId, playerId);
+    boolean changedController = !playerId.equals(previousController);
+    if (changedController) battlefieldEffectService.onConquer(state, playerId, locationId);
     if (state.getScoredBattlefieldsThisTurn().contains(locationId)) return;
     PlayerState scorer = player(state, playerId);
     state.getScoredBattlefieldsThisTurn().add(locationId);
@@ -1905,6 +2054,7 @@ public class GameEngine {
   }
 
   private void finishEndPhase(LiveGameState state) {
+    battlefieldEffectService.resolveEndTurnRuneReadying(state, state.getActivePlayerId());
     state.getCards().stream()
         .filter(card -> card.getOwnerId().equals(state.getActivePlayerId()) && card.getZone() == ZoneName.BATTLEFIELD)
         .forEach(card -> effects.getEffect(card.getCardId()).ifPresent(effect -> effect.onTurnEnd(card, state)));
@@ -2166,10 +2316,12 @@ public class GameEngine {
   }
 
   private void recallUnitToBase(LiveGameState state, CardInstance source, CardDefinition sourceDef, CardInstance target) {
+    ZoneName sourceZone = target.getZone();
     target.setZone(ZoneName.BASE);
     target.setTapped(false);
     target.setHasSummoningSickness(false);
     target.setBattlefieldLocationId(null);
+    dispatchCardMoved(state, target, sourceZone, ZoneName.BASE, "EFFECT_MOVE_TO_BASE");
     log(state, source.getOwnerId(), sourceDef.name() + " moved " + cardDataService.getCard(target.getCardId()).name() + " to Base.");
   }
 

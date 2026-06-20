@@ -14,9 +14,9 @@ Extraction status: Extracted
 
 | Deck slug | Deck name | Unique cards | Supported | Partial | Unsupported | Not Audited | Enforced playable |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| diana-wins-s3-suzhou-city-challenge | Diana Wins S3 Suzhou City Challenge | 29 | 1 | 24 | 4 | 0 | No |
-| diana-wins-s3-shenzhen-city-challenge-tournament | Diana Wins S3 Shenzhen City Challenge tournament | 30 | 1 | 24 | 5 | 0 | No |
-| diana-top-4-at-sydney-regional-qualifier | Diana Top 4 at Sydney Regional Qualifier | 26 | 1 | 22 | 3 | 0 | No |
+| diana-wins-s3-suzhou-city-challenge | Diana Wins S3 Suzhou City Challenge | 29 | 1 | 25 | 3 | 0 | No |
+| diana-wins-s3-shenzhen-city-challenge-tournament | Diana Wins S3 Shenzhen City Challenge tournament | 30 | 1 | 25 | 4 | 0 | No |
+| diana-top-4-at-sydney-regional-qualifier | Diana Top 4 at Sydney Regional Qualifier | 26 | 1 | 23 | 2 | 0 | No |
 
 ## Unresolved Cards
 
@@ -24,17 +24,18 @@ Extraction status: Extracted
 
 ## Shared Top Blockers
 
-- Hard Bargain: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Invert Timelines: UNSUPPORTED - Draw / reveal / deck selection. Blocked in enforced play: this card's effect is not supported yet.
 - Turn to Dust: UNSUPPORTED - Damage / destroy. Blocked in enforced play: this card's effect is not supported yet.
 - Unchecked Power: UNSUPPORTED - Basic or descriptor-only. Blocked in enforced play: this card's effect is not supported yet.
 - Abandoned Hall: PARTIAL - Battlefield effect. Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.
+- Star Spring: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Bellows Breath: UNSUPPORTED - Basic or descriptor-only. Blocked in enforced play: this card's effect is not supported yet.
 - Downwell: UNSUPPORTED - Bounce / return. Blocked in enforced play: this card's effect is not supported yet.
 - Existential Dread: UNSUPPORTED - Bounce / return. Blocked in enforced play: this card's effect is not supported yet.
 - Fading Memories: UNSUPPORTED - Damage / destroy. Blocked in enforced play: this card's effect is not supported yet.
 - Frigid Jewel: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Ravenbloom Conservatory: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Targon's Peak: PARTIAL - Battlefield effect. Partial: exact conquer trigger queues end-turn readying for up to two tapped friendly runes in active Battlefield lanes. Player-selected rune choice and full official location rules remain deferred.
 
 ## Decklists
 
@@ -54,11 +55,11 @@ Extraction status: Extracted
 
 Top blockers:
 
-- Hard Bargain: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Invert Timelines: UNSUPPORTED - Draw / reveal / deck selection. Blocked in enforced play: this card's effect is not supported yet.
 - Turn to Dust: UNSUPPORTED - Damage / destroy. Blocked in enforced play: this card's effect is not supported yet.
 - Unchecked Power: UNSUPPORTED - Basic or descriptor-only. Blocked in enforced play: this card's effect is not supported yet.
 - Abandoned Hall: PARTIAL - Battlefield effect. Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.
+- Star Spring: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 
 ### Diana Wins S3 Shenzhen City Challenge tournament
 
@@ -79,8 +80,8 @@ Top blockers:
 - Bellows Breath: UNSUPPORTED - Basic or descriptor-only. Blocked in enforced play: this card's effect is not supported yet.
 - Downwell: UNSUPPORTED - Bounce / return. Blocked in enforced play: this card's effect is not supported yet.
 - Existential Dread: UNSUPPORTED - Bounce / return. Blocked in enforced play: this card's effect is not supported yet.
-- Hard Bargain: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Turn to Dust: UNSUPPORTED - Damage / destroy. Blocked in enforced play: this card's effect is not supported yet.
+- Abandoned Hall: PARTIAL - Battlefield effect. Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.
 
 ### Diana Top 4 at Sydney Regional Qualifier
 
@@ -100,9 +101,9 @@ Top blockers:
 
 - Fading Memories: UNSUPPORTED - Damage / destroy. Blocked in enforced play: this card's effect is not supported yet.
 - Frigid Jewel: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
-- Hard Bargain: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Abandoned Hall: PARTIAL - Battlefield effect. Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.
 - Ravenbloom Conservatory: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Targon's Peak: PARTIAL - Battlefield effect. Partial: exact conquer trigger queues end-turn readying for up to two tapped friendly runes in active Battlefield lanes. Player-selected rune choice and full official location rules remain deferred.
 
 ## Recommended Implementation Order
 

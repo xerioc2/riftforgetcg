@@ -343,7 +343,13 @@ public class BotService {
       for (CardInstance champion : readyChampions) {
         Set<LegalAction> actions = legalActions(state, botId);
         if (!actions.contains(LegalAction.MOVE_TO_BATTLEFIELD)) break;
-        acted |= processBotMove(roomCode, state, botId, new MoveToBattlefieldMove(botId, champion.getInstanceId()));
+        acted |= processBotMove(roomCode, state, botId, new MoveToBattlefieldMove(
+            botId,
+            champion.getInstanceId(),
+            null,
+            List.of(),
+            List.of(),
+            ZoneName.BASE));
         sleepBriefly(200);
         state = gameService.currentState(roomCode);
         state = resolveShowdownIfLegal(roomCode, state, botId);

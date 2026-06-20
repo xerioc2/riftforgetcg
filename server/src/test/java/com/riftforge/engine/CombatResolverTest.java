@@ -40,15 +40,9 @@ class CombatResolverTest {
     when(effects.getEffect(anyString())).thenReturn(Optional.empty());
     doAnswer(invocation -> {
       CardInstance card = invocation.getArgument(0);
-      CardDefinition def = cardDataService.getCard(card.getCardId());
-      if (def != null && "Champion".equalsIgnoreCase(def.type())) {
-        card.setZone(ZoneName.CHAMPION);
-        card.setCurrentHealth(def.health());
-        card.setAttachedToInstanceId(null);
-      } else {
-        card.setZone(ZoneName.DISCARD);
-        card.setAttachedToInstanceId(null);
-      }
+      card.setZone(ZoneName.DISCARD);
+      card.setBattlefieldLocationId(null);
+      card.setAttachedToInstanceId(null);
       return null;
     }).when(cardZoneService).moveToGraveyard(any(CardInstance.class));
     when(cardZoneService.returnAttachmentsToBase(any(LiveGameState.class), any(CardInstance.class))).thenAnswer(invocation -> {
@@ -305,7 +299,7 @@ class CombatResolverTest {
   }
 
   @Test
-  void championDestroyedInCombatReturnsToChampionZoneAndGearReturnsToBase() {
+  void championDestroyedInCombatGoesToTrashAndGearReturnsToBase() {
     CardInstance attacker = card("a", "attacker", "p1");
     CardInstance champion = card("c", "friendly-champion", "p2");
     CardInstance gear = card("g", "guardian-angel", "p2");
@@ -317,8 +311,7 @@ class CombatResolverTest {
 
     resolver.resolve(state(attacker, champion, gear), "p1");
 
-    assertThat(champion.getZone()).isEqualTo(ZoneName.CHAMPION);
-    assertThat(champion.getCurrentHealth()).isEqualTo(3);
+    assertThat(champion.getZone()).isEqualTo(ZoneName.DISCARD);
     assertThat(champion.getAttachedToInstanceId()).isNull();
     assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
     assertThat(gear.getAttachedToInstanceId()).isNull();

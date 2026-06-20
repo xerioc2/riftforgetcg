@@ -66,17 +66,18 @@ Current implementation notes:
 - Submitted decks are partitioned into Legend, Champion, main deck, runes, and battlefields.
 - Legend and Champion start in their correct zones.
 - Constructed games enter `SELECT_BATTLEFIELD` before mulligan. Each player sees their own three submitted Battlefields, chooses one, and selected Battlefield IDs are revealed/locked before mulligans begin.
-- Champion-zone identity cards are not legal equip targets while they remain in the Champion zone. When destroyed in supported combat/cleanup paths, Champions return to the Champion zone rather than Trash, and attached Gear returns to Base.
-- Chosen Champions can be deployed from the Champion zone only during supported Main play and must spend their real energy cost from currently available energy.
+- Champion-zone identity cards are not legal equip targets while they remain in the Champion zone. Once deployed, the chosen Champion is the same physical Unit card and follows normal public-zone lifecycle rules. When destroyed in supported combat/cleanup paths, deployed Champions go to Trash and attached Gear returns to Base.
+- Chosen Champions can be deployed from the Champion zone to Base or to a controlled active Battlefield lane during supported Main play and must spend their real energy cost from currently available energy.
 - Legends are identity/reference cards in the alpha model and cannot be moved to the battlefield.
 - Opening hand draws from the main deck pool only.
 - Deck/rune counts are projected without exposing hidden deck contents.
 
 Known gaps:
 - Battlefield setup and play now use stable location ids, and current 1v1
-  Duel/bot games expose two active shared lanes. Printed Battlefield effects,
-  hidden slots, official "here" targeting, and non-Duel active-lane counts are
-  still simplified.
+  Duel/bot games expose two active shared lanes. Sunken Temple and Targon's
+  Peak have narrow exact-card conquer hooks, but most printed Battlefield
+  effects, hidden slots, official "here" targeting, and non-Duel active-lane
+  counts are still simplified.
 - Starting player selection is not fully derived from battlefield ownership/randomization.
 - 2-4 player setup is not fully rules-complete.
 
@@ -103,8 +104,8 @@ Current implementation notes:
 Known gaps:
 - Multiplayer turn-order mulligan nuance is not deeply modeled.
 - UI/engine language should stay aligned with official "recycle up to 2" wording.
-- Full official-style multi-location Battlefield setup remains partial. Current 1v1 Duel/bot alpha renders two active shared Battlefield lanes (`bf-0`, `bf-1`) and can send move destinations, including ready Unit/Champion movement between active lanes during Main Phase when no showdown is active; `bf-2` remains a supported model id for future formats but is not an active 1v1 lane. Future support still needs official Battlefield effects, hidden slots, richer "here" targeting, scoring nuance, bot strategy, and card-specific location rules. This is separate from 3+ player multiplayer support.
-- Printed Battlefield abilities remain card-specific Partial unless explicitly scripted and tested; current local texts include delayed/optional conquer, defend, spell-play, and score-modification effects that are not safe to auto-enable from display-only selection.
+- Full official-style multi-location Battlefield setup remains partial. Current 1v1 Duel/bot alpha renders two active shared Battlefield lanes (`bf-0`, `bf-1`) and can send move destinations, including ready Unit/Champion movement between active lanes during Main Phase when no showdown is active; `bf-2` remains a supported model id for future formats but is not an active 1v1 lane. Future support still needs hidden slots, richer "here" targeting, scoring nuance, bot strategy, and most card-specific location rules. This is separate from 3+ player multiplayer support.
+- Printed Battlefield abilities remain card-specific Partial unless explicitly scripted and tested. Sunken Temple's conquer-with-Mighty optional pay-1 draw and Targon's Peak's conquer-delayed end-turn rune readying are implemented as narrow active-lane hooks; Abandoned Hall and broader defend/spell-play/score-modification effects are still deferred.
 
 Test coverage:
 - `LegalActionsServiceTest`
@@ -180,7 +181,7 @@ Current implementation notes:
 - RiftBot can pass chain focus or resolve a ready top item through the same server legal-action contract.
 - Current effect resolution is deliberately limited to deterministic test/no-op
   and draw-one harness items, Stacked Deck as the first real chain opener, and
-  Gust, Discipline, En Garde, Defiant Dance, Flash, Defy, and Not So Fast as the first real
+  Gust, Discipline, En Garde, Defiant Dance, Flash, Defy, Not So Fast, and Hard Bargain as the first real
   chain-backed Reactions.
 - Stacked Deck opens the narrow alpha chain when played in supported gameplay,
   becomes a public chain item, and creates its existing owner-only private
@@ -214,6 +215,13 @@ Current implementation notes:
   item that chooses the Not So Fast player's friendly Unit/Champion Unit or
   Gear. Not So Fast itself is not counterable in v1. Ability-chain targets,
   countering counters, and broad official Reaction timing remain deferred.
+- Hard Bargain can be played only while the controller is focused during an
+  active chain and can target a pending, public, counterable spell chain item.
+  When Hard Bargain resolves, that spell's controller receives an owner-only
+  prompt to pay 2 energy. Paying leaves the target spell pending; declining
+  counters it and moves its source from LIMBO to Trash. Repeat, hidden/private
+  chain targets, ability targets, countering counters, and broad official
+  Reaction timing remain deferred.
 - Chain item projection is viewer-aware. Public chain items can expose source and
   target metadata, while controller-only/private chain items mask source card
   IDs, source names, effect keys, and target instance IDs from opponents and
@@ -221,12 +229,12 @@ Current implementation notes:
   counter-target metadata and source-zone details for non-owners.
 - The client shows a compact chain panel when `chainState` exists, ordered
   top-to-bottom with public-safe item descriptions, focus state, target
-  summaries for Stacked Deck/Gust/Discipline/En Garde/Defiant Dance/Flash/Defy/Not So Fast, disabled illegal counter targets, and
+  summaries for Stacked Deck/Gust/Discipline/En Garde/Defiant Dance/Flash/Defy/Not So Fast/Hard Bargain, disabled illegal counter targets, and
   non-pending item status. It still exposes chain buttons only through
   server-provided legal actions.
 
 Known gaps:
-- Gust, Discipline, En Garde, Defiant Dance, Flash, Defy, and Not So Fast are
+- Gust, Discipline, En Garde, Defiant Dance, Flash, Defy, Not So Fast, and Hard Bargain are
   the only real Reaction cards connected to server-created chain windows.
   Star-Crossed Reaction timing, Riposte counter behavior, Ambush-as-Reaction, hidden play windows,
   and ability-counter targets are not connected yet.
@@ -324,7 +332,7 @@ Current implementation notes:
 
 Known gaps:
 - Chain timing, Reaction timing, broad countering spells/abilities, optional/three-plus/conditional multi-target spells, full optional trigger ordering, replacement/prevention, and many spell-specific effects are not complete.
-- Active-showdown `[Action]` play is lightweight: focused showdown participants can play supported Action cards or pass focus. Once both relevant players pass in succession, the showdown becomes ready for the attacker to resolve. A narrow bluff-safe priority/chain foundation exists, with Stacked Deck and simple public `Draw 1` spells as the only real opener patterns and Gust/Discipline/En Garde/Defiant Dance/Flash/Defy/Not So Fast as the only connected Reactions; broader response-card support and unrestricted Reaction timing remain deferred.
+- Active-showdown response play is lightweight: focused showdown participants can play supported Action cards, play supported targeted Reactions, or pass focus. Once both relevant players pass in succession, the showdown becomes ready for the attacker to resolve. A narrow bluff-safe priority/chain foundation exists, with Stacked Deck and simple public `Draw 1` spells as the only real opener patterns and Gust/Discipline/En Garde/Defiant Dance/Flash/Defy/Not So Fast/Hard Bargain as the only connected Reactions; broader response-card support, hidden play, hidden Reaction timing, and unrestricted Reaction timing remain deferred.
 - Broad movement scripting is still deferred: Charm has only an exact-text alpha path that moves one enemy public battlefield Unit/Champion to Base.
 
 Test coverage:
@@ -364,8 +372,7 @@ Current implementation notes:
 - Gear cannot move to the battlefield or fight as a unit.
 - Non-equip gear is treated as unsupported.
 - Gear attached to a unit/champion returns to Base and detaches when its host
-  leaves public play, including death, return-to-hand effects, or a Champion
-  returning to the Champion zone.
+  leaves public play, including death or return-to-hand effects.
 - Returning Gear to Base is not treated as the Gear dying and does not process
   Deathknell.
 
@@ -399,8 +406,9 @@ Known gaps:
 - Player-facing multi-location Battlefield lanes and drag-to-lane movement
   destination sending exist for the active format lanes. Current 1v1 Duel/bot
   games expose `bf-0` and `bf-1`, while `bf-2` remains reserved for future or
-  non-Duel formats. Hidden slots, Battlefield effects, and official "here"
-  targeting remain deferred.
+  non-Duel formats. Sunken Temple/Targon's Peak have narrow active-lane hooks,
+  while hidden slots, most Battlefield effects, and official "here" targeting
+  remain deferred.
 - Movement costs, readiness/exhaustion edge cases, Ganking exceptions, and
   effect-driven movement still need more precision in the current simplified
   battlefield flow.
@@ -431,8 +439,9 @@ Current implementation notes:
 Known gaps:
 - Full multi-location Battlefield play is not fully modeled. This is deliberate
   post-alpha scope; current playtests now have readable shared-location lanes,
-  but Battlefield effects, hidden slots, official "here" text, and richer
-  destination prompts remain future work.
+  but most Battlefield effects, hidden slots, official "here" text, and richer
+  destination prompts remain future work beyond the narrow Sunken Temple/Targon's
+  Peak hooks.
 - Control locking during showdowns/combat and chain items is incomplete.
 
 Test coverage:
@@ -456,23 +465,24 @@ Current implementation notes:
   resolution, attacker recall, conquest, and participant fallback are scoped to
   that active location.
 - Focus starts with the attacker. The focused player may play a supported
-  `[Action]` card or pass focus; playing an Action resets consecutive passes
-  and advances focus. When both relevant players pass in succession, the
-  attacker may resolve the simplified combat.
+  `[Action]` card, play a supported targeted Reaction in the narrow alpha
+  showdown window, or pass focus; playing one of those supported response cards
+  resets consecutive passes and advances focus. When both relevant players pass
+  in succession, the attacker may resolve the simplified combat.
 - Nested showdowns are blocked.
 - Resolving clears `activeShowdown` and returns to normal MAIN actions.
 - Legal-action visibility pauses normal main actions during an active showdown,
-  exposes `PASS_SHOWDOWN_FOCUS` and supported Action `PLAY_CARD` only to the
-  focused participant, and exposes `RESOLVE_SHOWDOWN` only after focus/pass is
-  complete.
+  exposes `PASS_SHOWDOWN_FOCUS` plus supported Action/targeted-Reaction
+  `PLAY_CARD` only to the focused participant, and exposes `RESOLVE_SHOWDOWN`
+  only after focus/pass is complete.
 
 Known gaps:
 - Non-combat showdowns, full priority/chain timing, staged combat conversion,
   initial attack/defend trigger chain, invitations, and broad Reaction timing
   permissions remain simplified or deferred.
 - Showdowns are lane-scoped for the current active-lane alpha, but official
-  multi-location Battlefield effects, hidden slots, and richer "here" text
-  remain deferred.
+  multi-location Battlefield effects beyond narrow exact-card hooks, hidden slots,
+  and richer "here" text remain deferred.
 
 Test coverage:
 - `GameEngineShowdownTest`
@@ -535,9 +545,9 @@ Current implementation notes:
 
 Known gaps:
 - The official-style multi-location Battlefield model remains partial even
-  though current alpha scoring is keyed by active lane. Battlefield effects,
+  though current alpha scoring is keyed by active lane. Most Battlefield effects,
   hidden slots, richer "here" targeting, and non-Duel active-lane setup are
-  intentionally deferred.
+  intentionally deferred beyond the narrow Sunken Temple/Targon's Peak hooks.
 
 Test coverage:
 - `GameEngineScoringTest`
@@ -754,7 +764,7 @@ Current implementation notes:
 - The frontend consumes `state.legalActions` to gate Battlefield selection, mulligan/keep, pass phase, play card, move to battlefield, rune actions, chain focus passing/resolution, showdown focus passing, gated active showdown resolution, and sandbox-only controls.
 - `RulesValidator` remains the source of enforcement.
 - The service intentionally does not claim support for card-specific or reaction windows that are not implemented.
-- Currently modeled windows: Battlefield selection, mulligan, basic phase pass, Main Phase active-player actions, Stacked Deck/simple public `Draw 1` narrow priority-window openers, chain focus/pass/resolve, focused participant supported Action play/pass during active showdowns, gated active showdown resolution, and SANDBOX-only developer actions.
+- Currently modeled windows: Battlefield selection, mulligan, basic phase pass, Main Phase active-player actions, Stacked Deck/simple public `Draw 1` narrow priority-window openers, chain focus/pass/resolve, focused participant supported Action/targeted-Reaction play/pass during active showdowns, gated active showdown resolution, and SANDBOX-only developer actions.
 
 Known gaps:
 - Actions are not card-instance-specific.
@@ -782,7 +792,7 @@ Current implementation notes:
 - Unavailable phase/showdown/chain controls are hidden.
 - Mulligan and Keep buttons require `MULLIGAN` or `KEEP_HAND`.
 - Normal Main Phase controls require `PLAY_CARD`, `MOVE_TO_BATTLEFIELD`, rune actions, or sandbox-specific actions as appropriate.
-- Supported chain Reactions such as Gust, Discipline, En Garde, Defy, and Not So Fast require a legal chain response window; unsupported/no-window Reaction cards are kept out of normal play affordances instead of leaving the client waiting on an impossible action.
+- Supported counter Reactions such as Defy, Not So Fast, and Hard Bargain require a legal chain response window. Supported targeted Reactions such as Gust, Discipline, En Garde, Defiant Dance, and Flash can use their narrow own-turn Main, focused-showdown, or focused-chain windows. Unsupported/no-window Reaction cards are kept out of normal play affordances instead of leaving the client waiting on an impossible action.
 - Same-zone card organization uses `REPOSITION_CARD`; cross-zone `MOVE_CARD` is
   sandbox-only.
 
@@ -802,8 +812,8 @@ Priority: P1.
 1. Rune payment validation: domain/power costs, recycling, cost modifiers.
 2. Play-card legality edge cases: action/reaction permissions, gear attachment detail, card-specific prompts.
 3. Movement legality edge cases: Ganking, effect-driven movement, and current
-   active-lane readability. Full Battlefield effects/location rules are
-   post-alpha.
+   active-lane readability. Full Battlefield effects/location rules remain
+   post-alpha beyond the narrow Sunken Temple/Targon's Peak hooks.
 4. Showdown timing edge cases: interactive action windows, combat conversion, open states.
 5. Combat damage assignment edge cases: player assignment, multi-unit combat, prevention/replacement.
 6. Winning point edge cases: official cleanup timing, multiplayer/tie/burnout cases.

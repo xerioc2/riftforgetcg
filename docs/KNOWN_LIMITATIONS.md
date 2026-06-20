@@ -29,7 +29,8 @@ playtesting, but it is not a complete Riftbound rules implementation yet.
 
 - Active-lane alpha is intentional; current 1v1 Duel/bot games use `bf-0` and
   `bf-1`, while `bf-2` remains reserved for future/non-Duel formats.
-- Battlefield effects, hidden Battlefield slots, official "here" targeting,
+- Sunken Temple and Targon's Peak have narrow active-lane conquer hooks, but most
+  Battlefield effects, hidden Battlefield slots, official "here" targeting,
   richer location rules, and non-Duel active-lane counts are incomplete.
 - Reaction, chain, and counterspell timing are not rules-complete. Current
   supported windows are narrow and card/pattern-specific.

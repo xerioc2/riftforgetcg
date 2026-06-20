@@ -117,9 +117,10 @@ remain deferred.
 
 - The uploaded Irelia deck is enforced-playable but **Partial-heavy and not
   rules-complete**; treat its behavior as approximate.
-- Active-lane alpha is intentional. Battlefield effects, hidden Battlefield slots,
-  official "here" targeting, non-Duel active-lane counts, and full official
-  location rules remain deferred.
+- Active-lane alpha is intentional. Sunken Temple and Targon's Peak have narrow
+  conquer hooks, but most Battlefield effects, hidden Battlefield slots, official
+  "here" targeting, non-Duel active-lane counts, and full official location rules
+  remain deferred.
 - Reaction, chain, counterspell, and priority timing are narrow and
   card/pattern-specific. Full official Reaction timing, hidden Reaction-for-0, and
   competing-replacement player choice are deferred.

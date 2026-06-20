@@ -68,7 +68,7 @@ Use this checklist before public alpha builds, release notes, or larger mechanic
 - Non-Equip Gear remains unsupported in enforced play.
 - Equipped Gear stays in Base with an attachment link instead of going to Trash immediately.
 - Gear cannot move to battlefield or fight as a unit.
-- Attached Gear returns to Base when the host dies, returns to hand, or a Champion host returns to the Champion zone.
+- Attached Gear returns to Base when the host dies or returns to hand; deployed Champions go to Trash when defeated unless a future explicit card/rule says otherwise.
 - Guardian Angel and Boots of Swiftness remain Partial until timing/payment/card text are fully modeled.
 - Quick-Draw and Weaponmaster remain deferred for post-alpha equipment work.
 

@@ -185,6 +185,18 @@ public class PriorityWindowService {
           def.name(),
           null));
     }
+    if (cardDataService.isHardBargainCounterReaction(def)) {
+      return Optional.of(new PriorityWindow(
+          PriorityWindowType.REACTION_PLAYED,
+          LiveGameState.ChainItem.EFFECT_HARD_BARGAIN_COUNTER_TAX,
+          LiveGameState.ChainItem.TYPE_SPELL,
+          LiveGameState.ChainItem.VISIBILITY_PUBLIC,
+          false,
+          false,
+          ZoneName.HAND,
+          def.name(),
+          null));
+    }
     return Optional.empty();
   }
 

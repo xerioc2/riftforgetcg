@@ -148,6 +148,29 @@ class EffectHandlerRegistryTest {
   }
 
   @Test
+  void exactHardBargainEffectIsSupportedAsNarrowCounterTaxPattern() {
+    EffectHandlerRegistry registry = new EffectHandlerRegistry(List.of(new TankHandler()));
+
+    EffectSupportStatus status = registry.supportStatus(new CardDefinition(
+        "hard-bargain",
+        "Hard Bargain",
+        "Spell",
+        null,
+        List.of(),
+        2,
+        0,
+        null,
+        null,
+        null,
+        "[Reaction] (Play any time, even before spells and abilities resolve.)[Repeat] :rb_energy_2: (You may pay the additional cost to repeat this spell's effect.)Counter a spell unless its controller pays :rb_energy_2:.",
+        0,
+        0,
+        List.of()));
+
+    assertThat(status.implemented()).isTrue();
+  }
+
+  @Test
   void incompleteTopDeckEffectIsStillUnsupported() {
     EffectHandlerRegistry registry = new EffectHandlerRegistry(List.of(new TankHandler()));
 

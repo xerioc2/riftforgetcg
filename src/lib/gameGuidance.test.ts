@@ -43,4 +43,15 @@ describe('gameGuidance', () => {
     expect(legalActionHint(['RESOLVE_CHAIN_TOP'], playerOptions)).toBe('You can resolve the top chain item.');
     expect(legalActionHint([], playerOptions)).toBe('No server-approved actions are available right now.');
   });
+
+  it('describes showdown play-card windows as supporting Actions and Reactions', () => {
+    const playerOptions = { isPlayer: true, isMyTurn: true };
+
+    expect(phaseGuidance('MAIN', true, 'ACTION_WINDOW', false, false)).toBe(
+      'Showdown focus window. The focused player may play supported Action or Reaction cards, or pass focus.',
+    );
+    expect(legalActionHint(['PASS_SHOWDOWN_FOCUS', 'PLAY_CARD'], playerOptions)).toBe(
+      'You may play a supported Action or Reaction card, or pass showdown focus.',
+    );
+  });
 });

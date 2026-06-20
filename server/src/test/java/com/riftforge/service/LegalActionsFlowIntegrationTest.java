@@ -180,11 +180,13 @@ class LegalActionsFlowIntegrationTest {
     completeMulligans();
     advanceToMain(active);
 
+    fx.gameService.currentState(ROOM).getBattlefieldController().put(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID, active);
     fx.gameService.processMove(ROOM, new MoveToBattlefieldMove(active, championOf(active)));
     assertThat(fx.gameService.currentState(ROOM).getActiveShowdown()).isNull();
 
     endTurn(active);
     advanceToMain(idle);
+    fx.gameService.currentState(ROOM).getBattlefieldController().put(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID, idle);
     fx.gameService.processMove(ROOM, new MoveToBattlefieldMove(idle, championOf(idle)));
 
     LiveGameState state = fx.gameService.currentState(ROOM);

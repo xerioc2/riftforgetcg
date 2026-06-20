@@ -24,6 +24,7 @@ public class LiveGameState {
   private boolean cardPlayedThisTurn;
   private Map<String, String> battlefieldController = new HashMap<>();
   private Set<String> scoredBattlefieldsThisTurn = new HashSet<>();
+  private Map<String, Integer> pendingEndTurnRuneReadying = new HashMap<>();
   private List<RevealedHandSnapshot> revealedHands = new ArrayList<>();
   private ShowdownState activeShowdown;
   private GameMode gameMode = GameMode.ENFORCED;
@@ -182,6 +183,7 @@ public class LiveGameState {
     public static final String EFFECT_DEFY_COUNTER = "DEFY_COUNTER";
     public static final String EFFECT_NOT_SO_FAST_COUNTER = "NOT_SO_FAST_COUNTER";
     public static final String EFFECT_ABANDON_COUNTER_PREDICT = "ABANDON_COUNTER_PREDICT";
+    public static final String EFFECT_HARD_BARGAIN_COUNTER_TAX = "HARD_BARGAIN_COUNTER_TAX";
 
     public ChainItem(
         String itemId,
@@ -347,6 +349,8 @@ public class LiveGameState {
   public void setBattlefieldController(Map<String, String> battlefieldController) { this.battlefieldController = battlefieldController; }
   public Set<String> getScoredBattlefieldsThisTurn() { return scoredBattlefieldsThisTurn; }
   public void setScoredBattlefieldsThisTurn(Set<String> scoredBattlefieldsThisTurn) { this.scoredBattlefieldsThisTurn = scoredBattlefieldsThisTurn; }
+  public Map<String, Integer> getPendingEndTurnRuneReadying() { return pendingEndTurnRuneReadying; }
+  public void setPendingEndTurnRuneReadying(Map<String, Integer> pendingEndTurnRuneReadying) { this.pendingEndTurnRuneReadying = pendingEndTurnRuneReadying == null ? new HashMap<>() : pendingEndTurnRuneReadying; }
   public List<RevealedHandSnapshot> getRevealedHands() { return revealedHands; }
   public void setRevealedHands(List<RevealedHandSnapshot> revealedHands) { this.revealedHands = revealedHands; }
   public ShowdownState getActiveShowdown() { return activeShowdown; }

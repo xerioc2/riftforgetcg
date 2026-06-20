@@ -80,6 +80,35 @@ class LegalActionsServiceTest {
   }
 
   @Test
+  void moveToBattlefieldActionIncludesUndeployedChampionButNotDeadChampion() {
+    when(cardDataService.getCard("irelia")).thenReturn(new CardDefinition(
+        "irelia",
+        "Irelia - Fervent",
+        "Champion",
+        null,
+        List.of(),
+        5,
+        0,
+        null,
+        null,
+        null,
+        "",
+        4,
+        5,
+        List.of()));
+    LegalActionsService legalActions = new LegalActionsService(cardDataService);
+    LiveGameState state = state(Phase.MAIN, "p1");
+    state.getPlayers().getFirst().setAvailableEnergy(5);
+    state.getCards().add(card("champion-1", "p1", "irelia", ZoneName.CHAMPION));
+
+    assertThat(legalActions.legalActionsFor(state, "p1")).contains(LegalAction.MOVE_TO_BATTLEFIELD);
+
+    state.getCards().getFirst().setZone(ZoneName.DISCARD);
+
+    assertThat(legalActions.legalActionsFor(state, "p1")).doesNotContain(LegalAction.MOVE_TO_BATTLEFIELD);
+  }
+
+  @Test
   void equipGearActionRequiresLegalTargetAndPayableEquipCost() {
     when(cardDataService.getCard("guardian")).thenReturn(new CardDefinition(
         "guardian",
@@ -353,6 +382,27 @@ class LegalActionsServiceTest {
   }
 
   @Test
+  void focusedPlayerWithHardBargainSeesPlayCardForPublicPendingSpell() {
+    when(cardDataService.getCard("hard-bargain")).thenReturn(new CardDefinition("hard-bargain", "Hard Bargain", "Spell", null, List.of(), 2, 0, null, null, null, "[Reaction] Counter a spell unless its controller pays :rb_energy_2:.", 0, 0, List.of()));
+    when(cardDataService.getCard("source-card")).thenReturn(new CardDefinition("source-card", "Source Card", "Spell", null, List.of(), 2, 0, null, null, null, "Draw 1.", 0, 0, List.of()));
+    when(cardDataService.isHardBargainCounterReaction(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      return def != null && "Hard Bargain".equalsIgnoreCase(def.name());
+    });
+    when(cardDataService.isUnsupportedAction("hard-bargain")).thenReturn(false);
+    LiveGameState state = state(Phase.MAIN, "p1");
+    state.getPlayers().stream()
+        .filter(player -> "p2".equals(player.getUserId()))
+        .findFirst()
+        .orElseThrow()
+        .setAvailableEnergy(2);
+    state.getCards().add(card("hard-bargain-card", "p2", "hard-bargain", ZoneName.HAND));
+    state.setChainState(chain(false, "p2"));
+
+    assertThat(new LegalActionsService(cardDataService).legalActions(state, "p2")).contains(LegalAction.PLAY_CARD);
+  }
+
+  @Test
   void validatorAndLegalActionsAgreeForChainPassAndResolve() {
     RulesValidator validator = new RulesValidator(cardDataService, new ShowdownParticipantRules());
     LiveGameState state = state(Phase.MAIN, "p1");
@@ -526,6 +576,59 @@ class LegalActionsServiceTest {
 
     assertThat(serviceWithCards.legalActions(state, "p2"))
         .containsExactlyInAnyOrder(LegalAction.PASS_SHOWDOWN_FOCUS, LegalAction.PLAY_CARD);
+  }
+
+  @Test
+  void activeShowdownAllowsSupportedTargetedReactionForFocusedParticipant() {
+    LegalActionsService serviceWithCards = new LegalActionsService(cardDataService);
+    RulesValidator validator = new RulesValidator(cardDataService, new ShowdownParticipantRules());
+    LiveGameState state = state(Phase.MAIN, "p1");
+    state.setActiveShowdown(showdown("p2", false));
+    state.getCards().add(card("defiant-1", "p2", "defiant-dance", ZoneName.HAND));
+    state.getCards().add(card("friendly-1", "p2", "friendly", ZoneName.BATTLEFIELD));
+    state.getCards().add(card("enemy-1", "p1", "enemy", ZoneName.BATTLEFIELD));
+    CardDefinition defiantDance = new CardDefinition(
+        "defiant-dance",
+        "Defiant Dance",
+        "Spell",
+        null,
+        List.of(),
+        0,
+        0,
+        null,
+        null,
+        null,
+        "[Reaction] Give a unit +2 Might this turn and another unit -2 Might this turn.",
+        0,
+        0,
+        List.of());
+    when(cardDataService.getCard("defiant-dance")).thenReturn(defiantDance);
+    when(cardDataService.getCard("friendly")).thenReturn(unitDef("friendly", 2, 2));
+    when(cardDataService.getCard("enemy")).thenReturn(unitDef("enemy", 2, 2));
+    when(cardDataService.isReactionCard(defiantDance)).thenReturn(true);
+    when(cardDataService.isDefiantDanceReaction(defiantDance)).thenReturn(true);
+    when(cardDataService.isUnsupportedAction("defiant-dance")).thenReturn(false);
+
+    assertThat(serviceWithCards.legalActions(state, "p2"))
+        .containsExactlyInAnyOrder(LegalAction.PASS_SHOWDOWN_FOCUS, LegalAction.PLAY_CARD);
+    assertThatCode(() -> validator.validate(
+        state,
+        new PlayCardMove(
+            "p2",
+            "defiant-1",
+            ZoneName.BASE,
+            0,
+            0,
+            null,
+            null,
+            List.of(
+                new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.BOOST_UNIT, "friendly-1"),
+                new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.WEAKEN_UNIT, "enemy-1")),
+            false,
+            List.of(),
+            List.of())))
+        .doesNotThrowAnyException();
+    assertThat(serviceWithCards.legalActions(state, "p1")).isEmpty();
   }
 
   @Test

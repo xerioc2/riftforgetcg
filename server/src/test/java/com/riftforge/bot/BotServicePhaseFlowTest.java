@@ -820,7 +820,7 @@ class BotServicePhaseFlowTest {
   }
 
   @Test
-  void botCanMoveToBattlefieldWhenActionIsLegal() throws Exception {
+  void botDeploysChampionToBaseWhenMoveActionIsLegal() throws Exception {
     BotService gatedBot = new BotService(
         gameService,
         cardDataService,
@@ -842,14 +842,14 @@ class BotServicePhaseFlowTest {
     long deadline = System.currentTimeMillis() + 2_000;
     while (System.currentTimeMillis() < deadline
         && gameService.currentState(roomCode).getCards().stream()
-            .noneMatch(card -> BOT_ID.equals(card.getOwnerId()) && card.getZone() == ZoneName.BATTLEFIELD)) {
+            .noneMatch(card -> BOT_ID.equals(card.getOwnerId()) && card.getZone() == ZoneName.BASE)) {
       Thread.sleep(25);
     }
 
     gameService.currentState(roomCode).setWinnerId("test-complete");
     assertThat(gameService.currentState(roomCode).getCards())
         .filteredOn(card -> BOT_ID.equals(card.getOwnerId()))
-        .anyMatch(card -> card.getZone() == ZoneName.BATTLEFIELD);
+        .anyMatch(card -> card.getZone() == ZoneName.BASE);
   }
 
   @Test

@@ -27,7 +27,8 @@ import {
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
 import { readableHttpError } from '../lib/http';
-import { canUseSupportedChainResponse, hasUnsupportedAdditionalCost, isAbandonCounterCard, isActionCard, isAmbushCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isEquipCard, isGustReactionCard, isIreliaBladeDancerActivatedAbility, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
+import { canUseSupportedChainResponse, hasUnsupportedAdditionalCost, isAbandonCounterCard, isActionCard, isAmbushCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isEquipCard, isGustReactionCard, isHardBargainCounterCard, isIreliaBladeDancerActivatedAbility, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
+import { championDeployDestinations } from '../lib/championDeploy';
 import { appBuildLabel, APP_VERSION, BUILD_DATE, BUILD_TAG } from '../lib/appMetadata';
 import { buildDebugInfo } from '../lib/debugInfo';
 import { attachedGearDisplayPosition, attachedGearDisplayScale, attachedGearIsIndependentBoardPiece, attachedGearNamesForHost } from '../lib/attachments';
@@ -54,7 +55,7 @@ const CARD_PREVIEW_DELAY_MS = 2000;
 const TOTAL_RUNE_SLOTS = 11;
 const GITHUB_ISSUES_URL = 'https://github.com/xerioc2/riftforgetcg/issues/new/choose';
 const ALPHA_LIMITATIONS = [
-  'Multi-location Battlefield lanes are alpha support; Battlefield effects, hidden slots, and full official location rules are deferred.',
+  'Multi-location Battlefield lanes are alpha support; Sunken Temple and Targon\'s Peak have narrow conquer hooks, while most Battlefield effects, hidden slots, and full official location rules are deferred.',
   'Reaction and chain/counterspell timing are not fully implemented.',
   'Hidden cards can be hidden, but play-from-hidden timing is incomplete.',
   'Ambush-as-Reaction and additional-cost Ambush cards are incomplete.',
@@ -151,7 +152,7 @@ export function GameBoard() {
   const [hoveredInstance, setHoveredInstance] = useState<CardInstance | undefined>();
   const [inspectCard, setInspectCard] = useState<CardInstance | null>(null);
   const [pendingTargetSelection, setPendingTargetSelection] = useState<{ instanceId: string; mode: TargetMode } | null>(null);
-  const [pendingChainTargetSelection, setPendingChainTargetSelection] = useState<{ instanceId: string; mode: 'DEFY' | 'NOT_SO_FAST' | 'ABANDON' } | null>(null);
+  const [pendingChainTargetSelection, setPendingChainTargetSelection] = useState<{ instanceId: string; mode: 'DEFY' | 'NOT_SO_FAST' | 'ABANDON' | 'HARD_BARGAIN' } | null>(null);
   const [pendingMultiTargetSelection, setPendingMultiTargetSelection] = useState<{ instanceId: string; requirements: TargetRequirement[]; selected: { role: TargetRole; instanceId: string }[] } | null>(null);
   const [pendingAccelerate, setPendingAccelerate] = useState<{ instanceId: string; card: RiftCard } | null>(null);
   const [pendingVision, setPendingVision] = useState<{ logId: string; cardId: string; cardName: string } | null>(null);
@@ -695,6 +696,10 @@ export function GameBoard() {
 
   const legalAbandonChainTargets = () => (state?.chainState?.chainItems ?? []).filter(isLegalAbandonChainTarget);
 
+  const isLegalHardBargainChainTarget = isLegalAbandonChainTarget;
+
+  const legalHardBargainChainTargets = () => (state?.chainState?.chainItems ?? []).filter(isLegalHardBargainChainTarget);
+
   const isLegalNotSoFastChainTarget = (item: ChainItem) => {
     if (item.status && item.status !== 'PENDING') return false;
     if (!item.counterable || !item.targetableOnChain) return false;
@@ -718,7 +723,7 @@ export function GameBoard() {
   const hasLegalFlashChainTarget = () => legalTargetsForMode('FRIENDLY_UNIT').length > 0;
 
   const canPlayChainReactionCard = (card: RiftCard | undefined) => {
-    return chainActive && canUseSupportedChainResponse(card, {
+    return canUseSupportedChainResponse(card, {
       canPlayCard: canTakeAction(state, 'PLAY_CARD'),
       hasLegalGustTarget: hasLegalGustChainTarget(),
       hasLegalDisciplineTarget: hasLegalDisciplineChainTarget(),
@@ -728,18 +733,77 @@ export function GameBoard() {
       hasLegalDefyTarget: legalDefyChainTargets().length > 0,
       hasLegalNotSoFastTarget: legalNotSoFastChainTargets().length > 0,
       hasLegalAbandonTarget: legalAbandonChainTargets().length > 0,
+      hasLegalHardBargainTarget: legalHardBargainChainTargets().length > 0,
     });
   };
 
-  const beginChainTargetSelection = (instanceId: string, mode: 'DEFY' | 'NOT_SO_FAST' | 'ABANDON') => {
+  const beginSupportedReactionPlay = (instanceId: string, cardDef: RiftCard | undefined) => {
+    if (!isReactionCard(cardDef)) return false;
+    if (!canTakeAction(state, 'PLAY_CARD')) {
+      const message = chainActive
+        ? 'Wait for your chain focus before playing a Reaction.'
+        : showdownActive
+          ? 'Wait for your showdown focus before playing a Reaction.'
+          : 'No supported Reaction window is active right now.';
+      notifyWarning('Reaction unavailable', message);
+      return true;
+    }
+    const multiTargetRequirements = multiTargetRequirementsForCard(cardDef);
+    if (multiTargetRequirements.length > 0) {
+      beginMultiTargetSelection(instanceId, multiTargetRequirements);
+      return true;
+    }
+    if (isGustReactionCard(cardDef)) {
+      beginTargetSelection(instanceId, 'GUST_BATTLEFIELD_UNIT');
+      return true;
+    }
+    if (isDisciplineReactionCard(cardDef)) {
+      beginTargetSelection(instanceId, 'ANY_BATTLEFIELD_UNIT');
+      return true;
+    }
+    if (isEnGardeReactionCard(cardDef)) {
+      beginTargetSelection(instanceId, 'FRIENDLY_UNIT');
+      return true;
+    }
+    if (isDefyCounterCard(cardDef)) {
+      if (!chainActive) notifyWarning('No active chain target', 'Defy needs a pending public spell chain item it can counter.');
+      else beginChainTargetSelection(instanceId, 'DEFY');
+      return true;
+    }
+    if (isNotSoFastCounterCard(cardDef)) {
+      if (!chainActive) notifyWarning('No active chain target', 'Not So Fast needs an enemy pending spell that chooses your friendly Unit or Gear.');
+      else beginChainTargetSelection(instanceId, 'NOT_SO_FAST');
+      return true;
+    }
+    if (isAbandonCounterCard(cardDef)) {
+      if (!chainActive) notifyWarning('No active chain target', 'Abandon needs a pending public spell chain item it can counter.');
+      else beginChainTargetSelection(instanceId, 'ABANDON');
+      return true;
+    }
+    if (isHardBargainCounterCard(cardDef)) {
+      if (!chainActive) notifyWarning('No active chain target', 'Hard Bargain needs a pending public spell chain item it can counter.');
+      else beginChainTargetSelection(instanceId, 'HARD_BARGAIN');
+      return true;
+    }
+    const reason = unsupportedCardReason(cardDef) ?? 'That Reaction effect is not supported yet.';
+    addChat({ id: crypto.randomUUID(), userId: player.id, email: null, text: reason, sentAt: new Date().toISOString() });
+    notifyWarning('Unsupported Reaction', reason);
+    return true;
+  };
+
+  const beginChainTargetSelection = (instanceId: string, mode: 'DEFY' | 'NOT_SO_FAST' | 'ABANDON' | 'HARD_BARGAIN') => {
     const hasTarget = mode === 'DEFY'
       ? legalDefyChainTargets().length > 0
+      : mode === 'HARD_BARGAIN'
+        ? legalHardBargainChainTargets().length > 0
       : mode === 'ABANDON'
         ? legalAbandonChainTargets().length > 0
       : legalNotSoFastChainTargets().length > 0;
     if (!hasTarget) {
       notifyWarning('No legal chain targets', mode === 'DEFY'
         ? 'Defy needs a pending public spell chain item it can counter.'
+        : mode === 'HARD_BARGAIN'
+          ? 'Hard Bargain needs a pending public spell chain item it can counter.'
         : mode === 'ABANDON'
           ? 'Abandon needs a pending public spell chain item it can counter.'
         : 'Not So Fast needs an enemy pending spell that chooses your friendly Unit or Gear.');
@@ -826,7 +890,13 @@ export function GameBoard() {
     return true;
   };
 
-  const deployChampionFromZone = (instanceId: string, battlefieldLocationId = DEFAULT_BATTLEFIELD_LOCATION_ID) => {
+  const deployChampionFromZone = (
+    instanceId: string,
+    destination: { targetZone: 'BASE' } | { targetZone: 'BATTLEFIELD'; battlefieldLocationId?: string } = {
+      targetZone: 'BATTLEFIELD',
+      battlefieldLocationId: DEFAULT_BATTLEFIELD_LOCATION_ID,
+    },
+  ) => {
     const instance = state?.cards.find((card) => card.instanceId === instanceId);
     const cardDef = instance ? cardsById.get(instance.cardId) : undefined;
     if (!state || !instance || !cardDef) return;
@@ -852,7 +922,16 @@ export function GameBoard() {
     }
     const payment = selectPaymentRunesForCard(cardDef);
     if (!payment) return;
-    publishMove({ type: 'MOVE_TO_BATTLEFIELD', playerId: player.id, instanceId, battlefieldLocationId, ...payment });
+    publishMove({
+      type: 'MOVE_TO_BATTLEFIELD',
+      playerId: player.id,
+      instanceId,
+      targetZone: destination.targetZone,
+      battlefieldLocationId: destination.targetZone === 'BATTLEFIELD'
+        ? normalizeBattlefieldLocationId(destination.battlefieldLocationId)
+        : undefined,
+      ...payment,
+    });
   };
 
   const playCardWithAmbush = (instanceId: string) => {
@@ -918,56 +997,28 @@ export function GameBoard() {
   const playFromHand = (instanceId: string) => {
     const cardDef = cardsById.get(state?.cards.find((c) => c.instanceId === instanceId)?.cardId ?? '');
     const type = cardDef?.type?.toLowerCase();
+    if (isReactionCard(cardDef)) {
+      if (chainActive || showdownActive || isMyTurn) {
+        beginSupportedReactionPlay(instanceId, cardDef);
+        return;
+      }
+      notifyWarning('Reaction timing unavailable', 'No supported Reaction window is active right now.');
+      return;
+    }
     if (chainActive) {
       if (!isReactionCard(cardDef)) {
         notifyWarning('Chain active', 'Only supported Reaction cards can be played while the chain is active.');
         return;
       }
-      if (!canTakeAction(state, 'PLAY_CARD')) {
-        notifyWarning('Reaction unavailable', 'Wait for your chain focus before playing a Reaction.');
-        return;
-      }
-      if (isGustReactionCard(cardDef)) {
-        beginTargetSelection(instanceId, 'GUST_BATTLEFIELD_UNIT');
-        return;
-      }
-      if (isDisciplineReactionCard(cardDef)) {
-        beginTargetSelection(instanceId, 'ANY_BATTLEFIELD_UNIT');
-        return;
-      }
-      if (isEnGardeReactionCard(cardDef)) {
-        beginTargetSelection(instanceId, 'FRIENDLY_UNIT');
-        return;
-      }
-      if (isDefyCounterCard(cardDef)) {
-        beginChainTargetSelection(instanceId, 'DEFY');
-        return;
-      }
-      if (isNotSoFastCounterCard(cardDef)) {
-        beginChainTargetSelection(instanceId, 'NOT_SO_FAST');
-        return;
-      }
-      if (isAbandonCounterCard(cardDef)) {
-        beginChainTargetSelection(instanceId, 'ABANDON');
-        return;
-      }
     } else if (showdownActive) {
-      if (isReactionCard(cardDef)) {
-        notifyWarning('Reaction timing unavailable', 'Reaction timing is not implemented yet.');
-        return;
-      }
       if (!isActionCard(cardDef)) {
-        notifyWarning('Action unavailable', 'Only supported Action cards can be played during this showdown window.');
+        notifyWarning('Action unavailable', 'Only supported Action or Reaction cards can be played during this showdown window.');
         return;
       }
       if (!canTakeAction(state, 'PLAY_CARD')) {
         notifyWarning('Action unavailable', 'Only showdown participants can play Action cards here.');
         return;
       }
-    }
-    if (isReactionCard(cardDef)) {
-      notifyWarning('Reaction timing unavailable', 'Supported Reactions can only be played during an active chain window in this alpha.');
-      return;
     }
     if (!canTakeAction(state, 'PLAY_CARD')) {
       notifyWarning(
@@ -1097,7 +1148,10 @@ export function GameBoard() {
         return;
       }
       if (sameZone(instance.zone, 'champion')) {
-        deployChampionFromZone(instanceId, targetBattlefieldLocationId ?? DEFAULT_BATTLEFIELD_LOCATION_ID);
+        deployChampionFromZone(instanceId, {
+          targetZone: 'BATTLEFIELD',
+          battlefieldLocationId: targetBattlefieldLocationId ?? DEFAULT_BATTLEFIELD_LOCATION_ID,
+        });
         window.setTimeout(fetchProjectedState, 100);
         return;
       }
@@ -1503,8 +1557,8 @@ export function GameBoard() {
   const canAssignCombatDamage = canTakeAction(state, 'ASSIGN_COMBAT_DAMAGE');
   const canResolveShowdown = canTakeAction(state, 'RESOLVE_SHOWDOWN');
   const canPassShowdownFocus = canTakeAction(state, 'PASS_SHOWDOWN_FOCUS');
-  const canPlayReactions = chainActive && canPlayCards;
-  const hasSpellReaction = hand.some((instance) => cardsById.get(instance.cardId)?.type?.toLowerCase() === 'spell');
+  const canPlayReactions = canPlayCards && (chainActive || showdownActive || isMyTurn);
+  const hasSpellReaction = hand.some((instance) => canPlayChainReactionCard(cardsById.get(instance.cardId)));
   const ownRuneZone = zones.find((zone) => zone.zoneName === 'rune' && zone.ownerId === player.id);
   const hasTappedOwnRune = (state.runes ?? []).some((rune) => rune.ownerId === player.id && rune.tapped);
   const canUndoRunes = canTakeAction(state, 'UNDO_RUNES') && hasTappedOwnRune;
@@ -1532,6 +1586,7 @@ export function GameBoard() {
       && !showdownActive
       && spendableEnergy >= (selectedCardDef.cost ?? 0),
   );
+  const championDeployOptions = useMemo(() => championDeployDestinations(zones), [zones]);
   const battlefieldChoices = me?.battlefieldChoices ?? [];
   const selectedBattlefield = me?.selectedBattlefieldId ?? null;
   const chainItems = state.chainState?.chainItems ?? [];
@@ -1888,6 +1943,8 @@ export function GameBoard() {
         chainTargetSelectionActive={Boolean(pendingChainTargetSelection)}
         isChainItemTargetable={(item) => pendingChainTargetSelection?.mode === 'NOT_SO_FAST'
           ? isLegalNotSoFastChainTarget(item)
+          : pendingChainTargetSelection?.mode === 'HARD_BARGAIN'
+            ? isLegalHardBargainChainTarget(item)
           : pendingChainTargetSelection?.mode === 'ABANDON'
             ? isLegalAbandonChainTarget(item)
           : isLegalDefyChainTarget(item)}
@@ -1903,7 +1960,7 @@ export function GameBoard() {
       />
       {canPlayReactions && hasSpellReaction ? (
         <div className="pointer-events-none absolute left-0 z-20 flex justify-center text-xs font-medium text-forge" style={{ right: `${SIDEBAR_WIDTH}px`, bottom: handHeight + PHASE_BAR_HEIGHT + 6 }}>
-          {chainActive ? 'Supported chain response available' : 'Supported Action window available'}
+          {chainActive ? 'Supported chain response available' : showdownActive ? 'Supported showdown Reaction available' : 'Supported Reaction available'}
         </div>
       ) : null}
 
@@ -1964,9 +2021,17 @@ export function GameBoard() {
           <p className="text-xs uppercase text-slate-500">Champion zone</p>
           <p className="mt-1 font-semibold text-forge">{selectedCardDef.name}</p>
           <p className="mt-1 text-xs text-slate-400">Deploy from the Champion zone for {selectedCardDef.cost ?? 0} energy.</p>
-          <button className="btn-primary mt-3 w-full" onClick={() => deployChampionFromZone(selectedInstance.instanceId)}>
-            Deploy Champion
-          </button>
+          <div className="mt-3 grid gap-2">
+            {championDeployOptions.map((destination) => (
+              <button
+                key={destination.targetZone === 'BASE' ? 'base' : destination.battlefieldLocationId}
+                className={destination.targetZone === 'BASE' ? 'btn-primary w-full' : 'btn-secondary min-h-8 px-2 py-1 text-xs'}
+                onClick={() => deployChampionFromZone(selectedInstance.instanceId, destination)}
+              >
+                Deploy to {destination.label}
+              </button>
+            ))}
+          </div>
         </div>
       ) : null}
 

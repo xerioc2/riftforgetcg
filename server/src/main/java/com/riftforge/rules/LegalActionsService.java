@@ -74,7 +74,8 @@ public class LegalActionsService {
             || hasPlayableFlashInHand(state, playerId)
             || hasPlayableDefyInHand(state, playerId)
             || hasPlayableNotSoFastInHand(state, playerId)
-            || hasPlayableAbandonInHand(state, playerId)) actions.add(LegalAction.PLAY_CARD);
+            || hasPlayableAbandonInHand(state, playerId)
+            || hasPlayableHardBargainInHand(state, playerId)) actions.add(LegalAction.PLAY_CARD);
       }
       return actions;
     }
@@ -126,7 +127,7 @@ public class LegalActionsService {
       actions.add(LegalAction.PASS_PHASE);
       actions.add(LegalAction.END_TURN);
       actions.add(LegalAction.PLAY_CARD);
-      actions.add(LegalAction.MOVE_TO_BATTLEFIELD);
+      if (hasMovableToBattlefield(state, playerId)) actions.add(LegalAction.MOVE_TO_BATTLEFIELD);
       actions.add(LegalAction.MOVE_TO_BASE);
       actions.add(LegalAction.REPOSITION_CARD);
       actions.add(LegalAction.TAP_RUNE);
@@ -269,6 +270,18 @@ public class LegalActionsService {
             && canPay(state, playerId, def));
   }
 
+  private boolean hasPlayableHardBargainInHand(LiveGameState state, String playerId) {
+    if (cardDataService == null) return false;
+    if (state.getChainState() == null || !hasLegalHardBargainTarget(state)) return false;
+    return state.getCards().stream()
+        .filter(card -> playerId.equals(card.getOwnerId()) && card.getZone() == ZoneName.HAND)
+        .map(card -> cardDataService.getCard(card.getCardId()))
+        .anyMatch(def -> def != null
+            && cardDataService.isHardBargainCounterReaction(def)
+            && !cardDataService.isUnsupportedAction(def.id())
+            && canPay(state, playerId, def));
+  }
+
   private boolean hasPlayableTargetedReactionInHand(LiveGameState state, String playerId) {
     return hasPlayableGustInHand(state, playerId)
         || hasPlayableDisciplineInHand(state, playerId)
@@ -325,7 +338,23 @@ public class LegalActionsService {
     return chain.chainItems().stream().anyMatch(this::isLegalAbandonTarget);
   }
 
+  private boolean hasLegalHardBargainTarget(LiveGameState state) {
+    LiveGameState.ChainState chain = state.getChainState();
+    if (chain == null) return false;
+    return chain.chainItems().stream().anyMatch(this::isLegalHardBargainTarget);
+  }
+
   private boolean isLegalAbandonTarget(LiveGameState.ChainItem item) {
+    if (item == null || !item.isPending() || !item.counterable() || !item.targetableOnChain()) return false;
+    if (!item.isPubliclyVisible()) return false;
+    if (!LiveGameState.ChainItem.TYPE_SPELL.equalsIgnoreCase(item.chainItemType())) return false;
+    CardDefinition def = item.sourceCardId() == null || item.sourceCardId().isBlank()
+        ? null
+        : cardDataService.getCard(item.sourceCardId());
+    return def != null && "Spell".equalsIgnoreCase(def.type());
+  }
+
+  private boolean isLegalHardBargainTarget(LiveGameState.ChainItem item) {
     if (item == null || !item.isPending() || !item.counterable() || !item.targetableOnChain()) return false;
     if (!item.isPubliclyVisible()) return false;
     if (!LiveGameState.ChainItem.TYPE_SPELL.equalsIgnoreCase(item.chainItemType())) return false;
@@ -375,6 +404,21 @@ public class LegalActionsService {
         .filter(card -> playerId.equals(card.getOwnerId()) && card.getZone() == ZoneName.HAND)
         .map(card -> cardDataService.getCard(card.getCardId()))
         .anyMatch(cardDataService::isHiddenCard);
+  }
+
+  private boolean hasMovableToBattlefield(LiveGameState state, String playerId) {
+    if (cardDataService == null) return true;
+    return state.getCards().stream()
+        .filter(card -> playerId.equals(card.getOwnerId()))
+        .filter(card -> card.getAttachedToInstanceId() == null || card.getAttachedToInstanceId().isBlank())
+        .filter(card -> !card.isFaceDown() && card.getZone() != ZoneName.HIDDEN)
+        .anyMatch(card -> {
+          CardDefinition def = cardDataService.getCard(card.getCardId());
+          if (def == null || !isUnitOrChampion(def)) return false;
+          if (card.getZone() == ZoneName.CHAMPION) return canPay(state, playerId, def);
+          if (card.getZone() == ZoneName.BASE) return !card.isTapped();
+          return card.getZone() == ZoneName.BATTLEFIELD && !card.isTapped();
+        });
   }
 
   private boolean hasReadyRune(LiveGameState state, String playerId) {

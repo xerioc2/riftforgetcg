@@ -107,7 +107,7 @@
       },
       "support": {
         "status": "PARTIAL",
-        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "reason": "Partial: exact conquer-with-Mighty optional pay-1 draw trigger is implemented for active Battlefield lanes. Broader Mighty threshold timing and full official location rules remain deferred.",
         "blocked": false
       },
       "keywords": [
@@ -139,7 +139,7 @@
       },
       "support": {
         "status": "PARTIAL",
-        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "reason": "Partial: exact conquer trigger queues end-turn readying for up to two tapped friendly runes in active Battlefield lanes. Player-selected rune choice and full official location rules remain deferred.",
         "blocked": false
       },
       "keywords": [],
@@ -646,9 +646,9 @@
         }
       },
       "support": {
-        "status": "UNSUPPORTED",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet.",
-        "blocked": true
+        "status": "PARTIAL",
+        "reason": "Partial: Hard Bargain can counter a supported public pending spell chain item unless that spell's controller pays 2 energy through an owner-only prompt. Repeat, broad official Reaction timing, ability targets, hidden/private chain targets, and countering counters remain deferred.",
+        "blocked": false
       },
       "keywords": [
         "Reaction",
@@ -1098,20 +1098,14 @@
     "uniqueCards": 33,
     "counts": {
       "SUPPORTED": 5,
-      "PARTIAL": 25,
-      "UNSUPPORTED": 3,
+      "PARTIAL": 26,
+      "UNSUPPORTED": 2,
       "BANNED": 0,
       "NOT_AUDITED": 0
     },
     "unresolved": [],
     "canUseInEnforced": false,
     "topBlockers": [
-      {
-        "cardName": "Hard Bargain",
-        "status": "UNSUPPORTED",
-        "bucket": "Reaction / chain / counter",
-        "reason": "Blocked in enforced play: this card's effect is not supported yet."
-      },
       {
         "cardName": "Heart of Dark Ice",
         "status": "UNSUPPORTED",
@@ -1134,7 +1128,13 @@
         "cardName": "Sunken Temple",
         "status": "PARTIAL",
         "bucket": "Battlefield effect",
-        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+        "reason": "Partial: exact conquer-with-Mighty optional pay-1 draw trigger is implemented for active Battlefield lanes. Broader Mighty threshold timing and full official location rules remain deferred."
+      },
+      {
+        "cardName": "Targon's Peak",
+        "status": "PARTIAL",
+        "bucket": "Battlefield effect",
+        "reason": "Partial: exact conquer trigger queues end-turn readying for up to two tapped friendly runes in active Battlefield lanes. Player-selected rune choice and full official location rules remain deferred."
       }
     ]
   },

@@ -120,6 +120,14 @@ class GameEngineChainTest {
           && text.contains("owner's hand")
           && text.contains("[predict]");
     });
+    when(cardDataService.isHardBargainCounterReaction(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      String text = def == null || def.rulesText() == null ? "" : def.rulesText().toLowerCase();
+      return def != null && "Hard Bargain".equalsIgnoreCase(def.name())
+          && text.contains("[reaction]")
+          && text.contains("counter a spell unless its controller pays")
+          && text.contains(":rb_energy_2:");
+    });
     when(cardDataService.isStackedDeckEffect(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
       CardDefinition def = invocation.getArgument(0);
       String text = def == null || def.rulesText() == null ? "" : def.rulesText().toLowerCase();
@@ -600,6 +608,131 @@ class GameEngineChainTest {
     assertThat(state.getCards()).filteredOn(card -> card.getInstanceId().equals("stacked-1")).singleElement()
         .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.LIMBO));
     assertThat(state.getPendingChoice()).isNull();
+  }
+
+  @Test
+  void hardBargainCreatesOptionalPaymentChoiceForTargetController() {
+    stubCard("stacked", "Stacked Deck", "Spell", 2, 0, 0, stackedDeckText());
+    stubCard("hard-bargain", "Hard Bargain", "Spell", 2, 0, 0, hardBargainText());
+    LiveGameState state = state(stackedDeckChain(false, "p2"));
+    player(state, "p2").setAvailableEnergy(2);
+    state.getCards().add(cardInstance("stacked-1", "p1", "stacked", ZoneName.LIMBO));
+    state.getCards().add(cardInstance("hard-bargain-1", "p2", "hard-bargain", ZoneName.HAND));
+
+    engine.applyMove(state, counter("p2", "hard-bargain-1", "item-1"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new ResolveChainTopMove("p2"));
+
+    assertThat(state.getPendingChoice()).isNotNull();
+    assertThat(state.getPendingChoice().getPlayerId()).isEqualTo("p1");
+    assertThat(state.getPendingChoice().getType()).isEqualTo(PendingChoice.TYPE_OPTIONAL_PAYMENT);
+    assertThat(state.getPendingChoice().getPaymentAmount()).isEqualTo(2);
+    assertThat(state.getPendingChoice().getEffect()).isEqualTo(PendingChoice.EFFECT_HARD_BARGAIN_COUNTER_UNLESS_PAY);
+    assertThat(state.getChainState()).isNotNull();
+    assertThat(state.getChainState().chainItems()).singleElement()
+        .satisfies(item -> assertThat(item.status()).isEqualTo(LiveGameState.ChainItem.STATUS_PENDING));
+    assertThat(state.getCards()).filteredOn(card -> card.getInstanceId().equals("hard-bargain-1")).singleElement()
+        .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.DISCARD));
+  }
+
+  @Test
+  void hardBargainPaidChoiceKeepsTargetSpellPendingAndSpendsTwoEnergy() {
+    stubCard("stacked", "Stacked Deck", "Spell", 2, 0, 0, stackedDeckText());
+    stubCard("hard-bargain", "Hard Bargain", "Spell", 2, 0, 0, hardBargainText());
+    LiveGameState state = state(stackedDeckChain(false, "p2"));
+    player(state, "p1").setAvailableEnergy(2);
+    player(state, "p2").setAvailableEnergy(2);
+    state.getCards().add(cardInstance("stacked-1", "p1", "stacked", ZoneName.LIMBO));
+    state.getCards().add(cardInstance("hard-bargain-1", "p2", "hard-bargain", ZoneName.HAND));
+
+    engine.applyMove(state, counter("p2", "hard-bargain-1", "item-1"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new ResolveChainTopMove("p2"));
+    String choiceId = state.getPendingChoice().getChoiceId();
+
+    engine.applyMove(state, new ResolveChoiceMove("p1", choiceId, PendingChoice.OPTION_PAY_1));
+
+    assertThat(player(state, "p1").getAvailableEnergy()).isZero();
+    assertThat(state.getPendingChoice()).isNull();
+    assertThat(state.getChainState().chainItems()).singleElement()
+        .satisfies(item -> assertThat(item.status()).isEqualTo(LiveGameState.ChainItem.STATUS_PENDING));
+    assertThat(state.getCards()).filteredOn(card -> card.getInstanceId().equals("stacked-1")).singleElement()
+        .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.LIMBO));
+  }
+
+  @Test
+  void hardBargainDeclinedChoiceCountersTargetSpell() {
+    stubCard("stacked", "Stacked Deck", "Spell", 2, 0, 0, stackedDeckText());
+    stubCard("hard-bargain", "Hard Bargain", "Spell", 2, 0, 0, hardBargainText());
+    LiveGameState state = state(stackedDeckChain(false, "p2"));
+    player(state, "p2").setAvailableEnergy(2);
+    state.getCards().add(cardInstance("stacked-1", "p1", "stacked", ZoneName.LIMBO));
+    state.getCards().add(cardInstance("hard-bargain-1", "p2", "hard-bargain", ZoneName.HAND));
+
+    engine.applyMove(state, counter("p2", "hard-bargain-1", "item-1"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new ResolveChainTopMove("p2"));
+    String choiceId = state.getPendingChoice().getChoiceId();
+
+    engine.applyMove(state, new ResolveChoiceMove("p1", choiceId, PendingChoice.OPTION_DECLINE));
+
+    assertThat(state.getPendingChoice()).isNull();
+    assertThat(state.getChainState().chainItems()).singleElement()
+        .satisfies(item -> assertThat(item.status()).isEqualTo(LiveGameState.ChainItem.STATUS_COUNTERED));
+    assertThat(state.getCards()).filteredOn(card -> card.getInstanceId().equals("stacked-1")).singleElement()
+        .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.DISCARD));
+    assertThat(state.getLog()).anySatisfy(entry -> assertThat(entry.text()).contains("Hard Bargain countered Stacked Deck"));
+  }
+
+  @Test
+  void hardBargainInsufficientPaymentRejectsWithoutCounteringTarget() {
+    stubCard("stacked", "Stacked Deck", "Spell", 2, 0, 0, stackedDeckText());
+    stubCard("hard-bargain", "Hard Bargain", "Spell", 2, 0, 0, hardBargainText());
+    LiveGameState state = state(stackedDeckChain(false, "p2"));
+    player(state, "p1").setAvailableEnergy(1);
+    player(state, "p2").setAvailableEnergy(2);
+    state.getCards().add(cardInstance("stacked-1", "p1", "stacked", ZoneName.LIMBO));
+    state.getCards().add(cardInstance("hard-bargain-1", "p2", "hard-bargain", ZoneName.HAND));
+
+    engine.applyMove(state, counter("p2", "hard-bargain-1", "item-1"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new ResolveChainTopMove("p2"));
+    String choiceId = state.getPendingChoice().getChoiceId();
+
+    assertThatThrownBy(() -> engine.applyMove(state, new ResolveChoiceMove("p1", choiceId, PendingChoice.OPTION_PAY_1)))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Insufficient energy for that choice.");
+
+    assertThat(state.getPendingChoice()).isNotNull();
+    assertThat(player(state, "p1").getAvailableEnergy()).isEqualTo(1);
+    assertThat(state.getChainState().chainItems()).singleElement()
+        .satisfies(item -> assertThat(item.status()).isEqualTo(LiveGameState.ChainItem.STATUS_PENDING));
+    assertThat(state.getCards()).filteredOn(card -> card.getInstanceId().equals("stacked-1")).singleElement()
+        .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.LIMBO));
+  }
+
+  @Test
+  void hardBargainRejectsCounteredTargetWithoutMutation() {
+    stubCard("hard-bargain", "Hard Bargain", "Spell", 2, 0, 0, hardBargainText());
+    LiveGameState state = state(statusChain(LiveGameState.ChainItem.STATUS_COUNTERED, false, "p2"));
+    player(state, "p2").setAvailableEnergy(2);
+    state.getCards().add(cardInstance("stacked-1", "p1", "stacked", ZoneName.LIMBO));
+    state.getCards().add(cardInstance("hard-bargain-1", "p2", "hard-bargain", ZoneName.HAND));
+
+    assertThatThrownBy(() -> engine.applyMove(state, counter("p2", "hard-bargain-1", "item-1")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Only pending chain items can be countered.");
+
+    assertThat(player(state, "p2").getAvailableEnergy()).isEqualTo(2);
+    assertThat(state.getPendingChoice()).isNull();
+    assertThat(state.getCards()).filteredOn(card -> card.getInstanceId().equals("hard-bargain-1")).singleElement()
+        .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.HAND));
+    assertThat(state.getCards()).filteredOn(card -> card.getInstanceId().equals("stacked-1")).singleElement()
+        .satisfies(card -> assertThat(card.getZone()).isEqualTo(ZoneName.LIMBO));
   }
 
   @Test
@@ -1388,6 +1521,56 @@ class GameEngineChainTest {
   }
 
   @Test
+  void focusedShowdownParticipantCanPlayMultiTargetReactionAndPreserveShowdownContext() {
+    stubCard("defiant-dance", "Defiant Dance", "Spell", 0, 0, 0, defiantDanceText());
+    stubCard("boost-target", "Boost Target", "Unit", 0, 2, 3, null);
+    stubCard("weaken-target", "Weaken Target", "Unit", 0, 2, 3, null);
+    LiveGameState state = state(null);
+    state.setActiveShowdown(new LiveGameState.ShowdownState(
+        "p1",
+        List.of("boost-1"),
+        new HashMap<>(),
+        ShowdownStep.ACTION_WINDOW,
+        List.of("p1", "p2"),
+        "p1",
+        0,
+        false,
+        null,
+        List.of(),
+        List.of(),
+        "bf-1"));
+    CardInstance defiantDance = cardInstance("defiant-1", "p1", "defiant-dance", ZoneName.HAND);
+    CardInstance boostTarget = cardInstance("boost-1", "p1", "boost-target", ZoneName.BATTLEFIELD);
+    CardInstance weakenTarget = cardInstance("weaken-1", "p2", "weaken-target", ZoneName.BATTLEFIELD);
+    boostTarget.setBattlefieldLocationId("bf-1");
+    weakenTarget.setBattlefieldLocationId("bf-1");
+    state.getCards().addAll(List.of(defiantDance, boostTarget, weakenTarget));
+
+    engine.applyMove(state, multiTargetReaction(
+        "p1",
+        "defiant-1",
+        List.of(
+            new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.BOOST_UNIT, "boost-1"),
+            new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.WEAKEN_UNIT, "weaken-1"))));
+
+    assertThat(state.getChainState()).isNotNull();
+    assertThat(state.getChainState().sourceContext()).isEqualTo("SHOWDOWN_ACTION");
+    assertThat(state.getChainState().focusedPlayerId()).isEqualTo("p2");
+    assertThat(state.getActiveShowdown()).isNotNull();
+    assertThat(state.getActiveShowdown().locationId()).isEqualTo("bf-1");
+
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new ResolveChainTopMove("p1"));
+
+    assertThat(state.getChainState()).isNull();
+    assertThat(state.getActiveShowdown()).isNotNull();
+    assertThat(state.getActiveShowdown().locationId()).isEqualTo("bf-1");
+    assertThat(boostTarget.getTemporaryPowerModifier()).isEqualTo(2);
+    assertThat(weakenTarget.getTemporaryPowerModifier()).isEqualTo(-2);
+  }
+
+  @Test
   void enGardeRejectsEnemyTargetWithoutMovingOrSpending() {
     stubCard("en-garde", "En Garde", "Spell", 0, 0, 0, enGardeText());
     stubCard("target", "Target Unit", "Unit", 0, 2, 3, null);
@@ -1483,6 +1666,35 @@ class GameEngineChainTest {
     assertThat(second.getBattlefieldLocationId()).isNull();
     assertThat(flash.getZone()).isEqualTo(ZoneName.DISCARD);
     assertThat(state.getLog()).anyMatch(entry -> entry.text().contains("Resolved Flash: moved 2 friendly unit(s) to Base."));
+  }
+
+  @Test
+  void flashMoveEffectTriggersFriendlyStellacornDrawOnce() {
+    stubCard("flash", "Flash", "Spell", 0, 0, 0, flashText());
+    stubCard("herder", "Stellacorn Herder", "Unit", 0, 2, 3, "When I move, draw 1.");
+    stubCard("flash-draw", "Flash Draw", "Unit", 0, 1, 1, null);
+    stubCard("remaining", "Remaining", "Unit", 0, 1, 1, null);
+    LiveGameState state = state(chain(false, "p1"));
+    state.getPlayers().getFirst().setDeckPool(new ArrayList<>(List.of("flash-draw", "remaining")));
+    CardInstance flash = cardInstance("flash-1", "p1", "flash", ZoneName.HAND);
+    CardInstance herder = cardInstance("herder-1", "p1", "herder", ZoneName.BATTLEFIELD);
+    herder.setBattlefieldLocationId("bf-1");
+    state.getCards().addAll(List.of(flash, herder));
+
+    engine.applyMove(state, multiTargetReaction(
+        "p1",
+        "flash-1",
+        List.of(new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.FIRST_FRIENDLY_UNIT, "herder-1"))));
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new ResolveChainTopMove("p1"));
+
+    assertThat(herder.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(herder.getBattlefieldLocationId()).isNull();
+    assertThat(state.getCards()).anyMatch(card -> card.getCardId().equals("flash-draw") && card.getZone() == ZoneName.HAND);
+    assertThat(state.getPlayers().getFirst().getDeckPool()).containsExactly("remaining");
+    assertThat(state.getLog()).filteredOn(entry -> entry.text().equals("Stellacorn Herder drew 1 after moving.")).hasSize(1);
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("Flash Draw"));
   }
 
   @Test
@@ -1831,6 +2043,10 @@ class GameEngineChainTest {
 
   private String abandonText() {
     return "[Reaction] (Play any time, even before spells and abilities resolve.) Counter a spell. Return it to its owner's hand instead of putting it in their trash. [Predict].";
+  }
+
+  private String hardBargainText() {
+    return "[Reaction] (Play any time, even before spells and abilities resolve.) [Repeat] :rb_energy_2: (You may pay the additional cost to repeat this spell's effect.) Counter a spell unless its controller pays :rb_energy_2:.";
   }
 
   private String disciplineText() {

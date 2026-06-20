@@ -122,7 +122,7 @@ function docFor(deck) {
 function recommendation(key) {
   const recommendations = {
     irelia: '- Continue current Irelia polish: Zhonya\'s Hourglass now has narrow Partial would-die replacement support; remaining blockers should focus on broader timing/replacement caveats and other Partial meta-card text.',
-    diana: '- Diana remains next: start with Hard Bargain or a shared battlefield/effect blocker if it appears in the chosen support slice.',
+    diana: '- Diana remains next: Hard Bargain has narrow Partial support, so the next slice should focus on a repeated shared battlefield/effect blocker without broadening timing globally.',
     annie: '- Use Annie as the first Aurora-shell list while waiting for Miss Fortune; focus on shared Reaction/bounce/damage blockers only after MF is available.',
     'master-yi': '- Review gameplay notes before implementation; likely blockers are Gear, Champion/Legend text, and remaining movement/location edge cases beyond Charm\'s narrow alpha support.',
     leblanc: '- Defer until Diana/Aurora unless tester demand rises; blockers skew toward destroy/hidden/counter-style spell effects.',
@@ -130,7 +130,7 @@ function recommendation(key) {
     azir: '- Defer until higher-priority interaction decks; blockers include Facebreaker, Hidden Blade, Wind Wall, and remaining movement/location edge cases beyond Charm\'s narrow alpha support.',
     sivir: '- Keep as additional data; blockers include Dazzling Aurora, Flurry of Blades, Lunar Boon, Pack of Wonders, and Sabotage.',
     fiora: '- Treat as additional data for equipment/combat work; blockers include Challenge, Hidden Blade, and several Partial Gear/combat texts.',
-    draven: '- Treat as additional data for Aurora/Draven shell work; blockers include Switcheroo, Edge of Night, Hard Bargain, and token/hidden pieces.',
+    draven: '- Treat as additional data for Aurora/Draven shell work; blockers include Switcheroo, Edge of Night, Falling Star, and token/hidden pieces.',
   };
   return recommendations[key] ?? '- Choose the smallest repeated blocker before implementing broader systems.';
 }

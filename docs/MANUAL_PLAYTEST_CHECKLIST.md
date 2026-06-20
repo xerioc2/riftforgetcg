@@ -10,12 +10,12 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Start a human vs RiftBot or human vs human game.
 - Choose one Battlefield before mulligan and confirm the opponent's unchosen Battlefield pool is not visible.
 - After both players choose, confirm selected Battlefield plaques appear in the active Battlefield lane area, can be hovered/read like cards, and cannot be targeted, moved, tapped, or fought.
-- Remember the current 1v1 alpha has two active shared Battlefield lanes. Deck construction still requires three Battlefield cards, but that does not mean three active lanes are used in Duel/bot games. Battlefield effects, hidden slots, official "here" targeting, and full location rules remain deferred.
+- Remember the current 1v1 alpha has two active shared Battlefield lanes. Deck construction still requires three Battlefield cards, but that does not mean three active lanes are used in Duel/bot games. Sunken Temple and Targon's Peak have narrow alpha conquer hooks; Abandoned Hall, most Battlefield effects, hidden slots, official "here" targeting, and full location rules remain deferred.
 - Keep your opening hand or mulligan at least one card.
 - During Channel and payment, confirm in-play Rune cards show their card art/name when known, can be hovered like cards, and still tap or recycle with the existing click/right-click controls.
 - Play a Unit and confirm it stays visible in Base.
 - Confirm your Legend starts in the Legend zone and your chosen Champion starts in the Champion zone.
-- Confirm the Legend cannot be dragged to the battlefield, and the chosen Champion only deploys after you have enough available energy.
+- Confirm the Legend cannot be dragged to the battlefield, and the chosen Champion only deploys to Base or a controlled active Battlefield lane after you have enough available energy.
 - In Irelia, try using Irelia - Blade Dancer's supported Legend-zone ready ability on an exhausted Irelia - Fervent in public play; Fervent should ready and gain +1 Might this turn. Do not expect the broader choose trigger, automatic ready-step trigger, or exact Deflect tax to be complete yet.
 - If your deck has Champion Units in the MainDeck, confirm they draw/play as main-deck cards instead of starting in the Champion zone.
 - Use a targeted effect and confirm the target prompt and error messages make sense.
@@ -33,9 +33,10 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - If the chain panel appears, confirm it lists public-safe chain items
   top-to-bottom, shows focus/ready status clearly, and does not expose hidden
   or private card names.
-- Confirm supported targeted Reactions such as Gust, Discipline, and En Garde
-  can be played on your own Main Phase or focused showdown window, then resolve
-  from the chain. They should show `Respond` only while you have chain focus.
+- Confirm supported targeted Reactions such as Gust, Discipline, En Garde,
+  Defiant Dance, and Flash can be played on your own Main Phase, while you have
+  focused showdown priority, or while you have chain focus, then resolve from
+  the chain. Counter-only Reactions still require a legal chain target.
 - With a human opponent, confirm priority focus does not skip just because the
   focused player has no legal Reaction. The focused player should still be able
   to pass priority manually, and opponents should only see that priority is
@@ -70,7 +71,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Hide a card if you draw a `[Hidden]` card.
 - Try Ambush if the UI says it is available.
 - Move a Unit to the battlefield.
-- During a showdown, confirm the focused player can either play a supported `[Action]` card or click `Pass Focus`.
+- During a showdown, confirm the focused player can play a supported `[Action]` card, play a supported targeted Reaction, or click `Pass Focus`.
 - After both relevant players pass focus, resolve the showdown, then use `Resolve Damage` / `Resolve Combat Damage` when prompted.
 - Trigger or inspect an unsupported-card message.
 - Check support badges in the deck builder, hand, hover preview, and inspect modal.
@@ -109,21 +110,21 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Confirm illegal Equip targets, such as opponent units, Gear, Battlefields, Runes, Legends, hidden cards, and Champion-zone identity cards, show readable warnings/rejections.
 - Confirm Gear cannot target the Champion while it is still in the Champion zone; it can target a Champion only after the Champion has moved into Base or the battlefield.
 - Try an illegal Champion/Legend drag and confirm it snaps back to the zone with a readable warning.
-- If a Champion is destroyed in combat, confirm it returns to the Champion zone and any attached Gear returns to Base.
+- If a deployed Champion is destroyed in combat, confirm it goes to Trash and any attached Gear returns to Base.
 - Move a Unit to the battlefield.
 - If you have a clean Ambush Unit and already control a battlefield unit, use the Ambush button and confirm it enters the battlefield ready.
 - If a showdown starts and you have focus, try a supported `[Action]` card or click `Pass Focus`.
 - Confirm the attacker cannot resolve until both relevant players pass focus.
 - If a chain prompt/status appears, confirm only the focused player sees `Pass Chain` or `Resolve Chain` and normal game actions stay paused until it clears.
-- Confirm the chain panel status updates do not imply counterspells or
-  Reaction timing are broadly supported yet; Gust, Discipline, En Garde, Defy,
-  and narrow Not So Fast are the only real alpha Reaction responses.
+- Confirm the chain panel/status text does not imply counterspells or Reaction
+  timing are broadly supported yet. Gust, Discipline, En Garde, Defiant Dance,
+  Flash, Defy, Hard Bargain, and narrow Not So Fast are the currently connected
+  alpha Reaction responses.
 - Confirm unsupported Reactions do not appear as legal
   responses, even while the chain panel is active.
-- During human vs RiftBot, try clicking an unsupported Reaction such as Defiant
-  Dance during a no-chain or opponent-turn window; confirm a local warning
-  appears, the UI does not stay stuck waiting for a server update, and RiftBot
-  continues or ends its turn.
+- During human vs RiftBot, try clicking an unsupported or no-window Reaction
+  during an invalid window; confirm a local warning appears, the UI does not
+  stay stuck waiting for a server update, and RiftBot continues or ends its turn.
 - Resolve a showdown after the focus/pass cycle completes, then resolve the server-planned combat damage when prompted.
 - In human vs RiftBot, create a multi-unit combat where RiftBot has more combatants than the opposing side; confirm RiftBot assigns all damage, the showdown resolves, and the game does not freeze.
 - If practical, smoke both paths: RiftBot attacking with multiple units and RiftBot defending with multiple units.
@@ -171,7 +172,7 @@ Use this checklist for quick alpha smoke tests before sharing a build or asking 
 - Pass through the turn and confirm the phase guidance updates.
 - Move a Unit to the battlefield.
 - If an Ambush card appears, confirm it either shows a clear Ambush option with a friendly battlefield unit or explains why Ambush/additional cost is unavailable.
-- If a showdown starts and you have a supported `[Action]` card, confirm the UI says you may play it or pass focus only while you are focused.
+- If a showdown starts and you have a supported `[Action]` or targeted Reaction, confirm the UI says you may play it or pass focus only while you are focused.
 - Confirm `Resolve Showdown` appears only after both relevant players pass focus.
 - After combat damage assignment, confirm board cards and hover/inspect show readable Might, current HP, and marked damage until the model clears it.
 - Play Stacked Deck to open the narrow alpha chain. If the opponent has Gust in

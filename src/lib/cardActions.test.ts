@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canUseSupportedChainResponse, isAbandonCounterCard, isCharmMoveCard, isDefiantDanceReactionCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isFlashReactionCard, isGustReactionCard, isIreliaBladeDancerActivatedAbility, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isSupportedChainReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, shouldShowRespondAction, targetModeForCard, unsupportedCardReason } from './cardActions';
+import { canUseSupportedChainResponse, isAbandonCounterCard, isCharmMoveCard, isDefiantDanceReactionCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isFlashReactionCard, isGustReactionCard, isHardBargainCounterCard, isIreliaBladeDancerActivatedAbility, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isSupportedChainReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, shouldShowRespondAction, targetModeForCard, unsupportedCardReason } from './cardActions';
 import type { CardInstance, RiftCard } from '../types';
 
 describe('cardActions', () => {
@@ -75,7 +75,7 @@ describe('cardActions', () => {
     expect(isGustReactionCard(defy)).toBe(false);
   });
 
-  it('recognizes Defy, Not So Fast, and Abandon as the current supported counterspell response helpers', () => {
+  it('recognizes Defy, Not So Fast, Abandon, and Hard Bargain as the current supported counterspell response helpers', () => {
     const defy: RiftCard = {
       id: 'defy',
       name: 'Defy',
@@ -97,6 +97,13 @@ describe('cardActions', () => {
       domains: [],
       rulesText: "[Reaction] Counter a spell. Return it to its owner's hand instead of putting it in their trash. [Predict].",
     };
+    const hardBargain: RiftCard = {
+      id: 'hard-bargain',
+      name: 'Hard Bargain',
+      type: 'Spell',
+      domains: [],
+      rulesText: "[Reaction] [Repeat] :rb_energy_2: Counter a spell unless its controller pays :rb_energy_2:.",
+    };
 
     expect(isDefyCounterCard(defy)).toBe(true);
     expect(isSupportedChainReactionCard(defy)).toBe(true);
@@ -108,6 +115,9 @@ describe('cardActions', () => {
     expect(isAbandonCounterCard(abandon)).toBe(true);
     expect(isSupportedChainReactionCard(abandon)).toBe(true);
     expect(unsupportedCardReason(abandon)).toBeNull();
+    expect(isHardBargainCounterCard(hardBargain)).toBe(true);
+    expect(isSupportedChainReactionCard(hardBargain)).toBe(true);
+    expect(unsupportedCardReason(hardBargain)).toBeNull();
   });
 
   it('recognizes Charm as the narrow alpha enemy battlefield movement helper', () => {
@@ -298,6 +308,29 @@ describe('cardActions', () => {
       hasLegalGustTarget: false,
       hasLegalDefyTarget: false,
       hasLegalAbandonTarget: false,
+    })).toBe(false);
+  });
+
+  it('marks Hard Bargain playable only when chain play and a public spell target exist', () => {
+    const hardBargain: RiftCard = {
+      id: 'hard-bargain',
+      name: 'Hard Bargain',
+      type: 'Spell',
+      domains: [],
+      rulesText: "[Reaction] [Repeat] :rb_energy_2: Counter a spell unless its controller pays :rb_energy_2:.",
+    };
+
+    expect(canUseSupportedChainResponse(hardBargain, {
+      canPlayCard: true,
+      hasLegalGustTarget: false,
+      hasLegalDefyTarget: false,
+      hasLegalHardBargainTarget: true,
+    })).toBe(true);
+    expect(canUseSupportedChainResponse(hardBargain, {
+      canPlayCard: true,
+      hasLegalGustTarget: false,
+      hasLegalDefyTarget: false,
+      hasLegalHardBargainTarget: false,
     })).toBe(false);
   });
 

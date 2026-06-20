@@ -20,8 +20,8 @@ Event/result: draven wins new zealand 10k open
 
 - Status: Blocked
 - Supported: 1
-- Partial: 20
-- Unsupported: 3
+- Partial: 21
+- Unsupported: 2
 - Not Audited: 0
 - Enforced playable: No
 
@@ -32,10 +32,10 @@ Event/result: draven wins new zealand 10k open
 ## Top Blockers
 
 - Switcheroo (SFD-145): UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
-- Hard Bargain (SFD-136): UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Falling Star (OGN-029): UNSUPPORTED - Basic or descriptor-only. Blocked in enforced play: this card's effect is not supported yet.
 - Draven - Glorious Executioner (SFD-185): PARTIAL - Legend text. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Fury Rune (OGN-007): PARTIAL - Rune/payment. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Treasure Hoard (SFD-220): PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
 
 ## Normalized Sections
 
@@ -49,4 +49,4 @@ Event/result: draven wins new zealand 10k open
 
 ## Recommended Implementation Order
 
-- Treat as additional data for Aurora/Draven shell work; blockers include Switcheroo, Edge of Night, Hard Bargain, and token/hidden pieces.
+- Treat as additional data for Aurora/Draven shell work; blockers include Switcheroo, Edge of Night, Falling Star, and token/hidden pieces.

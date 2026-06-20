@@ -83,27 +83,27 @@
         "uniqueCards": 25,
         "counts": {
           "SUPPORTED": 1,
-          "PARTIAL": 23,
-          "UNSUPPORTED": 1,
+          "PARTIAL": 24,
+          "UNSUPPORTED": 0,
           "BANNED": 0,
           "NOT_AUDITED": 0
         },
-        "canUseInEnforced": false,
+        "canUseInEnforced": true,
         "unresolvedCards": [],
         "topBlockers": [
-          {
-            "cardName": "Hard Bargain",
-            "sourceCardId": "SFD-136",
-            "status": "UNSUPPORTED",
-            "bucket": "Reaction / chain / counter",
-            "reason": "Blocked in enforced play: this card's effect is not supported yet."
-          },
           {
             "cardName": "Diana - Scorn of the Moon",
             "sourceCardId": "UNL-197",
             "status": "PARTIAL",
             "bucket": "Legend text",
             "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+          },
+          {
+            "cardName": "Hard Bargain",
+            "sourceCardId": "SFD-136",
+            "status": "PARTIAL",
+            "bucket": "Reaction / chain / counter",
+            "reason": "Partial: Hard Bargain can counter a supported public pending spell chain item unless that spell's controller pays 2 energy through an owner-only prompt. Repeat, broad official Reaction timing, ability targets, hidden/private chain targets, and countering counters remain deferred."
           },
           {
             "cardName": "Star Spring",
@@ -149,8 +149,8 @@
         "uniqueCards": 23,
         "counts": {
           "SUPPORTED": 1,
-          "PARTIAL": 20,
-          "UNSUPPORTED": 1,
+          "PARTIAL": 21,
+          "UNSUPPORTED": 0,
           "BANNED": 0,
           "NOT_AUDITED": 1
         },
@@ -171,13 +171,6 @@
             "reason": "No local RiftForge card matched Annie - Dark Child - Starter in Proving Grounds."
           },
           {
-            "cardName": "Hard Bargain",
-            "sourceCardId": "SFD-136",
-            "status": "UNSUPPORTED",
-            "bucket": "Reaction / chain / counter",
-            "reason": "Blocked in enforced play: this card's effect is not supported yet."
-          },
-          {
             "cardName": "The Arena's Greatest",
             "sourceCardId": "OGN-290",
             "status": "PARTIAL",
@@ -190,6 +183,13 @@
             "status": "PARTIAL",
             "bucket": "Battlefield effect",
             "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+          },
+          {
+            "cardName": "Hard Bargain",
+            "sourceCardId": "SFD-136",
+            "status": "PARTIAL",
+            "bucket": "Reaction / chain / counter",
+            "reason": "Partial: Hard Bargain can counter a supported public pending spell chain item unless that spell's controller pays 2 energy through an owner-only prompt. Repeat, broad official Reaction timing, ability targets, hidden/private chain targets, and countering counters remain deferred."
           },
           {
             "cardName": "Rek'Sai - Breacher",
@@ -619,8 +619,8 @@
         "uniqueCards": 24,
         "counts": {
           "SUPPORTED": 1,
-          "PARTIAL": 20,
-          "UNSUPPORTED": 3,
+          "PARTIAL": 21,
+          "UNSUPPORTED": 2,
           "BANNED": 0,
           "NOT_AUDITED": 0
         },
@@ -632,13 +632,6 @@
             "sourceCardId": "SFD-145",
             "status": "UNSUPPORTED",
             "bucket": "Hidden / facedown",
-            "reason": "Blocked in enforced play: this card's effect is not supported yet."
-          },
-          {
-            "cardName": "Hard Bargain",
-            "sourceCardId": "SFD-136",
-            "status": "UNSUPPORTED",
-            "bucket": "Reaction / chain / counter",
             "reason": "Blocked in enforced play: this card's effect is not supported yet."
           },
           {
@@ -660,6 +653,13 @@
             "sourceCardId": "OGN-007",
             "status": "PARTIAL",
             "bucket": "Rune/payment",
+            "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+          },
+          {
+            "cardName": "Treasure Hoard",
+            "sourceCardId": "SFD-220",
+            "status": "PARTIAL",
+            "bucket": "Battlefield effect",
             "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
           }
         ]

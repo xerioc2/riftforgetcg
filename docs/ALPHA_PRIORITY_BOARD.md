@@ -37,12 +37,12 @@ will raise regression risk faster than playtest value.
 | Target selection | High | Medium | Pre-playtest | Done | Required for simple spells, Equip, and many bug reports to be meaningful. |
 | Showdown focus/pass Action window | High | Medium | Pre-playtest | Done | Focused participants can play supported Action cards, supported targeted Reactions, or pass; attacker resolution is gated until both relevant players pass in succession. |
 | Combat damage assignment v1 | High | Medium | Post-playtest | Done | Showdowns now enter an assignment step after focus/pass; server validates all-damage, Tank, lethal, duplicate, and excess policies. Client/bot use deterministic Tank-first assignment until manual damage UI is worth the risk. |
-| Priority / chain foundation | High | Medium | Post-playtest | In progress | Public-safe chain state, lifecycle status, counter-ready metadata, public-safe target summaries, focus passing, ready-to-resolve gating, projection, bot handling, compact chain panel, local priority-stop toggles, and a narrow `PriorityWindowService` opt-in layer exist. Stacked Deck and simple public `Draw 1` spells are opener patterns; Gust, Discipline, En Garde, Defiant Dance, and Flash can be played in own-turn, focused showdown, or focused chain windows; Defy and Not So Fast remain chain-target counters. Human priority is bluff-safe and does not auto-pass based on hidden hand contents; bot players may auto-pass empty windows. Rune innate Energy/Power actions do not open or enter the chain. Broader Reaction/counterspell card support remains deferred. |
+| Priority / chain foundation | High | Medium | Post-playtest | In progress | Public-safe chain state, lifecycle status, counter-ready metadata, public-safe target summaries, focus passing, ready-to-resolve gating, projection, bot handling, compact chain panel, local priority-stop toggles, and a narrow `PriorityWindowService` opt-in layer exist. Stacked Deck and simple public `Draw 1` spells are opener patterns; Gust, Discipline, En Garde, Defiant Dance, and Flash can be played in own-turn, focused showdown, or focused chain windows; Defy, Not So Fast, and Hard Bargain remain chain-target counters. Human priority is bluff-safe and does not auto-pass based on hidden hand contents; bot players may auto-pass empty windows. Rune innate Energy/Power actions do not open or enter the chain. Broader Reaction/counterspell card support remains deferred. |
 | Hidden foundation | Medium | Medium | Pre-playtest | Done | Establishes masking and zones without later play-from-hidden timing. |
 | Ambush foundation | Medium | Medium | Pre-playtest | Done | Narrow Main-phase battlefield play path; Ambush-as-Reaction remains deferred. |
 | Deathknell / tokens | Medium | Medium | Pre-playtest | Done | Supports safe starter-unit scripts, token plumbing, and Scuttle Crab's 1v1 private hand reveal while XP/facedown remain deferred. |
 | Responsive board | High | Low | Pre-playtest | Done | Makes fullscreen playtests readable and reduces layout complaints. |
-| Multi-location Battlefield lanes v1 | High | Medium | Post-playtest | Done | The board renders the active Battlefield lanes for the current format: 1v1 Duel/bot games show `bf-0` and `bf-1`, while `bf-2` remains reserved for future formats. Cards are placed by `battlefieldLocationId`, drag-to-lane sends active destinations, active showdown lanes highlight, and per-lane controller indicators show. Battlefield effects and full official location rules remain deferred. |
+| Multi-location Battlefield lanes v1 | High | Medium | Post-playtest | Done | The board renders the active Battlefield lanes for the current format: 1v1 Duel/bot games show `bf-0` and `bf-1`, while `bf-2` remains reserved for future formats. Cards are placed by `battlefieldLocationId`, drag-to-lane sends active destinations, active showdown lanes highlight, and per-lane controller indicators show. Sunken Temple and Targon's Peak have narrow active-lane conquer hooks; most Battlefield effects and full official location rules remain deferred. |
 | Support badges | High | Low | Pre-playtest | Done | Sets tester expectations for Partial, Unsupported, Banned, and Not Audited cards. |
 | Privacy regression suite | High | Medium | Pre-playtest | Done | Protects hand, hidden, private-choice, projection, and debug-info surfaces. |
 | Issue/report flow | High | Low | Pre-playtest | Done | Gives testers a consistent path to submit useful bug reports. |
@@ -61,8 +61,8 @@ will raise regression risk faster than playtest value.
 | Charm / enemy movement | High | High | Post-playtest | In progress | Charm has narrow Partial support for selecting one enemy public battlefield Unit/Champion and moving it to Base. Broader official movement choices, control/location rules, and non-battlefield destinations remain deferred. |
 | Hidden play-from-hidden | High | High | Post-playtest | Deferred | Requires timing windows, payment, reveal/masking transitions, and target legality. |
 | Ambush-as-Reaction | High | High | Post-playtest | Deferred | Depends on chain/reaction windows and correct response priority. |
-| Reaction / counterspells on real cards | High | High | Post-playtest | Deferred | Required for many cards but likely the largest rules-system risk; Gust, Discipline, En Garde, Defiant Dance, Flash, Defy, and Not So Fast cover narrow public chain paths, with targeted Reactions now also available on the active player's turn and focused showdown windows. Riposte counter behavior, abilities, hidden reactions, countering counters, private/choice effects, and broad timing should still be added one card/pattern at a time. |
-| Full multi-location Battlefield model | High | High | Later | Deferred | A server/UI foundation now supports `bf-0`/`bf-1`/`bf-2` lanes, location-scoped movement, showdowns, combat, controller keys, scoring, and drag-to-lane destinations. Official-style 1v1 play still needs Battlefield effects, true selected Battlefield instances/objectives, "here" targeting, hidden slots, and bot strategy. It remains separate from 3+ player multiplayer support. |
+| Reaction / counterspells on real cards | High | High | Post-playtest | Deferred | Required for many cards but likely the largest rules-system risk; Gust, Discipline, En Garde, Defiant Dance, Flash, Defy, Not So Fast, and Hard Bargain cover narrow public chain paths, with targeted Reactions now also available on the active player's turn and focused showdown windows. Riposte counter behavior, abilities, hidden reactions, countering counters, private/choice effects, and broad timing should still be added one card/pattern at a time. |
+| Full multi-location Battlefield model | High | High | Later | Deferred | A server/UI foundation now supports `bf-0`/`bf-1`/`bf-2` lanes, location-scoped movement, showdowns, combat, controller keys, scoring, drag-to-lane destinations, and narrow Sunken Temple/Targon's Peak conquer hooks. Official-style 1v1 play still needs most Battlefield effects, true selected Battlefield instances/objectives, "here" targeting, hidden slots, and bot strategy. It remains separate from 3+ player multiplayer support. |
 | Sideboard / tournament match structure | Medium | High | Later | Deferred | Valuable for organized play after single-game alpha flow is stable. |
 
 ## Low Impact + Low Risk: Polish / Backlog
@@ -89,8 +89,9 @@ will raise regression risk faster than playtest value.
 
 The alpha should be described as:
 
-- 1v1 active-lane playtest model with Battlefield effects and full official
-  location rules still deferred.
+- 1v1 active-lane playtest model with narrow Sunken Temple/Targon's Peak
+  conquer hooks, while most Battlefield effects and full official location
+  rules remain deferred.
 - Constructed deck setup enforced, with role-separated Legend, chosen Champion, and pre-mulligan Battlefield selection.
 - Starter-deck-oriented card support, with badges and warnings.
 - Partial Action/showdown support with focus/pass v1 and a narrow priority/chain foundation for listed Reaction cards, not full Reaction/counterspell priority.
@@ -120,8 +121,9 @@ After feedback:
 1. Pick the highest repeated playtest pain point.
 2. Prefer one narrow card/rule slice with tests.
 3. Update support badges and docs immediately.
-4. Keep full Battlefield effects/location rules, broader Reaction/chain, and
-   XP/Hunt/Level/Buff out of scope until the active-lane alpha is stable.
+4. Keep full Battlefield effects/location rules beyond exact-card hooks, broader
+   Reaction/chain, and XP/Hunt/Level/Buff out of scope until the active-lane alpha
+   is stable.
 5. For meta support, do not implement from archetype names alone. Add the real
    list first, audit its unsupported/partial cards, then choose the highest
    repeated blocker.

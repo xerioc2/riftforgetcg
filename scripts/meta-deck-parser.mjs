@@ -45,6 +45,8 @@ const PARTIAL_REASONS = new Map([
   ['GUARDIAN ANGEL', 'Partial: alpha Equip lifecycle and printed Calm equip payment are implemented and tested. Full official Equip timing and replacement/reattachment edge cases remain deferred.'],
   ['BOOTS OF SWIFTNESS', 'Partial: alpha Equip lifecycle and printed Chaos equip payment are implemented and tested. Full official Equip timing and replacement/reattachment edge cases remain deferred.'],
   ['ABANDONED HALL', 'Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.'],
+  ['SUNKEN TEMPLE', 'Partial: exact conquer-with-Mighty optional pay-1 draw trigger is implemented for active Battlefield lanes. Broader Mighty threshold timing and full official location rules remain deferred.'],
+  ['TARGON\'S PEAK', 'Partial: exact conquer trigger queues end-turn readying for up to two tapped friendly runes in active Battlefield lanes. Player-selected rune choice and full official location rules remain deferred.'],
   ['ADAPTATRON', 'Partial: conquer trigger, optional gear kill, and official Buff state are not implemented yet.'],
   ['SCUTTLE CRAB', 'Partial: on-play draw and 1v1 private hand reveal Deathknell are implemented, but XP and facedown-card viewing are deferred.'],
   ['EN GARDE', 'Partial: alpha chain-window Reaction support exists for giving a friendly battlefield Unit/Champion +1 Might, or +2 if it is your only unit there. Full official any-time Reaction timing remains incomplete.'],
@@ -56,6 +58,7 @@ const PARTIAL_REASONS = new Map([
   ['DEFY', 'Partial: Defy can counter supported public pending spell chain items that cost no more than 4 energy and no more than 1 premium rune during the current alpha chain window. Full official Reaction timing, broad spell/ability targets, and countering counters remain deferred.'],
   ['NOT SO FAST', 'Partial: Not So Fast can counter a supported public pending enemy spell chain item only when that item chooses your friendly Unit/Champion Unit or Gear. Ability-chain targets, broad official Reaction timing, and countering counters remain deferred.'],
   ['ABANDON', 'Partial: Abandon can counter a supported public pending spell chain item in the current alpha chain window, return that spell card to hand, then create a private Predict choice. Repeat, broad official Reaction timing, hidden/private chain targets, and ability targets remain deferred.'],
+  ['HARD BARGAIN', 'Partial: Hard Bargain can counter a supported public pending spell chain item unless that spell\'s controller pays 2 energy through an owner-only prompt. Repeat, broad official Reaction timing, ability targets, hidden/private chain targets, and countering counters remain deferred.'],
   ['GUST', 'Partial: alpha chain-window Reaction support exists through Stacked Deck for returning a battlefield Unit/Champion with 3 Might or less, but full official any-time Reaction timing remains incomplete.'],
   ['STACKED DECK', 'Partial: opens the narrow alpha chain, then resolves into a private top-3 choice; official ordering and broader timing remain incomplete.'],
 ]);
@@ -287,12 +290,13 @@ function isUnsupportedAction(card) {
     || isDefy(card)
     || isNotSoFast(card)
     || isAbandon(card)
+    || isHardBargain(card)
     || isDiscipline(card)
     || isEnGarde(card)
     || isDefiantDance(card)
     || isFlash(card)
     || isStackedDeck(card);
-  return (text.includes('counter a spell') && !isDefy(card) && !isAbandon(card))
+  return (text.includes('counter a spell') && !isDefy(card) && !isAbandon(card) && !isHardBargain(card))
     || (text.includes('counter an enemy spell') && !isNotSoFast(card))
     || requiresMultipleTargets
     || !supportedEffect;
@@ -316,6 +320,13 @@ function isAbandon(card) {
     && text.includes('counter a spell')
     && text.includes("owner's hand")
     && text.includes('[predict]');
+}
+
+function isHardBargain(card) {
+  const text = String(card?.rulesText ?? '').toLowerCase();
+  return normalizeName(card?.name) === 'HARD BARGAIN'
+    && text.includes('counter a spell unless its controller pays')
+    && text.includes(':rb_energy_2:');
 }
 
 function isDiscipline(card) {

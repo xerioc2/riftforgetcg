@@ -30,20 +30,14 @@
             "uniqueCards": 33,
             "counts": {
               "SUPPORTED": 5,
-              "PARTIAL": 25,
-              "UNSUPPORTED": 3,
+              "PARTIAL": 26,
+              "UNSUPPORTED": 2,
               "BANNED": 0,
               "NOT_AUDITED": 0
             },
             "unresolved": [],
             "canUseInEnforced": false,
             "topBlockers": [
-              {
-                "cardName": "Hard Bargain",
-                "status": "UNSUPPORTED",
-                "bucket": "Reaction / chain / counter",
-                "reason": "Blocked in enforced play: this card's effect is not supported yet."
-              },
               {
                 "cardName": "Heart of Dark Ice",
                 "status": "UNSUPPORTED",
@@ -66,7 +60,13 @@
                 "cardName": "Sunken Temple",
                 "status": "PARTIAL",
                 "bucket": "Battlefield effect",
-                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+                "reason": "Partial: exact conquer-with-Mighty optional pay-1 draw trigger is implemented for active Battlefield lanes. Broader Mighty threshold timing and full official location rules remain deferred."
+              },
+              {
+                "cardName": "Targon's Peak",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Partial: exact conquer trigger queues end-turn readying for up to two tapped friendly runes in active Battlefield lanes. Player-selected rune choice and full official location rules remain deferred."
               }
             ]
           }
@@ -97,13 +97,13 @@
                 "cardName": "Sunken Temple",
                 "status": "PARTIAL",
                 "bucket": "Battlefield effect",
-                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+                "reason": "Partial: exact conquer-with-Mighty optional pay-1 draw trigger is implemented for active Battlefield lanes. Broader Mighty threshold timing and full official location rules remain deferred."
               },
               {
                 "cardName": "Targon's Peak",
                 "status": "PARTIAL",
                 "bucket": "Battlefield effect",
-                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+                "reason": "Partial: exact conquer trigger queues end-turn readying for up to two tapped friendly runes in active Battlefield lanes. Player-selected rune choice and full official location rules remain deferred."
               },
               {
                 "cardName": "Fizz - Trickster",
@@ -136,20 +136,14 @@
             "uniqueCards": 29,
             "counts": {
               "SUPPORTED": 1,
-              "PARTIAL": 24,
-              "UNSUPPORTED": 4,
+              "PARTIAL": 25,
+              "UNSUPPORTED": 3,
               "BANNED": 0,
               "NOT_AUDITED": 0
             },
             "unresolved": [],
             "canUseInEnforced": false,
             "topBlockers": [
-              {
-                "cardName": "Hard Bargain",
-                "status": "UNSUPPORTED",
-                "bucket": "Reaction / chain / counter",
-                "reason": "Blocked in enforced play: this card's effect is not supported yet."
-              },
               {
                 "cardName": "Invert Timelines",
                 "status": "UNSUPPORTED",
@@ -173,6 +167,12 @@
                 "status": "PARTIAL",
                 "bucket": "Battlefield effect",
                 "reason": "Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely."
+              },
+              {
+                "cardName": "Star Spring",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
               }
             ]
           }
@@ -185,8 +185,8 @@
             "uniqueCards": 30,
             "counts": {
               "SUPPORTED": 1,
-              "PARTIAL": 24,
-              "UNSUPPORTED": 5,
+              "PARTIAL": 25,
+              "UNSUPPORTED": 4,
               "BANNED": 0,
               "NOT_AUDITED": 0
             },
@@ -212,16 +212,16 @@
                 "reason": "Blocked in enforced play: this card's effect is not supported yet."
               },
               {
-                "cardName": "Hard Bargain",
-                "status": "UNSUPPORTED",
-                "bucket": "Reaction / chain / counter",
-                "reason": "Blocked in enforced play: this card's effect is not supported yet."
-              },
-              {
                 "cardName": "Turn to Dust",
                 "status": "UNSUPPORTED",
                 "bucket": "Damage / destroy",
                 "reason": "Blocked in enforced play: this card's effect is not supported yet."
+              },
+              {
+                "cardName": "Abandoned Hall",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely."
               }
             ]
           }
@@ -234,8 +234,8 @@
             "uniqueCards": 26,
             "counts": {
               "SUPPORTED": 1,
-              "PARTIAL": 22,
-              "UNSUPPORTED": 3,
+              "PARTIAL": 23,
+              "UNSUPPORTED": 2,
               "BANNED": 0,
               "NOT_AUDITED": 0
             },
@@ -255,12 +255,6 @@
                 "reason": "Blocked in enforced play: this card's effect is not supported yet."
               },
               {
-                "cardName": "Hard Bargain",
-                "status": "UNSUPPORTED",
-                "bucket": "Reaction / chain / counter",
-                "reason": "Blocked in enforced play: this card's effect is not supported yet."
-              },
-              {
                 "cardName": "Abandoned Hall",
                 "status": "PARTIAL",
                 "bucket": "Battlefield effect",
@@ -271,6 +265,12 @@
                 "status": "PARTIAL",
                 "bucket": "Battlefield effect",
                 "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              },
+              {
+                "cardName": "Targon's Peak",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Partial: exact conquer trigger queues end-turn readying for up to two tapped friendly runes in active Battlefield lanes. Player-selected rune choice and full official location rules remain deferred."
               }
             ]
           }
@@ -560,8 +560,8 @@
             "uniqueCards": 33,
             "counts": {
               "SUPPORTED": 3,
-              "PARTIAL": 24,
-              "UNSUPPORTED": 5,
+              "PARTIAL": 25,
+              "UNSUPPORTED": 4,
               "BANNED": 0,
               "NOT_AUDITED": 1
             },
@@ -603,9 +603,9 @@
                 "reason": "Blocked in enforced play: this card's effect is not supported yet."
               },
               {
-                "cardName": "Hard Bargain",
+                "cardName": "Switcheroo",
                 "status": "UNSUPPORTED",
-                "bucket": "Reaction / chain / counter",
+                "bucket": "Hidden / facedown",
                 "reason": "Blocked in enforced play: this card's effect is not supported yet."
               }
             ]
@@ -880,8 +880,8 @@
             "uniqueCards": 27,
             "counts": {
               "SUPPORTED": 1,
-              "PARTIAL": 22,
-              "UNSUPPORTED": 4,
+              "PARTIAL": 23,
+              "UNSUPPORTED": 3,
               "BANNED": 0,
               "NOT_AUDITED": 0
             },
@@ -892,12 +892,6 @@
                 "cardName": "Factory Recall",
                 "status": "UNSUPPORTED",
                 "bucket": "Bounce / return",
-                "reason": "Blocked in enforced play: this card's effect is not supported yet."
-              },
-              {
-                "cardName": "Hard Bargain",
-                "status": "UNSUPPORTED",
-                "bucket": "Reaction / chain / counter",
                 "reason": "Blocked in enforced play: this card's effect is not supported yet."
               },
               {
@@ -914,6 +908,12 @@
               },
               {
                 "cardName": "Seat of Power",
+                "status": "PARTIAL",
+                "bucket": "Battlefield effect",
+                "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."
+              },
+              {
+                "cardName": "The Arena's Greatest",
                 "status": "PARTIAL",
                 "bucket": "Battlefield effect",
                 "reason": "Playable for alpha testing, but card-specific behavior may be incomplete."

@@ -115,10 +115,11 @@ public class EffectHandlerRegistry {
         || isDefyCounterEffect(card, normalized)
         || isNotSoFastCounterEffect(card, normalized)
         || isAbandonCounterEffect(card, normalized)
+        || isHardBargainCounterEffect(card, normalized)
         || isDefiantDanceEffect(card, normalized)
         || isFlashEffect(card, normalized)
         || isStackedDeckEffect(normalized);
-    return !(normalized.contains("counter a spell") && !isDefyCounterEffect(card, normalized) && !isAbandonCounterEffect(card, normalized))
+    return !(normalized.contains("counter a spell") && !isDefyCounterEffect(card, normalized) && !isAbandonCounterEffect(card, normalized) && !isHardBargainCounterEffect(card, normalized))
         && !(normalized.contains("counter an enemy spell") && !isNotSoFastCounterEffect(card, normalized))
         && !requiresMultipleTargets
         && supportedEffect;
@@ -140,6 +141,15 @@ public class EffectHandlerRegistry {
         && normalized.contains("counter a spell")
         && normalized.contains("owner's hand")
         && normalized.contains("[predict]");
+  }
+
+  private boolean isHardBargainCounterEffect(CardDefinition card, String normalized) {
+    return "Spell".equalsIgnoreCase(card.type())
+        && card.name() != null
+        && card.name().trim().equalsIgnoreCase("Hard Bargain")
+        && normalized.contains("[reaction]")
+        && normalized.contains("counter a spell unless its controller pays")
+        && normalized.contains(":rb_energy_2:");
   }
 
   private boolean isNotSoFastCounterEffect(CardDefinition card, String normalized) {

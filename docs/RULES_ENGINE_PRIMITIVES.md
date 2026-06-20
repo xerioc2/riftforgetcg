@@ -26,6 +26,14 @@ Privacy and projection rules:
 - Opponents and spectators do not receive private legal-action information.
 - Debug info must remain safe and must not include hidden hand/deck/rune contents.
 
+Battlefield effect integration:
+
+- `BattlefieldEffectService` provides exact-card active-lane hooks for
+  selected Battlefield cards after a controller-changing conquer.
+- Sunken Temple can create an owner-only optional pay-1 draw prompt when the
+  conquering player has a Mighty Unit/Champion at that location.
+- Targon's Peak queues end-turn readying for up to two tapped friendly runes.
+
 Deferred:
 
 - Ability-chain / reactable activated abilities.
@@ -90,7 +98,8 @@ Deferred:
 
 - Full official movement timing and priority windows.
 - Card-specific movement swaps beyond currently registered effects.
-- Multi-location battlefield effects and hidden battlefield slot rules.
+- Abandoned Hall, most multi-location battlefield effects, player-selected
+  end-turn rune choices, and hidden battlefield slot rules.
 
 ## Would-Die Replacement Hook v1
 
@@ -131,7 +140,7 @@ Not routed in v1:
 - Spell/action source cleanup to Trash.
 - Discard, mill, or ordinary non-death zone movement.
 - Gear destroyed directly by Disarming Rake or similar non-unit effects.
-- Return-to-hand, recall, reposition, or Champion-zone return.
+- Return-to-hand, recall, or reposition.
 
 Deferred:
 

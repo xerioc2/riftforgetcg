@@ -17,6 +17,7 @@ public class PendingChoice {
   public static final String EFFECT_DRAW_1 = "DRAW_1";
   public static final String EFFECT_CREATE_DESTROY_GEAR_CHOICE = "CREATE_DESTROY_GEAR_CHOICE";
   public static final String EFFECT_DESTROY_GEAR = "DESTROY_GEAR";
+  public static final String EFFECT_HARD_BARGAIN_COUNTER_UNLESS_PAY = "HARD_BARGAIN_COUNTER_UNLESS_PAY";
   public static final String OPTION_YES = "YES";
   public static final String OPTION_NO = "NO";
   public static final String OPTION_PAY_1 = "PAY_1";

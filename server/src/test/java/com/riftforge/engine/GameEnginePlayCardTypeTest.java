@@ -555,6 +555,27 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void charmMoveEffectTriggersEnemyStellacornOwnerDrawOnce() {
+    CardInstance spell = card("charm", "p1", ZoneName.HAND);
+    CardInstance herder = atLocation(card("herder", "p2", ZoneName.BATTLEFIELD), "bf-1");
+    LiveGameState state = state(spell, herder);
+    state.getPlayers().get(1).setDeckPool(new ArrayList<>(List.of("enemy-draw", "remaining")));
+    stubCard("charm", "Charm", "Spell", 0, 0, 0, "Move an enemy unit.");
+    stubCard("herder", "Stellacorn Herder", "Unit", 0, 2, 2, "When I move, draw 1.");
+    stubCard("enemy-draw", "Enemy Draw", "Unit", 0, 1, 1, null);
+    stubCard("remaining", "Remaining", "Unit", 0, 1, 1, null);
+
+    engine.applyMove(state, playTarget("charm", "herder"));
+
+    assertThat(herder.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(herder.getBattlefieldLocationId()).isNull();
+    assertThat(state.getCards()).anyMatch(card -> card.getCardId().equals("enemy-draw") && card.getOwnerId().equals("p2") && card.getZone() == ZoneName.HAND);
+    assertThat(state.getPlayers().get(1).getDeckPool()).containsExactly("remaining");
+    assertThat(state.getLog()).filteredOn(entry -> entry.text().equals("Stellacorn Herder drew 1 after moving.")).hasSize(1);
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("Enemy Draw"));
+  }
+
+  @Test
   void charmRejectsFriendlyOrNonPublicBattlefieldTargetsWithoutMutation() {
     CardInstance spell = card("charm", "p1", ZoneName.HAND);
     CardInstance friendly = card("friendly", "p1", ZoneName.BATTLEFIELD);
@@ -562,11 +583,13 @@ class GameEnginePlayCardTypeTest {
     CardInstance hiddenEnemy = card("hidden-enemy", "p2", ZoneName.HIDDEN);
     CardInstance enemyGear = card("enemy-gear", "p2", ZoneName.BATTLEFIELD);
     LiveGameState state = state(spell, friendly, enemyBase, hiddenEnemy, enemyGear);
+    state.getPlayers().get(1).setDeckPool(new ArrayList<>(List.of("enemy-draw")));
     stubCard("charm", "Charm", "Spell", 0, 0, 0, "Move an enemy unit.");
     stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
     stubCard("enemy-base", "Enemy Base Unit", "Unit", 0, 2, 2, null);
     stubCard("hidden-enemy", "Hidden Enemy", "Unit", 0, 2, 2, null);
     stubCard("enemy-gear", "Enemy Gear", "Gear", 0, 0, 0, "[Equip]");
+    stubCard("enemy-draw", "Enemy Draw", "Unit", 0, 1, 1, null);
 
     assertThatThrownBy(() -> engine.applyMove(state, playTarget("charm", "friendly")))
         .isInstanceOf(IllegalMoveException.class)
@@ -586,6 +609,8 @@ class GameEnginePlayCardTypeTest {
     assertThat(enemyBase.getZone()).isEqualTo(ZoneName.BASE);
     assertThat(hiddenEnemy.getZone()).isEqualTo(ZoneName.HIDDEN);
     assertThat(enemyGear.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(state.getCards()).noneMatch(card -> card.getCardId().equals("enemy-draw"));
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("Stellacorn Herder drew"));
   }
 
   @Test
@@ -1520,7 +1545,7 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
-  void attachedGearReturnsToBaseWhenChampionHostReturnsToChampionZoneByCleanup() {
+  void attachedGearReturnsToBaseWhenChampionHostDiesToTrashByCleanup() {
     CardInstance spell = card("spell", "p1", ZoneName.HAND);
     CardInstance champion = card("champion", "p2", ZoneName.BATTLEFIELD);
     champion.setCurrentHealth(0);
@@ -1533,11 +1558,42 @@ class GameEnginePlayCardTypeTest {
 
     engine.applyMove(state, play("spell", ZoneName.BASE));
 
-    assertThat(champion.getZone()).isEqualTo(ZoneName.CHAMPION);
-    assertThat(champion.isHasSummoningSickness()).isTrue();
+    assertThat(champion.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(champion.isHasSummoningSickness()).isFalse();
     assertThat(gear.getZone()).isEqualTo(ZoneName.BASE);
     assertThat(gear.getAttachedToInstanceId()).isNull();
     assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Equip Gear returned to Base."));
+  }
+
+  @Test
+  void championKilledFromBaseGoesToTrashNotChampionZone() {
+    CardInstance spell = card("spell", "p1", ZoneName.HAND);
+    CardInstance champion = card("champion", "p2", ZoneName.BASE);
+    champion.setCurrentHealth(0);
+    LiveGameState state = state(spell, champion);
+    stubCard("spell", "Simple Spell", "Spell", 0, 0, 0, "Check cleanup.");
+    stubCard("champion", "Irelia - Fervent", "Champion", 0, 3, 4, null);
+
+    engine.applyMove(state, play("spell", ZoneName.BASE));
+
+    assertThat(champion.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(champion.getBattlefieldLocationId()).isNull();
+  }
+
+  @Test
+  void championKilledFromBattlefieldGoesToTrashNotChampionZone() {
+    CardInstance spell = card("spell", "p1", ZoneName.HAND);
+    CardInstance champion = card("champion", "p2", ZoneName.BATTLEFIELD);
+    champion.setBattlefieldLocationId("bf-1");
+    champion.setCurrentHealth(0);
+    LiveGameState state = state(spell, champion);
+    stubCard("spell", "Simple Spell", "Spell", 0, 0, 0, "Check cleanup.");
+    stubCard("champion", "Irelia - Fervent", "Champion", 0, 3, 4, null);
+
+    engine.applyMove(state, play("spell", ZoneName.BASE));
+
+    assertThat(champion.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(champion.getBattlefieldLocationId()).isNull();
   }
 
   @Test
@@ -1660,6 +1716,7 @@ class GameEnginePlayCardTypeTest {
     LiveGameState state = state(
         card("champion", "p1", ZoneName.CHAMPION),
         card("enemy", "p2", ZoneName.BATTLEFIELD));
+    state.getBattlefieldController().put(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID, "p1");
     stubCard("champion", "Champion", 0);
     stubCard("enemy", "Unit", 0);
 
@@ -1693,6 +1750,7 @@ class GameEnginePlayCardTypeTest {
   void championFromChampionZoneConsumesEnergyWhenPlayed() {
     LiveGameState state = state(card("champion", "p1", ZoneName.CHAMPION));
     state.getPlayers().getFirst().setAvailableEnergy(5);
+    state.getBattlefieldController().put(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID, "p1");
     stubCard("champion", "Irelia - Fervent", "Champion", 5, 4, 5, "");
 
     engine.applyMove(state, new MoveToBattlefieldMove("p1", "champion"));
@@ -1704,8 +1762,98 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void championFromChampionZoneCanDeployToBase() {
+    LiveGameState state = state(card("champion", "p1", ZoneName.CHAMPION));
+    state.getPlayers().getFirst().setAvailableEnergy(5);
+    stubCard("champion", "Irelia - Fervent", "Champion", 5, 4, 5, "");
+
+    engine.applyMove(state, new MoveToBattlefieldMove(
+        "p1",
+        "champion",
+        null,
+        List.of(),
+        List.of(),
+        ZoneName.BASE));
+
+    CardInstance champion = find(state, "champion");
+    assertThat(champion.getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(champion.getBattlefieldLocationId()).isNull();
+    assertThat(champion.isTapped()).isTrue();
+    assertThat(state.getActiveShowdown()).isNull();
+    assertThat(state.getPlayers().getFirst().getAvailableEnergy()).isZero();
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().equals("Played Irelia - Fervent from the Champion zone to Base."));
+  }
+
+  @Test
+  void championFromChampionZoneCanDeployToChosenBattlefieldLocation() {
+    LiveGameState state = state(card("champion", "p1", ZoneName.CHAMPION));
+    state.getPlayers().getFirst().setAvailableEnergy(5);
+    state.getBattlefieldController().put("bf-1", "p1");
+    stubCard("champion", "Irelia - Fervent", "Champion", 5, 4, 5, "");
+
+    engine.applyMove(state, new MoveToBattlefieldMove(
+        "p1",
+        "champion",
+        "bf-1",
+        List.of(),
+        List.of(),
+        ZoneName.BATTLEFIELD));
+
+    CardInstance champion = find(state, "champion");
+    assertThat(champion.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(champion.getBattlefieldLocationId()).isEqualTo("bf-1");
+    assertThat(state.getPlayers().getFirst().getAvailableEnergy()).isZero();
+  }
+
+  @Test
+  void championFromChampionZoneInvalidBattlefieldDestinationDoesNotSpendOrMove() {
+    LiveGameState state = state(card("champion", "p1", ZoneName.CHAMPION));
+    state.getPlayers().getFirst().setAvailableEnergy(5);
+    stubCard("champion", "Irelia - Fervent", "Champion", 5, 4, 5, "");
+
+    assertThatThrownBy(() -> engine.applyMove(state, new MoveToBattlefieldMove(
+        "p1",
+        "champion",
+        "bf-2",
+        List.of(),
+        List.of(),
+        ZoneName.BATTLEFIELD)))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("That battlefield lane is not active in this game.");
+
+    CardInstance champion = find(state, "champion");
+    assertThat(champion.getZone()).isEqualTo(ZoneName.CHAMPION);
+    assertThat(champion.getBattlefieldLocationId()).isNull();
+    assertThat(state.getPlayers().getFirst().getAvailableEnergy()).isEqualTo(5);
+  }
+
+  @Test
+  void championFromChampionZoneCannotDeployToUncontrolledBattlefield() {
+    LiveGameState state = state(card("champion", "p1", ZoneName.CHAMPION));
+    state.getPlayers().getFirst().setAvailableEnergy(5);
+    state.getBattlefieldController().put("bf-1", "p2");
+    stubCard("champion", "Irelia - Fervent", "Champion", 5, 4, 5, "");
+
+    assertThatThrownBy(() -> engine.applyMove(state, new MoveToBattlefieldMove(
+        "p1",
+        "champion",
+        "bf-1",
+        List.of(),
+        List.of(),
+        ZoneName.BATTLEFIELD)))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("You can only deploy your Champion to Base or a battlefield you control.");
+
+    CardInstance champion = find(state, "champion");
+    assertThat(champion.getZone()).isEqualTo(ZoneName.CHAMPION);
+    assertThat(champion.getBattlefieldLocationId()).isNull();
+    assertThat(state.getPlayers().getFirst().getAvailableEnergy()).isEqualTo(5);
+  }
+
+  @Test
   void championFromChampionZoneCanBePaidWithSelectedRunes() {
     LiveGameState state = state(card("champion", "p1", ZoneName.CHAMPION));
+    state.getBattlefieldController().put(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID, "p1");
     state.setRunes(new ArrayList<>(List.of(
         rune("rune-1", "p1", false),
         rune("rune-2", "p1", false))));
@@ -1737,6 +1885,7 @@ class GameEnginePlayCardTypeTest {
   void championCannotBePlayedRepeatedlyForFreeAfterLeavingChampionZone() {
     LiveGameState state = state(card("champion", "p1", ZoneName.CHAMPION));
     state.getPlayers().getFirst().setAvailableEnergy(5);
+    state.getBattlefieldController().put(CardInstance.DEFAULT_BATTLEFIELD_LOCATION_ID, "p1");
     stubCard("champion", "Irelia - Fervent", "Champion", 5, 4, 5, "");
 
     engine.applyMove(state, new MoveToBattlefieldMove("p1", "champion"));
@@ -2393,6 +2542,28 @@ class GameEnginePlayCardTypeTest {
   }
 
   @Test
+  void theSyrenMoveEffectTriggersFriendlyStellacornDrawOnce() {
+    stubCard("syren", "The Syren", "Gear", 2, 0, 0, ":rb_energy_1:, :rb_exhaust:: Move a friendly unit at a battlefield to its base.");
+    stubCard("herder", "Stellacorn Herder", "Unit", 0, 2, 2, "When I move, draw 1.");
+    stubCard("syren-draw", "Syren Draw", "Unit", 0, 1, 1, null);
+    stubCard("remaining", "Remaining", "Unit", 0, 1, 1, null);
+    LiveGameState state = state(
+        card("syren", "p1", ZoneName.BASE),
+        atLocation(card("herder", "p1", ZoneName.BATTLEFIELD), "bf-1"));
+    state.getPlayers().getFirst().setAvailableEnergy(1);
+    state.getPlayers().getFirst().setDeckPool(new ArrayList<>(List.of("syren-draw", "remaining")));
+
+    engine.applyMove(state, new ActivateAbilityMove("p1", "syren", "herder"));
+
+    assertThat(find(state, "herder").getZone()).isEqualTo(ZoneName.BASE);
+    assertThat(find(state, "herder").getBattlefieldLocationId()).isNull();
+    assertThat(state.getCards()).anyMatch(card -> card.getCardId().equals("syren-draw") && card.getZone() == ZoneName.HAND);
+    assertThat(state.getPlayers().getFirst().getDeckPool()).containsExactly("remaining");
+    assertThat(state.getLog()).filteredOn(entry -> entry.text().equals("Stellacorn Herder drew 1 after moving.")).hasSize(1);
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("Syren Draw"));
+  }
+
+  @Test
   void theSyrenCanPayActivationWithSelectedRune() {
     stubCard("syren", "The Syren", "Gear", 2, 0, 0, ":rb_energy_1:, :rb_exhaust:: Move a friendly unit at a battlefield to its base.");
     stubCard("unit", "Friendly Unit", "Unit", 0, 2, 2, "");
@@ -2410,8 +2581,10 @@ class GameEnginePlayCardTypeTest {
   void theSyrenRejectsInvalidTargetWithoutMutation() {
     stubCard("syren", "The Syren", "Gear", 2, 0, 0, ":rb_energy_1:, :rb_exhaust:: Move a friendly unit at a battlefield to its base.");
     stubCard("enemy", "Enemy Unit", "Unit", 0, 2, 2, "");
+    stubCard("drawn", "Drawn Card", "Unit", 0, 1, 1, null);
     LiveGameState state = state(card("syren", "p1", ZoneName.BASE), atLocation(card("enemy", "p2", ZoneName.BATTLEFIELD), "bf-0"));
     state.getPlayers().getFirst().setAvailableEnergy(1);
+    state.getPlayers().getFirst().setDeckPool(new ArrayList<>(List.of("drawn")));
 
     assertThatThrownBy(() -> engine.applyMove(state, new ActivateAbilityMove("p1", "syren", "enemy")))
         .isInstanceOf(IllegalMoveException.class)
@@ -2421,6 +2594,8 @@ class GameEnginePlayCardTypeTest {
     assertThat(find(state, "enemy").getBattlefieldLocationId()).isEqualTo("bf-0");
     assertThat(find(state, "syren").isTapped()).isFalse();
     assertThat(state.getPlayers().getFirst().getAvailableEnergy()).isEqualTo(1);
+    assertThat(state.getCards()).noneMatch(card -> card.getCardId().equals("drawn"));
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("Stellacorn Herder drew"));
   }
 
   @Test
@@ -2603,11 +2778,13 @@ class GameEnginePlayCardTypeTest {
   @Test
   void zhonyasHourglassReplacementDestroysSourceAndHealsExhaustsRecallsProtectedUnit() {
     stubCard("zhonya", "Zhonya's Hourglass", "Gear", 2, 0, 0, zhonyasText());
-    stubCard("unit", "Friendly Unit", "Unit", 0, 2, 3, "");
+    stubCard("unit", "Stellacorn Herder", "Unit", 0, 2, 3, "When I move, draw 1.");
     stubCard("trigger", "Trigger Unit", "Unit", 0, 1, 1, "");
+    stubCard("drawn", "Drawn Card", "Unit", 0, 1, 1, null);
     CardInstance unit = atLocation(card("unit", "p1", ZoneName.BATTLEFIELD), "bf-1");
     unit.setCurrentHealth(0);
     LiveGameState state = state(card("zhonya", "p1", ZoneName.BASE), unit, card("trigger", "p1", ZoneName.HAND));
+    state.getPlayers().getFirst().setDeckPool(new ArrayList<>(List.of("drawn")));
 
     engine.applyMove(state, new ActivateAbilityMove("p1", "zhonya", ActivatedAbilityService.ZHONYAS_HOURGLASS_PROTECT, "unit", List.of(), List.of()));
     engine.applyMove(state, play("trigger", ZoneName.BASE));
@@ -2620,6 +2797,9 @@ class GameEnginePlayCardTypeTest {
     assertThat(state.getReplacementEffects()).isEmpty();
     assertThat(state.getLog()).extracting(LiveGameState.LogEntry::text)
         .contains("Zhonya's Hourglass was destroyed by a replacement effect.");
+    assertThat(state.getCards()).noneMatch(card -> card.getCardId().equals("drawn"));
+    assertThat(state.getPlayers().getFirst().getDeckPool()).containsExactly("drawn");
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("Stellacorn Herder drew"));
   }
 
   @Test

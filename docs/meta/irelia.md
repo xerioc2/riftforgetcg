@@ -14,7 +14,7 @@ Extraction status: Extracted
 
 | Deck slug | Deck name | Unique cards | Supported | Partial | Unsupported | Not Audited | Enforced playable |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| irelia-wins-s3-shanghai-city-challenge | Irelia Wins S3 Shanghai City Challenge | 33 | 5 | 25 | 3 | 0 | No |
+| irelia-wins-s3-shanghai-city-challenge | Irelia Wins S3 Shanghai City Challenge | 33 | 5 | 26 | 2 | 0 | No |
 | irelia-wins-sydney-regional-qualifier | Irelia wins Sydney Regional Qualifier | 24 | 3 | 21 | 0 | 0 | Yes |
 
 ## Unresolved Cards
@@ -23,12 +23,11 @@ Extraction status: Extracted
 
 ## Shared Top Blockers
 
-- Hard Bargain: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Heart of Dark Ice: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Switcheroo: UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
 - Abandoned Hall: PARTIAL - Battlefield effect. Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.
-- Sunken Temple: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
-- Targon's Peak: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Sunken Temple: PARTIAL - Battlefield effect. Partial: exact conquer-with-Mighty optional pay-1 draw trigger is implemented for active Battlefield lanes. Broader Mighty threshold timing and full official location rules remain deferred.
+- Targon's Peak: PARTIAL - Battlefield effect. Partial: exact conquer trigger queues end-turn readying for up to two tapped friendly runes in active Battlefield lanes. Player-selected rune choice and full official location rules remain deferred.
 - Fizz - Trickster: PARTIAL - Champion text. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Irelia - Fervent: PARTIAL - Champion text. Partial: the supported explicit-ready trigger gives Irelia +1 Might this turn when her controller readies her through a registered effect. Deflect targeting tax remains heuristic, choose-trigger coverage is incomplete, and automatic ready-step trigger timing remains deferred.
 
@@ -50,11 +49,11 @@ Extraction status: Extracted
 
 Top blockers:
 
-- Hard Bargain: UNSUPPORTED - Reaction / chain / counter. Blocked in enforced play: this card's effect is not supported yet.
 - Heart of Dark Ice: UNSUPPORTED - Equipment lifecycle/effect. Blocked in enforced play: this card's effect is not supported yet.
 - Switcheroo: UNSUPPORTED - Hidden / facedown. Blocked in enforced play: this card's effect is not supported yet.
 - Abandoned Hall: PARTIAL - Battlefield effect. Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.
-- Sunken Temple: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Sunken Temple: PARTIAL - Battlefield effect. Partial: exact conquer-with-Mighty optional pay-1 draw trigger is implemented for active Battlefield lanes. Broader Mighty threshold timing and full official location rules remain deferred.
+- Targon's Peak: PARTIAL - Battlefield effect. Partial: exact conquer trigger queues end-turn readying for up to two tapped friendly runes in active Battlefield lanes. Player-selected rune choice and full official location rules remain deferred.
 
 ### Irelia wins Sydney Regional Qualifier
 
@@ -73,8 +72,8 @@ Top blockers:
 Top blockers:
 
 - Abandoned Hall: PARTIAL - Battlefield effect. Partial: spell-play optional trigger needs battlefield-aware target choice before it can be scripted safely.
-- Sunken Temple: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
-- Targon's Peak: PARTIAL - Battlefield effect. Playable for alpha testing, but card-specific behavior may be incomplete.
+- Sunken Temple: PARTIAL - Battlefield effect. Partial: exact conquer-with-Mighty optional pay-1 draw trigger is implemented for active Battlefield lanes. Broader Mighty threshold timing and full official location rules remain deferred.
+- Targon's Peak: PARTIAL - Battlefield effect. Partial: exact conquer trigger queues end-turn readying for up to two tapped friendly runes in active Battlefield lanes. Player-selected rune choice and full official location rules remain deferred.
 - Fizz - Trickster: PARTIAL - Champion text. Playable for alpha testing, but card-specific behavior may be incomplete.
 - Irelia - Fervent: PARTIAL - Champion text. Partial: the supported explicit-ready trigger gives Irelia +1 Might this turn when her controller readies her through a registered effect. Deflect targeting tax remains heuristic, choose-trigger coverage is incomplete, and automatic ready-step trigger timing remains deferred.
 
