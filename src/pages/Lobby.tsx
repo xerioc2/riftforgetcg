@@ -8,6 +8,7 @@ import { getGameServerUrl } from '../lib/env';
 import { readableHttpError } from '../lib/http';
 import { useLocalPlayer } from '../lib/playerContext';
 import { getRoomSessionToken } from '../lib/roomSession';
+import { STARTER_DECKS, resolveStarterDeck } from '../lib/starterDecks';
 import { createLobbyClient } from '../lib/stompGame';
 import { useCardStore } from '../store/cards';
 import { useDeckStore } from '../store/decks';
@@ -16,6 +17,7 @@ import type { PresenceSummary, RoomState } from '../types';
 
 const cx = (...classes: Array<string | false | undefined>) => classes.filter(Boolean).join(' ');
 const BOT_ID = 'bot-player-riftbot';
+const DEFAULT_PRESET_DECK_ID = 'preset-uploaded-irelia-shanghai';
 
 export function Lobby() {
   const { code } = useParams();
@@ -24,7 +26,7 @@ export function Lobby() {
   const { cards, loadCards } = useCardStore();
   const { decks, activeDeckId, setActiveDeck } = useDeckStore();
   const [room, setRoom] = useState<RoomState | null>(null);
-  const [myDeckId, setMyDeckId] = useState<string | null>(activeDeckId ?? null);
+  const [myDeckId, setMyDeckId] = useState<string | null>(activeDeckId ?? DEFAULT_PRESET_DECK_ID);
   const [botDeckId, setBotDeckId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -34,9 +36,23 @@ export function Lobby() {
   const clientRef = useRef<Client | null>(null);
   const normalizedCode = code?.toUpperCase() ?? '';
 
-  const deckNames = useMemo(() => new Map(decks.map((deck) => [deck.id, deck.name])), [decks]);
   const cardsById = useMemo(() => new Map(cards.map((card) => [card.id, card])), [cards]);
-  const selectedDeck = useMemo(() => decks.find((deck) => deck.id === myDeckId), [decks, myDeckId]);
+  const presetDecks = useMemo(
+    () =>
+      STARTER_DECKS.map((spec) => {
+        const resolved = resolveStarterDeck(spec, cards);
+        return resolved.deck ? { spec, deck: { ...resolved.deck, id: `preset-${spec.id}` } } : null;
+      }).filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)),
+    [cards],
+  );
+  const deckNames = useMemo(
+    () => new Map([...decks.map((deck) => [deck.id, deck.name] as const), ...presetDecks.map(({ deck }) => [deck.id, deck.name] as const)]),
+    [decks, presetDecks],
+  );
+  const selectedDeck = useMemo(
+    () => decks.find((deck) => deck.id === myDeckId) ?? presetDecks.find(({ deck }) => deck.id === myDeckId)?.deck,
+    [decks, myDeckId, presetDecks],
+  );
   const deckValidation = useMemo(() => selectedDeck ? validateDeck(selectedDeck, cardsById) : null, [cardsById, selectedDeck]);
   const supportEntries = useMemo(() => deckSupportEntries(selectedDeck, cardsById), [cardsById, selectedDeck]);
   const unsupportedCards = useMemo(() => unsupportedDeckEntries(selectedDeck, cardsById), [cardsById, selectedDeck]);
@@ -88,13 +104,13 @@ export function Lobby() {
   }, [navigate, normalizedCode, room?.status]);
 
   const chooseDeck = (deckId: string) => {
-    setActiveDeck(deckId);
+    if (decks.some((deck) => deck.id === deckId)) setActiveDeck(deckId);
     setMyDeckId(deckId);
     setDeckError(null);
   };
 
   const deckCardIds = (deckId: string | null) => {
-    const deck = decks.find((existing) => existing.id === deckId);
+    const deck = decks.find((existing) => existing.id === deckId) ?? presetDecks.find((entry) => entry.deck.id === deckId)?.deck;
     if (!deck) return [];
     return deckToGameCardIds(deck, cardsById);
   };
@@ -218,11 +234,23 @@ export function Lobby() {
               <h2 className="text-lg font-semibold text-white">Your setup</h2>
               <select className="input mt-4 w-full" value={myDeckId ?? ''} onChange={(event) => chooseDeck(event.target.value)} aria-label="Deck">
                 <option value="">Choose deck</option>
-                {decks.map((deck) => (
-                  <option key={deck.id} value={deck.id}>
-                    {deck.name}
-                  </option>
-                ))}
+                {presetDecks.length > 0 ? (
+                  <optgroup label="Uploaded meta presets">
+                    {presetDecks.map(({ deck, spec }) => (
+                      <option key={deck.id} value={deck.id}>
+                        {deck.name}
+                        {spec.status === 'Mostly supported' ? '' : ' (audit)'}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+                <optgroup label="Saved decks">
+                  {decks.map((deck) => (
+                    <option key={deck.id} value={deck.id}>
+                      {deck.name}
+                    </option>
+                  ))}
+                </optgroup>
               </select>
               <button className="btn-primary mt-3 w-full" onClick={() => void handleReady()} disabled={!myDeckId || deckIsEmpty || (!me?.ready && !deckValidation?.valid)}>
                 {me?.ready ? 'Unready' : 'Ready up'}
@@ -286,11 +314,23 @@ export function Lobby() {
               <h2 className="text-sm font-semibold text-slate-300">RiftBot deck</h2>
               <select className="input mt-2 w-full" value={botDeckId ?? ''} onChange={(e) => void handleSetBotDeck(e.target.value)} aria-label="Bot deck">
                 <option value="">Irelia Uploaded Meta - Playtest</option>
-                {decks.map((deck) => (
-                  <option key={deck.id} value={deck.id}>
-                    {deck.name}
-                  </option>
-                ))}
+                {presetDecks.length > 0 ? (
+                  <optgroup label="Uploaded meta presets">
+                    {presetDecks.map(({ deck, spec }) => (
+                      <option key={deck.id} value={deck.id}>
+                        {deck.name}
+                        {spec.status === 'Mostly supported' ? '' : ' (audit)'}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+                <optgroup label="Saved decks">
+                  {decks.map((deck) => (
+                    <option key={deck.id} value={deck.id}>
+                      {deck.name}
+                    </option>
+                  ))}
+                </optgroup>
               </select>
               <p className="mt-1 text-xs text-slate-500">
                 {botDeckId

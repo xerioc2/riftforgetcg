@@ -353,7 +353,7 @@ function DeckBuilder({
 
       <div className="min-h-0 flex-1 overflow-y-auto pt-4">
         <div className="grid grid-cols-2 gap-3 text-center">
-        <DeckMetric label="Main Cards" value={`${validation.mainDeckCards}/40`} />
+        <DeckMetric label="Main Cards" value={`${validation.mainDeckCards}/39`} />
         <DeckMetric label="Chosen Champion" value={validation.champion?.name ?? 'None'} />
         <DeckMetric label="Runes" value={`${validation.runeCards}/12`} />
         <DeckMetric label="Battlefields" value={`${validation.battlefieldCards}/3`} />
@@ -371,8 +371,8 @@ function DeckBuilder({
         <div className="mt-4 border border-line bg-ink p-3">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-white">Starter decks</p>
-            <p className="mt-1 text-xs text-slate-400">Recommended alpha playtest lists with known limitations.</p>
+            <p className="text-sm font-semibold text-white">Deck presets</p>
+            <p className="mt-1 text-xs text-slate-400">Uploaded meta lists and alpha playtest decks with known limitations.</p>
           </div>
         </div>
         <div className="mt-3 space-y-3">
