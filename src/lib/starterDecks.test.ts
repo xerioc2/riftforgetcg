@@ -20,9 +20,26 @@ describe('deck presets', () => {
   it('exposes uploaded pro deck presets without the old 40-card Irelia starter list', () => {
     const names = STARTER_DECKS.map((deck) => deck.name);
 
-    expect(names).toContain('Diana Uploaded Meta - Suzhou');
+    expect(names).toContain('Diana Uploaded Meta - Playtest');
     expect(names).toContain('LeBlanc Uploaded Meta - Zhongshan');
     expect(names).toContain('Azir Uploaded Meta - Lille');
     expect(names).not.toContain('Irelia Tempo');
+  });
+
+  it('exposes uploaded Diana as an enforced-playable playtest preset without replacing Irelia default', () => {
+    const [irelia, diana] = STARTER_DECKS;
+
+    expect(irelia.name).toBe('Irelia Uploaded Meta - Playtest');
+    expect(diana.name).toBe('Diana Uploaded Meta - Playtest');
+    expect(diana.status).toBe('Mostly supported');
+    expect(diana.description).toContain('Enforced-playable');
+    expect(diana.warnings.join(' ')).toContain('many Partial card behaviors remain');
+    expect(diana.legend).toBe('Diana - Scorn of the Moon');
+    expect(diana.champion).toBe('Diana - Lunari');
+    expect(count(diana.main)).toBe(39);
+    expect(count(diana.runes)).toBe(12);
+    expect(diana.battlefields).toHaveLength(3);
+    expect(diana.main.some((entry) => entry.name === 'Diana - Lunari')).toBe(false);
+    expect(diana.main.find((entry) => entry.name === 'Moonfall')?.quantity).toBe(3);
   });
 });

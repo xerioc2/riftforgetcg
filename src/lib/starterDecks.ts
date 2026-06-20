@@ -113,10 +113,11 @@ const UPLOADED_META_DECKS: StarterDeckSpec[] = [
   }),
   uploadedMetaDeckPreset(dianaUploaded as UploadedMetaDeck, {
     id: 'uploaded-diana-suzhou',
-    name: 'Diana Uploaded Meta - Suzhou',
-    status: 'Experimental',
-    description: 'Exact uploaded S3 Suzhou City Challenge list. Reviewer-priority interaction deck for the next support pass.',
+    name: 'Diana Uploaded Meta - Playtest',
+    status: 'Mostly supported',
+    description: 'Exact uploaded S3 Suzhou City Challenge list. Enforced-playable reviewer-priority interaction deck for alpha bot testing.',
     champion: 'Diana - Lunari',
+    warnings: ['Enforced-playable alpha deck; many Partial card behaviors remain. Not rules-complete or golden/reference-correct.'],
   }),
   uploadedMetaDeckPreset(leblancUploaded as UploadedMetaDeck, {
     id: 'uploaded-leblanc-zhongshan',

@@ -9,7 +9,7 @@ const DOCS_DIR = path.join(ROOT, 'docs', 'meta');
 
 const DECKS = [
   { file: 'irelia_wins_s3_shanghai_city_challenge.txt', key: 'irelia', archetype: 'Irelia, Blade Dancer', priority: 'Finish current/Irelia support polish' },
-  { file: 'diana_wins_s3_suzhou_city_challenge.txt', key: 'diana', archetype: 'Diana, Scorn of the Moon', priority: 'Next reviewer-prioritized interaction deck' },
+  { file: 'diana_wins_s3_suzhou_city_challenge.txt', key: 'diana', archetype: 'Diana, Scorn of the Moon', priority: 'Selectable playtest deck; next fidelity target' },
   { file: 'annie_4th_at_lille_regional_qualifier.txt', key: 'annie', archetype: 'Annie, Dark Child', priority: 'Aurora shell with future Miss Fortune list' },
   { file: 'master_yi_wins_s3_guangzhou_city_challenge.txt', key: 'master-yi', archetype: 'Master Yi, Wuju Bladesman', priority: 'Audit before implementation; gameplay notes still useful' },
   { file: 'leblanc_wins_s3_zhongshan_city_challenge.txt', key: 'leblanc', archetype: 'LeBlanc, Deceiver', priority: 'Later raw-meta audit' },
@@ -122,7 +122,7 @@ function docFor(deck) {
 function recommendation(key) {
   const recommendations = {
     irelia: '- Continue current Irelia polish: Zhonya\'s Hourglass now has narrow Partial would-die replacement support; remaining blockers should focus on broader timing/replacement caveats and other Partial meta-card text.',
-    diana: '- Diana remains next: Hard Bargain has narrow Partial support, so the next slice should focus on a repeated shared battlefield/effect blocker without broadening timing globally.',
+    diana: '- Diana is enforced-playable by gate and selectable as a playtest bot deck, but remains Partial-heavy. Next fidelity slice should focus on Moonfall or Diana Legend/Champion text before broader timing work.',
     annie: '- Use Annie as the first Aurora-shell list while waiting for Miss Fortune; focus on shared Reaction/bounce/damage blockers only after MF is available.',
     'master-yi': '- Review gameplay notes before implementation; likely blockers are Gear, Champion/Legend text, and remaining movement/location edge cases beyond Charm\'s narrow alpha support.',
     leblanc: '- Defer until Diana/Aurora unless tester demand rises; blockers skew toward destroy/hidden/counter-style spell effects.',
