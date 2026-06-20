@@ -98,6 +98,25 @@ class GameEngineChainTest {
           && text.contains("move up to 2 friendly units")
           && text.contains("base");
     });
+    when(cardDataService.isEclipseReaction(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      String text = def == null || def.rulesText() == null ? "" : def.rulesText().toLowerCase();
+      return def != null && "Eclipse".equalsIgnoreCase(def.name())
+          && text.contains("[reaction]")
+          && text.contains("give a unit")
+          && text.contains("-4")
+          && text.contains("[predict]");
+    });
+    when(cardDataService.isStupefyReaction(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      String text = def == null || def.rulesText() == null ? "" : def.rulesText().toLowerCase();
+      return def != null && "Stupefy".equalsIgnoreCase(def.name())
+          && text.contains("[reaction]")
+          && text.contains("give a unit")
+          && text.contains("-1")
+          && text.contains("minimum of 1")
+          && text.contains("draw 1");
+    });
     when(cardDataService.isDefyCounterReaction(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
       CardDefinition def = invocation.getArgument(0);
       String text = def == null || def.rulesText() == null ? "" : def.rulesText().toLowerCase();
@@ -1639,6 +1658,157 @@ class GameEngineChainTest {
   }
 
   @Test
+  void eclipseResolvesFromChainAndAppliesMinusFourMightWithProjectedClamp() {
+    stubCard("eclipse", "Eclipse", "Spell", 0, 0, 0, eclipseText());
+    stubCard("target", "Target Unit", "Unit", 0, 3, 3, null);
+    LiveGameState state = state(null);
+    CardInstance eclipse = cardInstance("eclipse-1", "p1", "eclipse", ZoneName.HAND);
+    CardInstance target = cardInstance("target-1", "p2", "target", ZoneName.BATTLEFIELD);
+    state.getCards().addAll(List.of(eclipse, target));
+
+    engine.applyMove(state, new PlayCardMove("p1", "eclipse-1", ZoneName.BASE, 0, 0, "target-1"));
+
+    assertThat(eclipse.getZone()).isEqualTo(ZoneName.LIMBO);
+    assertThat(state.getChainState().topItem()).satisfies(item -> {
+      assertThat(item.effectKey()).isEqualTo(LiveGameState.ChainItem.EFFECT_ECLIPSE_WEAKEN_PREDICT);
+      assertThat(item.targetInstanceIds()).containsExactly("target-1");
+    });
+
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new ResolveChainTopMove("p1"));
+
+    assertThat(target.getTemporaryPowerModifier()).isEqualTo(-4);
+    assertThat(eclipse.getZone()).isEqualTo(ZoneName.DISCARD);
+    LiveGameState projected = new GameStateProjectionService(
+        new LegalActionsService(cardDataService),
+        new CombatStatsService(cardDataService)).toPublicView(state, "p1");
+    assertThat(projected.getCards()).filteredOn(card -> card.getInstanceId().equals("target-1")).singleElement()
+        .satisfies(card -> {
+          assertThat(card.getPrintedMight()).isEqualTo(3);
+          assertThat(card.getEffectiveMight()).isZero();
+        });
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().contains("Resolved Eclipse: gave -4 Might. Predict is deferred in alpha."));
+  }
+
+  @Test
+  void stupefyResolvesFromChainAppliesMinusOneMinimumOneAndDrawsPrivately() {
+    stubCard("stupefy", "Stupefy", "Spell", 0, 0, 0, stupefyText());
+    stubCard("target", "Target Unit", "Unit", 0, 2, 2, null);
+    LiveGameState state = state(chain(false, "p1"));
+    player(state, "p1").setDeckPool(new ArrayList<>(List.of("drawn-card")));
+    CardInstance stupefy = cardInstance("stupefy-1", "p1", "stupefy", ZoneName.HAND);
+    CardInstance target = cardInstance("target-1", "p2", "target", ZoneName.BATTLEFIELD);
+    state.getCards().addAll(List.of(stupefy, target));
+
+    engine.applyMove(state, new PlayCardMove("p1", "stupefy-1", ZoneName.BASE, 0, 0, "target-1"));
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new ResolveChainTopMove("p1"));
+
+    assertThat(target.getTemporaryPowerModifier()).isEqualTo(-1);
+    assertThat(stupefy.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(state.getCards()).anySatisfy(card -> {
+      assertThat(card.getOwnerId()).isEqualTo("p1");
+      assertThat(card.getCardId()).isEqualTo("drawn-card");
+      assertThat(card.getZone()).isEqualTo(ZoneName.HAND);
+    });
+    assertThat(state.getLog()).noneMatch(entry -> entry.text().contains("Drawn Card"));
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().contains("Resolved Stupefy: gave -1 Might and drew a card."));
+  }
+
+  @Test
+  void stupefyDoesNotReduceTargetBelowOneMight() {
+    stubCard("stupefy", "Stupefy", "Spell", 0, 0, 0, stupefyText());
+    stubCard("target", "Target Unit", "Unit", 0, 1, 1, null);
+    LiveGameState state = state(chain(false, "p1"));
+    CardInstance stupefy = cardInstance("stupefy-1", "p1", "stupefy", ZoneName.HAND);
+    CardInstance target = cardInstance("target-1", "p2", "target", ZoneName.BATTLEFIELD);
+    state.getCards().addAll(List.of(stupefy, target));
+
+    engine.applyMove(state, new PlayCardMove("p1", "stupefy-1", ZoneName.BASE, 0, 0, "target-1"));
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new ResolveChainTopMove("p1"));
+
+    assertThat(target.getTemporaryPowerModifier()).isZero();
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().contains("Resolved Stupefy: gave 0 Might and drew a card."));
+  }
+
+  @Test
+  void eclipseAndStupefyRejectNonPublicTargetsWithoutMutation() {
+    stubCard("eclipse", "Eclipse", "Spell", 0, 0, 0, eclipseText());
+    stubCard("stupefy", "Stupefy", "Spell", 0, 0, 0, stupefyText());
+    stubCard("target", "Target Unit", "Unit", 0, 2, 2, null);
+    LiveGameState eclipseState = state(chain(false, "p1"));
+    CardInstance eclipse = cardInstance("eclipse-1", "p1", "eclipse", ZoneName.HAND);
+    CardInstance hiddenTarget = cardInstance("hidden-1", "p2", "target", ZoneName.BATTLEFIELD);
+    hiddenTarget.setFaceDown(true);
+    eclipseState.getCards().addAll(List.of(eclipse, hiddenTarget));
+
+    assertThatThrownBy(() -> engine.applyMove(eclipseState, new PlayCardMove("p1", "eclipse-1", ZoneName.BASE, 0, 0, "hidden-1")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Eclipse requires a public Unit or Champion target.");
+
+    assertThat(eclipse.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(hiddenTarget.getTemporaryPowerModifier()).isZero();
+    assertThat(eclipseState.getChainState().chainItems()).hasSize(1);
+
+    LiveGameState stupefyState = state(chain(false, "p1"));
+    CardInstance stupefy = cardInstance("stupefy-1", "p1", "stupefy", ZoneName.HAND);
+    CardInstance baseTarget = cardInstance("base-1", "p2", "target", ZoneName.BASE);
+    stupefyState.getCards().addAll(List.of(stupefy, baseTarget));
+
+    assertThatThrownBy(() -> engine.applyMove(stupefyState, new PlayCardMove("p1", "stupefy-1", ZoneName.BASE, 0, 0, "base-1")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Stupefy requires a public Unit or Champion target.");
+
+    assertThat(stupefy.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(baseTarget.getTemporaryPowerModifier()).isZero();
+    assertThat(stupefyState.getChainState().chainItems()).hasSize(1);
+  }
+
+  @Test
+  void invalidEclipsePaymentDoesNotMutateTargetOrChain() {
+    stubCard("eclipse", "Eclipse", "Spell", 1, 0, 0, eclipseText());
+    stubCard("target", "Target Unit", "Unit", 0, 2, 2, null);
+    LiveGameState state = state(chain(false, "p1"));
+    CardInstance eclipse = cardInstance("eclipse-1", "p1", "eclipse", ZoneName.HAND);
+    CardInstance target = cardInstance("target-1", "p2", "target", ZoneName.BATTLEFIELD);
+    state.getCards().addAll(List.of(eclipse, target));
+
+    assertThatThrownBy(() -> engine.applyMove(state, new PlayCardMove("p1", "eclipse-1", ZoneName.BASE, 0, 0, "target-1")))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Insufficient energy.");
+
+    assertThat(eclipse.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(target.getTemporaryPowerModifier()).isZero();
+    assertThat(state.getChainState().chainItems()).hasSize(1);
+  }
+
+  @Test
+  void negativeMightModifiersClearAtEndPhaseCleanup() {
+    stubCard("eclipse", "Eclipse", "Spell", 0, 0, 0, eclipseText());
+    stubCard("target", "Target Unit", "Unit", 0, 3, 3, null);
+    LiveGameState state = state(null);
+    CardInstance eclipse = cardInstance("eclipse-1", "p1", "eclipse", ZoneName.HAND);
+    CardInstance target = cardInstance("target-1", "p2", "target", ZoneName.BATTLEFIELD);
+    state.getCards().addAll(List.of(eclipse, target));
+
+    engine.applyMove(state, new PlayCardMove("p1", "eclipse-1", ZoneName.BASE, 0, 0, "target-1"));
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new ResolveChainTopMove("p1"));
+    assertThat(target.getTemporaryPowerModifier()).isEqualTo(-4);
+    assertThat(state.getChainState()).isNull();
+
+    state.setCurrentPhase(Phase.END);
+    engine.applyMove(state, new PassPhaseMove("p1"));
+
+    assertThat(target.getTemporaryPowerModifier()).isZero();
+  }
+
+  @Test
   void flashResolvesFromChainAndRecallsOneOrTwoFriendlyUnits() {
     stubCard("flash", "Flash", "Spell", 0, 0, 0, flashText());
     stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 3, null);
@@ -2063,6 +2233,14 @@ class GameEngineChainTest {
 
   private String flashText() {
     return "[Reaction] (Play any time, even before spells and abilities resolve.) Move up to 2 friendly units to base.";
+  }
+
+  private String eclipseText() {
+    return "[Reaction] (Play any time, even before spells and abilities resolve.) Give a unit -4 :rb_might: this turn. [Predict].";
+  }
+
+  private String stupefyText() {
+    return "[Reaction] (Play any time, even before spells and abilities resolve.) Give a unit -1 :rb_might: this turn, to a minimum of 1 :rb_might:. Draw 1.";
   }
 
   private PlayCardMove play(String playerId, String instanceId) {

@@ -72,6 +72,8 @@ public class LegalActionsService {
             || hasPlayableEnGardeInHand(state, playerId)
             || hasPlayableDefiantDanceInHand(state, playerId)
             || hasPlayableFlashInHand(state, playerId)
+            || hasPlayableEclipseInHand(state, playerId)
+            || hasPlayableStupefyInHand(state, playerId)
             || hasPlayableDefyInHand(state, playerId)
             || hasPlayableNotSoFastInHand(state, playerId)
             || hasPlayableAbandonInHand(state, playerId)
@@ -234,6 +236,32 @@ public class LegalActionsService {
             && canPay(state, playerId, def));
   }
 
+  private boolean hasPlayableEclipseInHand(LiveGameState state, String playerId) {
+    if (cardDataService == null) return false;
+    boolean legalTarget = state.getCards().stream().anyMatch(this::isPublicBattlefieldUnit);
+    if (!legalTarget) return false;
+    return state.getCards().stream()
+        .filter(card -> playerId.equals(card.getOwnerId()) && card.getZone() == ZoneName.HAND)
+        .map(card -> cardDataService.getCard(card.getCardId()))
+        .anyMatch(def -> def != null
+            && cardDataService.isEclipseReaction(def)
+            && !cardDataService.isUnsupportedAction(def.id())
+            && canPay(state, playerId, def));
+  }
+
+  private boolean hasPlayableStupefyInHand(LiveGameState state, String playerId) {
+    if (cardDataService == null) return false;
+    boolean legalTarget = state.getCards().stream().anyMatch(this::isPublicBattlefieldUnit);
+    if (!legalTarget) return false;
+    return state.getCards().stream()
+        .filter(card -> playerId.equals(card.getOwnerId()) && card.getZone() == ZoneName.HAND)
+        .map(card -> cardDataService.getCard(card.getCardId()))
+        .anyMatch(def -> def != null
+            && cardDataService.isStupefyReaction(def)
+            && !cardDataService.isUnsupportedAction(def.id())
+            && canPay(state, playerId, def));
+  }
+
   private boolean hasPlayableDefyInHand(LiveGameState state, String playerId) {
     if (cardDataService == null) return false;
     if (state.getChainState() == null || !hasLegalDefyTarget(state, playerId)) return false;
@@ -287,7 +315,9 @@ public class LegalActionsService {
         || hasPlayableDisciplineInHand(state, playerId)
         || hasPlayableEnGardeInHand(state, playerId)
         || hasPlayableDefiantDanceInHand(state, playerId)
-        || hasPlayableFlashInHand(state, playerId);
+        || hasPlayableFlashInHand(state, playerId)
+        || hasPlayableEclipseInHand(state, playerId)
+        || hasPlayableStupefyInHand(state, playerId);
   }
 
   private boolean hasLegalDefyTarget(LiveGameState state, String playerId) {

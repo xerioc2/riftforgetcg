@@ -57,7 +57,7 @@ See `docs/meta/UPLOADED_META_DECKS.md` for the complete table.
 7. Azir.
 8. Sivir as an additional guide-sourced archetype if reviewer demand rises.
 
-Diana remains the recommended next implementation target because reviewer signal says it is interaction-heavy and growing. It should stress Reaction/chain/priority, targeting, and combat timing more usefully than picking solely by raw meta share.
+Diana remains the recommended next fidelity target because reviewer signal says it is interaction-heavy and growing. The uploaded Suzhou list is now enforced-playable by gate and selectable as `Diana Uploaded Meta - Playtest`, but it is still Partial-heavy and should stress Reaction/chain/priority, targeting, Battlefield effects, and combat timing more usefully than picking solely by raw meta share.
 
 ## Extracted Audit Files
 
@@ -80,4 +80,4 @@ Diana remains the recommended next implementation target because reviewer signal
 
 ## Recommended Next Sprint
 
-Use the extracted Diana lists to choose one narrow support slice, preferably the highest-repeat unsupported/partial interaction pattern shared across Diana lists. Keep Miss Fortune in the Aurora bucket until a real list is provided, and do not implement from archetype names alone.
+Use the extracted Diana lists to choose one narrow fidelity slice, preferably `Moonfall` or Diana Legend/Champion text, then Star Spring. Keep Miss Fortune in the Aurora bucket until a real list is provided, and do not implement from archetype names alone.

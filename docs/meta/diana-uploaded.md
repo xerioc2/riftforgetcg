@@ -49,4 +49,4 @@ Event/result: diana wins s3 suzhou city challenge
 
 ## Recommended Implementation Order
 
-- Diana remains next: Hard Bargain has narrow Partial support, so the next slice should focus on a repeated shared battlefield/effect blocker without broadening timing globally.
+- Diana is enforced-playable by gate and selectable as a playtest bot deck, but remains Partial-heavy. Next fidelity slice should focus on Moonfall or Diana Legend/Champion text before broader timing work.

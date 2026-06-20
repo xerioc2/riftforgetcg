@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canUseSupportedChainResponse, isAbandonCounterCard, isCharmMoveCard, isDefiantDanceReactionCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isFlashReactionCard, isGustReactionCard, isHardBargainCounterCard, isIreliaBladeDancerActivatedAbility, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isSupportedChainReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, shouldShowRespondAction, targetModeForCard, unsupportedCardReason } from './cardActions';
+import { canUseSupportedChainResponse, isAbandonCounterCard, isCharmMoveCard, isDefiantDanceReactionCard, isDefyCounterCard, isDisciplineReactionCard, isEclipseReactionCard, isEnGardeReactionCard, isFlashReactionCard, isGustReactionCard, isHardBargainCounterCard, isIreliaBladeDancerActivatedAbility, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isStupefyReactionCard, isSupportedChainReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, shouldShowRespondAction, targetModeForCard, unsupportedCardReason } from './cardActions';
 import type { CardInstance, RiftCard } from '../types';
 
 describe('cardActions', () => {
@@ -118,6 +118,30 @@ describe('cardActions', () => {
     expect(isHardBargainCounterCard(hardBargain)).toBe(true);
     expect(isSupportedChainReactionCard(hardBargain)).toBe(true);
     expect(unsupportedCardReason(hardBargain)).toBeNull();
+  });
+
+  it('recognizes Eclipse and Stupefy as supported alpha chain-backed negative Might Reactions', () => {
+    const eclipse: RiftCard = {
+      id: 'eclipse',
+      name: 'Eclipse',
+      type: 'Spell',
+      domains: [],
+      rulesText: '[Reaction] Give a unit -4 :rb_might: this turn. [Predict].',
+    };
+    const stupefy: RiftCard = {
+      id: 'stupefy',
+      name: 'Stupefy',
+      type: 'Spell',
+      domains: [],
+      rulesText: '[Reaction] Give a unit -1 :rb_might: this turn, to a minimum of 1 :rb_might:. Draw 1.',
+    };
+
+    expect(isEclipseReactionCard(eclipse)).toBe(true);
+    expect(isSupportedChainReactionCard(eclipse)).toBe(true);
+    expect(unsupportedCardReason(eclipse)).toBeNull();
+    expect(isStupefyReactionCard(stupefy)).toBe(true);
+    expect(isSupportedChainReactionCard(stupefy)).toBe(true);
+    expect(unsupportedCardReason(stupefy)).toBeNull();
   });
 
   it('recognizes Charm as the narrow alpha enemy battlefield movement helper', () => {
@@ -414,6 +438,48 @@ describe('cardActions', () => {
       canPlayCard: true,
       hasLegalGustTarget: false,
       hasLegalFlashTarget: false,
+      hasLegalDefyTarget: false,
+    })).toBe(false);
+  });
+
+  it('marks Eclipse and Stupefy playable only with a legal public battlefield Unit or Champion target', () => {
+    const eclipse: RiftCard = {
+      id: 'eclipse',
+      name: 'Eclipse',
+      type: 'Spell',
+      domains: [],
+      rulesText: '[Reaction] Give a unit -4 :rb_might: this turn. [Predict].',
+    };
+    const stupefy: RiftCard = {
+      id: 'stupefy',
+      name: 'Stupefy',
+      type: 'Spell',
+      domains: [],
+      rulesText: '[Reaction] Give a unit -1 :rb_might: this turn, to a minimum of 1 :rb_might:. Draw 1.',
+    };
+
+    expect(canUseSupportedChainResponse(eclipse, {
+      canPlayCard: true,
+      hasLegalGustTarget: false,
+      hasLegalEclipseTarget: true,
+      hasLegalDefyTarget: false,
+    })).toBe(true);
+    expect(canUseSupportedChainResponse(eclipse, {
+      canPlayCard: true,
+      hasLegalGustTarget: false,
+      hasLegalEclipseTarget: false,
+      hasLegalDefyTarget: false,
+    })).toBe(false);
+    expect(canUseSupportedChainResponse(stupefy, {
+      canPlayCard: true,
+      hasLegalGustTarget: false,
+      hasLegalStupefyTarget: true,
+      hasLegalDefyTarget: false,
+    })).toBe(true);
+    expect(canUseSupportedChainResponse(stupefy, {
+      canPlayCard: false,
+      hasLegalGustTarget: false,
+      hasLegalStupefyTarget: true,
       hasLegalDefyTarget: false,
     })).toBe(false);
   });

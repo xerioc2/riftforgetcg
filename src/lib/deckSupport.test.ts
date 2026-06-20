@@ -128,6 +128,19 @@ describe('deckSupport', () => {
     expect(flash.reason).toContain('Base');
   });
 
+  it('uses alpha chain-window Partial reasons for Eclipse and Stupefy', () => {
+    const eclipse = cardSupportStatus(spell('Eclipse', '[Reaction] Give a unit -4 :rb_might: this turn. [Predict].'));
+    const stupefy = cardSupportStatus(spell('Stupefy', '[Reaction] Give a unit -1 :rb_might: this turn, to a minimum of 1 :rb_might:. Draw 1.'));
+
+    expect(eclipse.status).toBe('PARTIAL');
+    expect(eclipse.reason).toContain('-4 Might');
+    expect(eclipse.reason).toContain('Predict from Eclipse remains deferred');
+    expect(stupefy.status).toBe('PARTIAL');
+    expect(stupefy.reason).toContain('-1 Might');
+    expect(stupefy.reason).toContain('minimum of 1');
+    expect(stupefy.reason).toContain('drawing 1 privately');
+  });
+
   it('uses a Charm-specific Partial reason for alpha enemy battlefield movement', () => {
     const charm = cardSupportStatus(spell('Charm', 'Move an enemy unit.'));
 

@@ -149,6 +149,30 @@ public class PriorityWindowService {
           def.name(),
           null));
     }
+    if (cardDataService.isEclipseReaction(def)) {
+      return Optional.of(new PriorityWindow(
+          PriorityWindowType.REACTION_PLAYED,
+          LiveGameState.ChainItem.EFFECT_ECLIPSE_WEAKEN_PREDICT,
+          LiveGameState.ChainItem.TYPE_SPELL,
+          LiveGameState.ChainItem.VISIBILITY_PUBLIC,
+          true,
+          true,
+          ZoneName.HAND,
+          def.name(),
+          null));
+    }
+    if (cardDataService.isStupefyReaction(def)) {
+      return Optional.of(new PriorityWindow(
+          PriorityWindowType.REACTION_PLAYED,
+          LiveGameState.ChainItem.EFFECT_STUPEFY_WEAKEN_DRAW,
+          LiveGameState.ChainItem.TYPE_SPELL,
+          LiveGameState.ChainItem.VISIBILITY_PUBLIC,
+          true,
+          true,
+          ZoneName.HAND,
+          def.name(),
+          null));
+    }
     if (cardDataService.isDefyCounterReaction(def)) {
       return Optional.of(new PriorityWindow(
           PriorityWindowType.REACTION_PLAYED,

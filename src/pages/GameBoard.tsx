@@ -27,7 +27,7 @@ import {
 import { ZoneOverlay } from '../components/board/ZoneOverlay';
 import { getGameServerUrl } from '../lib/env';
 import { readableHttpError } from '../lib/http';
-import { canUseSupportedChainResponse, hasUnsupportedAdditionalCost, isAbandonCounterCard, isActionCard, isAmbushCard, isDefyCounterCard, isDisciplineReactionCard, isEnGardeReactionCard, isEquipCard, isGustReactionCard, isHardBargainCounterCard, isIreliaBladeDancerActivatedAbility, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
+import { canUseSupportedChainResponse, hasUnsupportedAdditionalCost, isAbandonCounterCard, isActionCard, isAmbushCard, isDefyCounterCard, isDisciplineReactionCard, isEclipseReactionCard, isEnGardeReactionCard, isEquipCard, isGustReactionCard, isHardBargainCounterCard, isIreliaBladeDancerActivatedAbility, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isStupefyReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, noLegalTargetsMessage, targetModeForCard, targetPromptForMode, unsupportedCardReason, type TargetMode, type TargetRequirement, type TargetRole } from '../lib/cardActions';
 import { championDeployDestinations } from '../lib/championDeploy';
 import { appBuildLabel, APP_VERSION, BUILD_DATE, BUILD_TAG } from '../lib/appMetadata';
 import { buildDebugInfo } from '../lib/debugInfo';
@@ -721,6 +721,7 @@ export function GameBoard() {
   const hasLegalEnGardeChainTarget = () => legalTargetsForMode('FRIENDLY_UNIT').length > 0;
   const hasLegalDefiantDanceChainTarget = () => legalTargetsForMode('ANY_BATTLEFIELD_UNIT').length >= 2;
   const hasLegalFlashChainTarget = () => legalTargetsForMode('FRIENDLY_UNIT').length > 0;
+  const hasLegalAnyBattlefieldUnitReactionTarget = () => legalTargetsForMode('ANY_BATTLEFIELD_UNIT').length > 0;
 
   const canPlayChainReactionCard = (card: RiftCard | undefined) => {
     return canUseSupportedChainResponse(card, {
@@ -730,6 +731,8 @@ export function GameBoard() {
       hasLegalEnGardeTarget: hasLegalEnGardeChainTarget(),
       hasLegalDefiantDanceTarget: hasLegalDefiantDanceChainTarget(),
       hasLegalFlashTarget: hasLegalFlashChainTarget(),
+      hasLegalEclipseTarget: hasLegalAnyBattlefieldUnitReactionTarget(),
+      hasLegalStupefyTarget: hasLegalAnyBattlefieldUnitReactionTarget(),
       hasLegalDefyTarget: legalDefyChainTargets().length > 0,
       hasLegalNotSoFastTarget: legalNotSoFastChainTargets().length > 0,
       hasLegalAbandonTarget: legalAbandonChainTargets().length > 0,
@@ -763,6 +766,10 @@ export function GameBoard() {
     }
     if (isEnGardeReactionCard(cardDef)) {
       beginTargetSelection(instanceId, 'FRIENDLY_UNIT');
+      return true;
+    }
+    if (isEclipseReactionCard(cardDef) || isStupefyReactionCard(cardDef)) {
+      beginTargetSelection(instanceId, 'ANY_BATTLEFIELD_UNIT');
       return true;
     }
     if (isDefyCounterCard(cardDef)) {

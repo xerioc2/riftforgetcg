@@ -338,6 +338,33 @@ public class CardDataService {
         && text.contains("base");
   }
 
+  public boolean isEclipseReaction(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().toLowerCase();
+    boolean eclipseName = def.name() != null && def.name().trim().equalsIgnoreCase("Eclipse");
+    return "Spell".equalsIgnoreCase(def.type())
+        && isReactionCard(def)
+        && eclipseName
+        && text.contains("give a unit")
+        && text.contains("-4")
+        && text.contains(":rb_might:")
+        && text.contains("[predict]");
+  }
+
+  public boolean isStupefyReaction(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().toLowerCase();
+    boolean stupefyName = def.name() != null && def.name().trim().equalsIgnoreCase("Stupefy");
+    return "Spell".equalsIgnoreCase(def.type())
+        && isReactionCard(def)
+        && stupefyName
+        && text.contains("give a unit")
+        && text.contains("-1")
+        && text.contains(":rb_might:")
+        && text.contains("minimum of 1")
+        && text.contains("draw 1");
+  }
+
   public boolean isCharmMoveEffect(CardDefinition def) {
     if (def == null || def.rulesText() == null) return false;
     String text = def.rulesText().trim().toLowerCase();
@@ -522,6 +549,8 @@ public class CardDataService {
         || isEnGardeReaction(def)
         || isDefiantDanceReaction(def)
         || isFlashReaction(def)
+        || isEclipseReaction(def)
+        || isStupefyReaction(def)
         || isStackedDeckEffectText(normalized);
     return (normalized.contains("counter a spell") && !isDefyCounterReaction(def) && !isAbandonCounterReaction(def) && !isHardBargainCounterReaction(def))
         || (normalized.contains("counter an enemy spell") && !isNotSoFastCounterReaction(def))

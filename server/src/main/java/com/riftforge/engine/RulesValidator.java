@@ -320,6 +320,14 @@ public class RulesValidator {
       validateFlashTargets(state, move);
       return;
     }
+    if (spell && cardDataService.isEclipseReaction(def)) {
+      validatePublicUnitTarget(state, move, "Eclipse requires a public Unit or Champion target.");
+      return;
+    }
+    if (spell && cardDataService.isStupefyReaction(def)) {
+      validatePublicUnitTarget(state, move, "Stupefy requires a public Unit or Champion target.");
+      return;
+    }
     if (spell && cardDataService.isCharmMoveEffect(def)) {
       validateCharmTarget(state, move);
       return;
@@ -360,6 +368,8 @@ public class RulesValidator {
           && !cardDataService.isEnGardeReaction(def)
           && !cardDataService.isDefiantDanceReaction(def)
           && !cardDataService.isFlashReaction(def)
+          && !cardDataService.isEclipseReaction(def)
+          && !cardDataService.isStupefyReaction(def)
           && !cardDataService.isDefyCounterReaction(def)
           && !cardDataService.isNotSoFastCounterReaction(def)
           && !cardDataService.isAbandonCounterReaction(def)
@@ -432,7 +442,9 @@ public class RulesValidator {
         || cardDataService.isDisciplineReaction(def)
         || cardDataService.isEnGardeReaction(def)
         || cardDataService.isDefiantDanceReaction(def)
-        || cardDataService.isFlashReaction(def);
+        || cardDataService.isFlashReaction(def)
+        || cardDataService.isEclipseReaction(def)
+        || cardDataService.isStupefyReaction(def);
   }
 
   private boolean isReactionPlayFromHand(LiveGameState state, PlayCardMove move) {

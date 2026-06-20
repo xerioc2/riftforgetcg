@@ -216,6 +216,29 @@ export function isFlashReactionCard(card: RiftCard | undefined) {
     && text.includes('base');
 }
 
+export function isEclipseReactionCard(card: RiftCard | undefined) {
+  const text = (card?.rulesText ?? '').toLowerCase();
+  return card?.type?.toLowerCase() === 'spell'
+    && isReactionCard(card)
+    && card.name?.trim().toLowerCase() === 'eclipse'
+    && text.includes('give a unit')
+    && text.includes('-4')
+    && text.includes(':rb_might:')
+    && text.includes('[predict]');
+}
+
+export function isStupefyReactionCard(card: RiftCard | undefined) {
+  const text = (card?.rulesText ?? '').toLowerCase();
+  return card?.type?.toLowerCase() === 'spell'
+    && isReactionCard(card)
+    && card.name?.trim().toLowerCase() === 'stupefy'
+    && text.includes('give a unit')
+    && text.includes('-1')
+    && text.includes(':rb_might:')
+    && text.includes('minimum of 1')
+    && text.includes('draw 1');
+}
+
 export function isCharmMoveCard(card: RiftCard | undefined) {
   const text = (card?.rulesText ?? '').trim().toLowerCase();
   return card?.type?.toLowerCase() === 'spell'
@@ -229,6 +252,8 @@ export function isSupportedChainReactionCard(card: RiftCard | undefined) {
     || isEnGardeReactionCard(card)
     || isDefiantDanceReactionCard(card)
     || isFlashReactionCard(card)
+    || isEclipseReactionCard(card)
+    || isStupefyReactionCard(card)
     || isDefyCounterCard(card)
     || isNotSoFastCounterCard(card)
     || isAbandonCounterCard(card)
@@ -256,6 +281,8 @@ export function canUseSupportedChainResponse(
     hasLegalEnGardeTarget?: boolean;
     hasLegalDefiantDanceTarget?: boolean;
     hasLegalFlashTarget?: boolean;
+    hasLegalEclipseTarget?: boolean;
+    hasLegalStupefyTarget?: boolean;
     hasLegalDefyTarget: boolean;
     hasLegalNotSoFastTarget?: boolean;
     hasLegalAbandonTarget?: boolean;
@@ -268,6 +295,8 @@ export function canUseSupportedChainResponse(
   if (isEnGardeReactionCard(card)) return Boolean(options.hasLegalEnGardeTarget);
   if (isDefiantDanceReactionCard(card)) return Boolean(options.hasLegalDefiantDanceTarget);
   if (isFlashReactionCard(card)) return Boolean(options.hasLegalFlashTarget);
+  if (isEclipseReactionCard(card)) return Boolean(options.hasLegalEclipseTarget);
+  if (isStupefyReactionCard(card)) return Boolean(options.hasLegalStupefyTarget);
   if (isDefyCounterCard(card)) return options.hasLegalDefyTarget;
   if (isNotSoFastCounterCard(card)) return Boolean(options.hasLegalNotSoFastTarget);
   if (isAbandonCounterCard(card)) return Boolean(options.hasLegalAbandonTarget);

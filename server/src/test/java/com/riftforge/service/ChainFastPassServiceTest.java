@@ -129,6 +129,34 @@ class ChainFastPassServiceTest {
   }
 
   @Test
+  void focusedPlayerWithLegalEclipseOrStupefyResponseIsNotAutoPassed() {
+    CardDefinition eclipse = def("eclipse", "Eclipse", "Spell", 0, 0, "[Reaction] Give a unit -4 :rb_might: this turn. [Predict].");
+    CardDefinition stupefy = def("stupefy", "Stupefy", "Spell", 0, 0, "[Reaction] Give a unit -1 :rb_might: this turn, to a minimum of 1 :rb_might:. Draw 1.");
+    CardDefinition target = def("target", "Target Unit", "Unit", 0, 0, "");
+    when(cardDataService.getCard("eclipse")).thenReturn(eclipse);
+    when(cardDataService.getCard("stupefy")).thenReturn(stupefy);
+    when(cardDataService.getCard("target")).thenReturn(target);
+    when(cardDataService.isEclipseReaction(eclipse)).thenReturn(true);
+    when(cardDataService.isStupefyReaction(stupefy)).thenReturn(true);
+    LiveGameState eclipseState = state(chain(false, "p1"));
+    eclipseState.getCards().add(card("eclipse-1", "p1", "eclipse", ZoneName.HAND));
+    eclipseState.getCards().add(card("target-1", "p2", "target", ZoneName.BATTLEFIELD));
+    LiveGameState stupefyState = state(chain(false, "p1"));
+    stupefyState.getCards().add(card("stupefy-1", "p1", "stupefy", ZoneName.HAND));
+    stupefyState.getCards().add(card("target-2", "p2", "target", ZoneName.BATTLEFIELD));
+
+    assertThat(service.shouldAutoPass(eclipseState)).isFalse();
+    assertThat(new LegalActionsService(cardDataService).legalActionsFor(eclipseState, "p1")).contains(LegalAction.PLAY_CARD);
+    assertThat(eclipseState.getChainState().focusedPlayerId()).isEqualTo("p1");
+    assertThat(eclipseState.getChainState().readyToResolveTop()).isFalse();
+
+    assertThat(service.shouldAutoPass(stupefyState)).isFalse();
+    assertThat(new LegalActionsService(cardDataService).legalActionsFor(stupefyState, "p1")).contains(LegalAction.PLAY_CARD);
+    assertThat(stupefyState.getChainState().focusedPlayerId()).isEqualTo("p1");
+    assertThat(stupefyState.getChainState().readyToResolveTop()).isFalse();
+  }
+
+  @Test
   void pendingChoicePreventsAutoPass() {
     LiveGameState state = state(chain(false, "p1"));
     state.setPendingChoice(PendingChoice.yesNo("choice-1", "p1", "source", "Choose?", PendingChoice.EFFECT_NONE));

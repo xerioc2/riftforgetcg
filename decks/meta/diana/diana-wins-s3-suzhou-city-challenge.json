@@ -353,7 +353,7 @@
       },
       "support": {
         "status": "PARTIAL",
-        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "reason": "Partial: alpha chain-window Reaction support exists for giving one public battlefield Unit/Champion -4 Might this turn. Predict from Eclipse remains deferred, and full official any-time Reaction timing remains incomplete.",
         "blocked": false
       },
       "keywords": [
@@ -703,7 +703,7 @@
       },
       "support": {
         "status": "PARTIAL",
-        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "reason": "Partial: alpha chain-window Reaction support exists for giving one public battlefield Unit/Champion -1 Might this turn, to a minimum of 1, and drawing 1 privately. Full official any-time Reaction timing remains incomplete.",
         "blocked": false
       },
       "keywords": [

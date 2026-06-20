@@ -249,6 +249,18 @@ public class GameEngine {
       addStructuredTargetReactionToChain(state, move, card, def, LiveGameState.ChainItem.EFFECT_FLASH_RECALL);
       return state;
     }
+    if (cardDataService.isEclipseReaction(def)) {
+      state.setCardPlayedThisTurn(true);
+      battlefieldEffectService.onSpellPlayed(state, move.playerId());
+      addTargetedReactionToChain(state, move, card, def, LiveGameState.ChainItem.EFFECT_ECLIPSE_WEAKEN_PREDICT);
+      return state;
+    }
+    if (cardDataService.isStupefyReaction(def)) {
+      state.setCardPlayedThisTurn(true);
+      battlefieldEffectService.onSpellPlayed(state, move.playerId());
+      addTargetedReactionToChain(state, move, card, def, LiveGameState.ChainItem.EFFECT_STUPEFY_WEAKEN_DRAW);
+      return state;
+    }
     applyLegion(state, card, cardPlayedEarlierThisTurn);
     applyPlayedCardTokenScripts(state, card, cardPlayedEarlierThisTurn);
     state.setCardPlayedThisTurn(true);
@@ -788,6 +800,16 @@ public class GameEngine {
       moveChainSourceToTrash(state, item);
       return resolved ? LiveGameState.ChainItem.STATUS_RESOLVED : LiveGameState.ChainItem.STATUS_FIZZLED;
     }
+    if (LiveGameState.ChainItem.EFFECT_ECLIPSE_WEAKEN_PREDICT.equals(item.effectKey())) {
+      boolean resolved = resolveEclipseChainItem(state, item, description);
+      moveChainSourceToTrash(state, item);
+      return resolved ? LiveGameState.ChainItem.STATUS_RESOLVED : LiveGameState.ChainItem.STATUS_FIZZLED;
+    }
+    if (LiveGameState.ChainItem.EFFECT_STUPEFY_WEAKEN_DRAW.equals(item.effectKey())) {
+      boolean resolved = resolveStupefyChainItem(state, item, description);
+      moveChainSourceToTrash(state, item);
+      return resolved ? LiveGameState.ChainItem.STATUS_RESOLVED : LiveGameState.ChainItem.STATUS_FIZZLED;
+    }
     if (LiveGameState.ChainItem.EFFECT_DEFY_COUNTER.equals(item.effectKey())) {
       boolean resolved = resolveDefyCounterItem(state, item, description);
       moveChainSourceToTrash(state, item);
@@ -1292,6 +1314,36 @@ public class GameEngine {
       recallUnitToBase(state, source, sourceDef, target);
     }
     log(state, item.controllerPlayerId(), "Resolved " + description + ": moved " + targets.size() + " friendly unit(s) to Base.");
+    advanceShowdownFocusAfterChainAction(state, item);
+    return true;
+  }
+
+  private boolean resolveEclipseChainItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
+    CardInstance target = firstChainBoardTarget(state, item);
+    if (target == null || !isPublicBattlefieldUnit(target)) {
+      log(state, item.controllerPlayerId(), description + " fizzled because its target was no longer legal.");
+      return false;
+    }
+    CardDefinition sourceDef = cardDataService.getCard(item.sourceCardId());
+    applyTemporaryMight(state, chainSourceOrFallback(state, item), sourceDef, target, -4);
+    log(state, item.controllerPlayerId(), "Resolved " + description + ": gave -4 Might. Predict is deferred in alpha.");
+    advanceShowdownFocusAfterChainAction(state, item);
+    return true;
+  }
+
+  private boolean resolveStupefyChainItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
+    CardInstance target = firstChainBoardTarget(state, item);
+    if (target == null || !isPublicBattlefieldUnit(target)) {
+      log(state, item.controllerPlayerId(), description + " fizzled because its target was no longer legal.");
+      return false;
+    }
+    CardDefinition sourceDef = cardDataService.getCard(item.sourceCardId());
+    int reduction = effectiveMight(target) <= 1 ? 0 : -1;
+    if (reduction != 0) {
+      applyTemporaryMight(state, chainSourceOrFallback(state, item), sourceDef, target, reduction);
+    }
+    applyDraw(state, item.controllerPlayerId(), 1);
+    log(state, item.controllerPlayerId(), "Resolved " + description + ": gave " + reduction + " Might and drew a card.");
     advanceShowdownFocusAfterChainAction(state, item);
     return true;
   }
