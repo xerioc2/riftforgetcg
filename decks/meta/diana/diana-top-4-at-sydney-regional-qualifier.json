@@ -719,7 +719,7 @@
       },
       "support": {
         "status": "PARTIAL",
-        "reason": "Playable for alpha testing, but card-specific behavior may be incomplete.",
+        "reason": "Partial: alpha chain-window Reaction support exists for returning one friendly public battlefield Unit/Champion and one enemy public battlefield Unit/Champion to their owners' hands. Full official any-time Reaction timing remains incomplete.",
         "blocked": false
       },
       "keywords": [

@@ -128,13 +128,17 @@ describe('deckSupport', () => {
     expect(flash.reason).toContain('Base');
   });
 
-  it('uses alpha chain-window Partial reasons for Eclipse and Stupefy', () => {
+  it('uses alpha chain-window Partial reasons for Star-Crossed, Eclipse, and Stupefy', () => {
+    const starCrossed = cardSupportStatus(spell('Star-Crossed', "[Reaction] Return a friendly unit and an enemy unit to their owners' hands."));
     const eclipse = cardSupportStatus(spell('Eclipse', '[Reaction] Give a unit -4 :rb_might: this turn. [Predict].'));
     const stupefy = cardSupportStatus(spell('Stupefy', '[Reaction] Give a unit -1 :rb_might: this turn, to a minimum of 1 :rb_might:. Draw 1.'));
 
+    expect(starCrossed.status).toBe('PARTIAL');
+    expect(starCrossed.reason).toContain('friendly public');
+    expect(starCrossed.reason).toContain('enemy public');
     expect(eclipse.status).toBe('PARTIAL');
     expect(eclipse.reason).toContain('-4 Might');
-    expect(eclipse.reason).toContain('Predict from Eclipse remains deferred');
+    expect(eclipse.reason).toContain('private owner-only Predict choice');
     expect(stupefy.status).toBe('PARTIAL');
     expect(stupefy.reason).toContain('-1 Might');
     expect(stupefy.reason).toContain('minimum of 1');

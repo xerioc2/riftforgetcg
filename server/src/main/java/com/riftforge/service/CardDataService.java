@@ -338,6 +338,18 @@ public class CardDataService {
         && text.contains("base");
   }
 
+  public boolean isStarCrossedReaction(CardDefinition def) {
+    if (def == null || def.rulesText() == null) return false;
+    String text = def.rulesText().toLowerCase();
+    boolean starCrossedName = def.name() != null && def.name().trim().equalsIgnoreCase("Star-Crossed");
+    return "Spell".equalsIgnoreCase(def.type())
+        && isReactionCard(def)
+        && starCrossedName
+        && text.contains("return a friendly unit")
+        && text.contains("enemy unit")
+        && text.contains("owners' hands");
+  }
+
   public boolean isEclipseReaction(CardDefinition def) {
     if (def == null || def.rulesText() == null) return false;
     String text = def.rulesText().toLowerCase();
@@ -549,6 +561,7 @@ public class CardDataService {
         || isEnGardeReaction(def)
         || isDefiantDanceReaction(def)
         || isFlashReaction(def)
+        || isStarCrossedReaction(def)
         || isEclipseReaction(def)
         || isStupefyReaction(def)
         || isStackedDeckEffectText(normalized);

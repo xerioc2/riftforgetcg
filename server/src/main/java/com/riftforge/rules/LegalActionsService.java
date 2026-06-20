@@ -72,6 +72,7 @@ public class LegalActionsService {
             || hasPlayableEnGardeInHand(state, playerId)
             || hasPlayableDefiantDanceInHand(state, playerId)
             || hasPlayableFlashInHand(state, playerId)
+            || hasPlayableStarCrossedInHand(state, playerId)
             || hasPlayableEclipseInHand(state, playerId)
             || hasPlayableStupefyInHand(state, playerId)
             || hasPlayableDefyInHand(state, playerId)
@@ -236,6 +237,20 @@ public class LegalActionsService {
             && canPay(state, playerId, def));
   }
 
+  private boolean hasPlayableStarCrossedInHand(LiveGameState state, String playerId) {
+    if (cardDataService == null) return false;
+    boolean legalFriendly = state.getCards().stream().anyMatch(card -> isFriendlyPublicBattlefieldUnit(card, playerId));
+    boolean legalEnemy = state.getCards().stream().anyMatch(card -> isPublicBattlefieldUnit(card) && !playerId.equals(card.getOwnerId()));
+    if (!legalFriendly || !legalEnemy) return false;
+    return state.getCards().stream()
+        .filter(card -> playerId.equals(card.getOwnerId()) && card.getZone() == ZoneName.HAND)
+        .map(card -> cardDataService.getCard(card.getCardId()))
+        .anyMatch(def -> def != null
+            && cardDataService.isStarCrossedReaction(def)
+            && !cardDataService.isUnsupportedAction(def.id())
+            && canPay(state, playerId, def));
+  }
+
   private boolean hasPlayableEclipseInHand(LiveGameState state, String playerId) {
     if (cardDataService == null) return false;
     boolean legalTarget = state.getCards().stream().anyMatch(this::isPublicBattlefieldUnit);
@@ -316,6 +331,7 @@ public class LegalActionsService {
         || hasPlayableEnGardeInHand(state, playerId)
         || hasPlayableDefiantDanceInHand(state, playerId)
         || hasPlayableFlashInHand(state, playerId)
+        || hasPlayableStarCrossedInHand(state, playerId)
         || hasPlayableEclipseInHand(state, playerId)
         || hasPlayableStupefyInHand(state, playerId);
   }

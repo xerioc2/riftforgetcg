@@ -157,6 +157,26 @@ class ChainFastPassServiceTest {
   }
 
   @Test
+  void focusedPlayerWithLegalStarCrossedResponseIsNotAutoPassed() {
+    CardDefinition starCrossed = def("star-crossed", "Star-Crossed", "Spell", 0, 0, "[Reaction] Return a friendly unit and an enemy unit to their owners' hands.");
+    CardDefinition friendly = def("friendly", "Friendly Unit", "Unit", 0, 0, "");
+    CardDefinition enemy = def("enemy", "Enemy Unit", "Unit", 0, 0, "");
+    when(cardDataService.getCard("star-crossed")).thenReturn(starCrossed);
+    when(cardDataService.getCard("friendly")).thenReturn(friendly);
+    when(cardDataService.getCard("enemy")).thenReturn(enemy);
+    when(cardDataService.isStarCrossedReaction(starCrossed)).thenReturn(true);
+    LiveGameState state = state(chain(false, "p1"));
+    state.getCards().add(card("star-crossed-1", "p1", "star-crossed", ZoneName.HAND));
+    state.getCards().add(card("friendly-1", "p1", "friendly", ZoneName.BATTLEFIELD));
+    state.getCards().add(card("enemy-1", "p2", "enemy", ZoneName.BATTLEFIELD));
+
+    assertThat(service.shouldAutoPass(state)).isFalse();
+    assertThat(new LegalActionsService(cardDataService).legalActionsFor(state, "p1")).contains(LegalAction.PLAY_CARD);
+    assertThat(state.getChainState().focusedPlayerId()).isEqualTo("p1");
+    assertThat(state.getChainState().readyToResolveTop()).isFalse();
+  }
+
+  @Test
   void pendingChoicePreventsAutoPass() {
     LiveGameState state = state(chain(false, "p1"));
     state.setPendingChoice(PendingChoice.yesNo("choice-1", "p1", "source", "Choose?", PendingChoice.EFFECT_NONE));

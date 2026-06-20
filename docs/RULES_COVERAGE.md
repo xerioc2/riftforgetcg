@@ -332,7 +332,7 @@ Current implementation notes:
 
 Known gaps:
 - Chain timing, Reaction timing, broad countering spells/abilities, optional/three-plus/conditional multi-target spells, full optional trigger ordering, replacement/prevention, and many spell-specific effects are not complete.
-- Active-showdown response play is lightweight: focused showdown participants can play supported Action cards, play supported targeted Reactions, or pass focus. Once both relevant players pass in succession, the showdown becomes ready for the attacker to resolve. A narrow bluff-safe priority/chain foundation exists, with Stacked Deck and simple public `Draw 1` spells as the only real opener patterns and Gust/Discipline/En Garde/Defiant Dance/Flash/Eclipse/Stupefy/Defy/Not So Fast/Hard Bargain as the only connected Reactions; Eclipse's Predict text, broader response-card support, hidden play, hidden Reaction timing, and unrestricted Reaction timing remain deferred.
+- Active-showdown response play is lightweight: focused showdown participants can play supported Action cards, play supported targeted Reactions, or pass focus. Once both relevant players pass in succession, the showdown becomes ready for the attacker to resolve. A narrow bluff-safe priority/chain foundation exists, with Stacked Deck and simple public `Draw 1` spells as the only real opener patterns and Gust/Discipline/En Garde/Defiant Dance/Flash/Star-Crossed/Eclipse/Stupefy/Defy/Not So Fast/Hard Bargain as the only connected Reactions; broader response-card support, hidden play, hidden Reaction timing, and unrestricted Reaction timing remain deferred.
 - Broad movement scripting is still deferred: Charm has only an exact-text alpha path that moves one enemy public battlefield Unit/Champion to Base.
 
 Test coverage:

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canUseSupportedChainResponse, isAbandonCounterCard, isCharmMoveCard, isDefiantDanceReactionCard, isDefyCounterCard, isDisciplineReactionCard, isEclipseReactionCard, isEnGardeReactionCard, isFlashReactionCard, isGustReactionCard, isHardBargainCounterCard, isIreliaBladeDancerActivatedAbility, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isStupefyReactionCard, isSupportedChainReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, shouldShowRespondAction, targetModeForCard, unsupportedCardReason } from './cardActions';
+import { canUseSupportedChainResponse, isAbandonCounterCard, isCharmMoveCard, isDefiantDanceReactionCard, isDefyCounterCard, isDisciplineReactionCard, isEclipseReactionCard, isEnGardeReactionCard, isFlashReactionCard, isGustReactionCard, isHardBargainCounterCard, isIreliaBladeDancerActivatedAbility, isLegalTargetForMode, isNotSoFastCounterCard, isReactionCard, isStarCrossedReactionCard, isStupefyReactionCard, isSupportedChainReactionCard, isTheSyrenActivatedAbility, isZhonyasHourglassActivatedAbility, multiTargetRequirementsForCard, shouldShowRespondAction, targetModeForCard, unsupportedCardReason } from './cardActions';
 import type { CardInstance, RiftCard } from '../types';
 
 describe('cardActions', () => {
@@ -118,6 +118,24 @@ describe('cardActions', () => {
     expect(isHardBargainCounterCard(hardBargain)).toBe(true);
     expect(isSupportedChainReactionCard(hardBargain)).toBe(true);
     expect(unsupportedCardReason(hardBargain)).toBeNull();
+  });
+
+  it('recognizes Star-Crossed as a supported alpha chain-backed paired return Reaction', () => {
+    const starCrossed: RiftCard = {
+      id: 'star-crossed',
+      name: 'Star-Crossed',
+      type: 'Spell',
+      domains: [],
+      rulesText: "[Reaction] Return a friendly unit and an enemy unit to their owners' hands.",
+    };
+
+    expect(isStarCrossedReactionCard(starCrossed)).toBe(true);
+    expect(isSupportedChainReactionCard(starCrossed)).toBe(true);
+    expect(multiTargetRequirementsForCard(starCrossed)).toEqual([
+      { role: 'friendlyUnit', mode: 'FRIENDLY_PUBLIC_UNIT', prompt: 'Choose a friendly Unit or Champion.' },
+      { role: 'enemyUnit', mode: 'ENEMY_PUBLIC_UNIT', prompt: 'Choose an enemy Unit or Champion.' },
+    ]);
+    expect(unsupportedCardReason(starCrossed)).toBeNull();
   });
 
   it('recognizes Eclipse and Stupefy as supported alpha chain-backed negative Might Reactions', () => {
@@ -438,6 +456,29 @@ describe('cardActions', () => {
       canPlayCard: true,
       hasLegalGustTarget: false,
       hasLegalFlashTarget: false,
+      hasLegalDefyTarget: false,
+    })).toBe(false);
+  });
+
+  it('marks Star-Crossed playable only with a legal friendly/enemy target pair', () => {
+    const starCrossed: RiftCard = {
+      id: 'star-crossed',
+      name: 'Star-Crossed',
+      type: 'Spell',
+      domains: [],
+      rulesText: "[Reaction] Return a friendly unit and an enemy unit to their owners' hands.",
+    };
+
+    expect(canUseSupportedChainResponse(starCrossed, {
+      canPlayCard: true,
+      hasLegalGustTarget: false,
+      hasLegalStarCrossedTarget: true,
+      hasLegalDefyTarget: false,
+    })).toBe(true);
+    expect(canUseSupportedChainResponse(starCrossed, {
+      canPlayCard: true,
+      hasLegalGustTarget: false,
+      hasLegalStarCrossedTarget: false,
       hasLegalDefyTarget: false,
     })).toBe(false);
   });

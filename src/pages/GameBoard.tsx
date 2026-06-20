@@ -721,6 +721,7 @@ export function GameBoard() {
   const hasLegalEnGardeChainTarget = () => legalTargetsForMode('FRIENDLY_UNIT').length > 0;
   const hasLegalDefiantDanceChainTarget = () => legalTargetsForMode('ANY_BATTLEFIELD_UNIT').length >= 2;
   const hasLegalFlashChainTarget = () => legalTargetsForMode('FRIENDLY_UNIT').length > 0;
+  const hasLegalStarCrossedChainTarget = () => legalTargetsForMode('FRIENDLY_PUBLIC_UNIT').length > 0 && legalTargetsForMode('ENEMY_PUBLIC_UNIT').length > 0;
   const hasLegalAnyBattlefieldUnitReactionTarget = () => legalTargetsForMode('ANY_BATTLEFIELD_UNIT').length > 0;
 
   const canPlayChainReactionCard = (card: RiftCard | undefined) => {
@@ -731,6 +732,7 @@ export function GameBoard() {
       hasLegalEnGardeTarget: hasLegalEnGardeChainTarget(),
       hasLegalDefiantDanceTarget: hasLegalDefiantDanceChainTarget(),
       hasLegalFlashTarget: hasLegalFlashChainTarget(),
+      hasLegalStarCrossedTarget: hasLegalStarCrossedChainTarget(),
       hasLegalEclipseTarget: hasLegalAnyBattlefieldUnitReactionTarget(),
       hasLegalStupefyTarget: hasLegalAnyBattlefieldUnitReactionTarget(),
       hasLegalDefyTarget: legalDefyChainTargets().length > 0,

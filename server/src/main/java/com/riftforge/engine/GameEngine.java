@@ -249,6 +249,12 @@ public class GameEngine {
       addStructuredTargetReactionToChain(state, move, card, def, LiveGameState.ChainItem.EFFECT_FLASH_RECALL);
       return state;
     }
+    if (cardDataService.isStarCrossedReaction(def)) {
+      state.setCardPlayedThisTurn(true);
+      battlefieldEffectService.onSpellPlayed(state, move.playerId());
+      addStructuredTargetReactionToChain(state, move, card, def, LiveGameState.ChainItem.EFFECT_STAR_CROSSED_RETURN);
+      return state;
+    }
     if (cardDataService.isEclipseReaction(def)) {
       state.setCardPlayedThisTurn(true);
       battlefieldEffectService.onSpellPlayed(state, move.playerId());
@@ -800,6 +806,11 @@ public class GameEngine {
       moveChainSourceToTrash(state, item);
       return resolved ? LiveGameState.ChainItem.STATUS_RESOLVED : LiveGameState.ChainItem.STATUS_FIZZLED;
     }
+    if (LiveGameState.ChainItem.EFFECT_STAR_CROSSED_RETURN.equals(item.effectKey())) {
+      boolean resolved = resolveStarCrossedChainItem(state, item, description);
+      moveChainSourceToTrash(state, item);
+      return resolved ? LiveGameState.ChainItem.STATUS_RESOLVED : LiveGameState.ChainItem.STATUS_FIZZLED;
+    }
     if (LiveGameState.ChainItem.EFFECT_ECLIPSE_WEAKEN_PREDICT.equals(item.effectKey())) {
       boolean resolved = resolveEclipseChainItem(state, item, description);
       moveChainSourceToTrash(state, item);
@@ -1318,6 +1329,26 @@ public class GameEngine {
     return true;
   }
 
+  private boolean resolveStarCrossedChainItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
+    CardInstance friendly = chainBoardTargetByRole(state, item, PlayCardMove.TargetSelection.FRIENDLY_UNIT);
+    CardInstance enemy = chainBoardTargetByRole(state, item, PlayCardMove.TargetSelection.ENEMY_UNIT);
+    if (friendly == null || enemy == null
+        || friendly.getInstanceId().equals(enemy.getInstanceId())
+        || !isFriendlyPublicBattlefieldUnit(friendly, item.controllerPlayerId())
+        || !isPublicBattlefieldUnit(enemy)
+        || item.controllerPlayerId().equals(enemy.getOwnerId())) {
+      log(state, item.controllerPlayerId(), description + " fizzled because its targets were no longer legal.");
+      return false;
+    }
+    CardDefinition sourceDef = cardDataService.getCard(item.sourceCardId());
+    CardInstance source = chainSourceOrFallback(state, item);
+    returnUnitToOwnerHand(state, source, sourceDef, friendly);
+    returnUnitToOwnerHand(state, source, sourceDef, enemy);
+    log(state, item.controllerPlayerId(), "Resolved " + description + ": returned a friendly unit and an enemy unit to hand.");
+    advanceShowdownFocusAfterChainAction(state, item);
+    return true;
+  }
+
   private boolean resolveEclipseChainItem(LiveGameState state, LiveGameState.ChainItem item, String description) {
     CardInstance target = firstChainBoardTarget(state, item);
     if (target == null || !isPublicBattlefieldUnit(target)) {
@@ -1326,7 +1357,8 @@ public class GameEngine {
     }
     CardDefinition sourceDef = cardDataService.getCard(item.sourceCardId());
     applyTemporaryMight(state, chainSourceOrFallback(state, item), sourceDef, target, -4);
-    log(state, item.controllerPlayerId(), "Resolved " + description + ": gave -4 Might. Predict is deferred in alpha.");
+    createPredictChoice(state, item);
+    log(state, item.controllerPlayerId(), "Resolved " + description + ": gave -4 Might, then started a private Predict choice.");
     advanceShowdownFocusAfterChainAction(state, item);
     return true;
   }
@@ -1647,7 +1679,10 @@ public class GameEngine {
         item.sourceCardId(),
         item.sourceCardInstanceId(),
         topCards));
-    log(state, item.controllerPlayerId(), "Abandon is waiting for a private Predict choice.");
+    String sourceName = cardDataService.getCard(item.sourceCardId()) == null
+        ? "Predict"
+        : cardDataService.getCard(item.sourceCardId()).name();
+    log(state, item.controllerPlayerId(), sourceName + " is waiting for a private Predict choice.");
   }
 
   private void advanceShowdownFocusAfterAction(LiveGameState state, String playerId) {
@@ -2397,6 +2432,7 @@ public class GameEngine {
     target.setZone(ZoneName.HAND);
     target.setTapped(false);
     target.setHasSummoningSickness(false);
+    target.setBattlefieldLocationId(null);
     log(state, source.getOwnerId(), sourceDef.name() + " returned " + cardDataService.getCard(target.getCardId()).name() + " to hand.");
   }
 

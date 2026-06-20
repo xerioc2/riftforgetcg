@@ -149,6 +149,18 @@ public class PriorityWindowService {
           def.name(),
           null));
     }
+    if (cardDataService.isStarCrossedReaction(def)) {
+      return Optional.of(new PriorityWindow(
+          PriorityWindowType.REACTION_PLAYED,
+          LiveGameState.ChainItem.EFFECT_STAR_CROSSED_RETURN,
+          LiveGameState.ChainItem.TYPE_SPELL,
+          LiveGameState.ChainItem.VISIBILITY_PUBLIC,
+          true,
+          true,
+          ZoneName.HAND,
+          def.name(),
+          null));
+    }
     if (cardDataService.isEclipseReaction(def)) {
       return Optional.of(new PriorityWindow(
           PriorityWindowType.REACTION_PLAYED,

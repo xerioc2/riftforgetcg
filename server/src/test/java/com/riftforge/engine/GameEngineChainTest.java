@@ -98,6 +98,15 @@ class GameEngineChainTest {
           && text.contains("move up to 2 friendly units")
           && text.contains("base");
     });
+    when(cardDataService.isStarCrossedReaction(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
+      CardDefinition def = invocation.getArgument(0);
+      String text = def == null || def.rulesText() == null ? "" : def.rulesText().toLowerCase();
+      return def != null && "Star-Crossed".equalsIgnoreCase(def.name())
+          && text.contains("[reaction]")
+          && text.contains("return a friendly unit")
+          && text.contains("enemy unit")
+          && text.contains("owners' hands");
+    });
     when(cardDataService.isEclipseReaction(org.mockito.ArgumentMatchers.any(CardDefinition.class))).thenAnswer(invocation -> {
       CardDefinition def = invocation.getArgument(0);
       String text = def == null || def.rulesText() == null ? "" : def.rulesText().toLowerCase();
@@ -1688,7 +1697,42 @@ class GameEngineChainTest {
           assertThat(card.getPrintedMight()).isEqualTo(3);
           assertThat(card.getEffectiveMight()).isZero();
         });
-    assertThat(state.getLog()).anyMatch(entry -> entry.text().contains("Resolved Eclipse: gave -4 Might. Predict is deferred in alpha."));
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().contains("Predict found no cards."));
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().contains("Resolved Eclipse: gave -4 Might, then started a private Predict choice."));
+  }
+
+  @Test
+  void eclipseCreatesPrivatePredictChoiceAfterResolving() {
+    stubCard("eclipse", "Eclipse", "Spell", 0, 0, 0, eclipseText());
+    stubCard("target", "Target Unit", "Unit", 0, 3, 3, null);
+    stubCard("private-top", "Private Top", "Spell", 0, 0, 0, null);
+    LiveGameState state = state(null);
+    player(state, "p1").setDeckPool(new ArrayList<>(List.of("private-top")));
+    CardInstance eclipse = cardInstance("eclipse-1", "p1", "eclipse", ZoneName.HAND);
+    CardInstance target = cardInstance("target-1", "p2", "target", ZoneName.BATTLEFIELD);
+    state.getCards().addAll(List.of(eclipse, target));
+
+    engine.applyMove(state, new PlayCardMove("p1", "eclipse-1", ZoneName.BASE, 0, 0, "target-1"));
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new ResolveChainTopMove("p1"));
+
+    assertThat(target.getTemporaryPowerModifier()).isEqualTo(-4);
+    assertThat(eclipse.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(state.getChainState()).isNull();
+    assertThat(state.getPendingChoice()).isNotNull();
+    assertThat(state.getPendingChoice().getType()).isEqualTo(PendingChoice.TYPE_PREDICT_ORDER);
+    assertThat(state.getPendingChoice().getPlayerId()).isEqualTo("p1");
+    assertThat(state.getPendingChoice().getCardOptions()).extracting(PendingChoice.CardChoiceOption::cardId)
+        .containsExactly("private-top");
+
+    LiveGameState ownerView = new GameStateProjectionService(new LegalActionsService(cardDataService)).toPublicView(state, "p1");
+    LiveGameState opponentView = new GameStateProjectionService(new LegalActionsService(cardDataService)).toPublicView(state, "p2");
+    assertThat(ownerView.getPendingChoice()).isNotNull();
+    assertThat(ownerView.getPendingChoice().getCardOptions()).extracting(PendingChoice.CardChoiceOption::cardId)
+        .containsExactly("private-top");
+    assertThat(opponentView.getPendingChoice()).isNull();
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().contains("Eclipse is waiting for a private Predict choice."));
   }
 
   @Test
@@ -1886,6 +1930,125 @@ class GameEngineChainTest {
     assertThat(flash.getZone()).isEqualTo(ZoneName.HAND);
     assertThat(enemy.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
     assertThat(state.getChainState().chainItems()).hasSize(1);
+  }
+
+  @Test
+  void starCrossedResolvesFromChainAndReturnsFriendlyAndEnemyTargets() {
+    stubCard("star-crossed", "Star-Crossed", "Spell", 0, 0, 0, starCrossedText());
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    stubCard("enemy", "Enemy Unit", "Unit", 0, 2, 2, null);
+    LiveGameState state = state(null);
+    CardInstance starCrossed = cardInstance("star-crossed-1", "p1", "star-crossed", ZoneName.HAND);
+    CardInstance friendly = cardInstance("friendly-1", "p1", "friendly", ZoneName.BATTLEFIELD);
+    friendly.setBattlefieldLocationId("bf-1");
+    CardInstance enemy = cardInstance("enemy-1", "p2", "enemy", ZoneName.BATTLEFIELD);
+    enemy.setBattlefieldLocationId("bf-1");
+    state.getCards().addAll(List.of(starCrossed, friendly, enemy));
+
+    engine.applyMove(state, multiTargetReaction(
+        "p1",
+        "star-crossed-1",
+        List.of(
+            new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.FRIENDLY_UNIT, "friendly-1"),
+            new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.ENEMY_UNIT, "enemy-1"))));
+
+    assertThat(starCrossed.getZone()).isEqualTo(ZoneName.LIMBO);
+    assertThat(state.getChainState().topItem()).satisfies(item -> {
+      assertThat(item.effectKey()).isEqualTo(LiveGameState.ChainItem.EFFECT_STAR_CROSSED_RETURN);
+      assertThat(item.chainTargets()).extracting(LiveGameState.ChainTarget::role)
+          .containsExactly(PlayCardMove.TargetSelection.FRIENDLY_UNIT, PlayCardMove.TargetSelection.ENEMY_UNIT);
+    });
+
+    engine.applyMove(state, new PassChainFocusMove("p2"));
+    engine.applyMove(state, new PassChainFocusMove("p1"));
+    engine.applyMove(state, new ResolveChainTopMove("p1"));
+
+    assertThat(starCrossed.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(friendly.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(enemy.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(friendly.getBattlefieldLocationId()).isNull();
+    assertThat(enemy.getBattlefieldLocationId()).isNull();
+    assertThat(state.getLog()).anyMatch(entry -> entry.text().contains("Resolved Star-Crossed: returned a friendly unit and an enemy unit to hand."));
+  }
+
+  @Test
+  void starCrossedRejectsMissingOrWrongTargetPairWithoutMutation() {
+    stubCard("star-crossed", "Star-Crossed", "Spell", 0, 0, 0, starCrossedText());
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    stubCard("enemy", "Enemy Unit", "Unit", 0, 2, 2, null);
+    LiveGameState state = state(chain(false, "p1"));
+    CardInstance starCrossed = cardInstance("star-crossed-1", "p1", "star-crossed", ZoneName.HAND);
+    CardInstance friendly = cardInstance("friendly-1", "p1", "friendly", ZoneName.BATTLEFIELD);
+    CardInstance enemy = cardInstance("enemy-1", "p2", "enemy", ZoneName.BATTLEFIELD);
+    state.getCards().addAll(List.of(starCrossed, friendly, enemy));
+
+    assertThatThrownBy(() -> engine.applyMove(state, multiTargetReaction(
+        "p1",
+        "star-crossed-1",
+        List.of(new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.FRIENDLY_UNIT, "friendly-1")))))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("This card requires a friendly target and an enemy target.");
+
+    assertThatThrownBy(() -> engine.applyMove(state, multiTargetReaction(
+        "p1",
+        "star-crossed-1",
+        List.of(
+            new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.FRIENDLY_UNIT, "enemy-1"),
+            new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.ENEMY_UNIT, "friendly-1")))))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Friendly target must be controlled by you.");
+
+    assertThat(starCrossed.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(friendly.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(enemy.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(state.getChainState().chainItems()).hasSize(1);
+  }
+
+  @Test
+  void starCrossedRejectsHiddenTargetsAndFizzlesSafelyIfTargetLeaves() {
+    stubCard("star-crossed", "Star-Crossed", "Spell", 0, 0, 0, starCrossedText());
+    stubCard("friendly", "Friendly Unit", "Unit", 0, 2, 2, null);
+    stubCard("enemy", "Enemy Unit", "Unit", 0, 2, 2, null);
+    LiveGameState rejectedState = state(chain(false, "p1"));
+    CardInstance rejectedSource = cardInstance("star-crossed-1", "p1", "star-crossed", ZoneName.HAND);
+    CardInstance friendly = cardInstance("friendly-1", "p1", "friendly", ZoneName.BATTLEFIELD);
+    CardInstance hiddenEnemy = cardInstance("enemy-1", "p2", "enemy", ZoneName.BATTLEFIELD);
+    hiddenEnemy.setFaceDown(true);
+    rejectedState.getCards().addAll(List.of(rejectedSource, friendly, hiddenEnemy));
+
+    assertThatThrownBy(() -> engine.applyMove(rejectedState, multiTargetReaction(
+        "p1",
+        "star-crossed-1",
+        List.of(
+            new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.FRIENDLY_UNIT, "friendly-1"),
+            new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.ENEMY_UNIT, "enemy-1")))))
+        .isInstanceOf(IllegalMoveException.class)
+        .hasMessage("Target must be a public Unit or Champion.");
+
+    assertThat(rejectedSource.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(hiddenEnemy.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+
+    LiveGameState fizzleState = state(null);
+    CardInstance starCrossed = cardInstance("star-crossed-2", "p1", "star-crossed", ZoneName.HAND);
+    CardInstance fizzleFriendly = cardInstance("friendly-2", "p1", "friendly", ZoneName.BATTLEFIELD);
+    CardInstance fizzleEnemy = cardInstance("enemy-2", "p2", "enemy", ZoneName.BATTLEFIELD);
+    fizzleState.getCards().addAll(List.of(starCrossed, fizzleFriendly, fizzleEnemy));
+    engine.applyMove(fizzleState, multiTargetReaction(
+        "p1",
+        "star-crossed-2",
+        List.of(
+            new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.FRIENDLY_UNIT, "friendly-2"),
+            new PlayCardMove.TargetSelection(PlayCardMove.TargetSelection.ENEMY_UNIT, "enemy-2"))));
+    fizzleEnemy.setZone(ZoneName.HAND);
+
+    engine.applyMove(fizzleState, new PassChainFocusMove("p2"));
+    engine.applyMove(fizzleState, new PassChainFocusMove("p1"));
+    engine.applyMove(fizzleState, new ResolveChainTopMove("p1"));
+
+    assertThat(fizzleFriendly.getZone()).isEqualTo(ZoneName.BATTLEFIELD);
+    assertThat(fizzleEnemy.getZone()).isEqualTo(ZoneName.HAND);
+    assertThat(starCrossed.getZone()).isEqualTo(ZoneName.DISCARD);
+    assertThat(fizzleState.getLog()).anyMatch(entry -> entry.text().contains("Star-Crossed fizzled because its targets were no longer legal."));
   }
 
   private LiveGameState state(LiveGameState.ChainState chain) {
@@ -2233,6 +2396,10 @@ class GameEngineChainTest {
 
   private String flashText() {
     return "[Reaction] (Play any time, even before spells and abilities resolve.) Move up to 2 friendly units to base.";
+  }
+
+  private String starCrossedText() {
+    return "[Reaction] (Play any time, even before spells and abilities resolve.) Return a friendly unit and an enemy unit to their owners' hands.";
   }
 
   private String eclipseText() {

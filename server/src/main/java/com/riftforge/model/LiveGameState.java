@@ -179,6 +179,7 @@ public class LiveGameState {
     public static final String EFFECT_EN_GARDE_BOOST = "EN_GARDE_BOOST";
     public static final String EFFECT_DEFIANT_DANCE_MODIFIERS = "DEFIANT_DANCE_MODIFIERS";
     public static final String EFFECT_FLASH_RECALL = "FLASH_RECALL";
+    public static final String EFFECT_STAR_CROSSED_RETURN = "STAR_CROSSED_RETURN";
     public static final String EFFECT_ECLIPSE_WEAKEN_PREDICT = "ECLIPSE_WEAKEN_PREDICT";
     public static final String EFFECT_STUPEFY_WEAKEN_DRAW = "STUPEFY_WEAKEN_DRAW";
     public static final String EFFECT_STACKED_DECK_PICK_ONE = "STACKED_DECK_PICK_ONE";

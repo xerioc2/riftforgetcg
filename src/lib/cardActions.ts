@@ -216,6 +216,16 @@ export function isFlashReactionCard(card: RiftCard | undefined) {
     && text.includes('base');
 }
 
+export function isStarCrossedReactionCard(card: RiftCard | undefined) {
+  const text = (card?.rulesText ?? '').toLowerCase();
+  return card?.type?.toLowerCase() === 'spell'
+    && isReactionCard(card)
+    && card.name?.trim().toLowerCase() === 'star-crossed'
+    && text.includes('return a friendly unit')
+    && text.includes('enemy unit')
+    && text.includes("owners' hands");
+}
+
 export function isEclipseReactionCard(card: RiftCard | undefined) {
   const text = (card?.rulesText ?? '').toLowerCase();
   return card?.type?.toLowerCase() === 'spell'
@@ -252,6 +262,7 @@ export function isSupportedChainReactionCard(card: RiftCard | undefined) {
     || isEnGardeReactionCard(card)
     || isDefiantDanceReactionCard(card)
     || isFlashReactionCard(card)
+    || isStarCrossedReactionCard(card)
     || isEclipseReactionCard(card)
     || isStupefyReactionCard(card)
     || isDefyCounterCard(card)
@@ -281,6 +292,7 @@ export function canUseSupportedChainResponse(
     hasLegalEnGardeTarget?: boolean;
     hasLegalDefiantDanceTarget?: boolean;
     hasLegalFlashTarget?: boolean;
+    hasLegalStarCrossedTarget?: boolean;
     hasLegalEclipseTarget?: boolean;
     hasLegalStupefyTarget?: boolean;
     hasLegalDefyTarget: boolean;
@@ -295,6 +307,7 @@ export function canUseSupportedChainResponse(
   if (isEnGardeReactionCard(card)) return Boolean(options.hasLegalEnGardeTarget);
   if (isDefiantDanceReactionCard(card)) return Boolean(options.hasLegalDefiantDanceTarget);
   if (isFlashReactionCard(card)) return Boolean(options.hasLegalFlashTarget);
+  if (isStarCrossedReactionCard(card)) return Boolean(options.hasLegalStarCrossedTarget);
   if (isEclipseReactionCard(card)) return Boolean(options.hasLegalEclipseTarget);
   if (isStupefyReactionCard(card)) return Boolean(options.hasLegalStupefyTarget);
   if (isDefyCounterCard(card)) return options.hasLegalDefyTarget;

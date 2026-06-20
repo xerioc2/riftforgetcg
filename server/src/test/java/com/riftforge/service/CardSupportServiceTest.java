@@ -74,10 +74,15 @@ class CardSupportServiceTest {
         .contains("alpha chain-window Reaction support")
         .contains("up to two friendly")
         .contains("Base");
+    assertThat(service.summarize(card("star-crossed", "Star-Crossed", "Spell", "[Reaction] Return a friendly unit and an enemy unit to their owners' hands.")).reason())
+        .contains("alpha chain-window Reaction support")
+        .contains("friendly public")
+        .contains("enemy public")
+        .contains("owners' hands");
     assertThat(service.summarize(card("eclipse", "Eclipse", "Spell", "[Reaction] Give a unit -4 :rb_might: this turn. [Predict].")).reason())
         .contains("alpha chain-window Reaction support")
         .contains("-4 Might")
-        .contains("Predict from Eclipse remains deferred");
+        .contains("private owner-only Predict choice");
     assertThat(service.summarize(card("stupefy", "Stupefy", "Spell", "[Reaction] Give a unit -1 :rb_might: this turn, to a minimum of 1 :rb_might:. Draw 1.")).reason())
         .contains("alpha chain-window Reaction support")
         .contains("-1 Might")

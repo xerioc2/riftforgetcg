@@ -296,6 +296,10 @@ public class RulesValidator {
     if (gear && hasExplicitTarget) {
       throw new IllegalMoveException("Play Equipment to Base first, then equip it from Base.");
     }
+    if (spell && cardDataService.isStarCrossedReaction(def)) {
+      validateFriendlyAndEnemyTargets(state, move);
+      return;
+    }
     if (cardDataService.requiresFriendlyAndEnemyTargets(card.getCardId())) {
       validateFriendlyAndEnemyTargets(state, move);
       return;
@@ -368,6 +372,7 @@ public class RulesValidator {
           && !cardDataService.isEnGardeReaction(def)
           && !cardDataService.isDefiantDanceReaction(def)
           && !cardDataService.isFlashReaction(def)
+          && !cardDataService.isStarCrossedReaction(def)
           && !cardDataService.isEclipseReaction(def)
           && !cardDataService.isStupefyReaction(def)
           && !cardDataService.isDefyCounterReaction(def)
@@ -443,6 +448,7 @@ public class RulesValidator {
         || cardDataService.isEnGardeReaction(def)
         || cardDataService.isDefiantDanceReaction(def)
         || cardDataService.isFlashReaction(def)
+        || cardDataService.isStarCrossedReaction(def)
         || cardDataService.isEclipseReaction(def)
         || cardDataService.isStupefyReaction(def);
   }
